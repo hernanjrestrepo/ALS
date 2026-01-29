@@ -307,8 +307,8 @@ class PlanningService {
 
         // AI suggests best template
 
-        const templatesList = templates.map((t: any) =>
-            `- ID: ${t.id}, Nombre: ${t.name}, Tipo: ${t.oitType}, Descripción: ${t.description}`
+        const templatesList = templates.map((t: any, index: number) =>
+            `${index + 1}. [${t.oitType}] ${t.name}`
         ).join('\n');
 
         const systemPrompt = `Eres un Planificador Senior de Operaciones Ambientales especialista en la normativa colombiana. 
@@ -316,16 +316,10 @@ Tu responsabilidad es asignar TODAS las plantillas (metodologías de muestreo) n
 
 IMPORTANTE: 
 1. Analiza el documento buscando los ITEMS o SERVICIOS específicos contratados.
-2. Selecciona MULTIPLES plantillas si el trabajo así lo requiere (ej: si piden Agua y Ruido, selecciona ambas).
-3. Las plantillas ahora tienen el formato "Categoría - Nombre". Úsalas según corresponda:
-   - Categoría AGUA: Para vertimientos, agua superficial, subterránea, potable, piscinas.
-   - Categoría AIRE: Para calidad de aire (PM10, PM2.5, gases) y climatología.
-   - Categoría RUIDO: Para emisión, ambiental e intradomiciliario.
-   - Categoría FUENTES FIJAS: Para chimeneas y emisiones isocinéticas.
-   - Categoría BIOTA: Para hidrobiología y fauna.
-   - Categoría SUELO/SEDIMENTOS/LODOS: Para muestreos en estos medios.
-
-NO seas tacaño con la selección. Si el documento describe 3 tipos de muestreo, selecciona las 3 plantillas más ajustadas.`;
+2. Selecciona MULTIPLES plantillas si el trabajo así lo requiere.
+3. Las plantillas están numeradas del 1 al ${templates.length}. Responde solo con los NÚMEROS.
+4. NUNCA uses "..." ni "etc". Si hay 15 servicios, pon los 15 números.
+5. Si ves un servicio que no tiene una plantilla exacta, elige la más cercana de la misma categoría (AGUA, AIRE, RUIDO, etc.).`;
 
         // Include document content for better analysis (truncated to avoid token limits)
         console.log(`[Planning] Template Selection - fullDocumentText length: ${fullDocumentText?.length || 0}`);
@@ -337,35 +331,32 @@ NO seas tacaño con la selección. Si el documento describe 3 tipos de muestreo,
         const docPreview = relevantText.substring(0, 20000);
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
 
-        const prompt = `Analiza EXHAUSTIVAMENTE esta OIT y selecciona TODAS las plantillas de muestreo correspondientes. NO TE LIMITES. Si hay 20 servicios, selecciona 20 plantillas.
+        const prompt = `Analiza EXHAUSTIVAMENTE esta OIT y selecciona los NUMEROS de las plantillas correspondientes. NO TE LIMITES. Si hay 20 servicios, selecciona 20 números.
         
-**INSTRUCCIONES DE OBLIGATORIO CUMPLIMIENTO:**
-1. Escanea CADA PÁGINA del documento buscando items, tablas de servicios o descripciones de tareas.
-2. Cada vez que veas un servicio (ej: "Monitoreo de Ruido Ambiental", "Analisis físico-químico de Aguas", "Caracterización Biótica"), busca la plantilla ID exacta en la lista.
-3. **PASO DE VERIFICACIÓN:** Cuenta cuántos servicios distintos pide el cliente en el documento. Asegúrate de que tu lista de IDs refleje CADA uno de esos servicios.
-4. Es mejor tener duplicados o plantillas de más que dejar un solo servicio fuera.
-5. Usa los nombres de categoría para guiarte (ej: "Agua - ...").
-
-**DATO IMPORTANTE:** Si el documento pide "Aguas" y ves 3 puntos de muestreo, selecciona la plantilla de Aguas. Si luego ves "Ruido", selecciona TAMBIÉN la de Ruido.
+**INSTRUCCIONES CRÍTICAS:**
+1. Escanea CADA PÁGINA buscando items de cobro o servicios.
+2. Por cada servicio visto, anota el NÚMERO de la plantilla que corresponda de la lista de abajo.
+3. **VERIFICACIÓN:** Si el cliente paga por 5 cosas, debes devolver al menos 5 números.
+4. Escribe los números uno por uno en la lista "templateNumbers". PROHIBIDO usar "..." o resumir.
 
 **DETALLES DE LA OIT:**
 - OIT: ${oit.oitNumber}
 - Descripción: ${oit.description || 'N/A'}
 
-${docPreview ? `**TEXTO DEL DOCUMENTO (ANALIZA TODO):**
+${docPreview ? `**Contenido del Documento:**
 ${docPreview}
 ...
 ` : ''}
 
-**LISTA DE PLANTILLAS DISPONIBLES (ID y Nombre):**
+**LISTA DE PLANTILLAS DISPONIBLES (Usa solo el número):**
 ${templatesList}
 
 **Responde con este JSON:**
 {
-  "totalServicesFound": "número de servicios que detectaste en el texto",
-  "templateIds": ["id1", "id2", "id3", ...],
-  "detailedRegistry": "lista de qué item del documento activó cada ID",
-  "reason": "Justificación técnica"
+  "totalItemsFoundInDoc": "número total de servicios que leíste",
+  "templateNumbers": [number1, number2, number3, ...],
+  "mapping": "Lista de 'Servicio -> Numero de Plantilla'",
+  "reason": "Explicación breve"
 }`;
 
         let selectedTemplates: any[] = [];
@@ -376,14 +367,22 @@ ${templatesList}
             const cleanedResponse = this.cleanAIResponse(aiResponse);
             const templateSuggestion = JSON.parse(cleanedResponse);
 
-            // Normalize response (array vs single)
-            const ids = templateSuggestion.templateIds || (templateSuggestion.templateId ? [templateSuggestion.templateId] : []);
+            // Map numeric indexes back to UUIDs
+            const indexes = Array.isArray(templateSuggestion.templateNumbers)
+                ? templateSuggestion.templateNumbers
+                : [];
+
+            const ids = indexes
+                .map((idx: any) => {
+                    const i = parseInt(idx) - 1;
+                    return (i >= 0 && i < templates.length) ? templates[i].id : null;
+                })
+                .filter(Boolean);
 
             if (ids.length > 0) {
                 selectedTemplates = await prisma.samplingTemplate.findMany({
-                    where: { id: { in: ids } }
+                    where: { id: { in: ids as string[] } }
                 });
-                // Re-sort to match AI order if possible, or keep DB order. AI order might be better for sequence.
             }
         } catch (error) {
             console.error('Failed to parse AI response:', error);
