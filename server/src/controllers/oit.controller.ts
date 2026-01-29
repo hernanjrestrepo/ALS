@@ -569,6 +569,9 @@ export const getAllOITs = async (req: Request, res: Response) => {
             };
         }
 
+        console.log('[DEBUG-OIT-LIST] User:', { userId, userRole });
+        console.log('[DEBUG-OIT-LIST] WhereClause:', JSON.stringify(whereClause, null, 2));
+
         const oits = await prisma.oIT.findMany({
             where: whereClause,
             orderBy: { createdAt: 'desc' },
@@ -582,6 +585,8 @@ export const getAllOITs = async (req: Request, res: Response) => {
                 }
             }
         });
+
+        console.log(`[DEBUG-OIT-LIST] Found ${oits.length} OITs`);
 
         // Map to include engineers in a cleaner format
         const result = oits.map((oit: any) => ({
