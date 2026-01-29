@@ -157,9 +157,17 @@ class PlanningService {
         }
         if (minEnd !== -1) endIdx = minEnd;
 
-        // If extraction is too small (<50 chars), fallback to original (maybe document is short)
+        // If extraction is too small (<50 chars) or seems to have missed the actual content
+        // expand the search window
         const extracted = text.substring(startIdx, endIdx);
-        if (extracted.length < 50) return text;
+
+        // Safety check: if extracted text is very short but original is long,
+        // it might be a failure to find end marker correctly.
+        // Let's cap the length to avoid sending 50 pages of terms & conditions
+        if (extracted.length < 50 && text.length > 500) {
+            // Fallback: take first 5000 chars after the start marker
+            return text.substring(startIdx, Math.min(startIdx + 5000, text.length));
+        }
 
         return extracted;
     }
@@ -363,11 +371,12 @@ NO LIMITES la selección. Incluye TODAS las plantillas que el trabajo requiera.`
         const prompt = `Analiza esta OIT y selecciona TODAS las plantillas de muestreo necesarias.
         
         ADVERTENCIA IMPORTANTE:
-        El documento puede contener una lista general de "Servicios que ofrecemos" en el pie de página o encabezado.
-        IGNORA esa lista general.
-        Céntrate ÚNICAMENTE en la tabla de items o líneas que describen el trabajo ACTUAL solicitado (ej: "Servicio 1", "Item 1", "Descripción del Trabajo").
-        Si ves "Servicio 1: Agua residual", usa la plantilla AGUA.
-        Si ves "Servicio 2: Ruido", usa la plantilla RUIDO.
+        1. IGNORA listas generales de "Servicios Ofrecidos" en el pie de página.
+        2. Céntrate ÚNICAMENTE en la tabla de items o líneas que describen el trabajo ACTUAL solicitado.
+        3. SE LITERAL:
+           - Solo selecciona "Olores" SI Y SOLO SI ves palabras como "Olores", "H2S", "Mercaptanos", "Amoniaco", "Sustancias Odoríferas". NO lo inferas por "Agua Residual".
+           - Si ves "Agua Residual", "Vertimientos", "Agua Superficial", "Agua Subterranea" -> USA SIEMPRE la plantilla de AGUA.
+           - Si ves "Ruido", "Sonometría" -> USA la plantilla de RUIDO.
 
 **OIT:**
 - Número: ${oit.oitNumber}
@@ -381,14 +390,14 @@ ${docPreview}
 ${templatesList}
 
 **INSTRUCCIONES:**
-1. Lee TODO el contenido del documento
-2. Identifica TODOS los tipos de monitoreo mencionados
-3. Selecciona TODAS las plantillas que apliquen (pueden ser 1, 2, 3 o más)
+1. Busca la tabla de servicios o la descripción específica del trabajo.
+2. Identifica CADA servicio solicitado individualmente.
+3. Clasifica cada servicio en una de las plantillas disponibles.
 
 **Responde ÚNICAMENTE en formato JSON:**
 {
   "templateIds": ["id1", "id2", "id3", ...],
-  "reason": "razón técnica de CADA selección",
+  "reason": "Explicación breve para cada ID seleccionado",
   "confidence": número entre 0 y 1
 }`;
 
