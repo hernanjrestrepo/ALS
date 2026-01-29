@@ -106,21 +106,18 @@ class PlanningService {
         const lower = text.toLowerCase();
 
         // Keywords that likely start the services section
-        // We avoid short words to prevent false positives
-        // Keywords that likely start the services section
-        // We avoid short words to prevent false positives
         const startMarkers = [
             'descripción del servicio',
             'detalle de servicios',
             'alcance de los servicios',
             'servicios a realizar',
+            'servicios contratados',
+            'servicios solicitados',
             'descripción',
             'parametros',
-            'item',    // Table header
-            'cant',    // Table header
-            'unidad',   // Table header
-            'servicio 1', // Explicit service lines
-            'servicio n'
+            'parámetros',
+            'item',
+            'servicio 1'
         ];
 
         // Keywords that likely end the section
@@ -128,9 +125,11 @@ class PlanningService {
             'condiciones comerciales',
             'valor total',
             'subtotal',
+            'forma de pago',
             'observaciones generales',
             'notas:',
-            'atentamente'
+            'atentamente',
+            'cordialmente'
         ];
 
         let startIdx = 0;
@@ -149,24 +148,18 @@ class PlanningService {
         // Find best end index (closest one after start)
         let minEnd = -1;
         for (const m of endMarkers) {
-            // Look ahead to avoid matching "Notes" in the header
-            const idx = lower.indexOf(m, startIdx + 50);
+            const idx = lower.indexOf(m, startIdx + 100); // Look a bit ahead
             if (idx !== -1) {
                 if (minEnd === -1 || idx < minEnd) minEnd = idx;
             }
         }
         if (minEnd !== -1) endIdx = minEnd;
 
-        // If extraction is too small (<50 chars) or seems to have missed the actual content
-        // expand the search window
         const extracted = text.substring(startIdx, endIdx);
 
-        // Safety check: if extracted text is very short but original is long,
-        // it might be a failure to find end marker correctly.
-        // Let's cap the length to avoid sending 50 pages of terms & conditions
-        if (extracted.length < 50 && text.length > 500) {
-            // Fallback: take first 5000 chars after the start marker
-            return text.substring(startIdx, Math.min(startIdx + 5000, text.length));
+        // Safety check
+        if (extracted.length < 100 && text.length > 500) {
+            return text.substring(0, Math.min(8000, text.length));
         }
 
         return extracted;
@@ -346,17 +339,21 @@ class PlanningService {
             `- ID: ${t.id}, Nombre: ${t.name}, Tipo: ${t.oitType}, Descripción: ${t.description}`
         ).join('\n');
 
-        const systemPrompt = `Eres un Planificador Senior de Operaciones Ambientales. 
-Tu responsabilidad es asignar TODAS las metodologías de muestreo necesarias para cada OIT.
-IMPORTANTE: Analiza TODO el documento y selecciona TODAS las plantillas que apliquen.
-- Si hay monitoreo de AGUA (vertimientos, aguas residuales, potable): incluir template de Agua
-- Si hay monitoreo de AIRE (PM10, PM2.5, gases, calidad aire): incluir template de Calidad de Aire
-- Si hay monitoreo de RUIDO (emisión, ambiental, intradomiciliario): incluir template de Ruido
-- Si hay FUENTES FIJAS (chimeneas, emisiones): incluir template de Fuentes Fijas
-- Si hay OLORES (sustancias odoríferas, H2S, NH3): incluir template de Olores
-- Si hay PARTÍCULAS VIABLES (microbiología aire): incluir template de Partículas Viables
-- Si hay RESPEL (residuos peligrosos, caracterización): incluir template RESPEL
-NO LIMITES la selección. Incluye TODAS las plantillas que el trabajo requiera.`;
+        const systemPrompt = `Eres un Planificador Senior de Operaciones Ambientales especialista en la normativa colombiana. 
+Tu responsabilidad es asignar TODAS las plantillas (metodologías de muestreo) necesarias para ejecutar una OIT.
+
+IMPORTANTE: 
+1. Analiza el documento buscando los ITEMS o SERVICIOS específicos contratados.
+2. Selecciona MULTIPLES plantillas si el trabajo así lo requiere (ej: si piden Agua y Ruido, selecciona ambas).
+3. Las plantillas ahora tienen el formato "Categoría - Nombre". Úsalas según corresponda:
+   - Categoría AGUA: Para vertimientos, agua superficial, subterránea, potable, piscinas.
+   - Categoría AIRE: Para calidad de aire (PM10, PM2.5, gases) y climatología.
+   - Categoría RUIDO: Para emisión, ambiental e intradomiciliario.
+   - Categoría FUENTES FIJAS: Para chimeneas y emisiones isocinéticas.
+   - Categoría BIOTA: Para hidrobiología y fauna.
+   - Categoría SUELO/SEDIMENTOS/LODOS: Para muestreos en estos medios.
+
+NO seas tacaño con la selección. Si el documento describe 3 tipos de muestreo, selecciona las 3 plantillas más ajustadas.`;
 
         // Include document content for better analysis (truncated to avoid token limits)
         console.log(`[Planning] Template Selection - fullDocumentText length: ${fullDocumentText?.length || 0}`);
@@ -368,37 +365,31 @@ NO LIMITES la selección. Incluye TODAS las plantillas que el trabajo requiera.`
         const docPreview = relevantText.substring(0, 12000);
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
 
-        const prompt = `Analiza esta OIT y selecciona TODAS las plantillas de muestreo necesarias.
+        const prompt = `Analiza detalladamente esta OIT y selecciona las plantillas de muestreo necesarias.
         
-        ADVERTENCIA IMPORTANTE:
-        1. IGNORA listas generales de "Servicios Ofrecidos" en el pie de página.
-        2. Céntrate ÚNICAMENTE en la tabla de items o líneas que describen el trabajo ACTUAL solicitado.
-        3. SE LITERAL:
-           - Solo selecciona "Olores" SI Y SOLO SI ves palabras como "Olores", "H2S", "Mercaptanos", "Amoniaco", "Sustancias Odoríferas". NO lo inferas por "Agua Residual".
-           - Si ves "Agua Residual", "Vertimientos", "Agua Superficial", "Agua Subterranea" -> USA SIEMPRE la plantilla de AGUA.
-           - Si ves "Ruido", "Sonometría" -> USA la plantilla de RUIDO.
+**REGLAS DE ORO:**
+1. Identifica los items específicos del contrato (ej: "Monitoreo de Aguas Superficiales", "Medición de Ruido Ambiental").
+2. Para cada item encontrado, busca en la lista de plantillas la que mejor coincida.
+3. Si el documento pide varios tipos de muestreo (ej: Monitoreo Biótico y de Aguas), DEBES seleccionar TODAS las plantillas correspondientes.
+4. IGNORA las cláusulas generales o listas de "otros servicios que ofrecemos" al final del documento. Céntrate en lo que se pagó en esta OIT actual.
 
 **OIT:**
 - Número: ${oit.oitNumber}
 - Descripción: ${oit.description || 'Sin descripción'}
 
-${docPreview ? `**CONTENIDO DEL DOCUMENTO (SECCIÓN RELEVANTE):**
+${docPreview ? `**CONTENIDO RELEVANTE DEL DOCUMENTO:**
 ${docPreview}
 ...
+` : ''}
 
-` : ''}**Plantillas Disponibles:**
+**Plantillas Disponibles (ID y Nombre):**
 ${templatesList}
 
-**INSTRUCCIONES:**
-1. Busca la tabla de servicios o la descripción específica del trabajo.
-2. Identifica CADA servicio solicitado individualmente.
-3. Clasifica cada servicio en una de las plantillas disponibles.
-
-**Responde ÚNICAMENTE en formato JSON:**
+**Responde ÚNICAMENTE en JSON:**
 {
-  "templateIds": ["id1", "id2", "id3", ...],
-  "reason": "Explicación breve para cada ID seleccionado",
-  "confidence": número entre 0 y 1
+  "templateIds": ["id1", "id2", ...],
+  "reason": "Explicación técnica detallada de por qué se seleccionó cada plantilla basada en el texto",
+  "confidence": 0.95
 }`;
 
         let selectedTemplates: any[] = [];
