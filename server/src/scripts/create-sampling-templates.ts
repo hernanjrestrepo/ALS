@@ -51,13 +51,13 @@ const MASTER_CATALOG = [
 ];
 
 const FOLDER_MAP: Record<string, string> = {
-    'AGUA': 'AGUA',
-    'BIOTA': 'BIOTA',
-    'CALIDAD DEL AIRE': 'AIRE',
-    'LODOS': 'LODOS',
-    'RUIDO': 'RUIDO',
-    'SEDIMENTOS': 'SEDIMENTOS',
-    'SUELO': 'SUELO'
+    'AGUA': 'Agua',
+    'BIOTA': 'Biota',
+    'CALIDAD DEL AIRE': 'Aire',
+    'LODOS': 'Lodos',
+    'RUIDO': 'Ruido',
+    'SEDIMENTOS': 'Sedimentos',
+    'SUELO': 'Suelo'
 };
 
 function toTitleCase(str: string): string {
@@ -86,13 +86,13 @@ function aggressiveCleanName(name: string): string {
 }
 
 async function main() {
-    console.log('🚀 Iniciando Sincronización Total Simplificada...\n');
+    console.log('🚀 Iniciando Sincronización Total con Categorías...\n');
 
     await prisma.samplingTemplate.deleteMany({});
     console.log('🗑️ Base de datos de plantillas limpiada.\n');
 
     // 1. Inserción de Catálogo Maestro
-    console.log('📜 Registrando Catálogo Maestro (11 plantillas)...');
+    console.log('📜 Registrando Catálogo Maestro...');
     for (const item of MASTER_CATALOG) {
         await prisma.samplingTemplate.create({
             data: {
@@ -106,7 +106,7 @@ async function main() {
     }
 
     // 2. Inserción de Planillas por Archivo
-    console.log('\n📁 Registrando Planillas de Carpetas con nombres simplificados...');
+    console.log('\n📁 Registrando Planillas de Carpetas...');
     if (fs.existsSync(PLANILLAS_DIR)) {
         const folders = Object.keys(FOLDER_MAP);
         for (const folder of folders) {
@@ -118,30 +118,34 @@ async function main() {
                 if (!file.match(/\.(xlsx|xls|doc|docx)$/i)) continue;
 
                 let rawClean = aggressiveCleanName(file);
-                let cleanName = toTitleCase(rawClean);
+                let simpleName = toTitleCase(rawClean);
+                let categoryPrefix = FOLDER_MAP[folder];
 
-                // Evitar nombres vacíos o strings residuales
-                if (cleanName.length < 3) continue;
+                // Formato FINAL: "Categoria - Nombre Simplificado"
+                // Ejemplo: "Agua - Muestreo Simple"
+                let cleanName = `${categoryPrefix} - ${simpleName}`;
 
-                // Evitar duplicados con el catálogo maestro o archivos similares
+                if (simpleName.length < 3) continue;
+
+                // Evitar duplicados exactos 
                 const exists = await prisma.samplingTemplate.findFirst({
                     where: { name: cleanName }
                 });
 
                 if (exists) {
-                    console.log(`   ⏩ Saltando duplicado: ${cleanName}`);
+                    console.log(`   ⏩ Saltando duplicado exacto: ${cleanName}`);
                     continue;
                 }
 
                 await prisma.samplingTemplate.create({
                     data: {
                         name: cleanName,
-                        oitType: FOLDER_MAP[folder],
-                        description: `Formato específico: ${cleanName} [Ref: ${file}]`,
+                        oitType: categoryPrefix.toUpperCase(),
+                        description: `Formato específico sincronizado de ${folder}/${file}`,
                         steps: JSON.stringify(BASE_11_STEPS)
                     }
                 });
-                console.log(`   ✨ ${folder}: ${cleanName}`);
+                console.log(`   ✨ ${cleanName}`);
             }
         }
     }
