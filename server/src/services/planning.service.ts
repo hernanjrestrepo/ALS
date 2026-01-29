@@ -337,33 +337,35 @@ NO seas tacaño con la selección. Si el documento describe 3 tipos de muestreo,
         const docPreview = relevantText.substring(0, 20000);
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
 
-        const prompt = `Analiza EXHAUSTIVAMENTE esta OIT y selecciona TODAS las plantillas de muestreo correspondientes.
+        const prompt = `Analiza EXHAUSTIVAMENTE esta OIT y selecciona TODAS las plantillas de muestreo correspondientes. NO TE LIMITES. Si hay 20 servicios, selecciona 20 plantillas.
         
-**REGLAS DE ORO (MÁXIMA PRIORIDAD):**
-1. Escanea EL DOCUMENTO ENTERO buscando cada item, línea o servicio individual mencionado.
-2. Por cada servicio solicitado (ej: "Monitoreo de Aguas", "Medición de Ruido", "Toma de muestras Biota"), selecciona la plantilla que corresponda.
-3. SI EL DOCUMENTO PIDE MULTIPLES TIPO DE MUESTREO, DEBES SELECCIONAR MULTIPLES PLANTILLAS. 
-   - Ejemplo: Si el documento pide "Aguas superficiales", "Ruido ambiental" y "Biótico", DEBES devolver los IDs de las plantillas de Agua, Ruido y Biota.
-4. Las plantillas ahora incluyen la categoría en el nombre (ej: "Agua - Muestreo Simple"). Usa esto para guiarte.
-5. NO TE LIMITES. Es mejor devolver 10 plantillas correctas que solo 1 incompleta.
+**INSTRUCCIONES DE OBLIGATORIO CUMPLIMIENTO:**
+1. Escanea CADA PÁGINA del documento buscando items, tablas de servicios o descripciones de tareas.
+2. Cada vez que veas un servicio (ej: "Monitoreo de Ruido Ambiental", "Analisis físico-químico de Aguas", "Caracterización Biótica"), busca la plantilla ID exacta en la lista.
+3. **PASO DE VERIFICACIÓN:** Cuenta cuántos servicios distintos pide el cliente en el documento. Asegúrate de que tu lista de IDs refleje CADA uno de esos servicios.
+4. Es mejor tener duplicados o plantillas de más que dejar un solo servicio fuera.
+5. Usa los nombres de categoría para guiarte (ej: "Agua - ...").
 
-**OIT DETALLES:**
-- Número: ${oit.oitNumber}
-- Descripción General: ${oit.description || 'Sin descripción'}
+**DATO IMPORTANTE:** Si el documento pide "Aguas" y ves 3 puntos de muestreo, selecciona la plantilla de Aguas. Si luego ves "Ruido", selecciona TAMBIÉN la de Ruido.
 
-${docPreview ? `**FRAGMENTO DEL DOCUMENTO (REVISA CON CUIDADO):**
+**DETALLES DE LA OIT:**
+- OIT: ${oit.oitNumber}
+- Descripción: ${oit.description || 'N/A'}
+
+${docPreview ? `**TEXTO DEL DOCUMENTO (ANALIZA TODO):**
 ${docPreview}
 ...
 ` : ''}
 
-**Plantillas Disponibles (ID y Nombre):**
+**LISTA DE PLANTILLAS DISPONIBLES (ID y Nombre):**
 ${templatesList}
 
 **Responde con este JSON:**
 {
+  "totalServicesFound": "número de servicios que detectaste en el texto",
   "templateIds": ["id1", "id2", "id3", ...],
-  "reason": "Análisis línea por línea de por qué se incluyó cada plantilla",
-  "confidence": 1.0
+  "detailedRegistry": "lista de qué item del documento activó cada ID",
+  "reason": "Justificación técnica"
 }`;
 
         let selectedTemplates: any[] = [];

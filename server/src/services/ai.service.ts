@@ -78,8 +78,7 @@ export class AIService {
                 system: system, // Pass system prompt
                 stream: false,
                 options: {
-                    temperature: 0,  // Make responses deterministic
-                    seed: 42,        // Fixed seed for reproducibility
+                    temperature: 0.2, // Increased slightly to be more inclusive
                 }
             });
 
