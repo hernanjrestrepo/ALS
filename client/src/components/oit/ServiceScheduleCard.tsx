@@ -106,7 +106,10 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                             <div className="flex items-center gap-2 p-2 bg-indigo-50 border border-indigo-100 rounded text-xs text-indigo-700">
                                 <Sparkles className="h-3 w-3" />
                                 <span>
-                                    💡 Sugerencia IA: {new Date(schedule.date).toLocaleDateString('es-ES')} a las {schedule.time}
+                                    💡 Sugerencia IA: {(() => {
+                                        const [y, m, d] = schedule.date.split('-').map(Number);
+                                        return new Date(y, m - 1, d).toLocaleDateString('es-ES');
+                                    })()} a las {schedule.time}
                                 </span>
                             </div>
                         )}
@@ -207,12 +210,17 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                         <div className="flex items-center gap-2 text-sm text-slate-700">
                             <Calendar className="h-4 w-4 text-green-600" />
                             <span className="font-medium">
-                                {new Date(localSchedule.date).toLocaleDateString('es-ES', {
-                                    weekday: 'long',
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                })}
+                                {(() => {
+                                    // Parse manually to avoid UTC conversion shifts
+                                    const [y, m, d] = localSchedule.date.split('-').map(Number);
+                                    const localDate = new Date(y, m - 1, d);
+                                    return localDate.toLocaleDateString('es-ES', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    });
+                                })()}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-slate-700">
