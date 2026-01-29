@@ -107,13 +107,20 @@ class PlanningService {
 
         // Keywords that likely start the services section
         // We avoid short words to prevent false positives
+        // Keywords that likely start the services section
+        // We avoid short words to prevent false positives
         const startMarkers = [
             'descripción del servicio',
             'detalle de servicios',
             'alcance de los servicios',
             'servicios a realizar',
             'descripción',
-            'parametros'
+            'parametros',
+            'item',    // Table header
+            'cant',    // Table header
+            'unidad',   // Table header
+            'servicio 1', // Explicit service lines
+            'servicio n'
         ];
 
         // Keywords that likely end the section
@@ -354,12 +361,19 @@ NO LIMITES la selección. Incluye TODAS las plantillas que el trabajo requiera.`
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
 
         const prompt = `Analiza esta OIT y selecciona TODAS las plantillas de muestreo necesarias.
+        
+        ADVERTENCIA IMPORTANTE:
+        El documento puede contener una lista general de "Servicios que ofrecemos" en el pie de página o encabezado.
+        IGNORA esa lista general.
+        Céntrate ÚNICAMENTE en la tabla de items o líneas que describen el trabajo ACTUAL solicitado (ej: "Servicio 1", "Item 1", "Descripción del Trabajo").
+        Si ves "Servicio 1: Agua residual", usa la plantilla AGUA.
+        Si ves "Servicio 2: Ruido", usa la plantilla RUIDO.
 
 **OIT:**
 - Número: ${oit.oitNumber}
 - Descripción: ${oit.description || 'Sin descripción'}
 
-${docPreview ? `**CONTENIDO DEL DOCUMENTO (Cotización/OIT):**
+${docPreview ? `**CONTENIDO DEL DOCUMENTO (SECCIÓN RELEVANTE):**
 ${docPreview}
 ...
 
