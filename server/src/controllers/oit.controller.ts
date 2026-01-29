@@ -1819,16 +1819,52 @@ export const updateServiceDates = async (req: Request, res: Response) => {
         // serviceDates format:
         // { [serviceId]: { name, date, time, engineerIds[], confirmed } }
 
-        await prisma.oIT.update({
-            where: { id },
-            data: {
-                serviceDates: JSON.stringify(serviceDates),
-                status: 'SCHEDULED',
-                planningAccepted: true
-            } as any
+        // 1. Extract all unique engineer IDs from all service dates
+        const engineerIds = new Set<string>();
+        if (serviceDates) {
+            Object.values(serviceDates).forEach((schedule: any) => {
+                if (schedule.engineerIds && Array.isArray(schedule.engineerIds)) {
+                    schedule.engineerIds.forEach((eid: string) => engineerIds.add(eid));
+                }
+            });
+        }
+
+        const uniqueEngineerIds = Array.from(engineerIds);
+
+        // 2. Transaction to update OIT and sync assignments
+        await prisma.$transaction(async (tx) => {
+            // Update OIT JSON
+            await tx.oIT.update({
+                where: { id },
+                data: {
+                    serviceDates: JSON.stringify(serviceDates),
+                    status: 'SCHEDULED',
+                    planningAccepted: true
+                }
+            });
+
+            // Sync Assignments
+            // First, delete existing assignments for this OIT
+            await tx.oITAssignment.deleteMany({
+                where: { oitId: id }
+            });
+
+            // Create new assignments
+            if (uniqueEngineerIds.length > 0) {
+                await tx.oITAssignment.createMany({
+                    data: uniqueEngineerIds.map((userId) => ({
+                        oitId: id,
+                        userId
+                    }))
+                });
+            }
         });
 
-        res.json({ success: true, message: 'Programación actualizada correctamente' });
+        res.json({
+            success: true,
+            message: 'Programación actualizada correctamente',
+            assignedEngineersCount: uniqueEngineerIds.length
+        });
     } catch (error) {
         console.error('Error updating service dates:', error);
         res.status(500).json({ error: 'Error al actualizar fechas de servicio' });
