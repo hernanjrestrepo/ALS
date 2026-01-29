@@ -105,7 +105,11 @@ class PlanningService {
         if (!text) return '';
         const lower = text.toLowerCase();
 
-        // Keywords that likely start the services section
+        // If the document is small, send it all
+        if (text.length < 15000) return text;
+
+        // Otherwise, try to find a reasonable window to avoid sending 50 pages of legal terms
+        // but be MUCH more generous than before
         const startMarkers = [
             'descripción del servicio',
             'detalle de servicios',
@@ -113,29 +117,13 @@ class PlanningService {
             'servicios a realizar',
             'servicios contratados',
             'servicios solicitados',
+            'objeto del contrato',
             'descripción',
-            'parametros',
-            'parámetros',
             'item',
             'servicio 1'
         ];
 
-        // Keywords that likely end the section
-        const endMarkers = [
-            'condiciones comerciales',
-            'valor total',
-            'subtotal',
-            'forma de pago',
-            'observaciones generales',
-            'notas:',
-            'atentamente',
-            'cordialmente'
-        ];
-
         let startIdx = 0;
-        let endIdx = text.length;
-
-        // Find best start index
         let minStart = -1;
         for (const m of startMarkers) {
             const idx = lower.indexOf(m);
@@ -143,26 +131,10 @@ class PlanningService {
                 if (minStart === -1 || idx < minStart) minStart = idx;
             }
         }
-        if (minStart !== -1) startIdx = minStart;
+        if (minStart !== -1) startIdx = Math.max(0, minStart - 500); // Take some context before
 
-        // Find best end index (closest one after start)
-        let minEnd = -1;
-        for (const m of endMarkers) {
-            const idx = lower.indexOf(m, startIdx + 100); // Look a bit ahead
-            if (idx !== -1) {
-                if (minEnd === -1 || idx < minEnd) minEnd = idx;
-            }
-        }
-        if (minEnd !== -1) endIdx = minEnd;
-
-        const extracted = text.substring(startIdx, endIdx);
-
-        // Safety check
-        if (extracted.length < 100 && text.length > 500) {
-            return text.substring(0, Math.min(8000, text.length));
-        }
-
-        return extracted;
+        // Take up to 25000 chars from the detected start, or from the beginning if not found
+        return text.substring(startIdx, startIdx + 25000);
     }
 
     async generateProposal(oitId: string, documentText?: string) {
@@ -362,22 +334,24 @@ NO seas tacaño con la selección. Si el documento describe 3 tipos de muestreo,
         const relevantText = this.extractServicesSection(fullDocumentText || '');
         console.log(`[Planning] Services section length: ${relevantText.length} (original: ${fullDocumentText?.length || 0})`);
 
-        const docPreview = relevantText.substring(0, 12000);
+        const docPreview = relevantText.substring(0, 20000);
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
 
-        const prompt = `Analiza detalladamente esta OIT y selecciona las plantillas de muestreo necesarias.
+        const prompt = `Analiza EXHAUSTIVAMENTE esta OIT y selecciona TODAS las plantillas de muestreo correspondientes.
         
-**REGLAS DE ORO:**
-1. Identifica los items específicos del contrato (ej: "Monitoreo de Aguas Superficiales", "Medición de Ruido Ambiental").
-2. Para cada item encontrado, busca en la lista de plantillas la que mejor coincida.
-3. Si el documento pide varios tipos de muestreo (ej: Monitoreo Biótico y de Aguas), DEBES seleccionar TODAS las plantillas correspondientes.
-4. IGNORA las cláusulas generales o listas de "otros servicios que ofrecemos" al final del documento. Céntrate en lo que se pagó en esta OIT actual.
+**REGLAS DE ORO (MÁXIMA PRIORIDAD):**
+1. Escanea EL DOCUMENTO ENTERO buscando cada item, línea o servicio individual mencionado.
+2. Por cada servicio solicitado (ej: "Monitoreo de Aguas", "Medición de Ruido", "Toma de muestras Biota"), selecciona la plantilla que corresponda.
+3. SI EL DOCUMENTO PIDE MULTIPLES TIPO DE MUESTREO, DEBES SELECCIONAR MULTIPLES PLANTILLAS. 
+   - Ejemplo: Si el documento pide "Aguas superficiales", "Ruido ambiental" y "Biótico", DEBES devolver los IDs de las plantillas de Agua, Ruido y Biota.
+4. Las plantillas ahora incluyen la categoría en el nombre (ej: "Agua - Muestreo Simple"). Usa esto para guiarte.
+5. NO TE LIMITES. Es mejor devolver 10 plantillas correctas que solo 1 incompleta.
 
-**OIT:**
+**OIT DETALLES:**
 - Número: ${oit.oitNumber}
-- Descripción: ${oit.description || 'Sin descripción'}
+- Descripción General: ${oit.description || 'Sin descripción'}
 
-${docPreview ? `**CONTENIDO RELEVANTE DEL DOCUMENTO:**
+${docPreview ? `**FRAGMENTO DEL DOCUMENTO (REVISA CON CUIDADO):**
 ${docPreview}
 ...
 ` : ''}
@@ -385,11 +359,11 @@ ${docPreview}
 **Plantillas Disponibles (ID y Nombre):**
 ${templatesList}
 
-**Responde ÚNICAMENTE en JSON:**
+**Responde con este JSON:**
 {
-  "templateIds": ["id1", "id2", ...],
-  "reason": "Explicación técnica detallada de por qué se seleccionó cada plantilla basada en el texto",
-  "confidence": 0.95
+  "templateIds": ["id1", "id2", "id3", ...],
+  "reason": "Análisis línea por línea de por qué se incluyó cada plantilla",
+  "confidence": 1.0
 }`;
 
         let selectedTemplates: any[] = [];
