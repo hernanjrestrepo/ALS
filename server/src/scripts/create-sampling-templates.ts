@@ -60,8 +60,33 @@ const FOLDER_MAP: Record<string, string> = {
     'SUELO': 'SUELO'
 };
 
+function toTitleCase(str: string): string {
+    return str.toLowerCase().split(' ').map(word => {
+        return word.charAt(0).toUpperCase() + word.slice(1);
+    }).join(' ');
+}
+
+function aggressiveCleanName(name: string): string {
+    return name
+        .replace(/^[A-Z0-9-]+\s+/, '') // Quitar códigos FO-PO-PSM...
+        .replace(/\.(xlsx|xls|doc|docx)$/i, '') // Quitar extensión
+        .replace(/\s*\(\d+\)\s*$/, '') // Quitar (1), (2)...
+        .replace(/PLANILLA DE CAMPO MUESTREO/gi, 'Muestreo')
+        .replace(/PLANILLA DE CAMPO/gi, '')
+        .replace(/PLANILLA DE VERIFICACIÓN/gi, 'Verificación')
+        .replace(/PLANILLA DE CONTROL/gi, 'Control')
+        .replace(/PLAN DE MONITOREO PARA/gi, 'Monitoreo')
+        .replace(/PLAN DE MONITOREO/gi, 'Monitoreo')
+        .replace(/PLAN DE MUESTREO/gi, 'Muestreo')
+        .replace(/ACTA DE SERVICIO EN CAMPO/gi, 'Acta de Servicio')
+        .replace(/LISTA DE CHEQUEO/gi, 'Checklist')
+        .replace(/HOJA DE CALCULOS?/gi, 'Cálculos')
+        .replace(/FORMATO DE CALIBRACIÓN Y MEDICIÓN DE EQUIPOS/gi, 'Calibración')
+        .trim();
+}
+
 async function main() {
-    console.log('🚀 Iniciando Sincronización Total de Plantillas...\n');
+    console.log('🚀 Iniciando Sincronización Total Simplificada...\n');
 
     await prisma.samplingTemplate.deleteMany({});
     console.log('🗑️ Base de datos de plantillas limpiada.\n');
@@ -81,7 +106,7 @@ async function main() {
     }
 
     // 2. Inserción de Planillas por Archivo
-    console.log('\n📁 Registrando Planillas de Carpetas...');
+    console.log('\n📁 Registrando Planillas de Carpetas con nombres simplificados...');
     if (fs.existsSync(PLANILLAS_DIR)) {
         const folders = Object.keys(FOLDER_MAP);
         for (const folder of folders) {
@@ -92,13 +117,13 @@ async function main() {
             for (const file of files) {
                 if (!file.match(/\.(xlsx|xls|doc|docx)$/i)) continue;
 
-                let cleanName = file
-                    .replace(/^[A-Z0-9-]+\s+/, '') // Quitar código inicial
-                    .replace(/\.(xlsx|xls|doc|docx)$/i, '') // Quitar extensión
-                    .replace(/\s*\(\d+\)\s*$/, '') // Quitar (1), (2)
-                    .trim();
+                let rawClean = aggressiveCleanName(file);
+                let cleanName = toTitleCase(rawClean);
 
-                // Evitar duplicados con el catálogo maestro si tienen el mismo nombre
+                // Evitar nombres vacíos o strings residuales
+                if (cleanName.length < 3) continue;
+
+                // Evitar duplicados con el catálogo maestro o archivos similares
                 const exists = await prisma.samplingTemplate.findFirst({
                     where: { name: cleanName }
                 });
@@ -112,7 +137,7 @@ async function main() {
                     data: {
                         name: cleanName,
                         oitType: FOLDER_MAP[folder],
-                        description: `Formato específico sincronizado desde ${folder}/${file}`,
+                        description: `Formato específico: ${cleanName} [Ref: ${file}]`,
                         steps: JSON.stringify(BASE_11_STEPS)
                     }
                 });
