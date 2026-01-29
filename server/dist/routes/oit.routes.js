@@ -30,7 +30,9 @@ router.post('/:id/sampling-data', auth_middleware_1.authMiddleware, oit_controll
 router.get('/:id/sampling-data', auth_middleware_1.authMiddleware, oit_controller_1.getSamplingData);
 // Lab results and final report
 router.post('/:id/lab-results', auth_middleware_1.authMiddleware, multer_1.upload.single('file'), oit_controller_1.uploadLabResults);
+router.delete('/:id/lab-results', auth_middleware_1.authMiddleware, oit_controller_1.deleteLabResult);
 router.post('/:id/sampling-sheets', auth_middleware_1.authMiddleware, multer_1.upload.single('file'), oit_controller_1.uploadSamplingSheets);
+router.delete('/:id/sampling-sheets', auth_middleware_1.authMiddleware, oit_controller_1.deleteSamplingSheet);
 router.post('/:id/generate-final-report', auth_middleware_1.authMiddleware, oit_controller_1.generateFinalReport);
 // Sampling validation workflow
 router.post('/:id/validate-step', auth_middleware_1.authMiddleware, oit_controller_1.validateStepData);

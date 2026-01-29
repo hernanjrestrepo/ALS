@@ -45,7 +45,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyConsistency = exports.updateServiceDates = exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.uploadSamplingSheets = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOITFromUrl = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
+exports.verifyConsistency = exports.updateServiceDates = exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.deleteLabResult = exports.deleteSamplingSheet = exports.uploadSamplingSheets = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOITFromUrl = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
 const client_1 = require("@prisma/client");
 const ai_service_1 = require("../services/ai.service");
 const aiService = new ai_service_1.AIService();
@@ -228,6 +228,7 @@ const getSamplingData = (req, res) => __awaiter(void 0, void 0, void 0, function
 exports.getSamplingData = getSamplingData;
 // Upload Lab Results
 // Upload Lab Results
+// Upload Lab Results
 const uploadLabResults = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
@@ -235,23 +236,43 @@ const uploadLabResults = (req, res) => __awaiter(void 0, void 0, void 0, functio
         if (!file) {
             return res.status(400).json({ error: 'No se proporcionó archivo' });
         }
+        // Fetch current OIT to append file
+        const currentOit = yield prisma.oIT.findUnique({ where: { id }, select: { labResultsUrl: true } });
+        let fileList = [];
+        if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.labResultsUrl) {
+            try {
+                // Try parsing as JSON array
+                const parsed = JSON.parse(currentOit.labResultsUrl);
+                if (Array.isArray(parsed)) {
+                    fileList = parsed;
+                }
+                else {
+                    fileList = [currentOit.labResultsUrl];
+                }
+            }
+            catch (e) {
+                fileList = [currentOit.labResultsUrl];
+            }
+        }
+        const newPath = `uploads/${file.filename}`;
+        fileList.push(newPath);
         // 1. Return immediate response and set status to ANALYZING
-        const oit = yield prisma.oIT.update({
+        yield prisma.oIT.update({
             where: { id },
             data: {
-                labResultsUrl: `uploads/${file.filename}`,
+                labResultsUrl: JSON.stringify(fileList),
                 labResultsAnalysis: null, // Clear previous analysis
                 status: 'ANALYZING'
             }
         });
         res.json({
             success: true,
-            labResultsUrl: file.path,
+            labResultsUrl: JSON.stringify(fileList),
             status: 'ANALYZING',
-            message: 'Resultados subidos. Análisis en curso...'
+            message: 'Resultados subidos. Análisis completo en curso...'
         });
         // 2. Trigger asynchronous processing
-        processLabResultsAsync(id, file.path).catch(err => {
+        processLabResultsAsync(id, fileList.map(url => url.replace('uploads/', ''))).catch(err => {
             console.error('Error in background lab processing:', err);
         });
     }
@@ -262,29 +283,40 @@ const uploadLabResults = (req, res) => __awaiter(void 0, void 0, void 0, functio
 });
 exports.uploadLabResults = uploadLabResults;
 // Background Processor for Lab Results
-function processLabResultsAsync(oitId, filePath) {
+// Background Processor for Lab Results
+function processLabResultsAsync(oitId, filenames) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log(`Starting background lab analysis for OIT ${oitId}`);
+            console.log(`Starting background lab analysis for OIT ${oitId} with ${filenames.length} files`);
             const { pdfService } = require('../services/pdf.service');
-            let extractedText = '';
-            try {
-                if (filePath.endsWith('.pdf')) {
-                    extractedText = yield pdfService.extractText(filePath);
+            const path = require('path');
+            let fullCombinedText = '';
+            for (const filename of filenames) {
+                const filePath = path.join(__dirname, '../../uploads', filename);
+                if (!fs_1.default.existsSync(filePath)) {
+                    console.warn(`[LAB_RESULTS] File not found: ${filePath}`);
+                    continue;
                 }
-                else {
-                    extractedText = fs_1.default.readFileSync(filePath, 'utf-8');
+                let extractedText = '';
+                try {
+                    if (filename.endsWith('.pdf')) {
+                        extractedText = yield pdfService.extractText(filePath);
+                    }
+                    else {
+                        extractedText = fs_1.default.readFileSync(filePath, 'utf-8');
+                    }
                 }
-            }
-            catch (readErr) {
-                console.error("Error extracting text from lab file:", readErr);
-                extractedText = "Error al leer documento de laboratorio.";
+                catch (readErr) {
+                    console.error("Error extracting text from lab file:", readErr);
+                    extractedText = "[Error al leer documento de laboratorio]";
+                }
+                fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
             }
             // Get OIT Context for better analysis
             const oit = yield prisma.oIT.findUnique({ where: { id: oitId } });
             const oitContext = (oit === null || oit === void 0 ? void 0 : oit.description) || '';
             // Analyze with AI - Now returns text
-            const analysis = yield aiService.analyzeLabResults(extractedText || "Texto no extraído", oitContext);
+            const analysis = yield aiService.analyzeLabResults(fullCombinedText, oitContext);
             // Update OIT with results - Save as plain text
             yield prisma.oIT.update({
                 where: { id: oitId },
@@ -311,8 +343,8 @@ function processLabResultsAsync(oitId, filePath) {
             yield prisma.oIT.update({
                 where: { id: oitId },
                 data: {
-                    labResultsAnalysis: "Error interno al procesar resultados. Por favor, revise el documento manualmente.",
-                    status: 'REVIEW_NEEDED'
+                    status: 'REVIEW_NEEDED',
+                    labResultsAnalysis: "Error interno al procesar resultados. Por favor, revise el documento manualmente."
                 }
             });
         }
@@ -1276,21 +1308,43 @@ const uploadSamplingSheets = (req, res) => __awaiter(void 0, void 0, void 0, fun
         if (!file) {
             return res.status(400).json({ error: 'No se proporcionó archivo de planillas' });
         }
-        // Save file URL and trigger analysis
+        // Fetch current OIT to append file
+        const currentOit = yield prisma.oIT.findUnique({ where: { id }, select: { samplingSheetUrl: true } });
+        let fileList = [];
+        if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.samplingSheetUrl) {
+            try {
+                // Try parsing as JSON array
+                const parsed = JSON.parse(currentOit.samplingSheetUrl);
+                if (Array.isArray(parsed)) {
+                    fileList = parsed;
+                }
+                else {
+                    // Legacy: it was a single string URL
+                    fileList = [currentOit.samplingSheetUrl];
+                }
+            }
+            catch (e) {
+                // Not JSON, assume simple string
+                fileList = [currentOit.samplingSheetUrl];
+            }
+        }
+        const newPath = `uploads/${file.filename}`;
+        fileList.push(newPath);
+        // Save file URL list and trigger analysis
         yield prisma.oIT.update({
             where: { id },
             data: {
-                samplingSheetUrl: `uploads/${file.filename}`,
-                samplingSheetAnalysis: null,
+                samplingSheetUrl: JSON.stringify(fileList),
+                samplingSheetAnalysis: null, // Reset analysis to force refresh
             }
         });
         res.json({
             success: true,
-            samplingSheetUrl: `/uploads/${file.filename}`,
-            message: 'Planillas subidas. Analizando...'
+            samplingSheetUrl: JSON.stringify(fileList), // Return updated list
+            message: 'Planillas subidas. Analizando todos los archivos...'
         });
-        // Trigger async analysis
-        processSamplingSheetsAsync(id, file.path).catch(err => {
+        // Trigger async analysis with ALL files
+        processSamplingSheetsAsync(id, fileList.map(url => url.replace('uploads/', ''))).catch(err => {
             console.error('Error in background sampling sheets processing:', err);
         });
     }
@@ -1300,41 +1354,139 @@ const uploadSamplingSheets = (req, res) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.uploadSamplingSheets = uploadSamplingSheets;
+// Delete a Sampling Sheet from the list
+const deleteSamplingSheet = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { fileUrl } = req.body;
+        if (!fileUrl) {
+            return res.status(400).json({ error: 'Se requiere fileUrl para eliminar' });
+        }
+        const currentOit = yield prisma.oIT.findUnique({ where: { id }, select: { samplingSheetUrl: true } });
+        let fileList = [];
+        if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.samplingSheetUrl) {
+            try {
+                const parsed = JSON.parse(currentOit.samplingSheetUrl);
+                fileList = Array.isArray(parsed) ? parsed : [currentOit.samplingSheetUrl];
+            }
+            catch (_a) {
+                fileList = [currentOit.samplingSheetUrl];
+            }
+        }
+        // Remove the file from the list
+        fileList = fileList.filter(url => url !== fileUrl);
+        yield prisma.oIT.update({
+            where: { id },
+            data: {
+                samplingSheetUrl: JSON.stringify(fileList),
+                samplingSheetAnalysis: null // Reset analysis
+            }
+        });
+        res.json({
+            success: true,
+            samplingSheetUrl: JSON.stringify(fileList),
+            message: 'Archivo eliminado'
+        });
+    }
+    catch (error) {
+        console.error('Error deleting sampling sheet:', error);
+        res.status(500).json({ error: 'Error al eliminar planilla' });
+    }
+});
+exports.deleteSamplingSheet = deleteSamplingSheet;
+// Delete a Lab Result from the list
+const deleteLabResult = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { fileUrl } = req.body;
+        if (!fileUrl) {
+            return res.status(400).json({ error: 'Se requiere fileUrl para eliminar' });
+        }
+        const currentOit = yield prisma.oIT.findUnique({ where: { id }, select: { labResultsUrl: true } });
+        let fileList = [];
+        if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.labResultsUrl) {
+            try {
+                const parsed = JSON.parse(currentOit.labResultsUrl);
+                fileList = Array.isArray(parsed) ? parsed : [currentOit.labResultsUrl];
+            }
+            catch (_a) {
+                fileList = [currentOit.labResultsUrl];
+            }
+        }
+        // Remove the file from the list
+        fileList = fileList.filter(url => url !== fileUrl);
+        yield prisma.oIT.update({
+            where: { id },
+            data: {
+                labResultsUrl: JSON.stringify(fileList),
+                labResultsAnalysis: null // Reset analysis
+            }
+        });
+        res.json({
+            success: true,
+            labResultsUrl: JSON.stringify(fileList),
+            message: 'Archivo eliminado'
+        });
+    }
+    catch (error) {
+        console.error('Error deleting lab result:', error);
+        res.status(500).json({ error: 'Error al eliminar resultado de laboratorio' });
+    }
+});
+exports.deleteLabResult = deleteLabResult;
 // Background Processor for Sampling Sheets
-function processSamplingSheetsAsync(oitId, filePath) {
+function processSamplingSheetsAsync(oitId, filenames) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId}`);
+            console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId} with ${filenames.length} files`);
             const { pdfService } = require('../services/pdf.service');
-            let extractedText = '';
-            try {
-                if (filePath.endsWith('.pdf')) {
-                    extractedText = yield pdfService.extractText(filePath);
+            const path = require('path');
+            let fullCombinedText = '';
+            for (const filename of filenames) {
+                const filePath = path.join(__dirname, '../../uploads', filename); // Adjust path logic as needed
+                // NOTE: file.path in controller gives full path, but here we reconstructed from URL.
+                // Better to make sure we resolve correctly.
+                // Assuming uploads are in projectRoot/uploads or similar.
+                // Adjusting based on standard multer behavior usually saving to 'uploads/' rel to CWD.
+                // Let's assume the controller passed paths or filenames relative to uploads dir.
+                // Let's check permissions or existence
+                if (!fs_1.default.existsSync(filePath)) {
+                    console.warn(`[SAMPLING_SHEETS] File not found: ${filePath}`);
+                    continue;
                 }
-                else if (filePath.match(/\.(xlsx|xls)$/i)) {
-                    // Parse Excel file
-                    const xlsx = require('xlsx');
-                    const workbook = xlsx.readFile(filePath);
-                    // Convert all sheets to text representation
-                    let allSheetsText = "";
-                    workbook.SheetNames.forEach((sheetName) => {
-                        const sheet = workbook.Sheets[sheetName];
-                        const csvData = xlsx.utils.sheet_to_csv(sheet);
-                        allSheetsText += `\n--- HOJA: ${sheetName} ---\n${csvData}\n`;
-                    });
-                    extractedText = allSheetsText;
+                let extractedText = '';
+                try {
+                    console.log(`[SAMPLING_SHEETS] Processing file: ${filename}`);
+                    if (filename.endsWith('.pdf')) {
+                        extractedText = yield pdfService.extractText(filePath);
+                    }
+                    else if (filename.match(/\.(xlsx|xls)$/i)) {
+                        // Parse Excel file
+                        const xlsx = require('xlsx');
+                        const workbook = xlsx.readFile(filePath);
+                        // Convert all sheets to text representation
+                        let allSheetsText = "";
+                        workbook.SheetNames.forEach((sheetName) => {
+                            const sheet = workbook.Sheets[sheetName];
+                            const csvData = xlsx.utils.sheet_to_csv(sheet);
+                            allSheetsText += `\n--- HOJA: ${sheetName} ---\n${csvData}\n`;
+                        });
+                        extractedText = allSheetsText;
+                    }
+                    else {
+                        // Try text read
+                        extractedText = fs_1.default.readFileSync(filePath, 'utf-8');
+                    }
                 }
-                else {
-                    extractedText = fs_1.default.readFileSync(filePath, 'utf-8');
+                catch (readErr) {
+                    console.error(`[SAMPLING_SHEETS] Error extracting text from ${filename}:`, readErr);
+                    extractedText = `[Error leyendo ${filename}]`;
                 }
-            }
-            catch (readErr) {
-                console.error("[SAMPLING_SHEETS] Error extracting text:", readErr);
-                extractedText = "Error al leer documento.";
+                fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
             }
             const oit = yield prisma.oIT.findUnique({ where: { id: oitId } });
             const oitContext = (oit === null || oit === void 0 ? void 0 : oit.description) || '';
-            const analysis = yield aiService.analyzeSamplingSheets(extractedText, oitContext);
+            const analysis = yield aiService.analyzeSamplingSheets(fullCombinedText, oitContext);
             yield prisma.oIT.update({
                 where: { id: oitId },
                 data: {
@@ -1533,7 +1685,9 @@ const updateServiceDates = (req, res) => __awaiter(void 0, void 0, void 0, funct
         yield prisma.oIT.update({
             where: { id },
             data: {
-                serviceDates: JSON.stringify(serviceDates)
+                serviceDates: JSON.stringify(serviceDates),
+                status: 'SCHEDULED',
+                planningAccepted: true
             }
         });
         res.json({ success: true, message: 'Programación actualizada correctamente' });

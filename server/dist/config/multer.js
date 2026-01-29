@@ -24,9 +24,9 @@ const storage = multer_1.default.diskStorage({
 });
 // File filter
 const fileFilter = (req, file, cb) => {
-    // Allow PDF, Word docs, Text, and Excel/CSV files
-    const allowedExtensions = /pdf|doc|docx|txt|xlsx|xls|csv/;
-    const allowedMimeTypes = /application\/pdf|application\/msword|application\/vnd.openxmlformats-officedocument.wordprocessingml.document|text\/plain|application\/vnd.ms-excel|application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet|text\/csv/;
+    // Allow PDF, Word docs, Text, Excel/CSV, and Images
+    const allowedExtensions = /pdf|doc|docx|txt|xlsx|xls|csv|jpg|jpeg|png/;
+    const allowedMimeTypes = /application\/pdf|application\/msword|application\/vnd.openxmlformats-officedocument.wordprocessingml.document|text\/plain|application\/vnd.ms-excel|application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet|text\/csv|image\/jpeg|image\/png/;
     const extname = allowedExtensions.test(path_1.default.extname(file.originalname).toLowerCase());
     const mimetype = allowedMimeTypes.test(file.mimetype);
     if (extname && mimetype) {
@@ -34,7 +34,7 @@ const fileFilter = (req, file, cb) => {
     }
     else {
         console.log('❌ [MULTER] Rejected file:', file.originalname, file.mimetype);
-        cb(new Error('Only PDF, DOC, DOCX, TXT, Excel, and CSV files are allowed'));
+        cb(new Error('Only PDF, DOC, DOCX, TXT, Excel, CSV, and Image files are allowed'));
     }
 };
 exports.upload = (0, multer_1.default)({

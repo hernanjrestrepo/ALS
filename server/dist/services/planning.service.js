@@ -142,6 +142,64 @@ class PlanningService {
             return relevantResources;
         });
     }
+    /**
+     * Extracts only the 'Services' section from the document text
+     * to avoid AI hallucinating based on irrelevant text (e.g. general conditions)
+     */
+    extractServicesSection(text) {
+        if (!text)
+            return '';
+        const lower = text.toLowerCase();
+        // Keywords that likely start the services section
+        // We avoid short words to prevent false positives
+        const startMarkers = [
+            'descripción del servicio',
+            'detalle de servicios',
+            'alcance de los servicios',
+            'servicios a realizar',
+            'descripción',
+            'parametros'
+        ];
+        // Keywords that likely end the section
+        const endMarkers = [
+            'condiciones comerciales',
+            'valor total',
+            'subtotal',
+            'observaciones generales',
+            'notas:',
+            'atentamente'
+        ];
+        let startIdx = 0;
+        let endIdx = text.length;
+        // Find best start index
+        let minStart = -1;
+        for (const m of startMarkers) {
+            const idx = lower.indexOf(m);
+            if (idx !== -1) {
+                if (minStart === -1 || idx < minStart)
+                    minStart = idx;
+            }
+        }
+        if (minStart !== -1)
+            startIdx = minStart;
+        // Find best end index (closest one after start)
+        let minEnd = -1;
+        for (const m of endMarkers) {
+            // Look ahead to avoid matching "Notes" in the header
+            const idx = lower.indexOf(m, startIdx + 50);
+            if (idx !== -1) {
+                if (minEnd === -1 || idx < minEnd)
+                    minEnd = idx;
+            }
+        }
+        if (minEnd !== -1)
+            endIdx = minEnd;
+        // If extraction is too small (<50 chars), fallback to original (maybe document is short)
+        const extracted = text.substring(startIdx, endIdx);
+        if (extracted.length < 50)
+            return text;
+        return extracted;
+    }
     generateProposal(oitId, documentText) {
         return __awaiter(this, void 0, void 0, function* () {
             const oit = yield prisma.oIT.findUnique({
@@ -305,7 +363,10 @@ IMPORTANTE: Analiza TODO el documento y selecciona TODAS las plantillas que apli
 NO LIMITES la selección. Incluye TODAS las plantillas que el trabajo requiera.`;
             // Include document content for better analysis (truncated to avoid token limits)
             console.log(`[Planning] Template Selection - fullDocumentText length: ${(fullDocumentText === null || fullDocumentText === void 0 ? void 0 : fullDocumentText.length) || 0}`);
-            const docPreview = fullDocumentText ? fullDocumentText.substring(0, 12000) : '';
+            // [MODIFIED] Use filtered text for template assignment to avoid noise
+            const relevantText = this.extractServicesSection(fullDocumentText || '');
+            console.log(`[Planning] Services section length: ${relevantText.length} (original: ${(fullDocumentText === null || fullDocumentText === void 0 ? void 0 : fullDocumentText.length) || 0})`);
+            const docPreview = relevantText.substring(0, 12000);
             console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
             const prompt = `Analiza esta OIT y selecciona TODAS las plantillas de muestreo necesarias.
 
