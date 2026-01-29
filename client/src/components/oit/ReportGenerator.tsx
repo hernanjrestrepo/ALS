@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles, AlertTriangle, FileCheck, FileText, X } from 'lucide-react';
+import { FileBarChart, Upload, Loader2, CheckCircle2, Download, Sparkles, AlertTriangle, FileCheck, FileText, X, RefreshCcw } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import api from '@/lib/api';
 // import { useAuthStore } from '@/features/auth/authStore'; // Unused
@@ -29,6 +29,7 @@ export function ReportGenerator({
     const [isGenerating, setIsGenerating] = useState(false);
     const [finalReportUrl, setFinalReportUrl] = useState<string | null>(null);
     const [reportGenerated, setReportGenerated] = useState(false);
+    const [reportList, setReportList] = useState<Array<{ name: string; url: string; type: string }>>([]);
 
     // Sampling Sheet State
     const [sheetUrls, setSheetUrls] = useState<string[]>(() => {
@@ -65,16 +66,33 @@ export function ReportGenerator({
 
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
+    const formatReportUrl = (url: string) => {
+        if (url.startsWith('http') || url.startsWith('blob:')) return url;
+        const baseUrl = (api.defaults.baseURL || '').replace(/\/api$/, '');
+        return `${baseUrl}/${url.replace(/^uploads\//, 'uploads/')}`;
+    };
+
     // Initialize Report URL
     useEffect(() => {
         if (initialReportUrl) {
-            if (initialReportUrl.startsWith('http') || initialReportUrl.startsWith('blob:')) {
-                setFinalReportUrl(initialReportUrl);
-            } else {
-                const baseUrl = (api.defaults.baseURL || '').replace(/\/api$/, '');
-                setFinalReportUrl(`${baseUrl}/${initialReportUrl.replace(/^uploads\//, 'uploads/')}`);
+            try {
+                const parsed = JSON.parse(initialReportUrl);
+                if (Array.isArray(parsed)) {
+                    setReportList(parsed);
+                    setReportGenerated(true);
+                } else {
+                    setFinalReportUrl(formatReportUrl(initialReportUrl));
+                    setReportGenerated(true);
+                }
+            } catch {
+                if (initialReportUrl.startsWith('http') || initialReportUrl.startsWith('blob:')) {
+                    setFinalReportUrl(initialReportUrl);
+                } else {
+                    const baseUrl = (api.defaults.baseURL || '').replace(/\/api$/, '');
+                    setFinalReportUrl(`${baseUrl}/${initialReportUrl.replace(/^uploads\//, 'uploads/')}`);
+                }
+                setReportGenerated(true);
             }
-            setReportGenerated(true);
         }
     }, [initialReportUrl]);
 
@@ -245,31 +263,22 @@ export function ReportGenerator({
 
     // --- Report Generation ---
     const handleGenerateReport = async () => {
-        if (!labAnalysis && labUrls.length === 0 && !finalReportUrl) {
+        if (!labAnalysis && labUrls.length === 0 && !reportGenerated) {
             notify.error('Se requieren resultados de laboratorio para generar el informe');
             return;
         }
 
         setIsGenerating(true);
         try {
-            const response = await api.post(`/oits/${oitId}/generate-final-report`, {}, {
-                responseType: 'blob'
-            });
-            const contentType = response.headers['content-type'] || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-            const isPdf = contentType.includes('pdf');
-            const fileBlob = new Blob([response.data], { type: contentType });
-            const url = window.URL.createObjectURL(fileBlob);
-            setFinalReportUrl(url);
-            setReportGenerated(true);
+            const response = await api.post(`/oits/${oitId}/generate-final-report`);
 
-            // Auto-download
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Informe_Final_OIT-${oitId}.${isPdf ? 'pdf' : 'docx'}`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            notify.success('Informe final generado exitosamente');
+            if (response.data.reports && Array.isArray(response.data.reports)) {
+                setReportList(response.data.reports);
+                setReportGenerated(true);
+                notify.success(`Se han generado ${response.data.reports.length} informes correctamente`);
+            } else {
+                notify.error('Respuesta inesperada del servidor');
+            }
         } catch (error) {
             console.error('Error generating report:', error);
             notify.error('Error al generar informe');
@@ -493,20 +502,51 @@ export function ReportGenerator({
                     <div className="w-full max-w-md space-y-3">
                         <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-md mb-2">
                             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                            <p className="text-sm font-medium text-emerald-900">Informe Generado</p>
+                            <p className="text-sm font-medium text-emerald-900">Informes Generados ({reportList.length || 1})</p>
                         </div>
-                        <div className="flex gap-2">
-                            <Button asChild className="flex-1 bg-slate-900 text-white hover:bg-slate-800">
-                                <a href={finalReportUrl || '#'} download>
-                                    <Download className="mr-2 h-4 w-4" /> Descargar
-                                </a>
-                            </Button>
-                            <Button variant="outline" onClick={() => setReportGenerated(false)}>
-                                Nuevo
+
+                        <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                            {reportList.length > 0 ? (
+                                reportList.map((report, idx) => {
+                                    const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/${report.url.replace(/^uploads\//, 'uploads/')}`;
+                                    return (
+                                        <div key={idx} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg group hover:border-indigo-300 transition-all shadow-sm">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500">
+                                                    {report.type === 'docx' ? <FileText className="h-4 w-4" /> : <FileBarChart className="h-4 w-4" />}
+                                                </div>
+                                                <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
+                                            </div>
+                                            <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                                                <a href={reportUrl} download title="Descargar informe">
+                                                    <Download className="h-4 w-4" />
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <FileBarChart className="h-4 w-4 text-slate-400" />
+                                        <span className="text-sm font-medium text-slate-700">Informe General</span>
+                                    </div>
+                                    <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                        <a href={finalReportUrl || '#'} download>
+                                            <Download className="h-4 w-4" />
+                                        </a>
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex gap-2 pt-2">
+                            <Button variant="outline" className="flex-1" onClick={() => setReportGenerated(false)}>
+                                <RefreshCcw className="mr-2 h-4 w-4" /> Regenerar Todos
                             </Button>
                         </div>
                         <div className="pt-2">
-                            <FeedbackButton onClick={() => setFeedbackModalOpen(true)} className="w-full" label="Reportar problema en informe" />
+                            <FeedbackButton onClick={() => setFeedbackModalOpen(true)} className="w-full" label="Reportar problema en informes" />
                         </div>
                     </div>
                 ) : (

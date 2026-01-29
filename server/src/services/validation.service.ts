@@ -116,7 +116,7 @@ IMPORTANTE: Responde en español, de forma profesional y técnica.`;
             throw new Error('Error al generar el análisis final');
         }
     }
-    async generateFinalReportContent(oit: any, labResultsText: string): Promise<string> {
+    async generateFinalReportContent(oit: any, labResultsText: string, templateName?: string, samplingSheetAnalysis?: any): Promise<string> {
         try {
             const prompt = `
             ACTÚA COMO: Consultor Ambiental Senior.
@@ -124,33 +124,36 @@ IMPORTANTE: Responde en español, de forma profesional y técnica.`;
             
             CONTEXTO:
             - Orden de Servicio: ${oit.oitNumber}
-            - Descripción: ${oit.description}
+            - Servicio/Tipo de Muestreo: ${templateName || oit.description || 'General'}
+            - Descripción OIT: ${oit.description}
             - Hallazgos de Campo: ${oit.finalAnalysis || 'Sin observaciones mayores'}
             
+            ANÁLISIS DE PLANILLAS DE CAMPO (Verificación de Calidad):
+            ${samplingSheetAnalysis ? JSON.stringify(samplingSheetAnalysis, null, 2) : 'No se dispone de análisis de planillas detallado.'}
+
             DATOS DE LABORATORIO (Extraídos del anexo):
-            "${labResultsText.slice(0, 8000)}"
+            "${labResultsText.slice(0, 8000)}"...
             
             ESTRUCTURA DEL INFORME (Markdown):
-            # INFORME DE MONITOREO AMBIENTAL
+            # INFORME TÉCNICO - ${templateName || 'MONITOREO AMBIENTAL'}
             
             ## 1. RESUMEN EJECUTIVO
-            Breve síntesis de todo el trabajo y conclusión principal.
+            Breve síntesis enfocada en el servicio "${templateName || 'General'}".
             
-            ## 2. RESULTADOS DE CAMPO
-            Resumen de lo observado durante la toma de muestras.
+            ## 2. RESULTADOS DE CAMPO Y CALIDAD
+            Resumen de lo observado durante la toma de muestras basándose en los hallazgos de campo y el análisis de calidad de las planillas.
             
             ## 3. ANÁLISIS DE LABORATORIO
-            Interpretación de los resultados obtenidos (No copies tablas enteras, interpreta los valores).
+            Interpretación detallada de los resultados obtenidos para este tipo de servicio.
             
-            ## 4. CONCLUSIONES
-            Veredicto final sobre el cumplimiento normativo.
+            ## 4. CONCLUSIONES Y RECOMENDACIONES
+            Veredicto final sobre el cumplimiento y recomendaciones técnicas.
             
             IMPORTANTE:
-            - Usa un tono formal y objetivo.
-            - Si los resultados de laboratorio mencionan límites normativos, compáralos.
-            - Formato limpio usando Markdown.
+            - Usa un tono formal y técnico.
+            - Céntrate exclusivamente en el servicio: "${templateName || 'General'}".
+            - Integra la información de calidad de las planillas en la sección 2.
             `;
-
             const response = await aiService.chat(prompt);
             return response;
         } catch (error) {
