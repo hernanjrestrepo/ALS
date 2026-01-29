@@ -77,38 +77,50 @@ async function syncAllPlanillas() {
         const files = fs.readdirSync(folderPath);
 
         for (const file of files) {
-            if (!file.match(/\.(xlsx|xls)$/i)) continue;
+            if (!file.match(/\.(xlsx|xls|doc|docx)$/i)) continue;
 
-            const templateName = file.replace(/\.(xlsx|xls)$/i, '');
+            // CLEAN NAME LOGIC:
+            // 1. Remove code pattern like FO-PO-PSM-00-00
+            // 2. Remove extension
+            // 3. Remove versioning like (1), (2)
+            // 4. Clean extra spaces
+            let cleanName = file
+                .replace(/^[A-Z0-9-]+\s+/, '') // Remove code at start
+                .replace(/\.(xlsx|xls|doc|docx)$/i, '') // Remove extension
+                .replace(/\s*\(\d+\)\s*$/, '') // Remove (N) at end
+                .trim();
+
             const oitType = CATEGORY_MAP[folder];
             const steps = BASE_STEPS[oitType] || GENERIC_STEPS;
 
             // Check if exists
             const existing = await prisma.samplingTemplate.findFirst({
-                where: { name: templateName }
+                where: { name: cleanName }
             });
+
+            const description = `Formato oficial para ${cleanName} [Archivo original: ${file}]`;
 
             if (existing) {
                 await prisma.samplingTemplate.update({
                     where: { id: existing.id },
                     data: {
                         oitType,
-                        description: `Plantilla sincronizada automáticamente desde ${file}`,
+                        description,
                         steps: JSON.stringify(steps),
                         updatedAt: new Date()
                     }
                 });
-                console.log(`   ✅ Actualizada: ${templateName}`);
+                console.log(`   ✅ Actualizada: ${cleanName}`);
             } else {
                 await prisma.samplingTemplate.create({
                     data: {
-                        name: templateName,
-                        description: `Plantilla sincronizada automáticamente desde ${file}`,
+                        name: cleanName,
+                        description,
                         oitType,
                         steps: JSON.stringify(steps)
                     }
                 });
-                console.log(`   ✨ Creada: ${templateName}`);
+                console.log(`   ✨ Creada: ${cleanName}`);
             }
             totalSynced++;
         }
