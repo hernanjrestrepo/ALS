@@ -48,13 +48,13 @@ const TEMPLATE_CATALOG = [
 ];
 
 async function main() {
-    console.log('📋 Sincronizando Catálogo de Plantillas Maestro...\n');
+    console.log('📋 Limpiando y Sincronizando Catálogo de Plantillas Maestro...\n');
+
+    // BORRAR TODO PARA EMPEZAR DE CERO Y EVITAR CLUTTER
+    await prisma.samplingTemplate.deleteMany({});
+    console.log('🗑️ Base de datos de plantillas limpiada.\n');
 
     for (const item of TEMPLATE_CATALOG) {
-        const existing = await prisma.samplingTemplate.findFirst({
-            where: { name: item.name }
-        });
-
         const data = {
             name: item.name,
             oitType: item.oitType,
@@ -63,21 +63,13 @@ async function main() {
             updatedAt: new Date()
         };
 
-        if (existing) {
-            await prisma.samplingTemplate.update({
-                where: { id: existing.id },
-                data
-            });
-            console.log(`   ✅ Actualizada: ${item.name}`);
-        } else {
-            await prisma.samplingTemplate.create({
-                data
-            });
-            console.log(`   ✨ Creada: ${item.name}`);
-        }
+        await prisma.samplingTemplate.create({
+            data
+        });
+        console.log(`   ✨ Creada: ${item.name}`);
     }
 
-    console.log('\n🎉 Sincronización finalizada.');
+    console.log('\n🎉 Sincronización finalizada. Solo 11 plantillas maestras disponibles.');
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());
