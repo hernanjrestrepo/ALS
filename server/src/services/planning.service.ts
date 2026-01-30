@@ -315,12 +315,14 @@ class PlanningService {
 Tu responsabilidad es interpretar el documento de la OIT y estructurar la planeación del trabajo.
 
 **TU OBJETIVO:**
-1. Leer el documento e identificar CADA UNO de los Servicios, Items o Parámetros contratados (ej. "Muestreo Isocinético", "Monitoría de Ruido Diurno", "Análisis de Aguas Residuales").
-2. Para cada Servicio identificado, asígnale el o los NÚMEROS de las Plantillas (Metodologías) necesarias para ejecutarlo.
+1. Leer el documento e identificar CADA UNO de los Servicios enumerados en la tabla de cotización (ej. "1. Muestreo de Aguas", "2. Monitoría de Ruido").
+2. Identificar la "PROCEDENCIA" o "MATRIZ" de cada servicio para agrupar correctamente.
+3. Para cada Servicio identificado, asígnale el o los NÚMEROS de las Plantillas (Metodologías) necesarias para ejecutarlo.
 
-**IMPORTANTE:**
-- NO agrupes todo en un solo servicio genérico. Si la orden dice "3 Muestreos de Agua" y "1 Muestreo de Aire", debes identificar esos servicios por separado.
-- Usa los Nombres EXACTOS o muy similares a los que aparecen en la tabla de cotización del documento.
+**REGLAS ESTRICTAS:**
+- **RESPETA LA NUMERACIÓN:** Si la tabla dice "1", "2", "3", debes devolver exactamente esos 3 servicios. NO inventes servicios adicionales ni dividas una fila en múltiples servicios.
+- **AGRUPA POR CONTEXTO:** Si una fila dice "Procedencia: Agua Residual" y lista varios parámetros (pH, DQO, SST), eso es UN SOLO servicio ("Monitoreo Agua Residual"). NO crees un servicio por cada parámetro.
+- **IDENTIFICADORES:** Usa los Nombres EXACTOS o muy similares a los que aparecen en la tabla de cotización del documento.
 - Las plantillas están numeradas del 1 al ${templates.length}.`;
 
         // Include document content for better analysis (truncated to avoid token limits)
@@ -333,13 +335,13 @@ Tu responsabilidad es interpretar el documento de la OIT y estructurar la planea
         const docPreview = relevantText.substring(0, 20000);
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
 
-        const prompt = `Analiza la OIT y extrae una lista de SERVICIOS.
+        const prompt = `Analiza la OIT y extrae la lista de SERVICIOS basándote ESTRICTAMENTE en la tabla de items/cotización.
         
-**INSTRUCCIONES:**
-1. Escanea el texto buscando la tabla de items, servicios, alcance o descripción.
-2. Crea una lista de los servicios encontrados.
-3. Para cada servicio, mira en la lista de Plantillas Disponibles y decide qué plantillas (números) se necesitan.
-4. Si un servicio requiere varias plantillas (ej. Muestreo de campo + Análisis in situ), pon ambos números.
+**INSTRUCCIONES CLAVE:**
+1. Busca la tabla enumerada (1, 2, 3...). Cada número es un SERVICIO INDEPENDIENTE.
+2. Si un item dice "SERVICIO [N]" y luego "PROCEDENCIA: [MATRIZ]", ese es el nombre del servicio (ej. "SERVICIO 1 - AGUA RESIDUAL").
+3. NO separes los parámetros (ej. Ruido Diurno, Ruido Nocturno) si están bajo el mismo item numerado.
+4. Asigna las plantillas mineras necesarias para CADA servicio numerado.
 
 **DETALLES DE LA OIT:**
 - OIT: ${oit.oitNumber}
@@ -358,7 +360,7 @@ ${templatesList}
   "totalServicesFound": number,
   "services": [
     {
-       "name": "Nombre exacto del Servicio/Item en el PDF",
+       "name": "SERVICIO [N] - [PROCEDENCIA/NOMBRE]",
        "templateNumbers": [number, number] 
     },
     ...
