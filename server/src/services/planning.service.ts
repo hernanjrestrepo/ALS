@@ -106,35 +106,20 @@ class PlanningService {
         const lower = text.toLowerCase();
 
         // If the document is small, send it all
-        if (text.length < 15000) return text;
+        if (text.length < 35000) return text;
 
-        // Otherwise, try to find a reasonable window to avoid sending 50 pages of legal terms
-        // but be MUCH more generous than before
-        const startMarkers = [
-            'descripción del servicio',
-            'detalle de servicios',
-            'alcance de los servicios',
-            'servicios a realizar',
-            'servicios contratados',
-            'servicios solicitados',
-            'objeto del contrato',
-            'descripción',
-            'item',
-            'servicio 1'
-        ];
+        // Try to find "SERVICIO 1" specifically as it's the strongest indicator
+        const service1Idx = lower.indexOf('servicio 1');
 
-        let startIdx = 0;
-        let minStart = -1;
-        for (const m of startMarkers) {
-            const idx = lower.indexOf(m);
-            if (idx !== -1) {
-                if (minStart === -1 || idx < minStart) minStart = idx;
-            }
+        // If "SERVICIO 1" is found, start a bit before it to get context headers
+        if (service1Idx !== -1) {
+            const startContext = Math.max(0, service1Idx - 2000);
+            return text.substring(startContext, startContext + 35000);
         }
-        if (minStart !== -1) startIdx = Math.max(0, minStart - 500); // Take some context before
 
-        // Take up to 25000 chars from the detected start, or from the beginning if not found
-        return text.substring(startIdx, startIdx + 25000);
+        // Fallback: If no "SERVICIO 1" found, just send the first 35k chars
+        // It's better to include the header/intro than to guess wrong and cut off the body.
+        return text.substring(0, 35000);
     }
 
     async generateProposal(oitId: string, documentText?: string) {
