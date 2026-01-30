@@ -861,7 +861,7 @@ export const createOITAsync = async (req: Request, res: Response) => {
 async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotationFilePath: string | null, userId: string) {
     try {
         const { complianceService } = await import('../services/compliance.service');
-        const { default: planningService } = await import('../services/planning.service');
+        const { default: planningService } = await import('../services/planning.service') as any;
 
 
         await prisma.oIT.update({
