@@ -164,22 +164,45 @@ class PlanningService {
         let candidateNames: string[] = [];
         let fullDocumentText = documentText || '';
 
-        // If no documentText provided, try to extract from quotation PDF
-        if (!fullDocumentText && oit.quotationFileUrl) {
+        // If no documentText provided, try to extract from OIT file FIRST, then Quotation
+        if (!fullDocumentText) {
             try {
-                console.log('[Planning] Extracting quotation content for resource analysis...');
                 const { pdfService } = await import('./pdf.service');
                 const fs = await import('fs');
-                let filePath = oit.quotationFileUrl;
-                if (filePath.startsWith('/') && !fs.existsSync(filePath)) {
-                    filePath = filePath.substring(1);
+
+                // 1. Try OIT File
+                if (oit.oitFileUrl) {
+                    let filePath = oit.oitFileUrl;
+                    if (filePath.startsWith('/') && !fs.existsSync(filePath)) {
+                        filePath = filePath.substring(1);
+                    }
+                    if (fs.existsSync(filePath)) {
+                        console.log(`[Planning] Extracting text from OIT File: ${filePath}`);
+                        const text = await pdfService.extractText(filePath);
+                        if (text && text.length > 50) {
+                            fullDocumentText = text;
+                            console.log(`[Planning] Extracted ${fullDocumentText.length} chars from OIT File`);
+                        }
+                    }
                 }
-                if (fs.existsSync(filePath)) {
-                    fullDocumentText = await pdfService.extractText(filePath);
-                    console.log(`[Planning] Extracted ${fullDocumentText.length} chars from quotation`);
+
+                // 2. Fallback to Quotation File if OIT text is empty
+                if ((!fullDocumentText || fullDocumentText.length < 50) && oit.quotationFileUrl) {
+                    let filePath = oit.quotationFileUrl;
+                    if (filePath.startsWith('/') && !fs.existsSync(filePath)) {
+                        filePath = filePath.substring(1);
+                    }
+                    if (fs.existsSync(filePath)) {
+                        console.log(`[Planning] Extracting text from Quotation File: ${filePath}`);
+                        const text = await pdfService.extractText(filePath);
+                        if (text && text.length > 50) {
+                            fullDocumentText = text;
+                            console.log(`[Planning] Extracted ${fullDocumentText.length} chars from Quotation File`);
+                        }
+                    }
                 }
             } catch (extractError) {
-                console.error('[Planning] Failed to extract quotation:', extractError);
+                console.error('[Planning] Failed to extract document text:', extractError);
             }
         }
 
