@@ -953,9 +953,12 @@ export default function OITDetailPage() {
                                                 {(!aiData?.data?.services || aiData.data.services.length === 0) && selectedTemplates.length > 0 && (
                                                     <div className="space-y-4">
                                                         {(() => {
-                                                            // Group templates by oitType
+                                                            // Group templates by oitType (case-insensitive)
                                                             const groupedTemplates = selectedTemplates.reduce((acc, tmpl: any) => {
-                                                                const type = tmpl.oitType || 'General';
+                                                                const rawType = tmpl.oitType || 'General';
+                                                                // Normalize: First letter uppercase, rest lowercase
+                                                                const type = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+
                                                                 if (!acc[type]) acc[type] = [];
                                                                 acc[type].push(tmpl);
                                                                 return acc;
@@ -993,7 +996,7 @@ export default function OITDetailPage() {
                                                                                         <div key={type} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
                                                                                             <div className="flex items-center gap-3">
                                                                                                 <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
-                                                                                                    {type.substring(0, 2).toUpperCase()}
+                                                                                                    {idx + 1}
                                                                                                 </div>
                                                                                                 <div>
                                                                                                     <p className="text-sm font-medium text-slate-900">{type}</p>
@@ -1042,14 +1045,14 @@ export default function OITDetailPage() {
                                                                                     </Button>
                                                                                 )}
                                                                             </div>
-                                                                            {entries.map(([type, tmpls]) => {
+                                                                            {entries.map(([type, tmpls], idx) => {
                                                                                 const templates = tmpls as any[];
                                                                                 const firstId = templates[0].id;
                                                                                 const existingSchedule = serviceDates[firstId] || {};
 
                                                                                 // Synthetic schedule for the group
                                                                                 const groupSchedule = {
-                                                                                    name: type, // Display Type Name (e.g. Water)
+                                                                                    name: `${idx + 1}. ${type}`, // Add enumeration to Name
                                                                                     date: existingSchedule.date || '',
                                                                                     time: existingSchedule.time || '09:00',
                                                                                     engineerIds: existingSchedule.engineerIds || [],
