@@ -333,24 +333,28 @@ Tu responsabilidad es interpretar el documento de la OIT y estructurar la planea
 - **PATRÓN 'SERVICIO [N]':** Busca "SERVICIO 1", "SERVICIO 2", etc. Ignora indentación.
 - **NO INVENTES SERVICIOS:** Solo usa los que aparecen explícitamente en el documento con "SERVICIO [N]".
 - **AGRUPA LOS PARÁMETROS:** Todo lo que esté debajo de "SERVICIO [N]" pertenece a ese servicio.
-- **NOMBRE:** El nombre debe ser "SERVICIO [N] - [MATRIZ/PROCEDENCIA]". Ej: "SERVICIO 4 - BIOGAS".
-- **PLANTILLAS:** Usa los IDs de la lista proporcionada (ej. ID 13).`;
+- **NOMBRE:** El nombre debe ser "SERVICIO [N] - [MATRIZ]". Si hay "PROCEDENCIA" cerca, inclúyela: "SERVICIO [N] - [MATRIZ] - [PROCEDENCIA]".
+- **PLANTILLAS:** Usa los IDs de la lista proporcionada (ej. ID 13).
+
+**IMPORTANTE: NO ALUCINES NÚMEROS DE SERVICIO.**
+Si el documento dice "SERVICIO 1", "SERVICIO 2", "SERVICIO 3", tu respuesta debe tener SOLO ESOS 3. 
+NO agregues "SERVICIO 13" solo porque la plantilla ID 13 encaja.`;
 
         // Include document content for better analysis (truncated to avoid token limits)
         console.log(`[Planning] Template Selection - fullDocumentText length: ${fullDocumentText?.length || 0}`);
 
+        // Extract using the simplified logic (first 35k chars or context around SERVICIO 1)
         const relevantText = this.extractServicesSection(fullDocumentText || '');
         console.log(`[Planning] Services section length: ${relevantText.length} (original: ${fullDocumentText?.length || 0})`);
 
-        const docPreview = relevantText.substring(0, 20000); // 20k chars covers even large OITs
+        const docPreview = relevantText.substring(0, 35000);
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
-        // Log start of doc for debugging
         console.log(`[Planning] Doc Start Preview: ${docPreview.substring(0, 500)}`);
 
         const prompt = `Analiza el texto extraído y genera la estructura de SERVICIOS.
 
 **ESTRUCTURA VISUAL DEL DOCUMENTO:**
-El documento tiene encabezados que pueden estar indentados. Ejemplo:
+El encabezado está distribuido en columnas con mucho espacio:
 "                           SERVICIO 1                                               MATRIZ                                        AGUAS"
 
 **TU TAREA:**
@@ -371,21 +375,25 @@ ${docPreview ? `**Contenido del Documento:**
 ${docPreview}
 ...
 ` : ''}
+${docPreview}
+...
+` : ''
+    }
 
-**LISTA DE PLANTILLAS DISPONIBLES (Selecciona el ID):**
-${templatesList}
+** LISTA DE PLANTILLAS DISPONIBLES(Selecciona el ID):**
+    ${ templatesList }
 
-**Responde con este JSON:**
-{
-  "totalServicesFound": number,
-  "services": [
+** Responde con este JSON:**
     {
-       "name": "SERVICIO [N] - [MATRIZ/PROCEDENCIA]",
-       "templateNumbers": [number] // El ID de la plantilla seleccionada (e.g. 13)
-    },
-    ...
+        "totalServicesFound": number,
+        "services": [
+            {
+                "name": "SERVICIO [N] - [MATRIZ/PROCEDENCIA]",
+                "templateNumbers": [number] // El ID de la plantilla seleccionada (e.g. 13)
+            },
+            ...
   ]
-}`;
+    }`;
 
         let selectedTemplates: any[] = [];
         let aiServicesFound: any[] = [];
