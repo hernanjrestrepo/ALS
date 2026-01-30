@@ -351,6 +351,8 @@ NO agregues "SERVICIO 13" solo porque la plantilla ID 13 encaja.`;
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
         console.log(`[Planning] Doc Start Preview: ${docPreview.substring(0, 500)}`);
 
+        const docContent = docPreview ? `**Contenido del Documento:**\n${docPreview}\n...` : '';
+
         const prompt = `Analiza el texto extraído y genera la estructura de SERVICIOS.
 
 **ESTRUCTURA VISUAL DEL DOCUMENTO:**
@@ -371,10 +373,7 @@ El encabezado está distribuido en columnas con mucho espacio:
 - OIT: ${oit.oitNumber}
 - Descripción: ${oit.description || 'N/A'}
 
-${docPreview ? `**Contenido del Documento:**
-${docPreview}
-...
-` : ''}
+${docContent}
 
 **LISTA DE PLANTILLAS DISPONIBLES (Selecciona el ID):**
 ${templatesList}
@@ -385,9 +384,8 @@ ${templatesList}
     "services": [
         {
             "name": "SERVICIO [N] - [MATRIZ/PROCEDENCIA]",
-            "templateNumbers": [number] // El ID de la plantilla seleccionada (e.g. 13)
-        },
-        ...
+            "templateNumbers": [number]
+        }
     ]
 }`;
 
@@ -431,9 +429,23 @@ ${templatesList}
                 const match = svc.name.match(/SERVICIO\s+(\d+)/i);
                 if (match) {
                     const number = match[1];
-                    const regex = new RegExp(`SERVICIO\\s + ${number} `, 'i');
+                    const regex = new RegExp(`SERVICIO\\s+${number}`, 'i');
                     const exists = regex.test(relevantText);
+
+                    // Debug Log for Regex Failure Analysis
                     if (!exists) {
+                        console.log(`[Planning DEBUG] Failed to match: "SERVICIO ${number}"`);
+                        console.log(`[Planning DEBUG] Regex used: ${regex.toString()}`);
+                        // Log a snippet of where "SERVICIO" appears in the text to see what it looks like
+                        const index = relevantText.indexOf('SERVICIO');
+                        if (index !== -1) {
+                            const snippet = relevantText.substring(Math.max(0, index - 20), Math.min(relevantText.length, index + 20));
+                            console.log(`[Planning DEBUG] Text Snippet near first 'SERVICIO': "${snippet.replace(/\n/g, '\\n').replace(/\r/g, '\\r')}"`);
+                        } else {
+                            console.log(`[Planning DEBUG] "SERVICIO" string NOT FOUND in relevantText via indexOf!`);
+                            console.log(`[Planning DEBUG] relevantText length: ${relevantText.length}`);
+                            console.log(`[Planning DEBUG] relevantText start: "${relevantText.substring(0, 100).replace(/\n/g, '\\n')}"`);
+                        }
                         console.warn(`[Planning] Ignored hallucinated service: ${svc.name} (Not found in text)`);
                     }
                     return exists;
