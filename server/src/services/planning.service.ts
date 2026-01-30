@@ -375,25 +375,21 @@ ${docPreview ? `**Contenido del Documento:**
 ${docPreview}
 ...
 ` : ''}
-${docPreview}
-...
-` : ''
-    }
 
-** LISTA DE PLANTILLAS DISPONIBLES(Selecciona el ID):**
-    ${ templatesList }
+**LISTA DE PLANTILLAS DISPONIBLES (Selecciona el ID):**
+${templatesList}
 
-** Responde con este JSON:**
-    {
-        "totalServicesFound": number,
-        "services": [
-            {
-                "name": "SERVICIO [N] - [MATRIZ/PROCEDENCIA]",
-                "templateNumbers": [number] // El ID de la plantilla seleccionada (e.g. 13)
-            },
-            ...
-  ]
-    }`;
+**Responde con este JSON:**
+{
+    "totalServicesFound": number,
+    "services": [
+        {
+            "name": "SERVICIO [N] - [MATRIZ/PROCEDENCIA]",
+            "templateNumbers": [number] // El ID de la plantilla seleccionada (e.g. 13)
+        },
+        ...
+    ]
+}`;
 
         let selectedTemplates: any[] = [];
         let aiServicesFound: any[] = [];
@@ -430,7 +426,20 @@ ${docPreview}
             }
 
             // Hydrate the services with real Template Names/IDs for the frontend
-            aiServicesFound = aiServicesFound.map(svc => ({
+            aiServicesFound = aiServicesFound.filter((svc: any) => {
+                // Strict Verification: Check if "SERVICIO [N]" actually exists in the text
+                const match = svc.name.match(/SERVICIO\s+(\d+)/i);
+                if (match) {
+                    const number = match[1];
+                    const regex = new RegExp(`SERVICIO\\s + ${number} `, 'i');
+                    const exists = regex.test(relevantText);
+                    if (!exists) {
+                        console.warn(`[Planning] Ignored hallucinated service: ${svc.name} (Not found in text)`);
+                    }
+                    return exists;
+                }
+                return true; // Keep if no number found (fallback)
+            }).map((svc: any) => ({
                 ...svc,
                 templates: svc.templateNumbers.map((n: number) => {
                     const tIndex = n - 1;
