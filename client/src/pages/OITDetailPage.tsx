@@ -954,15 +954,15 @@ export default function OITDetailPage() {
                                                     <div className="space-y-4">
                                                         {(() => {
                                                             // Group templates by oitType
-                                                            const groupedTemplates = selectedTemplates.reduce((acc, tmpl) => {
+                                                            const groupedTemplates = selectedTemplates.reduce((acc, tmpl: any) => {
                                                                 const type = tmpl.oitType || 'General';
                                                                 if (!acc[type]) acc[type] = [];
                                                                 acc[type].push(tmpl);
                                                                 return acc;
-                                                            }, {} as Record<string, typeof selectedTemplates>);
+                                                            }, {} as Record<string, any[]>);
 
                                                             const entries = Object.entries(groupedTemplates);
-                                                            const allConfirmed = entries.every(([_, tmpls]) => tmpls.every(t => serviceDates[t.id]?.confirmed));
+                                                            const allConfirmed = entries.every(([_, tmpls]) => (tmpls as any[]).every((t: any) => serviceDates[t.id]?.confirmed));
 
                                                             return (
                                                                 <>
@@ -980,8 +980,9 @@ export default function OITDetailPage() {
 
                                                                             <div className="p-0 divide-y divide-slate-100">
                                                                                 {entries.map(([type, tmpls], idx) => {
+                                                                                    const templates = tmpls as any[];
                                                                                     // Use info from the first template for display
-                                                                                    const firstId = tmpls[0].id;
+                                                                                    const firstId = templates[0].id;
                                                                                     const schedule = serviceDates[firstId] || {};
 
                                                                                     const dateStr = schedule.date
@@ -1042,7 +1043,8 @@ export default function OITDetailPage() {
                                                                                 )}
                                                                             </div>
                                                                             {entries.map(([type, tmpls]) => {
-                                                                                const firstId = tmpls[0].id;
+                                                                                const templates = tmpls as any[];
+                                                                                const firstId = templates[0].id;
                                                                                 const existingSchedule = serviceDates[firstId] || {};
 
                                                                                 // Synthetic schedule for the group
@@ -1064,7 +1066,7 @@ export default function OITDetailPage() {
                                                                                             // Apply to ALL templates in this group
                                                                                             const newServiceDates = { ...serviceDates };
 
-                                                                                            tmpls.forEach(t => {
+                                                                                            templates.forEach((t: any) => {
                                                                                                 newServiceDates[t.id] = {
                                                                                                     ...updatedSchedule,
                                                                                                     name: t.name // Preserve individual template name but take other schedule props
