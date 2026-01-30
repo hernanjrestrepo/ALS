@@ -949,147 +949,147 @@ export default function OITDetailPage() {
                                                 )}
 
                                                 {/* Manual Template Scheduling (if no AI services) */}
+                                                {/* Manual Template Scheduling (Grouped by Type) */}
                                                 {(!aiData?.data?.services || aiData.data.services.length === 0) && selectedTemplates.length > 0 && (
                                                     <div className="space-y-4">
-                                                        {selectedTemplates.every(tmpl => !serviceDates[tmpl.id]?.confirmed) && !isManualScheduling ? (
-                                                            <div className="bg-white border border-indigo-100 rounded-xl shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                                                <div className="bg-indigo-50/50 p-4 border-b border-indigo-100 flex items-center gap-3">
-                                                                    <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                                                                        <Sparkles className="h-4 w-4" />
-                                                                    </div>
-                                                                    <div>
-                                                                        <h4 className="font-semibold text-indigo-900">Propuesta de Programación</h4>
-                                                                        <p className="text-xs text-indigo-600">Basada en disponibilidad y carga de trabajo</p>
-                                                                    </div>
-                                                                </div>
+                                                        {(() => {
+                                                            // Group templates by oitType
+                                                            const groupedTemplates = selectedTemplates.reduce((acc, tmpl) => {
+                                                                const type = tmpl.oitType || 'General';
+                                                                if (!acc[type]) acc[type] = [];
+                                                                acc[type].push(tmpl);
+                                                                return acc;
+                                                            }, {} as Record<string, typeof selectedTemplates>);
 
-                                                                <div className="p-0 divide-y divide-slate-100">
-                                                                    {selectedTemplates.map((tmpl, idx) => {
-                                                                        const today = new Date();
-                                                                        const futureDate = new Date(today);
-                                                                        futureDate.setDate(today.getDate() + 7 + idx);
-                                                                        const dateStr = futureDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                                                            const entries = Object.entries(groupedTemplates);
+                                                            const allConfirmed = entries.every(([_, tmpls]) => tmpls.every(t => serviceDates[t.id]?.confirmed));
 
-                                                                        return (
-                                                                            <div key={tmpl.id} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                                                                                <div className="flex items-center gap-3">
-                                                                                    <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
-                                                                                        {tmpl.name.substring(0, 2).toUpperCase()}
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <p className="text-sm font-medium text-slate-900">{tmpl.name}</p>
-                                                                                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                                                            <span className="flex items-center gap-1">
-                                                                                                <Calendar className="h-3 w-3" /> {dateStr}
-                                                                                            </span>
-                                                                                            <span>•</span>
-                                                                                            <span className="flex items-center gap-1">
-                                                                                                <Clock className="h-3 w-3" /> 09:00
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </div>
+                                                            return (
+                                                                <>
+                                                                    {allConfirmed && !isManualScheduling ? (
+                                                                        <div className="bg-white border border-indigo-100 rounded-xl shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                                                            <div className="bg-indigo-50/50 p-4 border-b border-indigo-100 flex items-center gap-3">
+                                                                                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                                                                    <Sparkles className="h-4 w-4" />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <h4 className="font-semibold text-indigo-900">Propuesta de Programación</h4>
+                                                                                    <p className="text-xs text-indigo-600">Agrupada por tipo de servicio</p>
                                                                                 </div>
                                                                             </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
 
-                                                                <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        onClick={() => setIsManualScheduling(true)}
-                                                                        className="text-slate-600 hover:text-slate-900"
-                                                                    >
-                                                                        Configurar manualmente
-                                                                    </Button>
-                                                                    <Button
-                                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all hover:scale-105"
-                                                                        onClick={async () => {
-                                                                            const newServiceDates: Record<string, ServiceSchedule> = {};
-                                                                            const today = new Date();
-                                                                            selectedTemplates.forEach((tmpl, idx) => {
-                                                                                const futureDate = new Date(today);
-                                                                                futureDate.setDate(today.getDate() + 7 + idx);
-                                                                                newServiceDates[tmpl.id] = {
-                                                                                    name: tmpl.name,
-                                                                                    date: futureDate.toISOString().split('T')[0],
-                                                                                    time: '09:00',
-                                                                                    engineerIds: selectedEngineerIds.length > 0 ? selectedEngineerIds : [],
-                                                                                    confirmed: true
+                                                                            <div className="p-0 divide-y divide-slate-100">
+                                                                                {entries.map(([type, tmpls], idx) => {
+                                                                                    // Use info from the first template for display
+                                                                                    const firstId = tmpls[0].id;
+                                                                                    const schedule = serviceDates[firstId] || {};
+
+                                                                                    const dateStr = schedule.date
+                                                                                        ? new Date(schedule.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                                                                                        : 'Sin fecha';
+
+                                                                                    return (
+                                                                                        <div key={type} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                                                                            <div className="flex items-center gap-3">
+                                                                                                <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
+                                                                                                    {type.substring(0, 2).toUpperCase()}
+                                                                                                </div>
+                                                                                                <div>
+                                                                                                    <p className="text-sm font-medium text-slate-900">{type}</p>
+                                                                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                                                                        <span className="flex items-center gap-1">
+                                                                                                            <Users className="h-3 w-3" /> {tmpls.length} parámetro(s)
+                                                                                                        </span>
+                                                                                                        <span>•</span>
+                                                                                                        <span className="flex items-center gap-1">
+                                                                                                            <Calendar className="h-3 w-3" /> {dateStr}
+                                                                                                        </span>
+                                                                                                        <span>•</span>
+                                                                                                        <span className="flex items-center gap-1">
+                                                                                                            <Clock className="h-3 w-3" /> {schedule.time || '09:00'}
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+
+                                                                            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    onClick={() => setIsManualScheduling(true)}
+                                                                                    className="text-slate-600 hover:text-slate-900"
+                                                                                >
+                                                                                    Configurar manualmente
+                                                                                </Button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="grid gap-3 animate-in fade-in slide-in-from-top-4">
+                                                                            <div className="flex items-center justify-between mb-2">
+                                                                                <h5 className="text-sm font-medium text-slate-700">Programación por Servicio</h5>
+                                                                                {!Object.values(serviceDates).some(s => s.confirmed) && (
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        onClick={() => setIsManualScheduling(false)}
+                                                                                        className="h-8 text-xs text-indigo-600 hover:text-indigo-700"
+                                                                                    >
+                                                                                        Ver Resumen
+                                                                                    </Button>
+                                                                                )}
+                                                                            </div>
+                                                                            {entries.map(([type, tmpls]) => {
+                                                                                const firstId = tmpls[0].id;
+                                                                                const existingSchedule = serviceDates[firstId] || {};
+
+                                                                                // Synthetic schedule for the group
+                                                                                const groupSchedule = {
+                                                                                    name: type, // Display Type Name (e.g. Water)
+                                                                                    date: existingSchedule.date || '',
+                                                                                    time: existingSchedule.time || '09:00',
+                                                                                    engineerIds: existingSchedule.engineerIds || [],
+                                                                                    confirmed: existingSchedule.confirmed || false
                                                                                 };
-                                                                            });
 
-                                                                            setServiceDates(newServiceDates);
+                                                                                return (
+                                                                                    <ServiceScheduleCard
+                                                                                        key={type}
+                                                                                        serviceId={type}
+                                                                                        schedule={groupSchedule}
+                                                                                        engineers={availableEngineers}
+                                                                                        onUpdate={async (groupId, updatedSchedule) => {
+                                                                                            // Apply to ALL templates in this group
+                                                                                            const newServiceDates = { ...serviceDates };
 
-                                                                            try {
-                                                                                await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
-                                                                                toast.success('¡Programación aceptada!');
-                                                                                fetchOIT();
-                                                                            } catch (error) {
-                                                                                console.error(error);
-                                                                                toast.error('Error al guardar programación');
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                                        Aceptar Propuesta
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="grid gap-3 animate-in fade-in slide-in-from-top-4">
-                                                                <div className="flex items-center justify-between mb-2">
-                                                                    <h5 className="text-sm font-medium text-slate-700">Programación Manual</h5>
-                                                                    {!selectedTemplates.some(tmpl => serviceDates[tmpl.id]?.confirmed) && (
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => setIsManualScheduling(false)}
-                                                                            className="h-8 text-xs text-indigo-600 hover:text-indigo-700"
-                                                                        >
-                                                                            Ver Propuesta Automática
-                                                                        </Button>
+                                                                                            tmpls.forEach(t => {
+                                                                                                newServiceDates[t.id] = {
+                                                                                                    ...updatedSchedule,
+                                                                                                    name: t.name // Preserve individual template name but take other schedule props
+                                                                                                };
+                                                                                            });
+
+                                                                                            setServiceDates(newServiceDates);
+
+                                                                                            try {
+                                                                                                await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
+                                                                                                toast.success(`Programación actualizada para ${type}`);
+                                                                                                fetchOIT();
+                                                                                            } catch (error) {
+                                                                                                console.error(error);
+                                                                                                toast.error('Error al guardar programación');
+                                                                                            }
+                                                                                        }}
+                                                                                    />
+                                                                                );
+                                                                            })}
+                                                                        </div>
                                                                     )}
-                                                                </div>
-                                                                {selectedTemplates.map(tmpl => {
-                                                                    const serviceId = tmpl.id;
-                                                                    const existingSchedule = serviceDates[serviceId] || {};
-
-                                                                    const schedule = {
-                                                                        name: tmpl.name,
-                                                                        date: existingSchedule.date || '',
-                                                                        time: existingSchedule.time || '09:00',
-                                                                        engineerIds: existingSchedule.engineerIds || [],
-                                                                        confirmed: existingSchedule.confirmed || false
-                                                                    };
-
-                                                                    return (
-                                                                        <ServiceScheduleCard
-                                                                            key={serviceId}
-                                                                            serviceId={serviceId}
-                                                                            schedule={schedule}
-                                                                            engineers={availableEngineers}
-                                                                            onUpdate={async (id, updatedSchedule) => {
-                                                                                const newServiceDates = {
-                                                                                    ...serviceDates,
-                                                                                    [id]: updatedSchedule
-                                                                                };
-                                                                                setServiceDates(newServiceDates);
-
-                                                                                try {
-                                                                                    await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
-                                                                                    toast.success('Programación actualizada correctamente');
-                                                                                    fetchOIT();
-                                                                                } catch (error) {
-                                                                                    console.error(error);
-                                                                                    toast.error('Error al guardar programación');
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        )}
+                                                                </>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 )}
 
