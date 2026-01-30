@@ -506,7 +506,7 @@ Ejemplo INCORRECTO: ["Multiparámetro de ph", "GPS Garmin 64s"]`;
             };
 
             const { complianceService } = await import('../services/compliance.service');
-            const { default: planningService } = await import('../services/planning.service');
+            const { default: planningService } = await import('../services/planning.service') as any;
             const PrismaClient = require('@prisma/client').PrismaClient;
             const prisma = new PrismaClient();
 
