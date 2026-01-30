@@ -330,30 +330,30 @@ class PlanningService {
 
         // AI suggests best template
 
+        // Use explicit IDs in the list to avoid confusion with service numbers
         const templatesList = templates.map((t: any, index: number) =>
-            `${index + 1}. [${t.oitType}] ${t.name}`
+            `ID ${index + 1}: [${t.oitType}] ${t.name}`
         ).join('\n');
 
         const systemPrompt = `Eres un Planificador Senior de Operaciones Ambientales especialista en la normativa colombiana. 
 Tu responsabilidad es interpretar el documento de la OIT y estructurar la planeación del trabajo.
 
 **TU OBJETIVO:**
-1. Identificar EXCLUSIVAMENTE los bloques marcados como "SERVICIO [número]". 
+1. Identificar EXCLUSIVAMENTE los bloques marcados como "SERVICIO [número]" en el texto del documento. 
 2. Extraer el nombre del servicio usando el número y la "MATRIZ" o "PROCEDENCIA" asociada.
+3. Asignar el ID de la plantilla que mejor corresponda a los parámetros del servicio.
 
 **REGLAS DE ORO (ESTRICTAS):**
-- **BUSCA EL PATRÓN 'SERVICIO [N]':** El documento puede tener mucha indentación o espacios en blanco antes de la palabra "SERVICIO". Debes ignorar esos espacios y encontrar el patrón.
-- **SOLO 'SERVICIO [N]' ES UN SERVICIO:** No inventes servicios. Si no ves "SERVICIO [N]", no es un servicio principal.
-- **AGRUPA LOS PARÁMETROS:** Todo lo que esté debajo de "SERVICIO [N]" (ej. listas de parámetros como pH, DQO, etc.) PERTENECE a ese servicio. NO crees servicios separados para ellos.
+- **DIFERENCIA CLAVE:** "SERVICIO 1" del documento NO TIENE NADA QUE VER con "ID 1" de las plantillas. Son números independientes.
+- **PATRÓN 'SERVICIO [N]':** Busca "SERVICIO 1", "SERVICIO 2", etc. Ignora indentación.
+- **NO INVENTES SERVICIOS:** Solo usa los que aparecen explícitamente en el documento con "SERVICIO [N]".
+- **AGRUPA LOS PARÁMETROS:** Todo lo que esté debajo de "SERVICIO [N]" pertenece a ese servicio.
 - **NOMBRE:** El nombre debe ser "SERVICIO [N] - [MATRIZ/PROCEDENCIA]". Ej: "SERVICIO 4 - BIOGAS".
-- Las plantillas están numeradas del 1 al ${templates.length}.`;
+- **PLANTILLAS:** Usa los IDs de la lista proporcionada (ej. ID 13).`;
 
         // Include document content for better analysis (truncated to avoid token limits)
         console.log(`[Planning] Template Selection - fullDocumentText length: ${fullDocumentText?.length || 0}`);
 
-        // [MODIFIED] Use filtered text for template assignment to avoid noise
-        // NOTE: Standard extractServices might be failing if it cuts off keywords. 
-        // We will pass a larger chunk or raw text if needed, but for now trusting fullDocumentText mostly.
         const relevantText = this.extractServicesSection(fullDocumentText || '');
         console.log(`[Planning] Services section length: ${relevantText.length} (original: ${fullDocumentText?.length || 0})`);
 
@@ -365,18 +365,18 @@ Tu responsabilidad es interpretar el documento de la OIT y estructurar la planea
         const prompt = `Analiza el texto extraído y genera la estructura de SERVICIOS.
 
 **ESTRUCTURA VISUAL DEL DOCUMENTO:**
-El documento tiene encabezados que pueden estar indentados (con espacios al inicio). Ejemplo:
+El documento tiene encabezados que pueden estar indentados. Ejemplo:
 "                           SERVICIO 1                                               MATRIZ                                        AGUAS"
 
 **TU TAREA:**
-1. Escanea el texto buscando la palabra "SERVICIO" seguida de un número. IMPORTANTE: Ignora los espacios al inicio de la línea.
+1. Encuentra TODOS los "SERVICIO [N]" en el texto.
 2. Extrae ese bloque como un SERVICIO ÚNICO.
-3. Asigna las plantillas correspondientes a TODOS los parámetros listados bajo ese encabezado.
+3. Selecciona de la lista de plantillas el "ID" que cubra los parámetros de ese servicio.
 
 **IMPORTANTE:**
-- Si ves "PARÁMETROS: Metano, CO2", eso es CONTENIDO del servicio, NO son servicios nuevos.
-- Si el documento termina en "SERVICIO 10", tu array debe tener 10 elementos.
-- NO agregues items que no tengan el encabezado "SERVICIO [N]".
+- Si el documento tiene "SERVICIO 1", "SERVICIO 2" y "SERVICIO 3", tu JSON debe tener **exactamente 3 elementos**.
+- NO uses los IDs de las plantillas como nombres de servicio.
+- NO separes parámetros en servicios nuevos.
 
 **DETALLES DE LA OIT:**
 - OIT: ${oit.oitNumber}
@@ -387,7 +387,7 @@ ${docPreview}
 ...
 ` : ''}
 
-**LISTA DE PLANTILLAS DISPONIBLES (Usa solo el número):**
+**LISTA DE PLANTILLAS DISPONIBLES (Selecciona el ID):**
 ${templatesList}
 
 **Responde con este JSON:**
@@ -396,7 +396,7 @@ ${templatesList}
   "services": [
     {
        "name": "SERVICIO [N] - [MATRIZ/PROCEDENCIA]",
-       "templateNumbers": [number, number] 
+       "templateNumbers": [number] // El ID de la plantilla seleccionada (e.g. 13)
     },
     ...
   ]
