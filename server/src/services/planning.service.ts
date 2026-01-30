@@ -348,30 +348,38 @@ NO agregues "SERVICIO 13" solo porque la plantilla ID 13 encaja.`;
         console.log(`[Planning] Services section length: ${relevantText.length} (original: ${fullDocumentText?.length || 0})`);
 
 
-        const docPreview = relevantText.substring(0, 35000);
-        console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
-        console.log(`[Planning] Doc Start Preview: ${docPreview.substring(0, 500)}`);
 
-        // Compress whitespace to help AI associate Service N with its description
-        // Replace 2+ spaces with " | " to indicate column separation without being too wide
-        const compressedText = docPreview.replace(/[ \t]{2,}/g, ' | ');
-        const docContent = compressedText ? `**Contenido del Documento (Pre-procesado para reducir espacios):**\n${compressedText}\n...` : '';
+
+        const docPreview = relevantText.substring(0, 35000);
+
+        // Extract explicit Service Headers to guide the AI preventing hallucinations
+        const serviceHeaderRegex = /(?:^|\n)[^\S\r\n]*(SERVICIO\s+\d+[^\n]*)/gi;
+        let detectedHeaders = '';
+        let match;
+        const matches = [];
+        while ((match = serviceHeaderRegex.exec(relevantText)) !== null) {
+            matches.push(`- ${match[1].trim().replace(/\s{2,}/g, ' | ')}`);
+        }
+        if (matches.length > 0) {
+            detectedHeaders = `\n**ENCABEZADOS DETECTADOS (USAR COMO VERDAD ABSOLUTA):**\n${matches.join('\n')}\n`;
+        }
+
+        const docContent = docPreview ? `**Contenido del Documento:**\n${docPreview.replace(/[ \t]{2,}/g, ' | ')}\n...` : '';
 
         const prompt = `Analiza el texto extraído y genera la estructura de SERVICIOS.
+${detectedHeaders}
 
 **ESTRUCTURA VISUAL DEL DOCUMENTO:**
 El encabezado original tiene columnas muy separadas. Se han comprimido usando " | " como separador.
-Ejemplo: "SERVICIO 1 | MATRIZ | AGUAS"
 
 **TU TAREA:**
-1. Encuentra TODOS los "SERVICIO [N]" en el texto.
-2. Extrae ese bloque como un SERVICIO ÚNICO.
-3. Selecciona de la lista de plantillas el "ID" que cubra los parámetros de ese servicio.
+1. Basándote en los "ENCABEZADOS DETECTADOS" y el texto:
+2. Genera la estructura JSON para cada servicio encontrado.
+3. Si el encabezado dice "CALIDAD DE AIRE", clasifícalo como AIRE, no como RUIDO.
 
 **IMPORTANTE:**
-- Si el documento tiene "SERVICIO 1", "SERVICIO 2" y "SERVICIO 3", tu JSON debe tener **exactamente 3 elementos**.
-- NO uses los IDs de las plantillas como nombres de servicio.
-- NO separes parámetros en servicios nuevos.
+- Si "ENCABEZADOS DETECTADOS" muestra 6 servicios, TU RESPUESTA DEBE TENER 6 SERVICIOS.
+- Confía más en los "ENCABEZADOS DETECTADOS" que en el cuerpo del texto si hay contradicciones.
 
 **DETALLES DE LA OIT:**
 - OIT: ${oit.oitNumber}
