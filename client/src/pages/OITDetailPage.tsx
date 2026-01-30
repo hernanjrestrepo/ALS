@@ -982,7 +982,7 @@ export default function OITDetailPage() {
                                                                             </div>
 
                                                                             <div className="p-0 divide-y divide-slate-100">
-                                                                                {entries.map(([type, tmpls]) => {
+                                                                                {entries.map(([type, tmpls], idx) => {
                                                                                     const templates = tmpls as any[];
                                                                                     // Use info from the first template for display
                                                                                     const firstId = templates[0].id;
