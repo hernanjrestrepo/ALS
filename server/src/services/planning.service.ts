@@ -352,16 +352,38 @@ NO agregues "SERVICIO 13" solo porque la plantilla ID 13 encaja.`;
 
         const docPreview = relevantText.substring(0, 35000);
 
-        // Extract explicit Service Headers to guide the AI preventing hallucinations
-        const serviceHeaderRegex = /(?:^|\n)[^\S\r\n]*(SERVICIO\s+\d+[^\n]*)/gi;
+
+        // Extract explicit Service Headers (Robust Multiline Support)
+        // Looks for "SERVICIO N", then scans ahead for "MATRIZ" to capture the real type within 200 chars
         let detectedHeaders = '';
-        let match;
         const matches = [];
-        while ((match = serviceHeaderRegex.exec(relevantText)) !== null) {
-            matches.push(`- ${match[1].trim().replace(/\s{2,}/g, ' | ')}`);
+
+        // Find all "SERVICIO N" occurrences
+        const serviceMarkers = [...relevantText.matchAll(/SERVICIO\s+(\d+)/gi)];
+
+        for (const marker of serviceMarkers) {
+            const serviceNum = marker[1];
+            const startIndex = marker.index!;
+            const searchWindow = relevantText.substring(startIndex, startIndex + 300); // Look ahead 300 chars
+
+            // Try to find "MATRIZ" or "PROCEDENCIA" in this window
+            const matrixMatch = searchWindow.match(/MATRIZ\s*[:\s]([^(\n]+)/i); // Capture until newline or open parenthesis
+
+            if (matrixMatch) {
+                let matrixValue = matrixMatch[1].trim();
+                // Clean up any trailing weird chars
+                matrixValue = matrixValue.replace(/_{2,}|[.]{2,}/g, '').trim();
+                matches.push(`- SERVICIO ${serviceNum} | MATRIZ | ${matrixValue}`);
+            } else {
+                // Fallback: Just grab the immediate line if strict matrix extract fails
+                const lineMatch = searchWindow.match(/^([^\n]+)/);
+                if (lineMatch) matches.push(`- ${lineMatch[1].trim().replace(/\s{2,}/g, ' | ')}`);
+            }
         }
+
         if (matches.length > 0) {
             detectedHeaders = `\n**ENCABEZADOS DETECTADOS (USAR COMO VERDAD ABSOLUTA):**\n${matches.join('\n')}\n`;
+            console.log('[Planning] Detected Headers:\n', detectedHeaders); // Log for debugging
         }
 
         const docContent = docPreview ? `**Contenido del Documento:**\n${docPreview.replace(/[ \t]{2,}/g, ' | ')}\n...` : '';
