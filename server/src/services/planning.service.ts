@@ -316,13 +316,13 @@ Tu responsabilidad es interpretar el documento de la OIT y estructurar la planea
 
 **TU OBJETIVO:**
 1. Identificar EXCLUSIVAMENTE los bloques marcados como "SERVICIO [número]". 
-2. Extraer el nombre del servicio usando el número y la "MATRIZ" o "PROCEDENCIA" asociada (ej. "SERVICIO 4 - BIOGAS").
-3. Asignar las plantillas correspondientes.
+2. Extraer el nombre del servicio usando el número y la "MATRIZ" o "PROCEDENCIA" asociada.
 
 **REGLAS DE ORO (ESTRICTAS):**
-- **SOLO 'SERVICIO [N]' CUENTA:** Tu lista de servicios debe corresponder EXACTAMENTE a los encabezados "SERVICIO 1", "SERVICIO 2", etc.
-- **IGNORA LOS PARÁMETROS COMO SERVICIOS:** Si debajo de "SERVICIO 4" hay una lista de "PARÁMETROS" (ej. Metano, CO2, Temperatura), NO crees servicios para ellos. Todos pertenecen al "SERVICIO 4".
-- **NO HALLUCINES:** Si el documento tiene hasta "SERVICIO 10", tu respuesta debe tener 10 servicios. No más, no menos.
+- **BUSCA EL PATRÓN 'SERVICIO [N]':** El documento puede tener mucha indentación o espacios en blanco antes de la palabra "SERVICIO". Debes ignorar esos espacios y encontrar el patrón.
+- **SOLO 'SERVICIO [N]' ES UN SERVICIO:** No inventes servicios. Si no ves "SERVICIO [N]", no es un servicio principal.
+- **AGRUPA LOS PARÁMETROS:** Todo lo que esté debajo de "SERVICIO [N]" (ej. listas de parámetros como pH, DQO, etc.) PERTENECE a ese servicio. NO crees servicios separados para ellos.
+- **NOMBRE:** El nombre debe ser "SERVICIO [N] - [MATRIZ/PROCEDENCIA]". Ej: "SERVICIO 4 - BIOGAS".
 - Las plantillas están numeradas del 1 al ${templates.length}.`;
 
         // Include document content for better analysis (truncated to avoid token limits)
@@ -336,21 +336,19 @@ Tu responsabilidad es interpretar el documento de la OIT y estructurar la planea
 
         const docPreview = relevantText.substring(0, 20000); // 20k chars covers even large OITs
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
+        // Log start of doc for debugging
+        console.log(`[Planning] Doc Start Preview: ${docPreview.substring(0, 500)}`);
 
         const prompt = `Analiza el texto extraído y genera la estructura de SERVICIOS.
 
-**ESTRUCTURA DEL DOCUMENTO (Patrón Visual):**
-El documento lista servicios con este formato:
-"SERVICIO [N] ... MATRIZ/PROCEDENCIA [NOMBRE]"
-[Tablas de Parámetros]
-...
-"SERVICIO [N+1] ..."
+**ESTRUCTURA VISUAL DEL DOCUMENTO:**
+El documento tiene encabezados que pueden estar indentados (con espacios al inicio). Ejemplo:
+"                           SERVICIO 1                                               MATRIZ                                        AGUAS"
 
 **TU TAREA:**
-1. Encuentra TODOS los "SERVICIO [N]" en el texto.
-2. Para cada uno, crea una entrada en el JSON.
-3. El nombre debe ser "SERVICIO [N] - [MATRIZ/PROCEDENCIA]". Ejemplo: "SERVICIO 4 - BIOGAS".
-4. Asigna las plantillas que cubran TODOS los parámetros listados bajo ese servicio.
+1. Escanea el texto buscando la palabra "SERVICIO" seguida de un número. IMPORTANTE: Ignora los espacios al inicio de la línea.
+2. Extrae ese bloque como un SERVICIO ÚNICO.
+3. Asigna las plantillas correspondientes a TODOS los parámetros listados bajo ese encabezado.
 
 **IMPORTANTE:**
 - Si ves "PARÁMETROS: Metano, CO2", eso es CONTENIDO del servicio, NO son servicios nuevos.
