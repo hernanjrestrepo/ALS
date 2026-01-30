@@ -347,17 +347,21 @@ NO agregues "SERVICIO 13" solo porque la plantilla ID 13 encaja.`;
         const relevantText = this.extractServicesSection(fullDocumentText || '');
         console.log(`[Planning] Services section length: ${relevantText.length} (original: ${fullDocumentText?.length || 0})`);
 
+
         const docPreview = relevantText.substring(0, 35000);
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
         console.log(`[Planning] Doc Start Preview: ${docPreview.substring(0, 500)}`);
 
-        const docContent = docPreview ? `**Contenido del Documento:**\n${docPreview}\n...` : '';
+        // Compress whitespace to help AI associate Service N with its description
+        // Replace 2+ spaces with " | " to indicate column separation without being too wide
+        const compressedText = docPreview.replace(/[ \t]{2,}/g, ' | ');
+        const docContent = compressedText ? `**Contenido del Documento (Pre-procesado para reducir espacios):**\n${compressedText}\n...` : '';
 
         const prompt = `Analiza el texto extraído y genera la estructura de SERVICIOS.
 
 **ESTRUCTURA VISUAL DEL DOCUMENTO:**
-El encabezado está distribuido en columnas con mucho espacio:
-"                           SERVICIO 1                                               MATRIZ                                        AGUAS"
+El encabezado original tiene columnas muy separadas. Se han comprimido usando " | " como separador.
+Ejemplo: "SERVICIO 1 | MATRIZ | AGUAS"
 
 **TU TAREA:**
 1. Encuentra TODOS los "SERVICIO [N]" en el texto.
