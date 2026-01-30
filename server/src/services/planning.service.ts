@@ -312,14 +312,16 @@ class PlanningService {
         ).join('\n');
 
         const systemPrompt = `Eres un Planificador Senior de Operaciones Ambientales especialista en la normativa colombiana. 
-Tu responsabilidad es asignar TODAS las plantillas (metodologías de muestreo) necesarias para ejecutar una OIT.
+Tu responsabilidad es interpretar el documento de la OIT y estructurar la planeación del trabajo.
 
-IMPORTANTE: 
-1. Analiza el documento buscando los ITEMS o SERVICIOS específicos contratados.
-2. Selecciona MULTIPLES plantillas si el trabajo así lo requiere.
-3. Las plantillas están numeradas del 1 al ${templates.length}. Responde solo con los NÚMEROS.
-4. NUNCA uses "..." ni "etc". Si hay 15 servicios, pon los 15 números.
-5. Si ves un servicio que no tiene una plantilla exacta, elige la más cercana de la misma categoría (AGUA, AIRE, RUIDO, etc.).`;
+**TU OBJETIVO:**
+1. Leer el documento e identificar CADA UNO de los Servicios, Items o Parámetros contratados (ej. "Muestreo Isocinético", "Monitoría de Ruido Diurno", "Análisis de Aguas Residuales").
+2. Para cada Servicio identificado, asígnale el o los NÚMEROS de las Plantillas (Metodologías) necesarias para ejecutarlo.
+
+**IMPORTANTE:**
+- NO agrupes todo en un solo servicio genérico. Si la orden dice "3 Muestreos de Agua" y "1 Muestreo de Aire", debes identificar esos servicios por separado.
+- Usa los Nombres EXACTOS o muy similares a los que aparecen en la tabla de cotización del documento.
+- Las plantillas están numeradas del 1 al ${templates.length}.`;
 
         // Include document content for better analysis (truncated to avoid token limits)
         console.log(`[Planning] Template Selection - fullDocumentText length: ${fullDocumentText?.length || 0}`);
@@ -331,13 +333,13 @@ IMPORTANTE:
         const docPreview = relevantText.substring(0, 20000);
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
 
-        const prompt = `Analiza EXHAUSTIVAMENTE esta OIT y selecciona los NUMEROS de las plantillas correspondientes. NO TE LIMITES. Si hay 20 servicios, selecciona 20 números.
+        const prompt = `Analiza la OIT y extrae una lista de SERVICIOS.
         
-**INSTRUCCIONES CRÍTICAS:**
-1. Escanea CADA PÁGINA buscando items de cobro o servicios.
-2. Por cada servicio visto, anota el NÚMERO de la plantilla que corresponda de la lista de abajo.
-3. **VERIFICACIÓN:** Si el cliente paga por 5 cosas, debes devolver al menos 5 números.
-4. Escribe los números uno por uno en la lista "templateNumbers". PROHIBIDO usar "..." o resumir.
+**INSTRUCCIONES:**
+1. Escanea el texto buscando la tabla de items, servicios, alcance o descripción.
+2. Crea una lista de los servicios encontrados.
+3. Para cada servicio, mira en la lista de Plantillas Disponibles y decide qué plantillas (números) se necesitan.
+4. Si un servicio requiere varias plantillas (ej. Muestreo de campo + Análisis in situ), pon ambos números.
 
 **DETALLES DE LA OIT:**
 - OIT: ${oit.oitNumber}
@@ -353,13 +355,19 @@ ${templatesList}
 
 **Responde con este JSON:**
 {
-  "totalItemsFoundInDoc": "número total de servicios que leíste",
-  "templateNumbers": [number1, number2, number3, ...],
-  "mapping": "Lista de 'Servicio -> Numero de Plantilla'",
-  "reason": "Explicación breve"
+  "totalServicesFound": number,
+  "services": [
+    {
+       "name": "Nombre exacto del Servicio/Item en el PDF",
+       "templateNumbers": [number, number] 
+    },
+    ...
+  ]
 }`;
 
         let selectedTemplates: any[] = [];
+        let aiServicesFound: any[] = [];
+
         try {
             const aiResponse = await aiService.chat(prompt, undefined, systemPrompt);
             console.log('AI Response for template selection:', aiResponse);
@@ -367,11 +375,17 @@ ${templatesList}
             const cleanedResponse = this.cleanAIResponse(aiResponse);
             const templateSuggestion = JSON.parse(cleanedResponse);
 
-            // Map numeric indexes back to UUIDs
-            const indexes = Array.isArray(templateSuggestion.templateNumbers)
-                ? templateSuggestion.templateNumbers
-                : [];
+            aiServicesFound = templateSuggestion.services || [];
 
+            // Aggregate ALL template IDs for the flat list (backward compatibility)
+            const allIndexes = new Set<string>();
+            aiServicesFound.forEach((svc: any) => {
+                if (Array.isArray(svc.templateNumbers)) {
+                    svc.templateNumbers.forEach((n: any) => allIndexes.add(String(n)));
+                }
+            });
+
+            const indexes = Array.from(allIndexes);
             const ids = indexes
                 .map((idx: any) => {
                     const i = parseInt(idx) - 1;
@@ -384,6 +398,23 @@ ${templatesList}
                     where: { id: { in: ids as string[] } }
                 });
             }
+
+            // Hydrate the services with real Template Names/IDs for the frontend
+            aiServicesFound = aiServicesFound.map(svc => ({
+                ...svc,
+                templates: svc.templateNumbers.map((n: number) => {
+                    const tIndex = n - 1;
+                    if (tIndex >= 0 && tIndex < templates.length) {
+                        return {
+                            id: templates[tIndex].id,
+                            name: templates[tIndex].name,
+                            oitType: templates[tIndex].oitType
+                        };
+                    }
+                    return null;
+                }).filter(Boolean)
+            }));
+
         } catch (error) {
             console.error('Failed to parse AI response:', error);
             console.error('Error details:', error instanceof Error ? error.message : String(error));
@@ -392,6 +423,14 @@ ${templatesList}
         // Fallback to first template if AI fails or returns nothing
         if (selectedTemplates.length === 0) {
             selectedTemplates = [templates[0]];
+            aiServicesFound = [{
+                name: "Servicio General (Fallback)",
+                templates: [{
+                    id: templates[0].id,
+                    name: templates[0].name,
+                    oitType: templates[0].oitType
+                }]
+            }];
         }
 
         // Combine steps from all templates
@@ -470,7 +509,11 @@ ${templatesList}
                 aiData: JSON.stringify({
                     ...currentAiData,
                     message: 'Propuesta de planificación generada',
-                    data: { ...currentAiData.data, ...proposal }
+                    data: {
+                        ...currentAiData.data,
+                        ...proposal,
+                        services: aiServicesFound // Save the structured services
+                    }
                 }),
                 planningProposal: JSON.stringify(proposal)
             }
