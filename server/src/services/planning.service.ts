@@ -315,33 +315,47 @@ class PlanningService {
 Tu responsabilidad es interpretar el documento de la OIT y estructurar la planeación del trabajo.
 
 **TU OBJETIVO:**
-1. Leer el documento e identificar CADA UNO de los Servicios enumerados en la tabla de cotización (ej. "1. Muestreo de Aguas", "2. Monitoría de Ruido").
-2. Identificar la "PROCEDENCIA" o "MATRIZ" de cada servicio para agrupar correctamente.
-3. Para cada Servicio identificado, asígnale el o los NÚMEROS de las Plantillas (Metodologías) necesarias para ejecutarlo.
+1. Identificar EXCLUSIVAMENTE los bloques marcados como "SERVICIO [número]". 
+2. Extraer el nombre del servicio usando el número y la "MATRIZ" o "PROCEDENCIA" asociada (ej. "SERVICIO 4 - BIOGAS").
+3. Asignar las plantillas correspondientes.
 
-**REGLAS ESTRICTAS:**
-- **RESPETA LA NUMERACIÓN:** Si la tabla dice "1", "2", "3", debes devolver exactamente esos 3 servicios. NO inventes servicios adicionales ni dividas una fila en múltiples servicios.
-- **AGRUPA POR CONTEXTO:** Si una fila dice "Procedencia: Agua Residual" y lista varios parámetros (pH, DQO, SST), eso es UN SOLO servicio ("Monitoreo Agua Residual"). NO crees un servicio por cada parámetro.
-- **IDENTIFICADORES:** Usa los Nombres EXACTOS o muy similares a los que aparecen en la tabla de cotización del documento.
+**REGLAS DE ORO (ESTRICTAS):**
+- **SOLO 'SERVICIO [N]' CUENTA:** Tu lista de servicios debe corresponder EXACTAMENTE a los encabezados "SERVICIO 1", "SERVICIO 2", etc.
+- **IGNORA LOS PARÁMETROS COMO SERVICIOS:** Si debajo de "SERVICIO 4" hay una lista de "PARÁMETROS" (ej. Metano, CO2, Temperatura), NO crees servicios para ellos. Todos pertenecen al "SERVICIO 4".
+- **NO HALLUCINES:** Si el documento tiene hasta "SERVICIO 10", tu respuesta debe tener 10 servicios. No más, no menos.
 - Las plantillas están numeradas del 1 al ${templates.length}.`;
 
         // Include document content for better analysis (truncated to avoid token limits)
         console.log(`[Planning] Template Selection - fullDocumentText length: ${fullDocumentText?.length || 0}`);
 
         // [MODIFIED] Use filtered text for template assignment to avoid noise
+        // NOTE: Standard extractServices might be failing if it cuts off keywords. 
+        // We will pass a larger chunk or raw text if needed, but for now trusting fullDocumentText mostly.
         const relevantText = this.extractServicesSection(fullDocumentText || '');
         console.log(`[Planning] Services section length: ${relevantText.length} (original: ${fullDocumentText?.length || 0})`);
 
-        const docPreview = relevantText.substring(0, 20000);
+        const docPreview = relevantText.substring(0, 20000); // 20k chars covers even large OITs
         console.log(`[Planning] Template Selection - docPreview length: ${docPreview.length}`);
 
-        const prompt = `Analiza la OIT y extrae la lista de SERVICIOS basándote ESTRICTAMENTE en la tabla de items/cotización.
-        
-**INSTRUCCIONES CLAVE:**
-1. Busca la tabla enumerada (1, 2, 3...). Cada número es un SERVICIO INDEPENDIENTE.
-2. Si un item dice "SERVICIO [N]" y luego "PROCEDENCIA: [MATRIZ]", ese es el nombre del servicio (ej. "SERVICIO 1 - AGUA RESIDUAL").
-3. NO separes los parámetros (ej. Ruido Diurno, Ruido Nocturno) si están bajo el mismo item numerado.
-4. Asigna las plantillas mineras necesarias para CADA servicio numerado.
+        const prompt = `Analiza el texto extraído y genera la estructura de SERVICIOS.
+
+**ESTRUCTURA DEL DOCUMENTO (Patrón Visual):**
+El documento lista servicios con este formato:
+"SERVICIO [N] ... MATRIZ/PROCEDENCIA [NOMBRE]"
+[Tablas de Parámetros]
+...
+"SERVICIO [N+1] ..."
+
+**TU TAREA:**
+1. Encuentra TODOS los "SERVICIO [N]" en el texto.
+2. Para cada uno, crea una entrada en el JSON.
+3. El nombre debe ser "SERVICIO [N] - [MATRIZ/PROCEDENCIA]". Ejemplo: "SERVICIO 4 - BIOGAS".
+4. Asigna las plantillas que cubran TODOS los parámetros listados bajo ese servicio.
+
+**IMPORTANTE:**
+- Si ves "PARÁMETROS: Metano, CO2", eso es CONTENIDO del servicio, NO son servicios nuevos.
+- Si el documento termina en "SERVICIO 10", tu array debe tener 10 elementos.
+- NO agregues items que no tengan el encabezado "SERVICIO [N]".
 
 **DETALLES DE LA OIT:**
 - OIT: ${oit.oitNumber}
@@ -360,7 +374,7 @@ ${templatesList}
   "totalServicesFound": number,
   "services": [
     {
-       "name": "SERVICIO [N] - [PROCEDENCIA/NOMBRE]",
+       "name": "SERVICIO [N] - [MATRIZ/PROCEDENCIA]",
        "templateNumbers": [number, number] 
     },
     ...
