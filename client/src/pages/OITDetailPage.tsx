@@ -979,7 +979,7 @@ export default function OITDetailPage() {
                                                                             </div>
 
                                                                             <div className="p-0 divide-y divide-slate-100">
-                                                                                {entries.map(([type, tmpls], idx) => {
+                                                                                {entries.map(([type, tmpls]) => {
                                                                                     const templates = tmpls as any[];
                                                                                     // Use info from the first template for display
                                                                                     const firstId = templates[0].id;
@@ -999,7 +999,7 @@ export default function OITDetailPage() {
                                                                                                     <p className="text-sm font-medium text-slate-900">{type}</p>
                                                                                                     <div className="flex items-center gap-2 text-xs text-slate-500">
                                                                                                         <span className="flex items-center gap-1">
-                                                                                                            <Users className="h-3 w-3" /> {tmpls.length} parámetro(s)
+                                                                                                            <Users className="h-3 w-3" /> {templates.length} parámetro(s)
                                                                                                         </span>
                                                                                                         <span>•</span>
                                                                                                         <span className="flex items-center gap-1">
@@ -1062,7 +1062,7 @@ export default function OITDetailPage() {
                                                                                         serviceId={type}
                                                                                         schedule={groupSchedule}
                                                                                         engineers={availableEngineers}
-                                                                                        onUpdate={async (groupId, updatedSchedule) => {
+                                                                                        onUpdate={async (_, updatedSchedule) => {
                                                                                             // Apply to ALL templates in this group
                                                                                             const newServiceDates = { ...serviceDates };
 
