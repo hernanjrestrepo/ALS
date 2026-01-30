@@ -389,7 +389,6 @@ NO agregues "SERVICIO 13" solo porque la plantilla ID 13 encaja.`;
         const docContent = docPreview ? `**Contenido del Documento:**\n${docPreview.replace(/[ \t]{2,}/g, ' | ')}\n...` : '';
 
         const prompt = `Analiza el texto extraído y genera la estructura de SERVICIOS.
-${detectedHeaders}
 
 **ESTRUCTURA VISUAL DEL DOCUMENTO:**
 El encabezado original tiene columnas muy separadas. Se han comprimido usando " | " como separador.
@@ -411,6 +410,8 @@ ${docContent}
 
 **LISTA DE PLANTILLAS DISPONIBLES (Selecciona el ID):**
 ${templatesList}
+
+${detectedHeaders}
 
 **Responde con este JSON:**
 {
