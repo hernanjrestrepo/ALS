@@ -2,9 +2,30 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import path from 'path';
 import fs from 'fs';
+import { upload } from '../config/multer';
 
 const router = Router();
 
+// Upload generic file
+router.post('/upload', authMiddleware, upload.single('file'), (req: Request, res: Response) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        console.log('[Files] File uploaded successfully:', req.file.filename);
+
+        // Return the filename so the frontend can reference it
+        res.json({
+            filename: req.file.filename,
+            originalname: req.file.originalname,
+            path: req.file.path
+        });
+    } catch (error) {
+        console.error('[Files] Upload error:', error);
+        res.status(500).json({ error: 'Error uploading file' });
+    }
+});
 
 router.get('/download/:filename', authMiddleware, (req: Request, res: Response) => {
     try {

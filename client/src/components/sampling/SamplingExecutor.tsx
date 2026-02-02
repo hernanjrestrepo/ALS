@@ -49,16 +49,47 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
         }
     };
 
-    const handleStepComplete = (stepData: StepData) => {
-        const newCollectedData = [...collectedData, stepData];
-        setCollectedData(newCollectedData);
+    const handleStepComplete = async (stepData: StepData) => {
+        try {
+            // Upload files if present
+            if (stepData.rawFiles && stepData.rawFiles.length > 0) {
+                setIsSaving(true);
+                const uploadedPaths: string[] = [];
 
-        // Auto-advance to next step
-        if (currentStepIndex < steps.length - 1) {
-            setCurrentStepIndex(currentStepIndex + 1);
-        } else {
-            // All steps complete
-            finalizeSampling(newCollectedData);
+                for (const file of stepData.rawFiles) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const response = await api.post('/files/upload', formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    });
+
+                    if (response.data && response.data.filename) {
+                        uploadedPaths.push(response.data.filename);
+                    }
+                }
+
+                stepData.files = uploadedPaths;
+                delete stepData.rawFiles; // Clean up raw files
+                setIsSaving(false);
+            }
+
+            const newCollectedData = [...collectedData, stepData];
+            setCollectedData(newCollectedData);
+
+            // Auto-advance to next step
+            if (currentStepIndex < steps.length - 1) {
+                setCurrentStepIndex(currentStepIndex + 1);
+            } else {
+                // All steps complete
+                finalizeSampling(newCollectedData);
+            }
+        } catch (error) {
+            console.error('Error uploading files:', error);
+            setIsSaving(false);
+            toast.error('Error al subir archivos. Por favor intente nuevamente.');
         }
     };
 

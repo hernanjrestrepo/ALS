@@ -33,7 +33,8 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
 
         // Add files if exists
         if (files.length > 0) {
-            stepData.files = files.map(f => f.name); // URLs will be set after upload
+            stepData.files = files.map(f => f.name); // Temporary names
+            stepData.rawFiles = files; // Pass raw files for parent to upload
         }
 
         onComplete(stepData);

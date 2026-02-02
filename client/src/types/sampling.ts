@@ -73,6 +73,7 @@ export interface StepData {
         longitude: number;
     };
     files?: string[];  // URLs to uploaded files
+    rawFiles?: File[]; // Files pending upload
     metadata?: Record<string, any>;
 }
 
