@@ -1641,9 +1641,9 @@ export default function OITDetailPage() {
                                                         const key = `ai-service-${idx}`;
                                                         const schedule = serviceDates[key] || {};
                                                         return {
-                                                            id: key,
                                                             ...schedule,
-                                                            name: s.name, // Use AI service name
+                                                            id: key,
+                                                            name: s.name, // Use AI service name (overwrites schedule.name if exists)
                                                             templateIds: s.templates?.map((t: any) => t.id) || []
                                                         };
                                                     }).filter((s: any) => s.name);
@@ -1657,13 +1657,13 @@ export default function OITDetailPage() {
                                                         return acc;
                                                     }, {} as Record<string, any[]>);
 
-                                                    displayServices = Object.entries(grouped).map(([type, tmpls]: [string, any[]], idx) => {
+                                                    displayServices = (Object.entries(grouped) as [string, any[]][]).map(([type, tmpls], idx) => {
                                                         const firstId = tmpls[0].id;
                                                         const schedule = serviceDates[firstId] || {};
                                                         return {
+                                                            ...schedule,
                                                             id: type,
                                                             name: `${idx + 1}. ${type}`,
-                                                            ...schedule,
                                                             templateIds: tmpls.map(t => t.id)
                                                         };
                                                     });
