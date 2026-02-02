@@ -34,7 +34,7 @@ export function SamplingStep({
     onValidationComplete
 }: SamplingStepProps) {
     const [value, setValue] = useState<any>('');
-    const [files] = useState<File[]>([]);
+    const [files, setFiles] = useState<File[]>([]);
     const [comment, setComment] = useState('');
     const [isValidating, setIsValidating] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
@@ -66,6 +66,7 @@ export function SamplingStep({
             const payload = {
                 value,
                 files: files.map(f => f.name),
+                rawFiles: files, // Pass raw files for actual upload
                 comment,
                 stepId: step.id,
                 stepType: step.type,
@@ -228,7 +229,25 @@ export function SamplingStep({
                             {step.description || 'Evidencia requerida'}
                             {step.required && <span className="text-red-500 ml-1">*</span>}
                         </Label>
-                        <div className="group relative border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl p-8 transition-colors bg-slate-50/30 hover:bg-slate-50 cursor-pointer text-center">
+                        <div
+                            className="group relative border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl p-8 transition-colors bg-slate-50/30 hover:bg-slate-50 cursor-pointer text-center"
+                            onClick={() => document.getElementById(`file-input-${stepIndex}`)?.click()}
+                        >
+                            <input
+                                id={`file-input-${stepIndex}`}
+                                type="file"
+                                className="hidden"
+                                accept={step.type === 'IMAGE' ? "image/*" : ".pdf,.docx,.doc"}
+                                capture={step.type === 'IMAGE' ? "environment" : undefined}
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files.length > 0) {
+                                        const selectedFiles = Array.from(e.target.files);
+                                        setFiles(selectedFiles);
+                                        // Auto-set value to filename for validation if it's the only thing required
+                                        if (!value) setValue(selectedFiles[0].name);
+                                    }
+                                }}
+                            />
                             <div className="mx-auto h-12 w-12 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
                                 {step.type === 'IMAGE' ?
                                     <Camera className="h-6 w-6 text-indigo-500" /> :
@@ -236,14 +255,37 @@ export function SamplingStep({
                                 }
                             </div>
                             <h5 className="text-sm font-semibold text-slate-900 mb-1">
-                                {step.type === 'IMAGE' ? 'Tomar o subir foto' : 'Subir documento'}
+                                {files.length > 0 ? files[0].name : (step.type === 'IMAGE' ? 'Tomar o subir foto' : 'Subir documento')}
                             </h5>
                             <p className="text-xs text-slate-500 mb-4 max-w-[200px] mx-auto">
-                                Soporta {step.type === 'IMAGE' ? 'JPG, PNG' : 'PDF, DOCX'}. Máx 10MB.
+                                {files.length > 0 ? `${(files[0].size / 1024 / 1024).toFixed(2)} MB` : `Soporta ${step.type === 'IMAGE' ? 'JPG, PNG' : 'PDF, DOCX'}. Máx 10MB.`}
                             </p>
-                            <Button variant="secondary" size="sm" className="bg-white hover:bg-slate-50 border border-slate-200 shadow-sm text-slate-700" onClick={() => toast.info('Demo: Carga simulada')}>
-                                Seleccionar archivo
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="bg-white hover:bg-slate-50 border border-slate-200 shadow-sm text-slate-700"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    document.getElementById(`file-input-${stepIndex}`)?.click();
+                                }}
+                            >
+                                {files.length > 0 ? 'Cambiar archivo' : 'Seleccionar archivo'}
                             </Button>
+
+                            {files.length > 0 && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="mt-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setFiles([]);
+                                        if (value === files[0].name) setValue('');
+                                    }}
+                                >
+                                    Quitar archivo
+                                </Button>
+                            )}
                         </div>
                     </div>
                 )

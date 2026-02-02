@@ -315,21 +315,59 @@ export default function OITDetailPage() {
 
 
 
-    const handleSaveStep = (data: any) => {
-        // Update state
-        const updatedValidations = {
-            ...stepValidations,
-            [data.stepIndex]: {
-                validated: true,
-                data: data,
-                timestamp: new Date().toISOString()
-            }
-        };
-        setStepValidations(updatedValidations);
+    const handleSaveStep = async (data: any) => {
+        try {
+            let serverFilenames = data.files || [];
 
-        // Save to localStorage
-        if (id) {
-            localStorage.setItem(`sampling_session_${id}`, JSON.stringify(updatedValidations));
+            // 1. Upload files if present
+            if (data.rawFiles && data.rawFiles.length > 0) {
+                const uploadedPaths: string[] = [];
+                for (const file of data.rawFiles) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const response = await api.post('/files/upload', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+
+                    if (response.data && response.data.filename) {
+                        uploadedPaths.push(response.data.filename);
+                    }
+                }
+                serverFilenames = uploadedPaths;
+                // Don't modify the original data object directly to avoid side effects if reused
+            }
+
+            // 2. Prepare the final data to store
+            const finalData = {
+                ...data,
+                files: serverFilenames,
+                rawFiles: undefined // Remove raw files before storing
+            };
+
+            // 3. Update local state
+            const updatedValidations = {
+                ...stepValidations,
+                [data.stepIndex]: {
+                    validated: true,
+                    data: finalData,
+                    timestamp: new Date().toISOString()
+                }
+            };
+            setStepValidations(updatedValidations);
+
+            // 4. Save to localStorage
+            if (id) {
+                localStorage.setItem(`sampling_session_${id}`, JSON.stringify({
+                    validations: updatedValidations,
+                    selectedService: selectedServiceForSampling,
+                    isLocationVerified: isLocationVerified
+                }));
+            }
+        } catch (error) {
+            console.error('Error in handleSaveStep:', error);
+            toast.error('Error al guardar el paso o subir archivos');
+            throw error; // Let the component handle the error UI
         }
     };
 
