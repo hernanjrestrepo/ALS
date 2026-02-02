@@ -147,7 +147,13 @@ export default function OITDetailPage() {
                         if (templateRes.data.steps) {
                             try {
                                 const parsedSteps = JSON.parse(templateRes.data.steps);
-                                allSteps = [...allSteps, ...parsedSteps];
+                                // Inject templateId into each step for filtering
+                                const stepsWithId = parsedSteps.map((s: any) => ({
+                                    ...s,
+                                    templateId: templateRes.data.id,
+                                    templateName: templateRes.data.name // Useful for UI
+                                }));
+                                allSteps = [...allSteps, ...stepsWithId];
                             } catch (e) {
                                 console.error('Error parsing steps for template', templateRes.data.id, e);
                             }
@@ -1905,25 +1911,62 @@ export default function OITDetailPage() {
                                     </Card>
 
                                     <div className="max-w-3xl mx-auto space-y-4">
-                                        {templateSteps.length > 0 ? (
-                                            templateSteps.map((step: any, index: number) => {
-                                                const isLocked = (index > 0 && !stepValidations[index - 1]?.validated) || !canEdit;
+                                        {(() => {
+                                            // Filter steps based on selected service
+                                            let visibleSteps = templateSteps;
+
+                                            // Only filter if a specific service is selected (which is true in this view section)
+                                            if (selectedServiceForSampling && aiData?.data?.services) {
+                                                const serviceName = selectedServiceForSampling.name;
+                                                // Find the service definition which contains the template IDs
+                                                const matchedService = aiData.data.services.find((s: any) => s.name === serviceName);
+
+                                                if (matchedService && matchedService.templates) {
+                                                    const allowedIds = matchedService.templates.map((t: any) => t.id);
+                                                    // Filter steps that belong to the templates of this service
+                                                    // Use !step.templateId to keep steps that might not have ID (legacy safety)
+                                                    visibleSteps = templateSteps.filter(step => !step.templateId || allowedIds.includes(step.templateId));
+                                                }
+                                            }
+
+                                            if (visibleSteps.length === 0 && templateSteps.length > 0) {
                                                 return (
-                                                    <SamplingStep
-                                                        key={index}
-                                                        step={step}
-                                                        stepIndex={index}
-                                                        isLocked={isLocked}
-                                                        validation={stepValidations[index]}
-                                                        onValidationComplete={(data) => handleSaveStep(data)}
-                                                    />
+                                                    <div className="text-center py-12 text-slate-500 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                                                        <p>No se encontraron pasos de muestreo específicos para este servicio.</p>
+                                                        <p className="text-xs mt-2">Es posible que la plantilla no esté asignada correctamente.</p>
+                                                    </div>
                                                 );
-                                            })
-                                        ) : (
-                                            <div className="text-center py-12 text-slate-500">
-                                                <p>Cargando pasos de la plantilla...</p>
-                                            </div>
-                                        )}
+                                            }
+
+                                            return visibleSteps.length > 0 ? (
+                                                visibleSteps.map((step: any, index: number) => {
+                                                    // Find the original index in the global list for data storage
+                                                    const originalIndex = templateSteps.indexOf(step);
+
+                                                    // Locking Logic: Depends on the PREVIOUS VISIBLE step being validated
+                                                    // If it's the first visible step, it's unlocked (unless global editing is disabled)
+                                                    const prevStep = index > 0 ? visibleSteps[index - 1] : null;
+                                                    const prevOriginalIndex = prevStep ? templateSteps.indexOf(prevStep) : -1;
+
+                                                    const isLocked = (index > 0 && !stepValidations[prevOriginalIndex]?.validated) || !canEdit;
+
+                                                    return (
+                                                        <SamplingStep
+                                                            key={originalIndex} // Stable key based on global index
+                                                            step={step}
+                                                            stepIndex={originalIndex} // Pass original index for consistent storage
+                                                            isLocked={isLocked}
+                                                            validation={stepValidations[originalIndex]}
+                                                            onValidationComplete={(data) => handleSaveStep({ ...data, stepIndex: originalIndex })}
+                                                        />
+                                                    );
+                                                })
+                                            ) : (
+                                                <div className="text-center py-12 text-slate-500">
+                                                    <p>Cargando pasos de la plantilla...</p>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     {/* Final Actions */}
