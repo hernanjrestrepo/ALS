@@ -59,6 +59,7 @@ export default function OITDetailPage() {
     const [isManualScheduling, setIsManualScheduling] = useState(false);
     const [isLocationVerified, setIsLocationVerified] = useState(false);
     const [verificationMsg, setVerificationMsg] = useState('');
+    const [isInitialLoad, setIsInitialLoad] = useState(true); // Track first load to avoid clearing storage
     const [selectedServiceForSampling, setSelectedServiceForSampling] = useState<any>(null); // ServiceSchedule | null
 
     // Engineer Scheduling State
@@ -194,14 +195,28 @@ export default function OITDetailPage() {
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
-                    setStepValidations(parsed);
-                    // toast.info('Datos de muestreo recuperados localmente');
+                    if (parsed.validations) setStepValidations(parsed.validations);
+                    if (parsed.selectedService) setSelectedServiceForSampling(parsed.selectedService);
+                    if (parsed.isLocationVerified) setIsLocationVerified(true);
                 } catch (e) {
                     console.error('Error loading local sampling data', e);
                 }
             }
+            setIsInitialLoad(false);
         }
     }, [id]);
+
+    // Save sampling session state to local storage
+    useEffect(() => {
+        if (id && !isInitialLoad) {
+            const sessionData = {
+                validations: stepValidations,
+                selectedService: selectedServiceForSampling,
+                isLocationVerified: isLocationVerified
+            };
+            localStorage.setItem(`sampling_session_${id}`, JSON.stringify(sessionData));
+        }
+    }, [id, stepValidations, selectedServiceForSampling, isLocationVerified, isInitialLoad]);
 
     // Fetch engineers
     useEffect(() => {
@@ -288,7 +303,6 @@ export default function OITDetailPage() {
             link.href = url;
             link.setAttribute('download', extractedFilename);
             document.body.appendChild(link);
-            link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
 
@@ -374,7 +388,6 @@ export default function OITDetailPage() {
             link.href = url;
             link.setAttribute('download', `Informe_Muestreo_${oit.oitNumber}.pdf`);
             document.body.appendChild(link);
-            link.click();
             link.remove();
             toast.success('Informe descargado');
         } catch (error) {
@@ -1480,83 +1493,84 @@ export default function OITDetailPage() {
                                         )}
                                     </CardContent>
                                 </Card>
+
+                                {/* Resource Edit Dialog */}
+                                <Dialog open={isResourceDialogOpen} onOpenChange={setIsResourceDialogOpen}>
+                                    <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+                                        <DialogHeader>
+                                            <DialogTitle>Editar Recursos Asignados</DialogTitle>
+                                            <DialogDescription>
+                                                Selecciona los equipos y personal necesarios para esta OIT.
+                                            </DialogDescription>
+                                        </DialogHeader>
+
+                                        <div className="mb-4 relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                            <input
+                                                placeholder="Buscar equipo por nombre, código o marca..."
+                                                className="w-full pl-9 h-10 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                value={resourceSearch}
+                                                onChange={(e) => setResourceSearch(e.target.value)}
+                                            />
+                                        </div>
+
+                                        <div className="flex-1 overflow-y-auto min-h-[300px] border rounded-md p-2 space-y-1">
+                                            {filteredResources.length === 0 ? (
+                                                <div className="text-center py-8 text-slate-500">No se encontraron recursos matching "{resourceSearch}"</div>
+                                            ) : (
+                                                filteredResources.map((resource) => (
+                                                    <div
+                                                        key={resource.id}
+                                                        className={`flex items-start space-x-3 p-3 rounded-md hover:bg-slate-50 transition-colors cursor-pointer ${selectedResourceIdsEdit.includes(resource.id) ? 'bg-indigo-50/50 border border-indigo-100' : ''}`}
+                                                        onClick={() => toggleResource(resource.id)}
+                                                    >
+                                                        <Checkbox
+                                                            id={`resource-${resource.id}`}
+                                                            checked={selectedResourceIdsEdit.includes(resource.id)}
+                                                            onCheckedChange={() => toggleResource(resource.id)}
+                                                        />
+                                                        <div className="grid gap-1.5 leading-none flex-1">
+                                                            <label
+                                                                htmlFor={`resource-${resource.id}`}
+                                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-slate-900"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                {resource.name}
+                                                            </label>
+                                                            <div className="text-xs text-slate-500 flex gap-2 flex-wrap">
+                                                                {resource.code && <span className="bg-slate-100 px-1.5 rounded font-mono">{resource.code}</span>}
+                                                                <span>{resource.brand} {resource.model}</span>
+                                                                <span className="text-slate-400">•</span>
+                                                                <span>{resource.type}</span>
+                                                            </div>
+                                                        </div>
+                                                        {resource.status !== 'AVAILABLE' && !selectedResourceIdsEdit.includes(resource.id) && (
+                                                            <Badge variant="secondary" className="text-[10px] h-5 bg-amber-100 text-amber-700 hover:bg-amber-100">
+                                                                {resource.status}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <div className="flex justify-between items-center mt-4 pt-4 border-t">
+                                            <div className="text-sm text-slate-500">
+                                                {selectedResourceIdsEdit.length} recursos seleccionados
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button variant="outline" onClick={() => setIsResourceDialogOpen(false)}>Cancelar</Button>
+                                                <Button onClick={handleSaveResources} disabled={isSavingResources}>
+                                                    {isSavingResources ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                                    Guardar Cambios
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             </>
                         )}
 
-                        {/* Resource Edit Dialog */}
-                        <Dialog open={isResourceDialogOpen} onOpenChange={setIsResourceDialogOpen}>
-                            <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
-                                <DialogHeader>
-                                    <DialogTitle>Editar Recursos Asignados</DialogTitle>
-                                    <DialogDescription>
-                                        Selecciona los equipos y personal necesarios para esta OIT.
-                                    </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="mb-4 relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <input
-                                        placeholder="Buscar equipo por nombre, código o marca..."
-                                        className="w-full pl-9 h-10 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        value={resourceSearch}
-                                        onChange={(e) => setResourceSearch(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto min-h-[300px] border rounded-md p-2 space-y-1">
-                                    {filteredResources.length === 0 ? (
-                                        <div className="text-center py-8 text-slate-500">No se encontraron recursos matching "{resourceSearch}"</div>
-                                    ) : (
-                                        filteredResources.map((resource) => (
-                                            <div
-                                                key={resource.id}
-                                                className={`flex items-start space-x-3 p-3 rounded-md hover:bg-slate-50 transition-colors cursor-pointer ${selectedResourceIdsEdit.includes(resource.id) ? 'bg-indigo-50/50 border border-indigo-100' : ''}`}
-                                                onClick={() => toggleResource(resource.id)}
-                                            >
-                                                <Checkbox
-                                                    id={`resource-${resource.id}`}
-                                                    checked={selectedResourceIdsEdit.includes(resource.id)}
-                                                    onCheckedChange={() => toggleResource(resource.id)}
-                                                />
-                                                <div className="grid gap-1.5 leading-none flex-1">
-                                                    <label
-                                                        htmlFor={`resource-${resource.id}`}
-                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-slate-900"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        {resource.name}
-                                                    </label>
-                                                    <div className="text-xs text-slate-500 flex gap-2 flex-wrap">
-                                                        {resource.code && <span className="bg-slate-100 px-1.5 rounded font-mono">{resource.code}</span>}
-                                                        <span>{resource.brand} {resource.model}</span>
-                                                        <span className="text-slate-400">•</span>
-                                                        <span>{resource.type}</span>
-                                                    </div>
-                                                </div>
-                                                {resource.status !== 'AVAILABLE' && !selectedResourceIdsEdit.includes(resource.id) && (
-                                                    <Badge variant="secondary" className="text-[10px] h-5 bg-amber-100 text-amber-800 hover:bg-amber-100">
-                                                        {resource.status}
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-
-                                <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                                    <div className="text-sm text-slate-500">
-                                        {selectedResourceIdsEdit.length} recursos seleccionados
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Button variant="outline" onClick={() => setIsResourceDialogOpen(false)}>Cancelar</Button>
-                                        <Button onClick={handleSaveResources} disabled={isSavingResources}>
-                                            {isSavingResources ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                            Guardar Cambios
-                                        </Button>
-                                    </div>
-                                </div>
-                            </DialogContent>
-                        </Dialog>
                     </TabsContent>
 
                     <TabsContent value="sampling" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1612,125 +1626,123 @@ export default function OITDetailPage() {
                                     );
                                 }
                             }
-
                             // 0. Verification of Conditions (Time & Location)
                             const isStarted = oit.status === 'IN_PROGRESS' || oit.status === 'COMPLETED';
 
-                            // If not verified and not started, show Service Selector OR Verification for selected service
-                            if (!isLocationVerified && !isStarted) {
-                                // CASE 1: No Service Selected -> Show List
-                                if (!selectedServiceForSampling) {
-                                    return (
-                                        <div className="max-w-4xl mx-auto space-y-6 mb-8">
-                                            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 text-center">
-                                                <div className="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                                    <Navigation className="h-6 w-6 text-indigo-600" />
-                                                </div>
-                                                <h3 className="text-xl font-bold text-indigo-900">Seleccionar Servicio para Muestreo</h3>
-                                                <p className="text-sm text-indigo-700 max-w-lg mx-auto mt-2">
-                                                    Selecciona cuál de los servicios programados vas a realizar ahora. Se verificará tu ubicación y la hora programada para ese servicio específico.
-                                                </p>
+                            // CASE 1: No Service Selected -> Show List
+                            if (!selectedServiceForSampling) {
+                                return (
+                                    <div className="max-w-4xl mx-auto space-y-6 mb-8">
+                                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 text-center">
+                                            <div className="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <Navigation className="h-6 w-6 text-indigo-600" />
                                             </div>
-
-                                            {(() => {
-                                                const isAiMode = aiData?.data?.services && aiData.data.services.length > 0;
-                                                let displayServices: any[] = [];
-
-                                                if (isAiMode) {
-                                                    displayServices = aiData.data.services.map((s: any, idx: number) => {
-                                                        const key = `ai-service-${idx}`;
-                                                        const schedule = serviceDates[key] || {};
-                                                        return {
-                                                            ...schedule,
-                                                            id: key,
-                                                            name: s.name, // Use AI service name (overwrites schedule.name if exists)
-                                                            templateIds: s.templates?.map((t: any) => t.id) || []
-                                                        };
-                                                    }).filter((s: any) => s.name);
-                                                } else {
-                                                    // Group by type like in scheduling tab
-                                                    const grouped = selectedTemplates.reduce((acc, tmpl: any) => {
-                                                        const rawType = tmpl.oitType || 'General';
-                                                        const type = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
-                                                        if (!acc[type]) acc[type] = [];
-                                                        acc[type].push(tmpl);
-                                                        return acc;
-                                                    }, {} as Record<string, any[]>);
-
-                                                    displayServices = (Object.entries(grouped) as [string, any[]][]).map(([type, tmpls], idx) => {
-                                                        const firstId = tmpls[0].id;
-                                                        const schedule = serviceDates[firstId] || {};
-                                                        return {
-                                                            ...schedule,
-                                                            id: type,
-                                                            name: `${idx + 1}. ${type}`,
-                                                            templateIds: tmpls.map(t => t.id)
-                                                        };
-                                                    });
-                                                }
-
-                                                return (
-                                                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                        {displayServices.map((schedule) => {
-                                                            const isConfirmed = schedule.confirmed;
-                                                            const scheduledDate = new Date(schedule.date + 'T' + schedule.time);
-                                                            const now = new Date();
-                                                            const isToday = scheduledDate.toDateString() === now.toDateString();
-
-                                                            return (
-                                                                <Card
-                                                                    key={schedule.id}
-                                                                    className={`cursor-pointer transition-all hover:shadow-md border-2 ${isConfirmed ? 'border-slate-200 hover:border-indigo-300' : 'border-slate-100 opacity-70'}`}
-                                                                    onClick={() => {
-                                                                        if (!isConfirmed) {
-                                                                            toast.error('Este servicio no ha sido confirmado aún.');
-                                                                            return;
-                                                                        }
-                                                                        setSelectedServiceForSampling(schedule);
-                                                                    }}
-                                                                >
-                                                                    <CardHeader className="pb-2">
-                                                                        <div className="flex justify-between items-start">
-                                                                            <Badge variant="secondary" className="mb-2 bg-slate-100 text-slate-700">
-                                                                                {schedule.name}
-                                                                            </Badge>
-                                                                            {isToday && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Hoy</Badge>}
-                                                                        </div>
-                                                                        <CardTitle className="text-sm font-medium text-slate-900 line-clamp-2 min-h-[40px]">
-                                                                            {schedule.name}
-                                                                        </CardTitle>
-                                                                    </CardHeader>
-                                                                    <CardContent>
-                                                                        <div className="space-y-2 text-sm text-slate-600">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <Calendar className="h-3.5 w-3.5" />
-                                                                                {schedule.date ? new Date(schedule.date).toLocaleDateString() : 'Por confirmar'}
-                                                                            </div>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <Clock className="h-3.5 w-3.5" />
-                                                                                {schedule.time || '09:00'}
-                                                                            </div>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <Users className="h-3.5 w-3.5" />
-                                                                                {(schedule.engineerIds?.length || 0)} ingenieros
-                                                                            </div>
-                                                                        </div>
-                                                                        <Button size="sm" className="w-full mt-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200" disabled={!isConfirmed}>
-                                                                            Iniciar Muestreo <ArrowRight className="ml-1 h-3 w-3" />
-                                                                        </Button>
-                                                                    </CardContent>
-                                                                </Card>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                );
-                                            })()}
+                                            <h3 className="text-xl font-bold text-indigo-900">Seleccionar Servicio para Muestreo</h3>
+                                            <p className="text-sm text-indigo-700 max-w-lg mx-auto mt-2">
+                                                Selecciona cuál de los servicios programados vas a realizar ahora. Se verificará tu ubicación y la hora programada para ese servicio específico.
+                                            </p>
                                         </div>
-                                    );
-                                }
 
-                                // CASE 2: Service Selected -> Show Verification Card
-                                const schedule = selectedServiceForSampling;
+                                        {(() => {
+                                            const isAiMode = aiData?.data?.services && aiData.data.services.length > 0;
+                                            let displayServices: any[] = [];
+
+                                            if (isAiMode) {
+                                                displayServices = aiData.data.services.map((s: any, idx: number) => {
+                                                    const key = `ai-service-${idx}`;
+                                                    const schedule = serviceDates[key] || {};
+                                                    return {
+                                                        ...schedule,
+                                                        id: key,
+                                                        name: s.name, // Use AI service name (overwrites schedule.name if exists)
+                                                        templateIds: s.templates?.map((t: any) => t.id) || []
+                                                    };
+                                                }).filter((s: any) => s.name);
+                                            } else {
+                                                // Group by type like in scheduling tab
+                                                const grouped = selectedTemplates.reduce((acc, tmpl: any) => {
+                                                    const rawType = tmpl.oitType || 'General';
+                                                    const type = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+                                                    if (!acc[type]) acc[type] = [];
+                                                    acc[type].push(tmpl);
+                                                    return acc;
+                                                }, {} as Record<string, any[]>);
+
+                                                displayServices = (Object.entries(grouped) as [string, any[]][]).map(([type, tmpls], idx) => {
+                                                    const firstId = tmpls[0].id;
+                                                    const schedule = serviceDates[firstId] || {};
+                                                    return {
+                                                        ...schedule,
+                                                        id: type,
+                                                        name: `${idx + 1}. ${type}`,
+                                                        templateIds: tmpls.map(t => t.id)
+                                                    };
+                                                });
+                                            }
+
+                                            return (
+                                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {displayServices.map((schedule) => {
+                                                        const isConfirmed = schedule.confirmed;
+                                                        const scheduledDate = new Date(schedule.date + 'T' + schedule.time);
+                                                        const now = new Date();
+                                                        const isToday = scheduledDate.toDateString() === now.toDateString();
+
+                                                        return (
+                                                            <Card
+                                                                key={schedule.id}
+                                                                className={`cursor-pointer transition-all hover:shadow-md border-2 ${isConfirmed ? 'border-slate-200 hover:border-indigo-300' : 'border-slate-100 opacity-70'}`}
+                                                                onClick={() => {
+                                                                    if (!isConfirmed) {
+                                                                        toast.error('Este servicio no ha sido confirmado aún.');
+                                                                        return;
+                                                                    }
+                                                                    setSelectedServiceForSampling(schedule);
+                                                                }}
+                                                            >
+                                                                <CardHeader className="pb-2">
+                                                                    <div className="flex justify-between items-start">
+                                                                        <Badge variant="secondary" className="mb-2 bg-slate-100 text-slate-700">
+                                                                            {schedule.name}
+                                                                        </Badge>
+                                                                        {isToday && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Hoy</Badge>}
+                                                                    </div>
+                                                                    <CardTitle className="text-sm font-medium text-slate-900 line-clamp-2 min-h-[40px]">
+                                                                        {schedule.name}
+                                                                    </CardTitle>
+                                                                </CardHeader>
+                                                                <CardContent>
+                                                                    <div className="space-y-2 text-sm text-slate-600">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Calendar className="h-3.5 w-3.5" />
+                                                                            {schedule.date ? new Date(schedule.date).toLocaleDateString() : 'Por confirmar'}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Clock className="h-3.5 w-3.5" />
+                                                                            {schedule.time || '09:00'}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Users className="h-3.5 w-3.5" />
+                                                                            {(schedule.engineerIds?.length || 0)} ingenieros
+                                                                        </div>
+                                                                    </div>
+                                                                    <Button size="sm" className="w-full mt-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200" disabled={!isConfirmed}>
+                                                                        Iniciar Muestreo <ArrowRight className="ml-1 h-3 w-3" />
+                                                                    </Button>
+                                                                </CardContent>
+                                                            </Card>
+                                                        );
+                                                    })}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                );
+                            }
+
+                            // CASE 2: Service Selected -> Show Verification Card
+                            const schedule = selectedServiceForSampling;
+                            if (!isLocationVerified && !isStarted) {
                                 return (
                                     <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/50 shadow-lg shadow-indigo-100/50 mb-8 max-w-2xl mx-auto">
                                         <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
@@ -1898,7 +1910,6 @@ export default function OITDetailPage() {
                                 );
                             }
 
-
                             // Check if planning has been accepted (or at least Scheduled)
                             if (!oit.planningAccepted && !oit.scheduledDate) {
                                 return (
@@ -1937,14 +1948,30 @@ export default function OITDetailPage() {
                                 <div className="space-y-6">
                                     <Card className="border-indigo-200 bg-indigo-50/50">
                                         <CardContent className="pt-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                                                    <Sparkles className="h-5 w-5 text-indigo-600" />
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                        <Sparkles className="h-5 w-5 text-indigo-600" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-indigo-900">
+                                                            Servicio: {selectedServiceForSampling?.name || 'General'}
+                                                        </h4>
+                                                        <p className="text-sm text-indigo-700">Completa cada paso secuencialmente. La IA validará tus datos.</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-semibold text-indigo-900">Muestreo Validado por IA</h4>
-                                                    <p className="text-sm text-indigo-700">Completa cada paso secuencialmente. La IA validará tus datos.</p>
-                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+                                                    onClick={() => {
+                                                        setSelectedServiceForSampling(null);
+                                                        setIsLocationVerified(false);
+                                                        setVerificationMsg('');
+                                                    }}
+                                                >
+                                                    Cambiar Servicio
+                                                </Button>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -1954,21 +1981,27 @@ export default function OITDetailPage() {
                                             // Filter steps based on selected service
                                             let visibleSteps = templateSteps;
 
-                                            // Only filter if a specific service is selected (which is true in this view section)
+                                            // Only filter if a specific service is selected
                                             if (selectedServiceForSampling) {
-                                                // 1. If we have templateIds explicitly in the selection object (our new logic)
-                                                if (selectedServiceForSampling.templateIds && Array.isArray(selectedServiceForSampling.templateIds)) {
-                                                    const allowedIds = selectedServiceForSampling.templateIds;
-                                                    visibleSteps = templateSteps.filter(step => !step.templateId || allowedIds.includes(step.templateId));
-                                                }
-                                                // 2. Legacy fallback to AI matching by name
-                                                else if (aiData?.data?.services) {
+                                                // Convert to string for safe comparison
+                                                const allowedIds = (selectedServiceForSampling.templateIds || []).map(String);
+
+                                                if (allowedIds.length > 0) {
+                                                    visibleSteps = templateSteps.filter(step => {
+                                                        if (!step.templateId) return true; // Keep legacy
+                                                        return allowedIds.includes(String(step.templateId));
+                                                    });
+                                                } else if (aiData?.data?.services) {
+                                                    // Legacy fallback by name
                                                     const serviceName = selectedServiceForSampling.name;
                                                     const matchedService = aiData.data.services.find((s: any) => s.name === serviceName);
 
                                                     if (matchedService && matchedService.templates) {
-                                                        const allowedIds = matchedService.templates.map((t: any) => t.id);
-                                                        visibleSteps = templateSteps.filter(step => !step.templateId || allowedIds.includes(step.templateId));
+                                                        const fallbackIds = matchedService.templates.map((t: any) => String(t.id));
+                                                        visibleSteps = templateSteps.filter(step => {
+                                                            if (!step.templateId) return true;
+                                                            return fallbackIds.includes(String(step.templateId));
+                                                        });
                                                     }
                                                 }
                                             }
