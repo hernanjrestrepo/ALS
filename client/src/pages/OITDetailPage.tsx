@@ -1632,60 +1632,99 @@ export default function OITDetailPage() {
                                                 </p>
                                             </div>
 
-                                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {Object.entries(serviceDates).map(([key, schedule]) => {
-                                                    const isConfirmed = schedule.confirmed;
-                                                    const scheduledDate = new Date(schedule.date + 'T' + schedule.time);
-                                                    const now = new Date();
-                                                    // Simple time check (e.g. within 2 hours) or just informational
-                                                    const isToday = scheduledDate.toDateString() === now.toDateString();
+                                            {(() => {
+                                                const isAiMode = aiData?.data?.services && aiData.data.services.length > 0;
+                                                let displayServices: any[] = [];
 
-                                                    return (
-                                                        <Card
-                                                            key={key}
-                                                            className={`cursor-pointer transition-all hover:shadow-md border-2 ${isConfirmed ? 'border-slate-200 hover:border-indigo-300' : 'border-slate-100 opacity-70'}`}
-                                                            onClick={() => {
-                                                                if (!isConfirmed) {
-                                                                    toast.error('Este servicio no ha sido confirmado aún.');
-                                                                    return;
-                                                                }
-                                                                setSelectedServiceForSampling(schedule);
-                                                            }}
-                                                        >
-                                                            <CardHeader className="pb-2">
-                                                                <div className="flex justify-between items-start">
-                                                                    <Badge variant="secondary" className="mb-2 bg-slate-100 text-slate-700">
-                                                                        {schedule.name}
-                                                                    </Badge>
-                                                                    {isToday && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Hoy</Badge>}
-                                                                </div>
-                                                                <CardTitle className="text-sm font-medium text-slate-900">
-                                                                    {schedule.name}
-                                                                </CardTitle>
-                                                            </CardHeader>
-                                                            <CardContent>
-                                                                <div className="space-y-2 text-sm text-slate-600">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Calendar className="h-3.5 w-3.5" />
-                                                                        {new Date(schedule.date).toLocaleDateString()}
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Clock className="h-3.5 w-3.5" />
-                                                                        {schedule.time}
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Users className="h-3.5 w-3.5" />
-                                                                        {schedule.engineerIds.length} ingenieros
-                                                                    </div>
-                                                                </div>
-                                                                <Button size="sm" className="w-full mt-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200" disabled={!isConfirmed}>
-                                                                    Iniciar Muestreo <ArrowRight className="ml-1 h-3 w-3" />
-                                                                </Button>
-                                                            </CardContent>
-                                                        </Card>
-                                                    );
-                                                })}
-                                            </div>
+                                                if (isAiMode) {
+                                                    displayServices = aiData.data.services.map((s: any, idx: number) => {
+                                                        const key = `ai-service-${idx}`;
+                                                        const schedule = serviceDates[key] || {};
+                                                        return {
+                                                            id: key,
+                                                            ...schedule,
+                                                            name: s.name, // Use AI service name
+                                                            templateIds: s.templates?.map((t: any) => t.id) || []
+                                                        };
+                                                    }).filter((s: any) => s.name);
+                                                } else {
+                                                    // Group by type like in scheduling tab
+                                                    const grouped = selectedTemplates.reduce((acc, tmpl: any) => {
+                                                        const rawType = tmpl.oitType || 'General';
+                                                        const type = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+                                                        if (!acc[type]) acc[type] = [];
+                                                        acc[type].push(tmpl);
+                                                        return acc;
+                                                    }, {} as Record<string, any[]>);
+
+                                                    displayServices = Object.entries(grouped).map(([type, tmpls]: [string, any[]], idx) => {
+                                                        const firstId = tmpls[0].id;
+                                                        const schedule = serviceDates[firstId] || {};
+                                                        return {
+                                                            id: type,
+                                                            name: `${idx + 1}. ${type}`,
+                                                            ...schedule,
+                                                            templateIds: tmpls.map(t => t.id)
+                                                        };
+                                                    });
+                                                }
+
+                                                return (
+                                                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                        {displayServices.map((schedule) => {
+                                                            const isConfirmed = schedule.confirmed;
+                                                            const scheduledDate = new Date(schedule.date + 'T' + schedule.time);
+                                                            const now = new Date();
+                                                            const isToday = scheduledDate.toDateString() === now.toDateString();
+
+                                                            return (
+                                                                <Card
+                                                                    key={schedule.id}
+                                                                    className={`cursor-pointer transition-all hover:shadow-md border-2 ${isConfirmed ? 'border-slate-200 hover:border-indigo-300' : 'border-slate-100 opacity-70'}`}
+                                                                    onClick={() => {
+                                                                        if (!isConfirmed) {
+                                                                            toast.error('Este servicio no ha sido confirmado aún.');
+                                                                            return;
+                                                                        }
+                                                                        setSelectedServiceForSampling(schedule);
+                                                                    }}
+                                                                >
+                                                                    <CardHeader className="pb-2">
+                                                                        <div className="flex justify-between items-start">
+                                                                            <Badge variant="secondary" className="mb-2 bg-slate-100 text-slate-700">
+                                                                                {schedule.name}
+                                                                            </Badge>
+                                                                            {isToday && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Hoy</Badge>}
+                                                                        </div>
+                                                                        <CardTitle className="text-sm font-medium text-slate-900 line-clamp-2 min-h-[40px]">
+                                                                            {schedule.name}
+                                                                        </CardTitle>
+                                                                    </CardHeader>
+                                                                    <CardContent>
+                                                                        <div className="space-y-2 text-sm text-slate-600">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Calendar className="h-3.5 w-3.5" />
+                                                                                {schedule.date ? new Date(schedule.date).toLocaleDateString() : 'Por confirmar'}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Clock className="h-3.5 w-3.5" />
+                                                                                {schedule.time || '09:00'}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Users className="h-3.5 w-3.5" />
+                                                                                {(schedule.engineerIds?.length || 0)} ingenieros
+                                                                            </div>
+                                                                        </div>
+                                                                        <Button size="sm" className="w-full mt-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200" disabled={!isConfirmed}>
+                                                                            Iniciar Muestreo <ArrowRight className="ml-1 h-3 w-3" />
+                                                                        </Button>
+                                                                    </CardContent>
+                                                                </Card>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     );
                                 }
@@ -1916,16 +1955,21 @@ export default function OITDetailPage() {
                                             let visibleSteps = templateSteps;
 
                                             // Only filter if a specific service is selected (which is true in this view section)
-                                            if (selectedServiceForSampling && aiData?.data?.services) {
-                                                const serviceName = selectedServiceForSampling.name;
-                                                // Find the service definition which contains the template IDs
-                                                const matchedService = aiData.data.services.find((s: any) => s.name === serviceName);
-
-                                                if (matchedService && matchedService.templates) {
-                                                    const allowedIds = matchedService.templates.map((t: any) => t.id);
-                                                    // Filter steps that belong to the templates of this service
-                                                    // Use !step.templateId to keep steps that might not have ID (legacy safety)
+                                            if (selectedServiceForSampling) {
+                                                // 1. If we have templateIds explicitly in the selection object (our new logic)
+                                                if (selectedServiceForSampling.templateIds && Array.isArray(selectedServiceForSampling.templateIds)) {
+                                                    const allowedIds = selectedServiceForSampling.templateIds;
                                                     visibleSteps = templateSteps.filter(step => !step.templateId || allowedIds.includes(step.templateId));
+                                                }
+                                                // 2. Legacy fallback to AI matching by name
+                                                else if (aiData?.data?.services) {
+                                                    const serviceName = selectedServiceForSampling.name;
+                                                    const matchedService = aiData.data.services.find((s: any) => s.name === serviceName);
+
+                                                    if (matchedService && matchedService.templates) {
+                                                        const allowedIds = matchedService.templates.map((t: any) => t.id);
+                                                        visibleSteps = templateSteps.filter(step => !step.templateId || allowedIds.includes(step.templateId));
+                                                    }
                                                 }
                                             }
 
