@@ -152,6 +152,7 @@ export default function OITDetailPage() {
                                 const stepsWithId = parsedSteps.map((s: any) => ({
                                     ...s,
                                     templateId: templateRes.data.id,
+                                    templateIds: [templateRes.data.id], // Array for dedup merging
                                     templateName: templateRes.data.name // Useful for UI
                                 }));
                                 allSteps = [...allSteps, ...stepsWithId];
@@ -161,7 +162,32 @@ export default function OITDetailPage() {
                         }
                     });
 
-                    setTemplateSteps(allSteps);
+                    // Deduplicate steps by title and type, but merge templateIds
+                    const deduplicatedSteps: any[] = [];
+                    const seen = new Map<string, number>(); // key -> index in deduplicatedSteps
+
+                    allSteps.forEach(step => {
+                        // Create a unique key based on title and type
+                        const key = `${(step.title || '').toLowerCase().trim()}|${step.type || 'default'}`;
+
+                        if (seen.has(key)) {
+                            // Merge templateIds into existing step
+                            const existingIndex = seen.get(key)!;
+                            const existing = deduplicatedSteps[existingIndex];
+                            if (!existing.templateIds.includes(step.templateId)) {
+                                existing.templateIds.push(step.templateId);
+                            }
+                        } else {
+                            // New unique step
+                            seen.set(key, deduplicatedSteps.length);
+                            deduplicatedSteps.push({
+                                ...step,
+                                templateIds: step.templateIds || [step.templateId]
+                            });
+                        }
+                    });
+
+                    setTemplateSteps(deduplicatedSteps);
                 } catch (e) {
                     console.error('Error fetching templates:', e);
                 }
@@ -2026,8 +2052,10 @@ export default function OITDetailPage() {
 
                                                 if (allowedIds.length > 0) {
                                                     visibleSteps = templateSteps.filter(step => {
-                                                        if (!step.templateId) return true; // Keep legacy
-                                                        return allowedIds.includes(String(step.templateId));
+                                                        // After deduplication, steps have templateIds array
+                                                        const stepIds = (step.templateIds || [step.templateId]).map(String);
+                                                        // Check if any of the step's templateIds are in the allowed list
+                                                        return stepIds.some((id: string) => allowedIds.includes(id));
                                                     });
                                                 } else if (aiData?.data?.services) {
                                                     // Legacy fallback by name
@@ -2037,8 +2065,8 @@ export default function OITDetailPage() {
                                                     if (matchedService && matchedService.templates) {
                                                         const fallbackIds = matchedService.templates.map((t: any) => String(t.id));
                                                         visibleSteps = templateSteps.filter(step => {
-                                                            if (!step.templateId) return true;
-                                                            return fallbackIds.includes(String(step.templateId));
+                                                            const stepIds = (step.templateIds || [step.templateId]).map(String);
+                                                            return stepIds.some((id: string) => fallbackIds.includes(id));
                                                         });
                                                     }
                                                 }
