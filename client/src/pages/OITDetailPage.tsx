@@ -2253,9 +2253,17 @@ export default function OITDetailPage() {
                                         oitId={id!}
                                         serviceGroup={selectedServiceForReport.name}
                                         finalReportUrl={oit.finalReportUrl}
-                                        initialLabAnalysis={oit.labResultsAnalysis ? JSON.parse(oit.labResultsAnalysis) : null}
+                                        initialLabAnalysis={(() => {
+                                            if (!oit.labResultsAnalysis) return null;
+                                            if (typeof oit.labResultsAnalysis === 'object') return oit.labResultsAnalysis;
+                                            try { return JSON.parse(oit.labResultsAnalysis); } catch { return oit.labResultsAnalysis; }
+                                        })()}
                                         initialSheetUrl={oit.samplingSheetUrl}
-                                        initialSheetAnalysis={oit.samplingSheetAnalysis ? JSON.parse(oit.samplingSheetAnalysis) : null}
+                                        initialSheetAnalysis={(() => {
+                                            if (!oit.samplingSheetAnalysis) return null;
+                                            if (typeof oit.samplingSheetAnalysis === 'object') return oit.samplingSheetAnalysis;
+                                            try { return JSON.parse(oit.samplingSheetAnalysis); } catch { return oit.samplingSheetAnalysis; }
+                                        })()}
                                     />
                                 </div>
                             )}
