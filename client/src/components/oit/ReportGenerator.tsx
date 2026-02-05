@@ -16,6 +16,7 @@ interface ReportGeneratorProps {
     initialLabAnalysis?: any;
     initialSheetUrl?: string | null;
     initialSheetAnalysis?: any;
+    serviceGroup?: string; // New: optional service group name
 }
 
 export function ReportGenerator({
@@ -23,7 +24,8 @@ export function ReportGenerator({
     finalReportUrl: initialReportUrl,
     initialLabAnalysis,
     initialSheetUrl,
-    initialSheetAnalysis
+    initialSheetAnalysis,
+    serviceGroup = 'General'
 }: ReportGeneratorProps) {
     // General State
     const [isGenerating, setIsGenerating] = useState(false);
@@ -36,31 +38,33 @@ export function ReportGenerator({
         if (!initialSheetUrl) return [];
         try {
             const parsed = JSON.parse(initialSheetUrl);
-            return Array.isArray(parsed) ? parsed : [initialSheetUrl];
-        } catch { return [initialSheetUrl]; }
+            if (Array.isArray(parsed)) return serviceGroup === 'General' ? parsed : [];
+            return parsed[serviceGroup] || [];
+        } catch { return serviceGroup === 'General' ? [initialSheetUrl] : []; }
     });
-    const [sheetAnalysis, setSheetAnalysis] = useState<any>(initialSheetAnalysis || null);
+    const [sheetAnalysis, setSheetAnalysis] = useState<any>(() => {
+        if (!initialSheetAnalysis) return null;
+        if (typeof initialSheetAnalysis === 'object' && !Array.isArray(initialSheetAnalysis) && initialSheetAnalysis !== null) {
+            // Check if it's a grouped analysis or a single analysis object
+            if (initialSheetAnalysis.summary && initialSheetAnalysis.quality) return initialSheetAnalysis;
+            return initialSheetAnalysis[serviceGroup] || null;
+        }
+        return serviceGroup === 'General' ? initialSheetAnalysis : null;
+    });
     const [isUploadingSheet, setIsUploadingSheet] = useState(false);
     const [isSheetDragging, setIsSheetDragging] = useState(false);
 
     // Lab Results State
     const [labUrls, setLabUrls] = useState<string[]>(() => {
-        // We don't have initialLabUrl passed in props usually, but logically if we did:
-        // For now, start empty if not passed, but if we wanted to support it:
-        // return []; 
-        // Actually, we need to pass initialLabUrl if we want persistence? 
-        // The calling component 'OITDetailPage' passes 'finalReportUrl' but seemingly not labUrl directly 
-        // EXCEPT via 'initialLabAnalysis' which is the analysis object.
-        // But wait, uploadLabResults sets labResultsUrl in DB.
-        // We should PROBABLY passed initialLabResultsUrl from parent. 
-        // Checking parent... Parent passes 'initialSheetUrl={oit.samplingSheetUrl}'. 
-        // Parent DOES NOT look like it passes labResultsUrl. 
-        // I will assume for now we only have analysis. 
-        // BUT user wants to see the files. 
-        // I should update OITDetailPage to pass labResultsUrl too.
-        return [];
+        return []; // Will start empty, parent should ideally pass oit.labResultsUrl if we want persistence
     });
-    const [labAnalysis, setLabAnalysis] = useState<any>(initialLabAnalysis || null);
+    const [labAnalysis, setLabAnalysis] = useState<any>(() => {
+        if (!initialLabAnalysis) return null;
+        if (typeof initialLabAnalysis === 'object' && !Array.isArray(initialLabAnalysis)) {
+            return initialLabAnalysis[serviceGroup] || null;
+        }
+        return serviceGroup === 'General' ? initialLabAnalysis : null;
+    });
     const [isUploadingLab, setIsUploadingLab] = useState(false);
     const [isLabDragging, setIsLabDragging] = useState(false);
 
@@ -78,29 +82,50 @@ export function ReportGenerator({
             try {
                 const parsed = JSON.parse(initialReportUrl);
                 if (Array.isArray(parsed)) {
-                    setReportList(parsed);
-                    setReportGenerated(true);
+                    // Filter reports that match our service group name
+                    const filtered = parsed.filter((r: any) => r.name.toLowerCase().includes(serviceGroup.toLowerCase()));
+                    if (filtered.length > 0) {
+                        setReportList(filtered);
+                        setReportGenerated(true);
+                    } else if (serviceGroup === 'General') {
+                        setReportList(parsed);
+                        setReportGenerated(true);
+                    }
                 } else {
                     setFinalReportUrl(formatReportUrl(initialReportUrl));
                     setReportGenerated(true);
                 }
             } catch {
-                if (initialReportUrl.startsWith('http') || initialReportUrl.startsWith('blob:')) {
-                    setFinalReportUrl(initialReportUrl);
-                } else {
-                    const baseUrl = (api.defaults.baseURL || '').replace(/\/api$/, '');
-                    setFinalReportUrl(`${baseUrl}/${initialReportUrl.replace(/^uploads\//, 'uploads/')}`);
+                if (serviceGroup === 'General') {
+                    if (initialReportUrl.startsWith('http') || initialReportUrl.startsWith('blob:')) {
+                        setFinalReportUrl(initialReportUrl);
+                    } else {
+                        const baseUrl = (api.defaults.baseURL || '').replace(/\/api$/, '');
+                        setFinalReportUrl(`${baseUrl}/${initialReportUrl.replace(/^uploads\//, 'uploads/')}`);
+                    }
+                    setReportGenerated(true);
                 }
-                setReportGenerated(true);
             }
         }
-    }, [initialReportUrl]);
+    }, [initialReportUrl, serviceGroup]);
 
     // Initialize Analyses
     useEffect(() => {
-        if (initialSheetAnalysis) setSheetAnalysis(initialSheetAnalysis);
-        if (initialLabAnalysis) setLabAnalysis(initialLabAnalysis);
-    }, [initialSheetAnalysis, initialLabAnalysis]);
+        if (initialSheetAnalysis) {
+            if (typeof initialSheetAnalysis === 'object' && !Array.isArray(initialSheetAnalysis) && initialSheetAnalysis[serviceGroup]) {
+                setSheetAnalysis(initialSheetAnalysis[serviceGroup]);
+            } else if (serviceGroup === 'General') {
+                setSheetAnalysis(initialSheetAnalysis);
+            }
+        }
+        if (initialLabAnalysis) {
+            if (typeof initialLabAnalysis === 'object' && !Array.isArray(initialLabAnalysis) && initialLabAnalysis[serviceGroup]) {
+                setLabAnalysis(initialLabAnalysis[serviceGroup]);
+            } else if (serviceGroup === 'General') {
+                setLabAnalysis(initialLabAnalysis);
+            }
+        }
+    }, [initialSheetAnalysis, initialLabAnalysis, serviceGroup]);
 
     // Polling for Analyses
     useEffect(() => {
@@ -116,31 +141,44 @@ export function ReportGenerator({
                     const response = await api.get(`/oits/${oitId}`);
                     const data = response.data;
 
-                    if (needSheetAnalysis && data.samplingSheetAnalysis) {
+                    if (data.samplingSheetAnalysis) {
                         const parsed = typeof data.samplingSheetAnalysis === 'string'
                             ? JSON.parse(data.samplingSheetAnalysis)
                             : data.samplingSheetAnalysis;
-                        setSheetAnalysis(parsed);
-                        notify.success('¡Análisis de planillas completado!');
+
+                        const groupAnalysis = (parsed && typeof parsed === 'object') ? parsed[serviceGroup] : (serviceGroup === 'General' ? parsed : null);
+                        if (groupAnalysis && !sheetAnalysis) {
+                            setSheetAnalysis(groupAnalysis);
+                            notify.success(`¡Análisis de planillas ${serviceGroup} completado!`);
+                        }
                     }
 
-                    if (needLabAnalysis && data.labResultsAnalysis) {
-                        setLabAnalysis(data.labResultsAnalysis);
-                        notify.success('¡Análisis de laboratorio completado!');
+                    if (data.labResultsAnalysis) {
+                        const parsed = typeof data.labResultsAnalysis === 'string'
+                            ? JSON.parse(data.labResultsAnalysis)
+                            : data.labResultsAnalysis;
+
+                        const groupAnalysis = (parsed && typeof parsed === 'object') ? parsed[serviceGroup] : (serviceGroup === 'General' ? parsed : null);
+                        if (groupAnalysis && !labAnalysis) {
+                            setLabAnalysis(groupAnalysis);
+                            notify.success(`¡Análisis de laboratorio ${serviceGroup} completado!`);
+                        }
                     }
 
-                    // Also update URLs if they changed (e.g. from other session)
+                    // Update URLs
                     if (data.samplingSheetUrl) {
                         try {
                             const parsed = JSON.parse(data.samplingSheetUrl);
-                            setSheetUrls(Array.isArray(parsed) ? parsed : [data.samplingSheetUrl]);
-                        } catch { setSheetUrls([data.samplingSheetUrl]); }
+                            const urls = Array.isArray(parsed) ? (serviceGroup === 'General' ? parsed : []) : (parsed[serviceGroup] || []);
+                            setSheetUrls(urls);
+                        } catch { if (serviceGroup === 'General') setSheetUrls([data.samplingSheetUrl]); }
                     }
                     if (data.labResultsUrl) {
                         try {
                             const parsed = JSON.parse(data.labResultsUrl);
-                            setLabUrls(Array.isArray(parsed) ? parsed : [data.labResultsUrl]);
-                        } catch { setLabUrls([data.labResultsUrl]); }
+                            const urls = Array.isArray(parsed) ? (serviceGroup === 'General' ? parsed : []) : (parsed[serviceGroup] || []);
+                            setLabUrls(urls);
+                        } catch { if (serviceGroup === 'General') setLabUrls([data.labResultsUrl]); }
                     }
 
                 } catch (error) {
@@ -152,7 +190,7 @@ export function ReportGenerator({
         return () => {
             if (intervalId) clearInterval(intervalId);
         };
-    }, [oitId, sheetUrls, sheetAnalysis, labUrls, labAnalysis]);
+    }, [oitId, sheetUrls, sheetAnalysis, labUrls, labAnalysis, serviceGroup]);
 
     // --- Sampling Sheet Handlers ---
     const handleSheetDrop = (e: React.DragEvent) => {
@@ -166,18 +204,20 @@ export function ReportGenerator({
         try {
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('group', serviceGroup); // New: pass group context
             const response = await api.post(`/oits/${oitId}/sampling-sheets`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 
             try {
                 const parsed = JSON.parse(response.data.samplingSheetUrl);
-                setSheetUrls(Array.isArray(parsed) ? parsed : [response.data.samplingSheetUrl]);
+                const urls = Array.isArray(parsed) ? (serviceGroup === 'General' ? parsed : []) : (parsed[serviceGroup] || []);
+                setSheetUrls(urls);
             } catch {
-                setSheetUrls([response.data.samplingSheetUrl]);
+                if (serviceGroup === 'General') setSheetUrls([response.data.samplingSheetUrl]);
             }
 
-            notify.success('Planilla subida. Actualizando análisis...');
+            notify.success(`Planilla para ${serviceGroup} subida. Actualizando análisis...`);
         } catch (error: any) {
             console.error('Error uploading sheets:', error);
             notify.error(error.response?.data?.error || 'Error al subir planillas');
@@ -198,22 +238,26 @@ export function ReportGenerator({
         try {
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('group', serviceGroup); // New: pass group context
             const response = await api.post(`/oits/${oitId}/lab-results`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 
             try {
                 const parsed = JSON.parse(response.data.labResultsUrl);
-                setLabUrls(Array.isArray(parsed) ? parsed : [response.data.labResultsUrl]);
+                const urls = Array.isArray(parsed) ? (serviceGroup === 'General' ? parsed : []) : (parsed[serviceGroup] || []);
+                setLabUrls(urls);
             } catch {
-                setLabUrls([response.data.labResultsUrl]);
+                if (serviceGroup === 'General') setLabUrls([response.data.labResultsUrl]);
             }
 
             // Backend might return analysis immediately or we poll
             if (response.data && response.data.labResultsAnalysis) {
-                setLabAnalysis(response.data.labResultsAnalysis);
+                const parsedAnalyses = typeof response.data.labResultsAnalysis === 'string' ? JSON.parse(response.data.labResultsAnalysis) : response.data.labResultsAnalysis;
+                const groupAnalysis = (parsedAnalyses && typeof parsedAnalyses === 'object') ? parsedAnalyses[serviceGroup] : (serviceGroup === 'General' ? parsedAnalyses : null);
+                if (groupAnalysis) setLabAnalysis(groupAnalysis);
             }
-            notify.success('Resultados cargados. Analizando conjunto completo...');
+            notify.success(`Resultados para ${serviceGroup} cargados. Analizando...`);
         } catch (error) {
             console.error('Error uploading lab results:', error);
             notify.error('Error al cargar resultados');
@@ -226,11 +270,12 @@ export function ReportGenerator({
     const handleSheetRemove = async (urlToRemove: string) => {
         try {
             const response = await api.delete(`/oits/${oitId}/sampling-sheets`, {
-                data: { fileUrl: urlToRemove }
+                data: { fileUrl: urlToRemove, group: serviceGroup }
             });
             try {
                 const parsed = JSON.parse(response.data.samplingSheetUrl);
-                setSheetUrls(Array.isArray(parsed) ? parsed : []);
+                const urls = Array.isArray(parsed) ? (serviceGroup === 'General' ? parsed : []) : (parsed[serviceGroup] || []);
+                setSheetUrls(urls);
             } catch {
                 setSheetUrls([]);
             }
@@ -245,11 +290,12 @@ export function ReportGenerator({
     const handleLabRemove = async (urlToRemove: string) => {
         try {
             const response = await api.delete(`/oits/${oitId}/lab-results`, {
-                data: { fileUrl: urlToRemove }
+                data: { fileUrl: urlToRemove, group: serviceGroup }
             });
             try {
                 const parsed = JSON.parse(response.data.labResultsUrl);
-                setLabUrls(Array.isArray(parsed) ? parsed : []);
+                const urls = Array.isArray(parsed) ? (serviceGroup === 'General' ? parsed : []) : (parsed[serviceGroup] || []);
+                setLabUrls(urls);
             } catch {
                 setLabUrls([]);
             }

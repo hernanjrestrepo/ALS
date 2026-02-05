@@ -61,6 +61,7 @@ export default function OITDetailPage() {
     const [verificationMsg, setVerificationMsg] = useState('');
     const [isInitialLoad, setIsInitialLoad] = useState(true); // Track first load to avoid clearing storage
     const [selectedServiceForSampling, setSelectedServiceForSampling] = useState<any>(null); // ServiceSchedule | null
+    const [selectedServiceForReport, setSelectedServiceForReport] = useState<any>(null); // ServiceSchedule | null
 
     // Engineer Scheduling State
     const [availableEngineers, setAvailableEngineers] = useState<any[]>([]);
@@ -2174,14 +2175,99 @@ export default function OITDetailPage() {
 
                     <TabsContent value="report" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="space-y-6">
-                            {/* Step 1: Sampling Sheets Upload */}
-                            <ReportGenerator
-                                oitId={id!}
-                                finalReportUrl={oit.finalReportUrl}
-                                initialLabAnalysis={oit.labResultsAnalysis}
-                                initialSheetUrl={oit.samplingSheetUrl}
-                                initialSheetAnalysis={oit.samplingSheetAnalysis ? JSON.parse(oit.samplingSheetAnalysis) : null}
-                            />
+                            {/* Service Selection for Report */}
+                            <Card className="border-slate-200/60 shadow-sm overflow-hidden bg-white/50 backdrop-blur-sm">
+                                <CardHeader className="bg-white border-b border-slate-100 py-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-9 w-9 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                                <FileText className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-lg font-bold text-slate-900">Gestión de Informes por Servicio</CardTitle>
+                                                <CardDescription>Suba planillas y resultados para generar informes individuales</CardDescription>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-4">
+                                    {(() => {
+                                        const isAiMode = aiData?.data?.services && aiData.data.services.length > 0;
+                                        let displayServices: any[] = [];
+
+                                        if (isAiMode) {
+                                            displayServices = aiData.data.services.map((s: any, idx: number) => ({
+                                                id: `report-service-${idx}`,
+                                                name: s.name,
+                                                templateIds: s.templates?.map((t: any) => t.id) || []
+                                            })).filter((s: any) => s.name);
+                                        } else {
+                                            const grouped = selectedTemplates.reduce((acc: any, tmpl: any) => {
+                                                const rawType = tmpl.oitType || 'General';
+                                                const type = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+                                                if (!acc[type]) acc[type] = [];
+                                                acc[type].push(tmpl);
+                                                return acc;
+                                            }, {} as Record<string, any[]>);
+
+                                            displayServices = (Object.entries(grouped) as [string, any[]][]).map(([type, tmpls]) => ({
+                                                id: type,
+                                                name: type,
+                                                templateIds: tmpls.map(t => t.id)
+                                            }));
+                                        }
+
+                                        if (displayServices.length === 0) {
+                                            return (
+                                                <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                                    <p className="text-slate-500">No hay servicios identificados para generar informes.</p>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <div className="flex flex-wrap gap-2">
+                                                {displayServices.map((service) => (
+                                                    <Button
+                                                        key={service.id}
+                                                        variant={selectedServiceForReport?.id === service.id ? "default" : "outline"}
+                                                        onClick={() => setSelectedServiceForReport(service)}
+                                                        className={`rounded-full px-5 transition-all ${selectedServiceForReport?.id === service.id
+                                                            ? "bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-100"
+                                                            : "hover:bg-slate-50 text-slate-600"
+                                                            }`}
+                                                    >
+                                                        {service.name}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
+                                </CardContent>
+                            </Card>
+
+                            {/* Report Generator for Selected Service */}
+                            {selectedServiceForReport && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                                    <ReportGenerator
+                                        oitId={id!}
+                                        serviceGroup={selectedServiceForReport.name}
+                                        finalReportUrl={oit.finalReportUrl}
+                                        initialLabAnalysis={oit.labResultsAnalysis ? JSON.parse(oit.labResultsAnalysis) : null}
+                                        initialSheetUrl={oit.samplingSheetUrl}
+                                        initialSheetAnalysis={oit.samplingSheetAnalysis ? JSON.parse(oit.samplingSheetAnalysis) : null}
+                                    />
+                                </div>
+                            )}
+
+                            {!selectedServiceForReport && (
+                                <div className="flex flex-col items-center justify-center py-16 bg-white/40 border border-dashed border-slate-200 rounded-2xl">
+                                    <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                        <Sparkles className="h-8 w-8 text-slate-300" />
+                                    </div>
+                                    <p className="text-slate-500 font-medium">Seleccione un servicio para gestionar sus informes</p>
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
                 </Tabs>

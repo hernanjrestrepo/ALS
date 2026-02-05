@@ -199,6 +199,7 @@ export const getSamplingData = async (req: Request, res: Response) => {
 export const uploadLabResults = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const { group = 'General' } = req.body; // New: optional group
         const file = (req as any).file;
 
         if (!file) {
@@ -207,44 +208,48 @@ export const uploadLabResults = async (req: Request, res: Response) => {
 
         // Fetch current OIT to append file
         const currentOit = await prisma.oIT.findUnique({ where: { id }, select: { labResultsUrl: true } });
-        let fileList: string[] = [];
+        let groupedFiles: Record<string, string[]> = {};
 
         if (currentOit?.labResultsUrl) {
             try {
-                // Try parsing as JSON array
                 const parsed = JSON.parse(currentOit.labResultsUrl);
                 if (Array.isArray(parsed)) {
-                    fileList = parsed;
+                    // Migration: treat as General
+                    groupedFiles = { 'General': parsed };
+                } else if (typeof parsed === 'object' && parsed !== null) {
+                    groupedFiles = parsed;
                 } else {
-                    fileList = [currentOit.labResultsUrl];
+                    groupedFiles = { 'General': [currentOit.labResultsUrl] };
                 }
             } catch (e) {
-                fileList = [currentOit.labResultsUrl];
+                groupedFiles = { 'General': [currentOit.labResultsUrl] };
             }
         }
 
         const newPath = `uploads/${file.filename}`;
-        fileList.push(newPath);
+        if (!groupedFiles[group]) groupedFiles[group] = [];
+        groupedFiles[group].push(newPath);
 
         // 1. Return immediate response and set status to ANALYZING
         await prisma.oIT.update({
             where: { id },
             data: {
-                labResultsUrl: JSON.stringify(fileList),
-                labResultsAnalysis: null, // Clear previous analysis
+                labResultsUrl: JSON.stringify(groupedFiles),
+                // We keep status as ANALYZING. 
+                // Analysis is now stored per group in labResultsAnalysis
                 status: 'ANALYZING'
             } as any
         });
 
         res.json({
             success: true,
-            labResultsUrl: JSON.stringify(fileList),
+            labResultsUrl: JSON.stringify(groupedFiles),
             status: 'ANALYZING',
-            message: 'Resultados subidos. Análisis completo en curso...'
+            message: `Resultados para ${group} subidos. Análisis en curso...`
         });
 
-        // 2. Trigger asynchronous processing
-        processLabResultsAsync(id, fileList.map(url => url.replace('uploads/', ''))).catch(err => {
+        // 2. Trigger asynchronous processing for THIS GROUP
+        processLabResultsAsync(id, groupedFiles[group].map(url => url.replace('uploads/', '')), group).catch(err => {
             console.error('Error in background lab processing:', err);
         });
 
@@ -256,9 +261,9 @@ export const uploadLabResults = async (req: Request, res: Response) => {
 
 // Background Processor for Lab Results
 // Background Processor for Lab Results
-async function processLabResultsAsync(oitId: string, filenames: string[]) {
+async function processLabResultsAsync(oitId: string, filenames: string[], group: string = 'General') {
     try {
-        console.log(`Starting background lab analysis for OIT ${oitId} with ${filenames.length} files`);
+        console.log(`Starting background lab analysis for OIT ${oitId}, Group: ${group} with ${filenames.length} files`);
         const { pdfService } = require('../services/pdf.service');
         const path = require('path');
         let fullCombinedText = '';
@@ -287,28 +292,39 @@ async function processLabResultsAsync(oitId: string, filenames: string[]) {
 
         // Get OIT Context for better analysis
         const oit = await prisma.oIT.findUnique({ where: { id: oitId } });
-        const oitContext = oit?.description || '';
+        const oitContext = `${oit?.description || ''} - Servicio específico: ${group}`;
 
-        // Analyze with AI - Now returns text
+        // Analyze with AI
         const analysis = await aiService.analyzeLabResults(fullCombinedText, oitContext);
 
-        // Update OIT with results - Save as plain text
+        // Update grouped internal analysis
+        let currentAnalyses: Record<string, string> = {};
+        if (oit?.labResultsAnalysis) {
+            try {
+                const parsed = JSON.parse(oit.labResultsAnalysis);
+                currentAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': String(parsed) };
+            } catch {
+                currentAnalyses = { 'General': oit.labResultsAnalysis };
+            }
+        }
+        currentAnalyses[group] = analysis;
+
+        // Update OIT with results
         await prisma.oIT.update({
             where: { id: oitId },
             data: {
-                labResultsAnalysis: analysis, // Save as text, not JSON
+                labResultsAnalysis: JSON.stringify(currentAnalyses),
                 status: analysis.includes('Error') ? 'REVIEW_NEEDED' : 'COMPLETED'
             } as any
         });
 
-        console.log(`Lab analysis completed for OIT ${oitId}`);
+        console.log(`Lab analysis completed for OIT ${oitId}, Group: ${group}`);
 
         // Automatically generate final report if analysis was successful
         if (!analysis.includes('Error')) {
             console.log(`Triggering automatic report generation for OIT ${oitId}`);
             try {
                 await internalGenerateFinalReport(oitId);
-                console.log(`Automatic report generation successful for OIT ${oitId}`);
             } catch (reportErr) {
                 console.error(`Automatic report generation failed for OIT ${oitId}:`, reportErr);
             }
@@ -338,39 +354,21 @@ async function internalGenerateFinalReport(id: string) {
     const oit = await prisma.oIT.findUnique({ where: { id } });
     if (!oit) throw new Error('OIT no encontrada');
 
-    // 1. Extract Lab Text from potentially multiple files
-    let labText = '';
-    if (oit.labResultsUrl) {
-        let labFiles: string[] = [];
+    // 1. Prepare grouped data
+    let groupedLabAnalyses: Record<string, string> = {};
+    if (oit.labResultsAnalysis) {
         try {
-            const parsed = JSON.parse(oit.labResultsUrl);
-            labFiles = Array.isArray(parsed) ? parsed : [oit.labResultsUrl];
-        } catch {
-            labFiles = [oit.labResultsUrl];
-        }
-
-        const uploadsRoot = path.join(__dirname, '../../');
-        for (const fileUrl of labFiles) {
-            const potentialPath = fileUrl.startsWith('/') ? fileUrl : path.join(uploadsRoot, fileUrl);
-            const potentialPath2 = path.join(uploadsRoot, 'uploads', path.basename(fileUrl));
-
-            let extracted = '';
-            if (fs.existsSync(potentialPath)) {
-                extracted = await pdfService.extractText(potentialPath);
-            } else if (fs.existsSync(potentialPath2)) {
-                extracted = await pdfService.extractText(potentialPath2);
-            }
-            if (extracted) {
-                labText += `\n\n=== ARCHIVO: ${path.basename(fileUrl)} ===\n${extracted}`;
-            }
-        }
+            const parsed = JSON.parse(oit.labResultsAnalysis);
+            groupedLabAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': String(parsed) };
+        } catch { groupedLabAnalyses = { 'General': oit.labResultsAnalysis }; }
     }
 
     // 2. Parse sampling sheet analysis
-    let sheetAnalysis = null;
+    let groupedSheetAnalysis: Record<string, any> = {};
     if (oit.samplingSheetAnalysis) {
         try {
-            sheetAnalysis = JSON.parse(oit.samplingSheetAnalysis);
+            const parsed = JSON.parse(oit.samplingSheetAnalysis);
+            groupedSheetAnalysis = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': parsed };
         } catch (e) {
             console.warn('[Report] Failed to parse samplingSheetAnalysis', e);
         }
@@ -383,7 +381,9 @@ async function internalGenerateFinalReport(id: string) {
     if (templateIds.length === 0) {
         // Fallback: One General Report
         console.log('[Report] No templates selected, generating general report.');
-        const reportMarkdown = await validationService.generateFinalReportContent(oit, labText, 'General', sheetAnalysis);
+        const groupLabAnalysis = groupedLabAnalyses['General'] || '';
+        const groupSheetAnalysis = groupedSheetAnalysis['General'] || null;
+        const reportMarkdown = await validationService.generateFinalReportContent(oit, groupLabAnalysis, 'General', groupSheetAnalysis);
         const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, null);
         generatedReports.push({ name: 'Informe General', url: filename, type: isDocx ? 'docx' : 'pdf' });
     } else {
@@ -412,7 +412,11 @@ async function internalGenerateFinalReport(id: string) {
 
             console.log(`[Report] Generating report for Group: ${groupName} using template ${masterTemplate.reportTemplateFile || 'None'}`);
 
-            const reportMarkdown = await validationService.generateFinalReportContent(oit, labText, serviceContext, sheetAnalysis);
+            // Use group-specific lab analysis instead of raw text if available
+            const groupLabAnalysis = groupedLabAnalyses[groupName] || groupedLabAnalyses['General'] || '';
+            const groupSheetAnalysis = groupedSheetAnalysis[groupName] || groupedSheetAnalysis['General'] || null;
+
+            const reportMarkdown = await validationService.generateFinalReportContent(oit, groupLabAnalysis, serviceContext, groupSheetAnalysis);
             const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, masterTemplate);
 
             generatedReports.push({
@@ -1441,6 +1445,7 @@ export const generateSamplingReport = async (req: Request, res: Response) => {
 export const uploadSamplingSheets = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const { group = 'General' } = req.body; // New parameter
         const file = (req as any).file;
 
         if (!file) {
@@ -1449,44 +1454,43 @@ export const uploadSamplingSheets = async (req: Request, res: Response) => {
 
         // Fetch current OIT to append file
         const currentOit = await prisma.oIT.findUnique({ where: { id }, select: { samplingSheetUrl: true } });
-        let fileList: string[] = [];
+        let groupedFiles: Record<string, string[]> = {};
 
         if (currentOit?.samplingSheetUrl) {
             try {
-                // Try parsing as JSON array
                 const parsed = JSON.parse(currentOit.samplingSheetUrl);
                 if (Array.isArray(parsed)) {
-                    fileList = parsed;
+                    groupedFiles = { 'General': parsed };
+                } else if (typeof parsed === 'object' && parsed !== null) {
+                    groupedFiles = parsed;
                 } else {
-                    // Legacy: it was a single string URL
-                    fileList = [currentOit.samplingSheetUrl];
+                    groupedFiles = { 'General': [currentOit.samplingSheetUrl] };
                 }
             } catch (e) {
-                // Not JSON, assume simple string
-                fileList = [currentOit.samplingSheetUrl];
+                groupedFiles = { 'General': [currentOit.samplingSheetUrl] };
             }
         }
 
         const newPath = `uploads/${file.filename}`;
-        fileList.push(newPath);
+        if (!groupedFiles[group]) groupedFiles[group] = [];
+        groupedFiles[group].push(newPath);
 
         // Save file URL list and trigger analysis
         await prisma.oIT.update({
             where: { id },
             data: {
-                samplingSheetUrl: JSON.stringify(fileList),
-                samplingSheetAnalysis: null, // Reset analysis to force refresh
+                samplingSheetUrl: JSON.stringify(groupedFiles)
             } as any
         });
 
         res.json({
             success: true,
-            samplingSheetUrl: JSON.stringify(fileList), // Return updated list
-            message: 'Planillas subidas. Analizando todos los archivos...'
+            samplingSheetUrl: JSON.stringify(groupedFiles), // Return updated list
+            message: `Planillas para ${group} subidas. Analizando...`
         });
 
-        // Trigger async analysis with ALL files
-        processSamplingSheetsAsync(id, fileList.map(url => url.replace('uploads/', ''))).catch(err => {
+        // Trigger async analysis for THIS GROUP
+        processSamplingSheetsAsync(id, groupedFiles[group].map(url => url.replace('uploads/', '')), group).catch(err => {
             console.error('Error in background sampling sheets processing:', err);
         });
 
@@ -1500,41 +1504,45 @@ export const uploadSamplingSheets = async (req: Request, res: Response) => {
 export const deleteSamplingSheet = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { fileUrl } = req.body;
+        const { fileUrl, group = 'General' } = req.body;
 
         if (!fileUrl) {
             return res.status(400).json({ error: 'Se requiere fileUrl para eliminar' });
         }
 
-        const currentOit = await prisma.oIT.findUnique({ where: { id }, select: { samplingSheetUrl: true } });
-        let fileList: string[] = [];
+        const currentOit = await prisma.oIT.findUnique({ where: { id }, select: { samplingSheetUrl: true, samplingSheetAnalysis: true } });
+        let groupedFiles: Record<string, string[]> = {};
 
         if (currentOit?.samplingSheetUrl) {
             try {
                 const parsed = JSON.parse(currentOit.samplingSheetUrl);
-                fileList = Array.isArray(parsed) ? parsed : [currentOit.samplingSheetUrl];
-            } catch {
-                fileList = [currentOit.samplingSheetUrl];
-            }
+                groupedFiles = Array.isArray(parsed) ? { 'General': parsed } : parsed;
+            } catch { groupedFiles = { 'General': [currentOit.samplingSheetUrl] }; }
         }
 
-        // Remove the file from the list
-        fileList = fileList.filter(url => url !== fileUrl);
+        if (groupedFiles[group]) {
+            groupedFiles[group] = groupedFiles[group].filter(url => url !== fileUrl);
+        }
+
+        // Handle Analysis reset for that group
+        let groupedAnalyses: Record<string, any> = {};
+        if (currentOit?.samplingSheetAnalysis) {
+            try {
+                const parsed = JSON.parse(currentOit.samplingSheetAnalysis);
+                groupedAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': parsed };
+            } catch { groupedAnalyses = { 'General': currentOit.samplingSheetAnalysis }; }
+        }
+        delete groupedAnalyses[group];
 
         await prisma.oIT.update({
             where: { id },
             data: {
-                samplingSheetUrl: JSON.stringify(fileList),
-                samplingSheetAnalysis: null // Reset analysis
+                samplingSheetUrl: JSON.stringify(groupedFiles),
+                samplingSheetAnalysis: JSON.stringify(groupedAnalyses)
             } as any
         });
 
-        res.json({
-            success: true,
-            samplingSheetUrl: JSON.stringify(fileList),
-            message: 'Archivo eliminado'
-        });
-
+        res.json({ success: true, samplingSheetUrl: JSON.stringify(groupedFiles), message: 'Archivo eliminado' });
     } catch (error) {
         console.error('Error deleting sampling sheet:', error);
         res.status(500).json({ error: 'Error al eliminar planilla' });
@@ -1545,64 +1553,61 @@ export const deleteSamplingSheet = async (req: Request, res: Response) => {
 export const deleteLabResult = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { fileUrl } = req.body;
+        const { fileUrl, group = 'General' } = req.body;
 
         if (!fileUrl) {
             return res.status(400).json({ error: 'Se requiere fileUrl para eliminar' });
         }
 
-        const currentOit = await prisma.oIT.findUnique({ where: { id }, select: { labResultsUrl: true } });
-        let fileList: string[] = [];
+        const currentOit = await prisma.oIT.findUnique({ where: { id }, select: { labResultsUrl: true, labResultsAnalysis: true } });
+        let groupedFiles: Record<string, string[]> = {};
 
         if (currentOit?.labResultsUrl) {
             try {
                 const parsed = JSON.parse(currentOit.labResultsUrl);
-                fileList = Array.isArray(parsed) ? parsed : [currentOit.labResultsUrl];
-            } catch {
-                fileList = [currentOit.labResultsUrl];
-            }
+                groupedFiles = Array.isArray(parsed) ? { 'General': parsed } : parsed;
+            } catch { groupedFiles = { 'General': [currentOit.labResultsUrl] }; }
         }
 
-        // Remove the file from the list
-        fileList = fileList.filter(url => url !== fileUrl);
+        if (groupedFiles[group]) {
+            groupedFiles[group] = groupedFiles[group].filter(url => url !== fileUrl);
+        }
+
+        // Handle Analysis reset for that group
+        let groupedAnalyses: Record<string, any> = {};
+        if (currentOit?.labResultsAnalysis) {
+            try {
+                const parsed = JSON.parse(currentOit.labResultsAnalysis);
+                groupedAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': String(parsed) };
+            } catch { groupedAnalyses = { 'General': currentOit.labResultsAnalysis }; }
+        }
+        delete groupedAnalyses[group];
 
         await prisma.oIT.update({
             where: { id },
             data: {
-                labResultsUrl: JSON.stringify(fileList),
-                labResultsAnalysis: null // Reset analysis
+                labResultsUrl: JSON.stringify(groupedFiles),
+                labResultsAnalysis: JSON.stringify(groupedAnalyses)
             } as any
         });
 
-        res.json({
-            success: true,
-            labResultsUrl: JSON.stringify(fileList),
-            message: 'Archivo eliminado'
-        });
-
+        res.json({ success: true, labResultsUrl: JSON.stringify(groupedFiles), message: 'Archivo eliminado' });
     } catch (error) {
-        console.error('Error deleting lab result:', error);
         res.status(500).json({ error: 'Error al eliminar resultado de laboratorio' });
     }
 };
 
 // Background Processor for Sampling Sheets
-async function processSamplingSheetsAsync(oitId: string, filenames: string[]) {
+async function processSamplingSheetsAsync(oitId: string, filenames: string[], group: string = 'General') {
     try {
-        console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId} with ${filenames.length} files`);
+        console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId}, Group: ${group} with ${filenames.length} files`);
         const { pdfService } = require('../services/pdf.service');
         const path = require('path');
         let fullCombinedText = '';
 
         for (const filename of filenames) {
-            const filePath = path.join(__dirname, '../../uploads', filename); // Adjust path logic as needed
-            // NOTE: file.path in controller gives full path, but here we reconstructed from URL.
-            // Better to make sure we resolve correctly.
-            // Assuming uploads are in projectRoot/uploads or similar.
-            // Adjusting based on standard multer behavior usually saving to 'uploads/' rel to CWD.
-            // Let's assume the controller passed paths or filenames relative to uploads dir.
+            const filePath = path.join(__dirname, '../../uploads', filename);
 
-            // Let's check permissions or existence
             if (!fs.existsSync(filePath)) {
                 console.warn(`[SAMPLING_SHEETS] File not found: ${filePath}`);
                 continue;
@@ -1627,44 +1632,42 @@ async function processSamplingSheetsAsync(oitId: string, filenames: string[]) {
                     });
                     extractedText = allSheetsText;
                 } else {
-                    // Try text read
-                    extractedText = fs.readFileSync(filePath, 'utf-8');
+                    extractedText = "[Contenido no legible directamente]";
                 }
             } catch (readErr) {
-                console.error(`[SAMPLING_SHEETS] Error extracting text from ${filename}:`, readErr);
-                extractedText = `[Error leyendo ${filename}]`;
             }
 
             fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
         }
 
-        const oit = await prisma.oIT.findUnique({ where: { id: oitId } });
+        const oit = await prisma.oIT.findUnique({ where: { id: oitId }, select: { description: true, samplingSheetAnalysis: true } });
         const oitContext = oit?.description || '';
 
         const analysis = await aiService.analyzeSamplingSheets(fullCombinedText, oitContext);
 
+        // Update grouped internal analysis
+        let currentAnalyses: Record<string, any> = {};
+        if (oit?.samplingSheetAnalysis) {
+            try {
+                const parsed = JSON.parse(oit.samplingSheetAnalysis);
+                currentAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': parsed };
+            } catch {
+                currentAnalyses = { 'General': oit.samplingSheetAnalysis };
+            }
+        }
+        currentAnalyses[group] = analysis;
+
         await prisma.oIT.update({
             where: { id: oitId },
             data: {
-                samplingSheetAnalysis: JSON.stringify(analysis)
+                samplingSheetAnalysis: JSON.stringify(currentAnalyses)
             } as any
         });
 
-        console.log(`[SAMPLING_SHEETS] Analysis completed for OIT ${oitId}, quality: ${analysis.quality}`);
-
+        console.log(`[SAMPLING_SHEETS] Analysis completed for OIT ${oitId}, Group: ${group}, quality: ${analysis.quality}`);
+        await internalGenerateFinalReport(oitId).catch(e => console.error("Auto report generation failed", e));
     } catch (error) {
         console.error('[SAMPLING_SHEETS] Error in background processing:', error);
-        await prisma.oIT.update({
-            where: { id: oitId },
-            data: {
-                samplingSheetAnalysis: JSON.stringify({
-                    summary: "Error en análisis automático",
-                    quality: 'regular',
-                    findings: ["Error durante el procesamiento"],
-                    recommendations: ["Revisar manualmente"]
-                })
-            } as any
-        });
     }
 }
 
