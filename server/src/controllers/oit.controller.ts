@@ -415,42 +415,55 @@ async function internalGenerateFinalReport(id: string) {
 
         console.log(`[Report] Found groups: ${Object.keys(groupedTemplates).join(', ')}`);
 
-        // Generate one report per Group
-        for (const [groupName, group] of Object.entries(groupedTemplates)) {
-            // Find a valid DOCX template to use (use the first one that has it)
-            const masterTemplate = group.find(t => t.reportTemplateFile) || group[0];
+        // Generate reports for all Groups in PARALLEL to avoid timeouts
+        const reportPromises = Object.entries(groupedTemplates).map(async ([groupName, group]) => {
+            try {
+                // Find a valid DOCX template to use (use the first one that has it)
+                const masterTemplate = group.find(t => t.reportTemplateFile) || group[0];
 
-            // Context description: "Agua Potable (Fisicoquímico, Microbiológico)"
-            const serviceContext = `${groupName} (${group.map(t => t.name).join(', ')})`;
+                // Context description: "Agua Potable (Fisicoquímico, Microbiológico)"
+                const serviceContext = `${groupName} (${group.map(t => t.name).join(', ')})`;
 
-            console.log(`[Report] Generating report for Group: ${groupName} using template ${masterTemplate.reportTemplateFile || 'None'}`);
+                console.log(`[Report] Generating report for Group: ${groupName} using template ${masterTemplate.reportTemplateFile || 'None'}`);
 
-            // Use group-specific lab analysis instead of raw text if available
-            const groupLabAnalysis = groupedLabAnalyses[groupName] || groupedLabAnalyses['General'] || '';
-            const groupSheetAnalysis = groupedSheetAnalysis[groupName] || groupedSheetAnalysis['General'] || null;
+                // Use group-specific lab analysis instead of raw text if available
+                const groupLabAnalysis = groupedLabAnalyses[groupName] || groupedLabAnalyses['General'] || '';
+                const groupSheetAnalysis = groupedSheetAnalysis[groupName] || groupedSheetAnalysis['General'] || null;
 
-            const reportMarkdown = await validationService.generateFinalReportContent(oit, groupLabAnalysis, serviceContext, groupSheetAnalysis);
-            const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, masterTemplate);
+                const groupResults = [];
 
-            generatedReports.push({
-                name: `Informe ${groupName}`,
-                url: filename,
-                type: isDocx ? 'docx' : 'pdf'
-            });
+                // 1. Generate Final Report
+                const reportMarkdown = await validationService.generateFinalReportContent(oit, groupLabAnalysis, serviceContext, groupSheetAnalysis);
+                const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, masterTemplate);
 
-            // Generate Comunicado for this service group
-            if (groupLabAnalysis) {
-                try {
-                    console.log(`[Report] Generating comunicado for ${groupName}...`);
-                    const comunicadoContent = await validationService.generateComunicadoContent(oit, groupLabAnalysis, serviceContext);
-                    const { comunicadoService } = require('../services/comunicado.service');
-                    const comunicadoFilename = await comunicadoService.generateComunicado(oit, comunicadoContent, groupName);
-                    generatedReports.push({ name: `Comunicado ${groupName}`, url: comunicadoFilename, type: 'docx' });
-                } catch (comErr) {
-                    console.error(`[Report] Comunicado generation failed for ${groupName}:`, comErr);
+                groupResults.push({
+                    name: `Informe ${groupName}`,
+                    url: filename,
+                    type: (isDocx ? 'docx' : 'pdf') as 'docx' | 'pdf'
+                });
+
+                // 2. Generate Comunicado for this service group
+                if (groupLabAnalysis) {
+                    try {
+                        console.log(`[Report] Generating comunicado for ${groupName}...`);
+                        const comunicadoContent = await validationService.generateComunicadoContent(oit, groupLabAnalysis, serviceContext);
+                        const { comunicadoService } = require('../services/comunicado.service');
+                        const comunicadoFilename = await comunicadoService.generateComunicado(oit, comunicadoContent, groupName);
+                        groupResults.push({ name: `Comunicado ${groupName}`, url: comunicadoFilename, type: 'docx' as const });
+                    } catch (comErr) {
+                        console.error(`[Report] Comunicado generation failed for ${groupName}:`, comErr);
+                    }
                 }
+                return groupResults;
+            } catch (err) {
+                console.error(`[Report] Failed to generate report for group ${groupName}:`, err);
+                return [];
             }
-        }
+        });
+
+        // Wait for all groups to complete
+        const results = await Promise.all(reportPromises);
+        results.flat().forEach(r => generatedReports.push(r));
     }
 
     // 4. Update OIT
