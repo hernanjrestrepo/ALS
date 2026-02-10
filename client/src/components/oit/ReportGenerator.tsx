@@ -515,7 +515,7 @@ export function ReportGenerator({
                     <p className="text-xs text-teal-600 mb-3">Documentos de comunicado técnico por servicio para enviar al cliente.</p>
                     <div className="space-y-2">
                         {reportList.filter(r => r.name.startsWith('Comunicado')).map((report, idx) => {
-                            const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/${report.url.replace(/^uploads\//, 'uploads/')}`;
+                            const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}`;
                             return (
                                 <div key={idx} className="flex items-center justify-between p-3 bg-white border border-teal-100 rounded-lg group hover:border-teal-300 transition-all shadow-sm">
                                     <div className="flex items-center gap-3 min-w-0">
@@ -632,7 +632,7 @@ export function ReportGenerator({
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
                             {reportList.filter(r => !r.name.startsWith('Comunicado')).length > 0 ? (
                                 reportList.filter(r => !r.name.startsWith('Comunicado')).map((report, idx) => {
-                                    const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/${report.url.replace(/^uploads\//, 'uploads/')}`;
+                                    const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}`;
                                     return (
                                         <div key={idx} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg group hover:border-indigo-300 transition-all shadow-sm">
                                             <div className="flex items-center gap-3 min-w-0">
