@@ -162,6 +162,49 @@ IMPORTANTE: Responde en español, de forma profesional y técnica.`;
         }
     }
 
+    /**
+     * Generate comunicado-style content for a specific service
+     * Returns plain text with **bold** markers for section headers
+     */
+    async generateComunicadoContent(oit: any, labAnalysis: string, serviceContext: string): Promise<string> {
+        try {
+            const prompt = `
+            ACTÚA COMO: Juan Bustamante R., Coordinador I+D del Laboratorio Serambiente S.A.S, escribiendo un comunicado técnico para el cliente.
+            TAREA: Redactar el CUERPO del comunicado técnico basándote en los resultados de laboratorio analizados.
+            
+            CONTEXTO:
+            - Orden de Servicio: ${oit.oitNumber}
+            - Servicio/Tipo: ${serviceContext}
+            - Descripción: ${oit.description || 'No especificada'}
+            - Ubicación: ${oit.location || 'No especificada'}
+            
+            ANÁLISIS DE LABORATORIO YA PROCESADO:
+            "${labAnalysis.slice(0, 6000)}"
+            
+            INSTRUCCIONES DE FORMATO:
+            - Escribe en español formal y técnico.
+            - Usa **negritas** (con doble asterisco) para títulos de sección y nombres de parámetros importantes.
+            - NO uses formato markdown (ni #, ni tablas, ni listas con -).
+            - Estructura el contenido en estas secciones (cada una como párrafo):
+              1. **Resumen de resultados** - Qué se evaluó, qué puntos/muestras, qué parámetros
+              2. **Cumplen con la normatividad:** - Lista de parámetros que cumplen
+              3. **No cumplen:** - Lista de parámetros que no cumplen (si aplica), con valores y límites
+              4. **Interpretación general** - Explicación técnica de los hallazgos
+              5. **Plan de acción sugerido** - Recomendaciones concretas con sub-secciones en negrita
+              6. **Conclusión** - Veredicto final breve
+            - Si un parámetro no cumple, explica el valor hallado vs el límite normativo.
+            - Sé conciso pero completo. No inventes datos que no estén en el análisis.
+            - NO incluyas saludos, firma ni frases de cierre (eso ya lo maneja el sistema).
+            - NO incluyas la frase "Estas hipótesis parten solo de teoría..." (eso ya lo maneja el sistema).
+            `;
+            const response = await aiService.chat(prompt);
+            return response.trim();
+        } catch (error) {
+            console.error('Comunicado content generation error:', error);
+            throw new Error('Error al generar contenido del comunicado');
+        }
+    }
+
     private cleanAIResponse(response: string): string {
         let cleaned = response.trim();
 

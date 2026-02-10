@@ -559,7 +559,7 @@ export function ReportGenerator({
                                         <div key={idx} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg group hover:border-indigo-300 transition-all shadow-sm">
                                             <div className="flex items-center gap-3 min-w-0">
                                                 <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500">
-                                                    {report.type === 'docx' ? <FileText className="h-4 w-4" /> : <FileBarChart className="h-4 w-4" />}
+                                                    {report.name.startsWith('Comunicado') ? <FileCheck className="h-4 w-4" /> : report.type === 'docx' ? <FileText className="h-4 w-4" /> : <FileBarChart className="h-4 w-4" />}
                                                 </div>
                                                 <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
                                             </div>

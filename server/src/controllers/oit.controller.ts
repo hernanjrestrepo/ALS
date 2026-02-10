@@ -386,6 +386,19 @@ async function internalGenerateFinalReport(id: string) {
         const reportMarkdown = await validationService.generateFinalReportContent(oit, groupLabAnalysis, 'General', groupSheetAnalysis);
         const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, null);
         generatedReports.push({ name: 'Informe General', url: filename, type: isDocx ? 'docx' : 'pdf' });
+
+        // Generate Comunicado for General
+        if (groupLabAnalysis) {
+            try {
+                console.log('[Report] Generating comunicado for General...');
+                const comunicadoContent = await validationService.generateComunicadoContent(oit, groupLabAnalysis, 'General');
+                const { comunicadoService } = require('../services/comunicado.service');
+                const comunicadoFilename = await comunicadoService.generateComunicado(oit, comunicadoContent, 'General');
+                generatedReports.push({ name: 'Comunicado General', url: comunicadoFilename, type: 'docx' });
+            } catch (comErr) {
+                console.error('[Report] Comunicado generation failed for General:', comErr);
+            }
+        }
     } else {
         // Fetch all templates
         const templates = await prisma.samplingTemplate.findMany({
@@ -424,6 +437,19 @@ async function internalGenerateFinalReport(id: string) {
                 url: filename,
                 type: isDocx ? 'docx' : 'pdf'
             });
+
+            // Generate Comunicado for this service group
+            if (groupLabAnalysis) {
+                try {
+                    console.log(`[Report] Generating comunicado for ${groupName}...`);
+                    const comunicadoContent = await validationService.generateComunicadoContent(oit, groupLabAnalysis, serviceContext);
+                    const { comunicadoService } = require('../services/comunicado.service');
+                    const comunicadoFilename = await comunicadoService.generateComunicado(oit, comunicadoContent, groupName);
+                    generatedReports.push({ name: `Comunicado ${groupName}`, url: comunicadoFilename, type: 'docx' });
+                } catch (comErr) {
+                    console.error(`[Report] Comunicado generation failed for ${groupName}:`, comErr);
+                }
+            }
         }
     }
 
