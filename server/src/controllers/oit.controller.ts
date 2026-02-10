@@ -447,6 +447,7 @@ async function internalGenerateFinalReport(id: string) {
                 const reportMarkdown = await validationService.generateFinalReportContent(oit, groupLabAnalysis, serviceContext, groupSheetAnalysis);
                 // Ensure masterTemplate is valid before passing
                 const effectiveTemplate = masterTemplate || (templates.length > 0 ? templates[0] : null);
+                console.log(`[Report] Using template: ${effectiveTemplate?.name}, File: ${effectiveTemplate?.reportTemplateFile}`);
                 const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, effectiveTemplate);
 
                 groupResults.push({
