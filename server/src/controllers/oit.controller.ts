@@ -1734,6 +1734,12 @@ export const generateFinalReport = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
+        // Clear previous report URL to force frontend to wait
+        await prisma.oIT.update({
+            where: { id },
+            data: { finalReportUrl: null }
+        });
+
         // Start generation in background (Fire and Forget)
         internalGenerateFinalReport(id)
             .then(({ generatedReports }) => {
