@@ -111,11 +111,21 @@ export const planningService = {
 
             if (!Array.isArray(services)) services = [];
 
-            const validServices: ServiceExtraction[] = services.map(s => ({
-                name: s.serviceName || 'Servicio Desconocido',
-                matcher: s.group || 'GENERAL',
-                templateNumbers: s.templateId ? [s.templateId] : []
-            }));
+            const validServices: ServiceExtraction[] = services.map(s => {
+                let tIds: string[] = [];
+                if (s.templateId) {
+                    tIds = [s.templateId];
+                } else if (templates.length > 0) {
+                    console.warn(`[Planning] Service '${s.serviceName}' has no template. Fallback to default: ${templates[0].name}`);
+                    tIds = [templates[0].id];
+                }
+
+                return {
+                    name: s.serviceName || 'Servicio Detectado',
+                    matcher: s.group || 'GENERAL',
+                    templateNumbers: tIds
+                };
+            });
 
             return {
                 totalServicesFound: validServices.length,
