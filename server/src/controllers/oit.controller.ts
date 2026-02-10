@@ -521,7 +521,9 @@ async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, te
             console.log(`[Report] Generated DOCX data with ${Object.keys(docxData).length} keys for template ${template.name}`);
 
             generatedFileBuffer = await docxService.generateDocument(template.reportTemplateFile, docxData);
-            console.log(`[Report] Generated DOCX buffer size: ${generatedFileBuffer.length} bytes`);
+            if (generatedFileBuffer) {
+                console.log(`[Report] Generated DOCX buffer size: ${generatedFileBuffer.length} bytes`);
+            }
 
             // Filename: Informe_Agua_Potable_OIT-123...
             const safeType = (template.oitType || template.name).replace(/[^a-zA-Z0-9]/g, '_');
