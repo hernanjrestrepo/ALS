@@ -693,6 +693,46 @@ export function ReportGenerator({
                 )}
             </div>
 
+            {/* 4. CONSOLIDATED SHEET ANALYSIS TEXT (Visible always if available) */}
+            {sheetAnalysis && (
+                <Card className="border-slate-200 shadow-sm bg-slate-50/50 mt-6 animate-in fade-in slide-in-from-bottom-4">
+                    <CardHeader className="pb-3 border-b border-slate-100">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                                <Sparkles className="h-4 w-4 text-indigo-500" />
+                                Resumen de Planillas de Campo (Texto Consolidado)
+                            </CardTitle>
+                            <Badge variant="secondary" className="bg-white border-slate-200 text-slate-600">
+                                Copiable
+                            </Badge>
+                        </div>
+                        <CardDescription className="text-xs">
+                            Análisis consolidado de las planillas de campo para referencia rápida.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                        <div className="space-y-4 text-sm text-slate-700">
+                            <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                <p className="leading-relaxed whitespace-pre-wrap">{sheetAnalysis.summary}</p>
+                            </div>
+
+                            {sheetAnalysis.findings?.length > 0 && (
+                                <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                                    <p className="font-semibold text-amber-900 text-xs mb-2 flex items-center gap-1">
+                                        <AlertTriangle className="h-3 w-3" /> Hallazgos Importantes
+                                    </p>
+                                    <ul className="list-disc pl-4 space-y-1 text-xs text-amber-800">
+                                        {sheetAnalysis.findings.map((f: string, i: number) => (
+                                            <li key={i} className="pl-1">{f}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Feedback Modal */}
             <FeedbackModal
                 open={feedbackModalOpen}
