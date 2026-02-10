@@ -457,7 +457,41 @@ export function ReportGenerator({
                 )}
             </div>
 
-            {/* 2. ANALYSIS CARDS SECTION — only shown when reports haven't been generated yet */}
+            {/* 2. COMUNICADOS SECTION — Lab report documents (separate from final reports) */}
+            {reportGenerated && reportList.filter(r => r.name.startsWith('Comunicado')).length > 0 && (
+                <div className="bg-teal-50/50 border border-teal-200 rounded-xl p-5 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="flex items-center gap-2 mb-3">
+                        <FileCheck className="h-5 w-5 text-teal-600" />
+                        <h3 className="text-sm font-semibold text-teal-900">Comunicados Técnicos</h3>
+                        <Badge variant="outline" className="text-[10px] bg-teal-50 text-teal-700 border-teal-200 ml-auto">
+                            {reportList.filter(r => r.name.startsWith('Comunicado')).length} documento(s)
+                        </Badge>
+                    </div>
+                    <p className="text-xs text-teal-600 mb-3">Documentos de comunicado técnico por servicio para enviar al cliente.</p>
+                    <div className="space-y-2">
+                        {reportList.filter(r => r.name.startsWith('Comunicado')).map((report, idx) => {
+                            const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/${report.url.replace(/^uploads\//, 'uploads/')}`;
+                            return (
+                                <div key={idx} className="flex items-center justify-between p-3 bg-white border border-teal-100 rounded-lg group hover:border-teal-300 transition-all shadow-sm">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="h-8 w-8 rounded-full bg-teal-50 flex items-center justify-center text-teal-500 group-hover:bg-teal-100">
+                                            <FileCheck className="h-4 w-4" />
+                                        </div>
+                                        <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
+                                    </div>
+                                    <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-teal-400 hover:text-teal-600 hover:bg-teal-50">
+                                        <a href={reportUrl} download title="Descargar comunicado">
+                                            <Download className="h-4 w-4" />
+                                        </a>
+                                    </Button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* 2b. ANALYSIS CARDS — only shown when reports haven't been generated yet */}
             {!reportGenerated && (sheetAnalysis || labAnalysis || isUploadingSheet || isUploadingLab) && (
                 <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4">
                     {/* Sheet Analysis Result */}
@@ -534,12 +568,12 @@ export function ReportGenerator({
                 </div>
             )}
 
-            {/* 3. GENERATE REPORT BUTTON */}
+            {/* 3. GENERATE FINAL REPORT BUTTON */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center space-y-4">
                 <div className="text-center max-w-lg">
                     <h3 className="text-lg font-semibold text-slate-900">Generar Informe Final</h3>
                     <p className="text-sm text-slate-500">
-                        El sistema combinará la información de las planillas de campo y los resultados de laboratorio interpretados por IA.
+                        El sistema generará los informes técnicos y comunicados para cada servicio.
                     </p>
                 </div>
 
@@ -547,18 +581,18 @@ export function ReportGenerator({
                     <div className="w-full max-w-md space-y-3">
                         <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-md mb-2">
                             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                            <p className="text-sm font-medium text-emerald-900">Informes Generados ({reportList.length || 1})</p>
+                            <p className="text-sm font-medium text-emerald-900">Informes Técnicos ({reportList.filter(r => !r.name.startsWith('Comunicado')).length || 1})</p>
                         </div>
 
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                            {reportList.length > 0 ? (
-                                reportList.map((report, idx) => {
+                            {reportList.filter(r => !r.name.startsWith('Comunicado')).length > 0 ? (
+                                reportList.filter(r => !r.name.startsWith('Comunicado')).map((report, idx) => {
                                     const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/${report.url.replace(/^uploads\//, 'uploads/')}`;
                                     return (
                                         <div key={idx} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg group hover:border-indigo-300 transition-all shadow-sm">
                                             <div className="flex items-center gap-3 min-w-0">
                                                 <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500">
-                                                    {report.name.startsWith('Comunicado') ? <FileCheck className="h-4 w-4" /> : report.type === 'docx' ? <FileText className="h-4 w-4" /> : <FileBarChart className="h-4 w-4" />}
+                                                    {report.type === 'docx' ? <FileText className="h-4 w-4" /> : <FileBarChart className="h-4 w-4" />}
                                                 </div>
                                                 <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
                                             </div>
