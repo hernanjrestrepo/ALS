@@ -418,23 +418,36 @@ async function internalGenerateFinalReport(id: string) {
         // Generate reports for all Groups in PARALLEL to avoid timeouts
         const reportPromises = Object.entries(groupedTemplates).map(async ([groupName, group]) => {
             try {
-                // Find a valid DOCX template to use (use the first one that has it)
-                const masterTemplate = group.find(t => t.reportTemplateFile) || group[0];
+                // Find a valid DOCX template to use
+                let masterTemplate = group.find(t => t.reportTemplateFile);
+
+                // Fallback 1: First in group
+                if (!masterTemplate && group.length > 0) masterTemplate = group[0];
+
+                // Fallback 2: Any available template with a file (Global fallback)
+                if ((!masterTemplate || !masterTemplate.reportTemplateFile) && templates.length > 0) {
+                    masterTemplate = templates.find(t => t.reportTemplateFile) || templates[0];
+                    console.warn(`[Report] Group ${groupName} had no valid template. Global fallback to: ${masterTemplate.name}`);
+                }
+
+                if (!masterTemplate) {
+                    console.error(`[Report] CRITICAL: No templates available for group ${groupName}`);
+                    return [];
+                }
 
                 // Context description: "Agua Potable (Fisicoquímico, Microbiológico)"
                 const serviceContext = `${groupName} (${group.map(t => t.name).join(', ')})`;
-
-                console.log(`[Report] Generating report for Group: ${groupName} using template ${masterTemplate.reportTemplateFile || 'None'}`);
-
-                // Use group-specific lab analysis instead of raw text if available
                 const groupLabAnalysis = groupedLabAnalyses[groupName] || groupedLabAnalyses['General'] || '';
+                // Fix: use 'General' fallback or null, mapToObject is undefined here
                 const groupSheetAnalysis = groupedSheetAnalysis[groupName] || groupedSheetAnalysis['General'] || null;
 
                 const groupResults = [];
 
                 // 1. Generate Final Report
                 const reportMarkdown = await validationService.generateFinalReportContent(oit, groupLabAnalysis, serviceContext, groupSheetAnalysis);
-                const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, masterTemplate);
+                // Ensure masterTemplate is valid before passing
+                const effectiveTemplate = masterTemplate || (templates.length > 0 ? templates[0] : null);
+                const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, effectiveTemplate);
 
                 groupResults.push({
                     name: `Informe ${groupName}`,
