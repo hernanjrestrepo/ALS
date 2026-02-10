@@ -457,9 +457,8 @@ export function ReportGenerator({
                 )}
             </div>
 
-            {/* 2. ANALYSIS CARDS SECTION */}
-            {/* 2. ANALYSIS CARDS SECTION */}
-            {(sheetAnalysis || labAnalysis || isUploadingSheet || isUploadingLab) && (
+            {/* 2. ANALYSIS CARDS SECTION — only shown when reports haven't been generated yet */}
+            {!reportGenerated && (sheetAnalysis || labAnalysis || isUploadingSheet || isUploadingLab) && (
                 <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4">
                     {/* Sheet Analysis Result */}
                     <Card className="border-indigo-100 shadow-sm bg-white flex flex-col h-full">
