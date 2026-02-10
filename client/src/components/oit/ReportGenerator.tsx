@@ -515,7 +515,7 @@ export function ReportGenerator({
                     <p className="text-xs text-teal-600 mb-3">Documentos de comunicado técnico por servicio para enviar al cliente.</p>
                     <div className="space-y-2">
                         {reportList.filter(r => r.name.startsWith('Comunicado')).map((report, idx) => {
-                            const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}`;
+                            const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}?t=${idx}_${Date.now()}`;
                             return (
                                 <div key={idx} className="flex items-center justify-between p-3 bg-white border border-teal-100 rounded-lg group hover:border-teal-300 transition-all shadow-sm">
                                     <div className="flex items-center gap-3 min-w-0">
@@ -537,81 +537,83 @@ export function ReportGenerator({
             )}
 
             {/* 2b. ANALYSIS CARDS — only shown when reports haven't been generated yet */}
-            {!reportGenerated && (sheetAnalysis || labAnalysis || isUploadingSheet || isUploadingLab) && (
-                <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4">
-                    {/* Sheet Analysis Result */}
-                    <Card className="border-indigo-100 shadow-sm bg-white flex flex-col h-full">
-                        <CardHeader className="pb-3 bg-indigo-50/30 border-b border-indigo-50">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4 text-indigo-500" />
-                                    Análisis de Planillas
-                                </CardTitle>
-                                {sheetAnalysis && getQualityBadge(sheetAnalysis.quality)}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-4 flex-1">
-                            {!sheetAnalysis ? (
-                                <div className="h-full flex flex-col items-center justify-center p-6 text-slate-400 text-center">
-                                    {isUploadingSheet ? (
-                                        <>
-                                            <Loader2 className="h-6 w-6 animate-spin mb-2 text-indigo-400" />
-                                            <p className="text-xs">Analizando planillas...</p>
-                                        </>
-                                    ) : (
-                                        <p className="text-xs">Esperando archivo...</p>
-                                    )}
+            {
+                !reportGenerated && (sheetAnalysis || labAnalysis || isUploadingSheet || isUploadingLab) && (
+                    <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4">
+                        {/* Sheet Analysis Result */}
+                        <Card className="border-indigo-100 shadow-sm bg-white flex flex-col h-full">
+                            <CardHeader className="pb-3 bg-indigo-50/30 border-b border-indigo-50">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
+                                        <Sparkles className="h-4 w-4 text-indigo-500" />
+                                        Análisis de Planillas
+                                    </CardTitle>
+                                    {sheetAnalysis && getQualityBadge(sheetAnalysis.quality)}
                                 </div>
-                            ) : (
-                                <div className="space-y-3 text-sm">
-                                    <p className="text-slate-700">{sheetAnalysis.summary}</p>
-                                    {sheetAnalysis.findings?.length > 0 && (
-                                        <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
-                                            <p className="font-medium text-amber-900 text-xs mb-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Hallazgos</p>
-                                            <ul className="list-disc pl-4 space-y-1 text-xs text-amber-800">
-                                                {sheetAnalysis.findings.map((f: string, i: number) => <li key={i}>{f}</li>)}
-                                            </ul>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                            </CardHeader>
+                            <CardContent className="pt-4 flex-1">
+                                {!sheetAnalysis ? (
+                                    <div className="h-full flex flex-col items-center justify-center p-6 text-slate-400 text-center">
+                                        {isUploadingSheet ? (
+                                            <>
+                                                <Loader2 className="h-6 w-6 animate-spin mb-2 text-indigo-400" />
+                                                <p className="text-xs">Analizando planillas...</p>
+                                            </>
+                                        ) : (
+                                            <p className="text-xs">Esperando archivo...</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3 text-sm">
+                                        <p className="text-slate-700">{sheetAnalysis.summary}</p>
+                                        {sheetAnalysis.findings?.length > 0 && (
+                                            <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
+                                                <p className="font-medium text-amber-900 text-xs mb-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Hallazgos</p>
+                                                <ul className="list-disc pl-4 space-y-1 text-xs text-amber-800">
+                                                    {sheetAnalysis.findings.map((f: string, i: number) => <li key={i}>{f}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
 
-                    {/* Lab Analysis Result */}
-                    <Card className="border-purple-100 shadow-sm bg-white flex flex-col h-full">
-                        <CardHeader className="pb-3 bg-purple-50/30 border-b border-purple-50">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-sm font-semibold text-purple-900 flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4 text-purple-500" />
-                                    Análisis de Laboratorio
-                                </CardTitle>
-                                <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">Resultados</Badge>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-4 flex-1">
-                            {!labAnalysis ? (
-                                <div className="h-full flex flex-col items-center justify-center p-6 text-slate-400 text-center">
-                                    {isUploadingLab ? (
-                                        <>
-                                            <Loader2 className="h-6 w-6 animate-spin mb-2 text-purple-400" />
-                                            <p className="text-xs">Interpretando resultados...</p>
-                                        </>
-                                    ) : (
-                                        <p className="text-xs">Esperando archivo...</p>
-                                    )}
+                        {/* Lab Analysis Result */}
+                        <Card className="border-purple-100 shadow-sm bg-white flex flex-col h-full">
+                            <CardHeader className="pb-3 bg-purple-50/30 border-b border-purple-50">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-semibold text-purple-900 flex items-center gap-2">
+                                        <Sparkles className="h-4 w-4 text-purple-500" />
+                                        Análisis de Laboratorio
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">Resultados</Badge>
                                 </div>
-                            ) : (
-                                <div className="prose prose-sm prose-slate max-w-none max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                        {typeof labAnalysis === 'string' ? labAnalysis : labAnalysis.rawText || JSON.stringify(labAnalysis)}
-                                    </ReactMarkdown>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+                            </CardHeader>
+                            <CardContent className="pt-4 flex-1">
+                                {!labAnalysis ? (
+                                    <div className="h-full flex flex-col items-center justify-center p-6 text-slate-400 text-center">
+                                        {isUploadingLab ? (
+                                            <>
+                                                <Loader2 className="h-6 w-6 animate-spin mb-2 text-purple-400" />
+                                                <p className="text-xs">Interpretando resultados...</p>
+                                            </>
+                                        ) : (
+                                            <p className="text-xs">Esperando archivo...</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="prose prose-sm prose-slate max-w-none max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {typeof labAnalysis === 'string' ? labAnalysis : labAnalysis.rawText || JSON.stringify(labAnalysis)}
+                                        </ReactMarkdown>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            }
 
             {/* 3. GENERATE FINAL REPORT BUTTON */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center space-y-4">
@@ -632,7 +634,7 @@ export function ReportGenerator({
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
                             {reportList.filter(r => !r.name.startsWith('Comunicado')).length > 0 ? (
                                 reportList.filter(r => !r.name.startsWith('Comunicado')).map((report, idx) => {
-                                    const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}`;
+                                    const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}?t=${idx}_${reportList.length}_${Date.now()}`;
                                     return (
                                         <div key={idx} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg group hover:border-indigo-300 transition-all shadow-sm">
                                             <div className="flex items-center gap-3 min-w-0">
@@ -694,44 +696,46 @@ export function ReportGenerator({
             </div>
 
             {/* 4. CONSOLIDATED SHEET ANALYSIS TEXT (Visible always if available) */}
-            {sheetAnalysis && (
-                <Card className="border-slate-200 shadow-sm bg-slate-50/50 mt-6 animate-in fade-in slide-in-from-bottom-4">
-                    <CardHeader className="pb-3 border-b border-slate-100">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                                <Sparkles className="h-4 w-4 text-indigo-500" />
-                                Resumen de Planillas de Campo (Texto Consolidado)
-                            </CardTitle>
-                            <Badge variant="secondary" className="bg-white border-slate-200 text-slate-600">
-                                Copiable
-                            </Badge>
-                        </div>
-                        <CardDescription className="text-xs">
-                            Análisis consolidado de las planillas de campo para referencia rápida.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                        <div className="space-y-4 text-sm text-slate-700">
-                            <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
-                                <p className="leading-relaxed whitespace-pre-wrap">{sheetAnalysis.summary}</p>
+            {
+                sheetAnalysis && (
+                    <Card className="border-slate-200 shadow-sm bg-slate-50/50 mt-6 animate-in fade-in slide-in-from-bottom-4">
+                        <CardHeader className="pb-3 border-b border-slate-100">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                                    <Sparkles className="h-4 w-4 text-indigo-500" />
+                                    Resumen de Planillas de Campo (Texto Consolidado)
+                                </CardTitle>
+                                <Badge variant="secondary" className="bg-white border-slate-200 text-slate-600">
+                                    Copiable
+                                </Badge>
                             </div>
-
-                            {sheetAnalysis.findings?.length > 0 && (
-                                <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
-                                    <p className="font-semibold text-amber-900 text-xs mb-2 flex items-center gap-1">
-                                        <AlertTriangle className="h-3 w-3" /> Hallazgos Importantes
-                                    </p>
-                                    <ul className="list-disc pl-4 space-y-1 text-xs text-amber-800">
-                                        {sheetAnalysis.findings.map((f: string, i: number) => (
-                                            <li key={i} className="pl-1">{f}</li>
-                                        ))}
-                                    </ul>
+                            <CardDescription className="text-xs">
+                                Análisis consolidado de las planillas de campo para referencia rápida.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                            <div className="space-y-4 text-sm text-slate-700">
+                                <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                    <p className="leading-relaxed whitespace-pre-wrap">{sheetAnalysis.summary}</p>
                                 </div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+
+                                {sheetAnalysis.findings?.length > 0 && (
+                                    <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                                        <p className="font-semibold text-amber-900 text-xs mb-2 flex items-center gap-1">
+                                            <AlertTriangle className="h-3 w-3" /> Hallazgos Importantes
+                                        </p>
+                                        <ul className="list-disc pl-4 space-y-1 text-xs text-amber-800">
+                                            {sheetAnalysis.findings.map((f: string, i: number) => (
+                                                <li key={i} className="pl-1">{f}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )
+            }
 
             {/* Feedback Modal */}
             <FeedbackModal
@@ -745,6 +749,6 @@ export function ReportGenerator({
                     { name: 'general', value: '', label: 'Comentario General' }
                 ]}
             />
-        </div>
+        </div >
     );
 }
