@@ -318,17 +318,62 @@ export function ReportGenerator({
         try {
             const response = await api.post(`/oits/${oitId}/generate-final-report`);
 
-            if (response.data.reports && Array.isArray(response.data.reports)) {
+            // Check if processing in background (Async mode)
+            if (response.status === 202 || response.data.processing) {
+                notify.info('Iniciando generación de informes en segundo plano...');
+
+                // Poll for completion
+                const startTime = Date.now();
+                const pollInterval = setInterval(async () => {
+                    try {
+                        // Timeout protection (5 minutes)
+                        if (Date.now() - startTime > 300000) {
+                            clearInterval(pollInterval);
+                            setIsGenerating(false);
+                            notify.error('Tiempo de espera agotado. Por favor recarga la página.');
+                            return;
+                        }
+
+                        const oitResponse = await api.get(`/oits/${oitId}`);
+                        const oitData = oitResponse.data;
+
+                        if (oitData.finalReportUrl) {
+                            try {
+                                const parsed = JSON.parse(oitData.finalReportUrl);
+                                if (Array.isArray(parsed) && parsed.length > 0) {
+                                    clearInterval(pollInterval);
+                                    setReportList(parsed);
+                                    setReportGenerated(true);
+                                    setIsGenerating(false);
+                                    notify.success(`Generación completada: ${parsed.length} informes listos.`);
+                                }
+                            } catch (e) {
+                                // invalid json, keep polling or ignore
+                            }
+                        }
+                    } catch (pollErr) {
+                        console.error('Polling error:', pollErr);
+                    }
+                }, 3000); // Check every 3 seconds
+
+            } else if (response.data.reports && Array.isArray(response.data.reports)) {
+                // Synchronous success (legacy or fast path)
                 setReportList(response.data.reports);
                 setReportGenerated(true);
+                setIsGenerating(false);
                 notify.success(`Se han generado ${response.data.reports.length} informes correctamente`);
             } else {
                 notify.error('Respuesta inesperada del servidor');
+                setIsGenerating(false);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error generating report:', error);
-            notify.error('Error al generar informe');
-        } finally {
+            // Handle specific status codes if needed
+            if (error.response && error.response.status === 504) {
+                notify.error('El servidor tardó demasiado, pero el informe podría estar generándose en segundo plano. Recarga en unos minutos.');
+            } else {
+                notify.error('Error al iniciar la generación del informe');
+            }
             setIsGenerating(false);
         }
     };

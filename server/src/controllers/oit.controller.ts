@@ -1713,17 +1713,27 @@ async function processSamplingSheetsAsync(oitId: string, filenames: string[], gr
 export const generateFinalReport = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { generatedReports } = await internalGenerateFinalReport(id);
 
-        res.json({
+        // Start generation in background (Fire and Forget)
+        internalGenerateFinalReport(id)
+            .then(({ generatedReports }) => {
+                console.log(`[Report] Background generation completed for OIT ${id}. Generated ${generatedReports.length} reports.`);
+            })
+            .catch(error => {
+                console.error(`[Report] Background generation failed for OIT ${id}:`, error);
+            });
+
+        // Return immediately to avoid 504 Timeout
+        res.status(202).json({
             success: true,
-            message: `Se han generado ${generatedReports.length} informe(s) correctamente.`,
-            reports: generatedReports
+            processing: true,
+            message: 'La generación de informes ha comenzado en segundo plano.',
+            reports: []
         });
 
     } catch (error) {
         console.error('Final Report Error:', error);
-        res.status(500).json({ error: 'Error generando informe final' });
+        res.status(500).json({ error: 'Error iniciando generación de informe final' });
     }
 };
 
