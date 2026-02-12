@@ -322,9 +322,9 @@ async function processLabResultsAsync(oitId: string, filenames: string[], group:
 
         // Automatically generate final report if analysis was successful
         if (!analysis.includes('Error')) {
-            console.log(`Triggering automatic report generation for OIT ${oitId}`);
+            console.log(`Triggering automatic report generation for OIT ${oitId}, Group: ${group}`);
             try {
-                await internalGenerateFinalReport(oitId);
+                await internalGenerateFinalReport(oitId, group);
             } catch (reportErr) {
                 console.error(`Automatic report generation failed for OIT ${oitId}:`, reportErr);
             }
@@ -1737,7 +1737,7 @@ async function processSamplingSheetsAsync(oitId: string, filenames: string[], gr
         });
 
         console.log(`[SAMPLING_SHEETS] Analysis completed for OIT ${oitId}, Group: ${group}, quality: ${analysis.quality}`);
-        await internalGenerateFinalReport(oitId).catch(e => console.error("Auto report generation failed", e));
+        await internalGenerateFinalReport(oitId, group).catch(e => console.error("Auto report generation failed", e));
     } catch (error) {
         console.error('[SAMPLING_SHEETS] Error in background processing:', error);
     }
