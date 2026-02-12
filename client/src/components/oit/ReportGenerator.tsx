@@ -76,6 +76,16 @@ export function ReportGenerator({
         return `${baseUrl}/${url.replace(/^uploads\//, 'uploads/')}`;
     };
 
+    // Fuzzy word-level matching: checks if any significant word from one string appears in the other
+    const matchesService = (reportName: string, group: string): boolean => {
+        const a = reportName.toLowerCase();
+        const b = group.toLowerCase();
+        if (a.includes(b) || b.includes(a)) return true;
+        // Word-level: split both into words >= 3 chars and check cross-containment
+        const words = (s: string) => s.split(/[\s_\-,]+/).filter(w => w.length >= 3);
+        return words(a).some(w => b.includes(w)) || words(b).some(w => a.includes(w));
+    };
+
     // Initialize Report URL
     useEffect(() => {
         // Always reset state when serviceGroup changes to prevent stale data
@@ -92,11 +102,8 @@ export function ReportGenerator({
                         setReportList(parsed);
                         setReportGenerated(true);
                     } else {
-                        // Filter reports that match our service group name
-                        const groupLower = serviceGroup.toLowerCase();
-                        const filtered = parsed.filter((r: any) =>
-                            r.name.toLowerCase().includes(groupLower)
-                        );
+                        // Filter reports that match our service group name (fuzzy)
+                        const filtered = parsed.filter((r: any) => matchesService(r.name, serviceGroup));
                         if (filtered.length > 0) {
                             setReportList(filtered);
                             setReportGenerated(true);
@@ -358,15 +365,13 @@ export function ReportGenerator({
                             try {
                                 const parsed = JSON.parse(oitData.finalReportUrl);
                                 if (Array.isArray(parsed) && parsed.length > 0) {
-                                    // Check if we have reports for this specific group
-                                    const hasGroupReports = parsed.some((r: any) => r.name.toLowerCase().includes(serviceGroup.toLowerCase()));
+                                    // Check if we have reports for this specific group (fuzzy match)
+                                    const hasGroupReports = parsed.some((r: any) => matchesService(r.name, serviceGroup));
 
                                     if (hasGroupReports || serviceGroup === 'General') {
                                         clearInterval(pollInterval);
-                                        // Filter for current service group view if needed, but the effect of merging 
-                                        // in backend means we should just show what matches our group
                                         const filtered = parsed.filter((r: any) =>
-                                            serviceGroup === 'General' || r.name.toLowerCase().includes(serviceGroup.toLowerCase())
+                                            serviceGroup === 'General' || matchesService(r.name, serviceGroup)
                                         );
                                         setReportList(filtered);
                                         setReportGenerated(true);
@@ -386,7 +391,7 @@ export function ReportGenerator({
             } else if (response.data.reports && Array.isArray(response.data.reports)) {
                 // Synchronous success (legacy or fast path)
                 const filtered = response.data.reports.filter((r: any) =>
-                    serviceGroup === 'General' || r.name.toLowerCase().includes(serviceGroup.toLowerCase())
+                    serviceGroup === 'General' || matchesService(r.name, serviceGroup)
                 );
                 setReportList(filtered);
                 setReportGenerated(true);
