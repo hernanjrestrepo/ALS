@@ -407,15 +407,23 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
 
         // Group by oitType
         const groupedTemplates: Record<string, typeof templates> = {};
+
+        // Fuzzy match helper: checks if either string contains the other (case-insensitive)
+        const matchesGroup = (oitType: string, target: string): boolean => {
+            const a = oitType.toLowerCase().trim();
+            const b = target.toLowerCase().trim();
+            return a === b || a.includes(b) || b.includes(a);
+        };
+
         for (const t of templates) {
             const type = t.oitType || 'General';
-            if (targetGroup && targetGroup !== 'General' && type !== targetGroup) continue;
+            if (targetGroup && targetGroup !== 'General' && !matchesGroup(type, targetGroup)) continue;
             if (!groupedTemplates[type]) groupedTemplates[type] = [];
             groupedTemplates[type].push(t);
         }
 
         if (Object.keys(groupedTemplates).length === 0 && targetGroup && targetGroup !== 'General') {
-            console.warn(`[Report] No templates found for targetGroup: ${targetGroup}`);
+            console.warn(`[Report] No templates found for targetGroup: "${targetGroup}". Available oitTypes: ${templates.map(t => t.oitType).join(', ')}`);
         }
 
         console.log(`[Report] Found groups to process: ${Object.keys(groupedTemplates).join(', ')}`);
@@ -1768,9 +1776,13 @@ export const generateFinalReport = async (req: Request, res: Response) => {
                         } catch { existingReports = []; }
                     }
 
-                    // Remove existing reports for THIS group/service to replace them
-                    const otherReports = existingReports.filter(r => !r.name.includes(group));
+                    // Remove existing reports that match ANY of the newly generated report names
+                    // This ensures we replace old versions of the same reports
+                    const newReportNames = new Set(generatedReports.map(r => r.name));
+                    const otherReports = existingReports.filter(r => !newReportNames.has(r.name));
                     const mergedReports = [...otherReports, ...generatedReports];
+
+                    console.log(`[Report] Merge: ${existingReports.length} existing, ${generatedReports.length} new, ${otherReports.length} kept = ${mergedReports.length} total`);
 
                     await prisma.oIT.update({
                         where: { id },
