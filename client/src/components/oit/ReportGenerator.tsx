@@ -78,22 +78,36 @@ export function ReportGenerator({
 
     // Initialize Report URL
     useEffect(() => {
+        // Always reset state when serviceGroup changes to prevent stale data
+        setReportList([]);
+        setReportGenerated(false);
+        setFinalReportUrl(null);
+
         if (initialReportUrl) {
             try {
                 const parsed = JSON.parse(initialReportUrl);
                 if (Array.isArray(parsed)) {
-                    // Filter reports that match our service group name
-                    const filtered = parsed.filter((r: any) => r.name.toLowerCase().includes(serviceGroup.toLowerCase()));
-                    if (filtered.length > 0) {
-                        setReportList(filtered);
-                        setReportGenerated(true);
-                    } else if (serviceGroup === 'General') {
+                    if (serviceGroup === 'General') {
+                        // General mode: show all reports
                         setReportList(parsed);
                         setReportGenerated(true);
+                    } else {
+                        // Filter reports that match our service group name
+                        const groupLower = serviceGroup.toLowerCase();
+                        const filtered = parsed.filter((r: any) =>
+                            r.name.toLowerCase().includes(groupLower)
+                        );
+                        if (filtered.length > 0) {
+                            setReportList(filtered);
+                            setReportGenerated(true);
+                        }
+                        // If no match, leave reportGenerated=false so the "Generate" button shows
                     }
                 } else {
-                    setFinalReportUrl(formatReportUrl(initialReportUrl));
-                    setReportGenerated(true);
+                    if (serviceGroup === 'General') {
+                        setFinalReportUrl(formatReportUrl(initialReportUrl));
+                        setReportGenerated(true);
+                    }
                 }
             } catch {
                 if (serviceGroup === 'General') {
@@ -316,11 +330,14 @@ export function ReportGenerator({
 
         setIsGenerating(true);
         try {
-            const response = await api.post(`/oits/${oitId}/generate-final-report`);
+            // Pass the group context to generate reports only for this service
+            const response = await api.post(`/oits/${oitId}/generate-final-report`, {
+                group: serviceGroup
+            });
 
             // Check if processing in background (Async mode)
             if (response.status === 202 || response.data.processing) {
-                notify.info('Iniciando generación de informes en segundo plano...');
+                notify.info(`Iniciando generación de informes para ${serviceGroup} en segundo plano...`);
 
                 // Poll for completion
                 const startTime = Date.now();
@@ -334,18 +351,28 @@ export function ReportGenerator({
                             return;
                         }
 
-                        const oitResponse = await api.get(`/oits/${oitId}`);
-                        const oitData = oitResponse.data;
+                        const oitResponseActual = await api.get(`/oits/${oitId}`);
+                        const oitData = oitResponseActual.data;
 
                         if (oitData.finalReportUrl) {
                             try {
                                 const parsed = JSON.parse(oitData.finalReportUrl);
                                 if (Array.isArray(parsed) && parsed.length > 0) {
-                                    clearInterval(pollInterval);
-                                    setReportList(parsed);
-                                    setReportGenerated(true);
-                                    setIsGenerating(false);
-                                    notify.success(`Generación completada: ${parsed.length} informes listos.`);
+                                    // Check if we have reports for this specific group
+                                    const hasGroupReports = parsed.some((r: any) => r.name.toLowerCase().includes(serviceGroup.toLowerCase()));
+
+                                    if (hasGroupReports || serviceGroup === 'General') {
+                                        clearInterval(pollInterval);
+                                        // Filter for current service group view if needed, but the effect of merging 
+                                        // in backend means we should just show what matches our group
+                                        const filtered = parsed.filter((r: any) =>
+                                            serviceGroup === 'General' || r.name.toLowerCase().includes(serviceGroup.toLowerCase())
+                                        );
+                                        setReportList(filtered);
+                                        setReportGenerated(true);
+                                        setIsGenerating(false);
+                                        notify.success(`¡Informes de ${serviceGroup} listos!`);
+                                    }
                                 }
                             } catch (e) {
                                 // invalid json, keep polling or ignore
@@ -358,10 +385,13 @@ export function ReportGenerator({
 
             } else if (response.data.reports && Array.isArray(response.data.reports)) {
                 // Synchronous success (legacy or fast path)
-                setReportList(response.data.reports);
+                const filtered = response.data.reports.filter((r: any) =>
+                    serviceGroup === 'General' || r.name.toLowerCase().includes(serviceGroup.toLowerCase())
+                );
+                setReportList(filtered);
                 setReportGenerated(true);
                 setIsGenerating(false);
-                notify.success(`Se han generado ${response.data.reports.length} informes correctamente`);
+                notify.success(`Se han generado los informes de ${serviceGroup} correctamente`);
             } else {
                 notify.error('Respuesta inesperada del servidor');
                 setIsGenerating(false);
@@ -370,7 +400,7 @@ export function ReportGenerator({
             console.error('Error generating report:', error);
             // Handle specific status codes if needed
             if (error.response && error.response.status === 504) {
-                notify.error('El servidor tardó demasiado, pero el informe podría estar generándose en segundo plano. Recarga en unos minutos.');
+                notify.error('El servidor tardó demasiado. Recarga en unos minutos para ver los informes.');
             } else {
                 notify.error('Error al iniciar la generación del informe');
             }
@@ -474,7 +504,7 @@ export function ReportGenerator({
                 {/* Left: Planilla */}
                 {renderFileInput(
                     "1. Planillas de Campo",
-                    "Sube las planillas de muestreo para análisis.",
+                    `Sube las planillas de muestreo para ${serviceGroup}.`,
                     <FileCheck className="h-4 w-4 text-indigo-600" />,
                     sheetUrls,
                     isUploadingSheet,
@@ -489,7 +519,7 @@ export function ReportGenerator({
                 {/* Right: Lab Results */}
                 {renderFileInput(
                     "2. Reporte de Laboratorio",
-                    "Sube los resultados oficiales del laboratorio.",
+                    `Sube los resultados de laboratorio para ${serviceGroup}.`,
                     <FileText className="h-4 w-4 text-purple-600" />,
                     labUrls,
                     isUploadingLab,
@@ -503,18 +533,18 @@ export function ReportGenerator({
             </div>
 
             {/* 2. COMUNICADOS SECTION — Lab report documents (separate from final reports) */}
-            {reportGenerated && reportList.filter(r => r.name.startsWith('Comunicado')).length > 0 && (
+            {reportGenerated && reportList.filter(r => r.name.toLowerCase().includes(serviceGroup.toLowerCase()) && r.name.startsWith('Comunicado')).length > 0 && (
                 <div className="bg-teal-50/50 border border-teal-200 rounded-xl p-5 animate-in fade-in slide-in-from-bottom-4">
                     <div className="flex items-center gap-2 mb-3">
                         <FileCheck className="h-5 w-5 text-teal-600" />
                         <h3 className="text-sm font-semibold text-teal-900">Comunicados Técnicos</h3>
                         <Badge variant="outline" className="text-[10px] bg-teal-50 text-teal-700 border-teal-200 ml-auto">
-                            {reportList.filter(r => r.name.startsWith('Comunicado')).length} documento(s)
+                            {reportList.filter(r => r.name.toLowerCase().includes(serviceGroup.toLowerCase()) && r.name.startsWith('Comunicado')).length} documento(s)
                         </Badge>
                     </div>
                     <p className="text-xs text-teal-600 mb-3">Documentos de comunicado técnico por servicio para enviar al cliente.</p>
                     <div className="space-y-2">
-                        {reportList.filter(r => r.name.startsWith('Comunicado')).map((report, idx) => {
+                        {reportList.filter(r => r.name.toLowerCase().includes(serviceGroup.toLowerCase()) && r.name.startsWith('Comunicado')).map((report, idx) => {
                             const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}?t=${idx}_${Date.now()}`;
                             return (
                                 <div key={idx} className="flex items-center justify-between p-3 bg-white border border-teal-100 rounded-lg group hover:border-teal-300 transition-all shadow-sm">
@@ -618,9 +648,11 @@ export function ReportGenerator({
             {/* 3. GENERATE FINAL REPORT BUTTON */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center space-y-4">
                 <div className="text-center max-w-lg">
-                    <h3 className="text-lg font-semibold text-slate-900">Generar Informe Final</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">Generar Informe {serviceGroup}</h3>
                     <p className="text-sm text-slate-500">
-                        El sistema generará los informes técnicos y comunicados para cada servicio.
+                        {serviceGroup === 'General'
+                            ? 'El sistema generará los informes técnicos y comunicados para todos los servicios.'
+                            : `El sistema generará el informe técnico y comunicado específico para el servicio de ${serviceGroup}.`}
                     </p>
                 </div>
 
@@ -628,12 +660,12 @@ export function ReportGenerator({
                     <div className="w-full max-w-md space-y-3">
                         <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-md mb-2">
                             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                            <p className="text-sm font-medium text-emerald-900">Informes Técnicos ({reportList.filter(r => !r.name.startsWith('Comunicado')).length || 1})</p>
+                            <p className="text-sm font-medium text-emerald-900">Informes Técnicos {serviceGroup !== 'General' ? `(${serviceGroup})` : ''}</p>
                         </div>
 
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                            {reportList.filter(r => !r.name.startsWith('Comunicado')).length > 0 ? (
-                                reportList.filter(r => !r.name.startsWith('Comunicado')).map((report, idx) => {
+                            {reportList.filter(r => !r.name.startsWith('Comunicado') && (serviceGroup === 'General' || r.name.toLowerCase().includes(serviceGroup.toLowerCase()))).length > 0 ? (
+                                reportList.filter(r => !r.name.startsWith('Comunicado') && (serviceGroup === 'General' || r.name.toLowerCase().includes(serviceGroup.toLowerCase()))).map((report, idx) => {
                                     const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}?t=${idx}_${reportList.length}_${Date.now()}`;
                                     return (
                                         <div key={idx} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg group hover:border-indigo-300 transition-all shadow-sm">
@@ -655,7 +687,7 @@ export function ReportGenerator({
                                 <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <FileBarChart className="h-4 w-4 text-slate-400" />
-                                        <span className="text-sm font-medium text-slate-700">Informe General</span>
+                                        <span className="text-sm font-medium text-slate-700">Informe {serviceGroup}</span>
                                     </div>
                                     <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0">
                                         <a href={finalReportUrl || '#'} download>
@@ -668,7 +700,7 @@ export function ReportGenerator({
 
                         <div className="flex gap-2 pt-2">
                             <Button variant="outline" className="flex-1" onClick={() => setReportGenerated(false)}>
-                                <RefreshCcw className="mr-2 h-4 w-4" /> Regenerar Todos
+                                <RefreshCcw className="mr-2 h-4 w-4" /> Regenerar {serviceGroup}
                             </Button>
                         </div>
                         <div className="pt-2">

@@ -2250,6 +2250,7 @@ export default function OITDetailPage() {
                             {selectedServiceForReport && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
                                     <ReportGenerator
+                                        key={selectedServiceForReport.id}
                                         oitId={id!}
                                         serviceGroup={selectedServiceForReport.name}
                                         finalReportUrl={oit.finalReportUrl}

@@ -343,7 +343,7 @@ async function processLabResultsAsync(oitId: string, filenames: string[], group:
 }
 
 // Reusable report generation logic
-async function internalGenerateFinalReport(id: string) {
+async function internalGenerateFinalReport(id: string, targetGroup?: string) {
     const { pdfService } = require('../services/pdf.service');
     const { docxService } = require('../services/docx.service');
     const { validationService } = require('../services/validation.service');
@@ -409,13 +409,18 @@ async function internalGenerateFinalReport(id: string) {
         const groupedTemplates: Record<string, typeof templates> = {};
         for (const t of templates) {
             const type = t.oitType || 'General';
+            if (targetGroup && targetGroup !== 'General' && type !== targetGroup) continue;
             if (!groupedTemplates[type]) groupedTemplates[type] = [];
             groupedTemplates[type].push(t);
         }
 
-        console.log(`[Report] Found groups: ${Object.keys(groupedTemplates).join(', ')}`);
+        if (Object.keys(groupedTemplates).length === 0 && targetGroup && targetGroup !== 'General') {
+            console.warn(`[Report] No templates found for targetGroup: ${targetGroup}`);
+        }
 
-        // Generate reports for all Groups in PARALLEL to avoid timeouts
+        console.log(`[Report] Found groups to process: ${Object.keys(groupedTemplates).join(', ')}`);
+
+        // Generate reports for targeted Groups in PARALLEL to avoid timeouts
         const reportPromises = Object.entries(groupedTemplates).map(async ([groupName, group]) => {
             try {
                 // Find a valid DOCX template to use
@@ -1733,17 +1738,45 @@ async function processSamplingSheetsAsync(oitId: string, filenames: string[], gr
 export const generateFinalReport = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        const { group } = req.body; // New: optional group parameter
 
-        // Clear previous report URL to force frontend to wait
-        await prisma.oIT.update({
-            where: { id },
-            data: { finalReportUrl: null }
-        });
+        // If no group specified, clear everything (legacy behavior)
+        // If group is specified, we'll merge instead of clearing the whole field
+        if (!group || group === 'General') {
+            await prisma.oIT.update({
+                where: { id },
+                data: { finalReportUrl: null }
+            });
+        } else {
+            // Optional: clear only reports for this group?
+            // For now, internalGenerateFinalReport will handle the merge logic if we pass the group.
+        }
 
         // Start generation in background (Fire and Forget)
-        internalGenerateFinalReport(id)
-            .then(({ generatedReports }) => {
-                console.log(`[Report] Background generation completed for OIT ${id}. Generated ${generatedReports.length} reports.`);
+        internalGenerateFinalReport(id, group)
+            .then(async ({ generatedReports }) => {
+                console.log(`[Report] Background generation completed for OIT ${id}. Group: ${group || 'All'}.`);
+
+                // MERGE LOGIC: If a group was targeted, preserve reports from other groups
+                if (group && group !== 'General') {
+                    const currentOit = await prisma.oIT.findUnique({ where: { id } });
+                    let existingReports: any[] = [];
+                    if (currentOit?.finalReportUrl) {
+                        try {
+                            existingReports = JSON.parse(currentOit.finalReportUrl);
+                            if (!Array.isArray(existingReports)) existingReports = [];
+                        } catch { existingReports = []; }
+                    }
+
+                    // Remove existing reports for THIS group/service to replace them
+                    const otherReports = existingReports.filter(r => !r.name.includes(group));
+                    const mergedReports = [...otherReports, ...generatedReports];
+
+                    await prisma.oIT.update({
+                        where: { id },
+                        data: { finalReportUrl: JSON.stringify(mergedReports) }
+                    });
+                }
             })
             .catch(error => {
                 console.error(`[Report] Background generation failed for OIT ${id}:`, error);
