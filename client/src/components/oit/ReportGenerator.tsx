@@ -663,45 +663,96 @@ export function ReportGenerator({
 
                 {reportGenerated ? (
                     <div className="w-full max-w-md space-y-3">
-                        <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-md mb-2">
-                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                            <p className="text-sm font-medium text-emerald-900">Informes Técnicos {serviceGroup !== 'General' ? `(${serviceGroup})` : ''}</p>
-                        </div>
-
-                        <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                            {reportList.filter(r => !r.name.startsWith('Comunicado') && (serviceGroup === 'General' || r.name.toLowerCase().includes(serviceGroup.toLowerCase()))).length > 0 ? (
-                                reportList.filter(r => !r.name.startsWith('Comunicado') && (serviceGroup === 'General' || r.name.toLowerCase().includes(serviceGroup.toLowerCase()))).map((report, idx) => {
-                                    const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}?t=${idx}_${reportList.length}_${Date.now()}`;
-                                    return (
-                                        <div key={idx} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg group hover:border-indigo-300 transition-all shadow-sm">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500">
-                                                    {report.type === 'docx' ? <FileText className="h-4 w-4" /> : <FileBarChart className="h-4 w-4" />}
-                                                </div>
-                                                <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
-                                            </div>
-                                            <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
-                                                <a href={reportUrl} download title="Descargar informe">
-                                                    <Download className="h-4 w-4" />
-                                                </a>
-                                            </Button>
-                                        </div>
-                                    );
-                                })
-                            ) : (
-                                <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <FileBarChart className="h-4 w-4 text-slate-400" />
-                                        <span className="text-sm font-medium text-slate-700">Informe {serviceGroup}</span>
+                        {/* --- Informes Técnicos Section --- */}
+                        {(() => {
+                            const informes = reportList.filter(r =>
+                                !r.name.toLowerCase().startsWith('comunicado') &&
+                                (serviceGroup === 'General' || matchesService(r.name, serviceGroup))
+                            );
+                            return informes.length > 0 && (
+                                <>
+                                    <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-md">
+                                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                        <p className="text-sm font-medium text-emerald-900">Informes Técnicos {serviceGroup !== 'General' ? `(${serviceGroup})` : ''}</p>
                                     </div>
-                                    <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                        <a href={finalReportUrl || '#'} download>
-                                            <Download className="h-4 w-4" />
-                                        </a>
-                                    </Button>
+                                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                                        {informes.map((report, idx) => {
+                                            const reportUrl = report.url.startsWith('http')
+                                                ? report.url
+                                                : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}?t=${Date.now()}`;
+                                            return (
+                                                <div key={`inf-${idx}`} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg group hover:border-indigo-300 transition-all shadow-sm">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500">
+                                                            <FileText className="h-4 w-4" />
+                                                        </div>
+                                                        <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
+                                                    </div>
+                                                    <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                                                        <a href={reportUrl} download title="Descargar informe">
+                                                            <Download className="h-4 w-4" />
+                                                        </a>
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            );
+                        })()}
+
+                        {/* --- Comunicados Section --- */}
+                        {(() => {
+                            const comunicados = reportList.filter(r =>
+                                r.name.toLowerCase().startsWith('comunicado') &&
+                                (serviceGroup === 'General' || matchesService(r.name, serviceGroup))
+                            );
+                            return comunicados.length > 0 && (
+                                <>
+                                    <div className="flex items-center gap-3 p-3 bg-teal-50 border border-teal-100 rounded-md mt-3">
+                                        <FileCheck className="h-5 w-5 text-teal-600" />
+                                        <p className="text-sm font-medium text-teal-900">Comunicados {serviceGroup !== 'General' ? `(${serviceGroup})` : ''}</p>
+                                    </div>
+                                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                                        {comunicados.map((report, idx) => {
+                                            const reportUrl = report.url.startsWith('http')
+                                                ? report.url
+                                                : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}?t=${Date.now()}`;
+                                            return (
+                                                <div key={`com-${idx}`} className="flex items-center justify-between p-3 bg-white border border-teal-200 rounded-lg group hover:border-teal-400 transition-all shadow-sm">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="h-8 w-8 rounded-full bg-teal-50 flex items-center justify-center text-teal-400 group-hover:bg-teal-100 group-hover:text-teal-600">
+                                                            <FileCheck className="h-4 w-4" />
+                                                        </div>
+                                                        <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
+                                                    </div>
+                                                    <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-teal-400 hover:text-teal-600 hover:bg-teal-50">
+                                                        <a href={reportUrl} download title="Descargar comunicado">
+                                                            <Download className="h-4 w-4" />
+                                                        </a>
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            );
+                        })()}
+
+                        {/* No reports fallback */}
+                        {reportList.length === 0 && finalReportUrl && (
+                            <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                    <FileBarChart className="h-4 w-4 text-slate-400" />
+                                    <span className="text-sm font-medium text-slate-700">Informe {serviceGroup}</span>
                                 </div>
-                            )}
-                        </div>
+                                <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                    <a href={finalReportUrl} download>
+                                        <Download className="h-4 w-4" />
+                                    </a>
+                                </Button>
+                            </div>
+                        )}
 
                         <div className="flex gap-2 pt-2">
                             <Button variant="outline" className="flex-1" onClick={() => setReportGenerated(false)}>
