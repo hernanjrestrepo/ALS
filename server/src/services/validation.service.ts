@@ -168,9 +168,16 @@ IMPORTANTE: Responde en español, de forma profesional y técnica.`;
      */
     async generateComunicadoContent(oit: any, labAnalysis: string, serviceContext: string): Promise<string> {
         try {
+            // Extract just the service type name for emphasis (e.g., "AGUA" from "AGUA (Agua - Checklist, ...)")
+            const serviceTypeName = serviceContext.split('(')[0].trim() || serviceContext;
+
             const prompt = `
             ACTÚA COMO: Juan Bustamante R., Coordinador I+D del Laboratorio Serambiente S.A.S, escribiendo un comunicado técnico para el cliente.
-            TAREA: Redactar el CUERPO del comunicado técnico basándote en los resultados de laboratorio analizados.
+            
+            ⚠️ SERVICIO A COMUNICAR: ${serviceTypeName}
+            ⚠️ REGLA CRÍTICA: Este comunicado es EXCLUSIVAMENTE sobre ${serviceTypeName}. NO menciones ni analices datos de otros servicios (si el análisis contiene datos de aire, ruido, biota u otros servicios que no sean ${serviceTypeName}, IGNÓRALOS POR COMPLETO).
+            
+            TAREA: Redactar el CUERPO del comunicado técnico basándote SOLO en los resultados de laboratorio de ${serviceTypeName}.
             
             CONTEXTO:
             - Orden de Servicio: ${oit.oitNumber}
@@ -178,7 +185,7 @@ IMPORTANTE: Responde en español, de forma profesional y técnica.`;
             - Descripción: ${oit.description || 'No especificada'}
             - Ubicación: ${oit.location || 'No especificada'}
             
-            ANÁLISIS DE LABORATORIO YA PROCESADO:
+            ANÁLISIS DE LABORATORIO PARA ${serviceTypeName}:
             "${labAnalysis.slice(0, 6000)}"
             
             INSTRUCCIONES DE FORMATO:
@@ -186,16 +193,16 @@ IMPORTANTE: Responde en español, de forma profesional y técnica.`;
             - Usa **negritas** (con doble asterisco) para títulos de sección y nombres de parámetros importantes.
             - NO uses formato markdown (ni #, ni tablas, ni listas con -).
             - Estructura el contenido en estas secciones (cada una como párrafo):
-              1. **Resumen de resultados** - Qué se evaluó, qué puntos/muestras, qué parámetros
-              2. **Cumplen con la normatividad:** - Lista de parámetros que cumplen
-              3. **No cumplen:** - Lista de parámetros que no cumplen (si aplica), con valores y límites
-              4. **Interpretación general** - Explicación técnica de los hallazgos
-              5. **Plan de acción sugerido** - Recomendaciones concretas con sub-secciones en negrita
-              6. **Conclusión** - Veredicto final breve
+              1. **Resumen de resultados** - Qué se evaluó para ${serviceTypeName}, qué puntos/muestras, qué parámetros
+              2. **Cumplen con la normatividad:** - Lista de parámetros de ${serviceTypeName} que cumplen
+              3. **No cumplen:** - Lista de parámetros de ${serviceTypeName} que no cumplen (si aplica), con valores y límites
+              4. **Interpretación general** - Explicación técnica de los hallazgos de ${serviceTypeName}
+              5. **Plan de acción sugerido** - Recomendaciones concretas para ${serviceTypeName}
+              6. **Conclusión** - Veredicto final breve sobre ${serviceTypeName}
             - Si un parámetro no cumple, explica el valor hallado vs el límite normativo.
             - Sé conciso pero completo. No inventes datos que no estén en el análisis.
             - NO incluyas saludos, firma ni frases de cierre (eso ya lo maneja el sistema).
-            - NO incluyas la frase "Estas hipótesis parten solo de teoría..." (eso ya lo maneja el sistema).
+            - RECUERDA: SOLO habla de ${serviceTypeName}. Ignora cualquier dato de otros servicios.
             `;
             const response = await aiService.chat(prompt);
             return response.trim();
