@@ -374,6 +374,9 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
         }
     }
 
+    console.log(`[Report] Available labAnalysis keys: [${Object.keys(groupedLabAnalyses).join(', ')}]`);
+    console.log(`[Report] Available sheetAnalysis keys: [${Object.keys(groupedSheetAnalysis).join(', ')}]`);
+
     // 3. Group Templates by Service Type
     const templateIds: string[] = oit.selectedTemplateIds ? JSON.parse(oit.selectedTemplateIds) : [];
     const generatedReports: Array<{ name: string; url: string; type: 'pdf' | 'docx' }> = [];
@@ -450,9 +453,37 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
 
                 // Context description: "Agua Potable (Fisicoquímico, Microbiológico)"
                 const serviceContext = `${groupName} (${group.map(t => t.name).join(', ')})`;
-                const groupLabAnalysis = groupedLabAnalyses[groupName] || groupedLabAnalyses['General'] || '';
-                // Fix: use 'General' fallback or null, mapToObject is undefined here
-                const groupSheetAnalysis = groupedSheetAnalysis[groupName] || groupedSheetAnalysis['General'] || null;
+
+                // Fuzzy key lookup: lab analyses are stored under service names like "SERVICIO 1 - AGUAS"
+                // but groupName is the oitType like "AGUA". We need to find the matching key.
+                const fuzzyLookup = <T>(record: Record<string, T>, key: string): T | undefined => {
+                    // 1. Exact match
+                    if (record[key] !== undefined) return record[key];
+                    // 2. Word-level fuzzy match (same logic as matchesGroup)
+                    const keyLower = key.toLowerCase().trim();
+                    for (const storedKey of Object.keys(record)) {
+                        if (storedKey === 'General') continue; // Skip General for fuzzy match
+                        const storedLower = storedKey.toLowerCase().trim();
+                        if (storedLower.includes(keyLower) || keyLower.includes(storedLower)) {
+                            console.log(`[Report] Fuzzy key match: "${key}" → "${storedKey}"`);
+                            return record[storedKey];
+                        }
+                        // Word-level: split both and check for significant overlap
+                        const keyWords = keyLower.split(/[\s_\-,]+/).filter(w => w.length >= 3);
+                        const storedWords = storedLower.split(/[\s_\-,]+/).filter(w => w.length >= 3);
+                        const hasOverlap = keyWords.some(w => storedWords.some(sw => sw.includes(w) || w.includes(sw)));
+                        if (hasOverlap) {
+                            console.log(`[Report] Fuzzy word match: "${key}" → "${storedKey}"`);
+                            return record[storedKey];
+                        }
+                    }
+                    // 3. Fallback to General
+                    return record['General'];
+                };
+
+                const groupLabAnalysis = fuzzyLookup(groupedLabAnalyses, groupName) || '';
+                const groupSheetAnalysis = fuzzyLookup(groupedSheetAnalysis, groupName) || null;
+                console.log(`[Report] Group "${groupName}": labAnalysis=${groupLabAnalysis ? groupLabAnalysis.slice(0, 80) + '...' : 'EMPTY'}, sheetAnalysis=${groupSheetAnalysis ? 'YES' : 'NO'}`);
 
                 const groupResults = [];
 
