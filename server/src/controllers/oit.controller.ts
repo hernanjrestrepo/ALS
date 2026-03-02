@@ -440,15 +440,10 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
                 // Fallback 1: First in group
                 if (!masterTemplate && group.length > 0) masterTemplate = group[0];
 
-                // Fallback 2: Any available template with a file (Global fallback)
-                if ((!masterTemplate || !masterTemplate.reportTemplateFile) && templates.length > 0) {
-                    masterTemplate = templates.find(t => t.reportTemplateFile) || templates[0];
-                    console.warn(`[Report] Group ${groupName} had no valid template. Global fallback to: ${masterTemplate.name}`);
-                }
-
-                if (!masterTemplate) {
-                    console.error(`[Report] CRITICAL: No templates available for group ${groupName}`);
-                    return [];
+                if (!masterTemplate || !masterTemplate.reportTemplateFile) {
+                    const errorMsg = `[Report] CRITICAL: No DOCX template configured for service "${groupName}". Please configure a template file for this service in the Templates module.`;
+                    console.error(errorMsg);
+                    throw new Error(`La plantilla DOCX para el servicio "${groupName}" no está configurada.`);
                 }
 
                 // Context description: "Agua Potable (Fisicoquímico, Microbiológico)"
