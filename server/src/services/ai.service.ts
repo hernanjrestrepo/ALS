@@ -619,17 +619,30 @@ Contexto de la OIT (Servicio):
 Contenido Extraído del Reporte de Laboratorio:
 "${documentText.substring(0, 5000).replace(/"/g, "'")}"
 
-Tu tarea es generar un informe de supervisión detallado utilizando estrictamente formato MARKDOWN, centrado ÚNICAMENTE en el servicio de ${serviceType}.
+Tu tarea es generar un informe detallado, centrado ÚNICAMENTE en el servicio de ${serviceType}.
+DEBES RESPONDER EXCLUSIVAMENTE CON UN OBJETO JSON VÁLIDO. NO incluyas texto fuera del JSON.
 
-Estructura requerida del informe:
-1. **Resumen Ejecutivo**: Una síntesis profesional de lo hallado para ${serviceType}.
-2. **Tabla de Resultados Clave**: Una tabla comparando los parámetros analizados de ${serviceType} vs los límites normativos. Columnas: Parámetro, Valor Hallado, Límite/Referencia, Estado (Cumple/No Cumple).
-3. **Hallazgos Críticos**: Si hay excedencias o valores preocupantes para ${serviceType}, lístalos con negritas.
-4. **Opinión Técnica**: Análisis sobre si el muestreo y los resultados de ${serviceType} son coherentes.
-5. **Recomendaciones**: Pasos a seguir para ${serviceType}.
+El formato exacto del JSON debe ser:
+{
+  "rawText": "Aquí va el informe narrativo en estricto MARKDOWN. Estructura requerida:\\n1. **Resumen Ejecutivo**: Una síntesis profesional.\\n2. **Tabla de Resultados Clave**: Comparación de parámetros analizados vs límites normativos.\\n3. **Hallazgos Críticos**: Si hay excedencias o valores preocupantes, lístalos con negritas.\\n4. **Opinión Técnica**: Análisis sobre si el muestreo es coherente.\\n5. **Recomendaciones**: Pasos a seguir.\\n\\nUsa tablas de Markdown, negritas e iconos. Ve directo al grano. REGLA ABSOLUTA: SOLO habla de ${serviceType}.",
+  "parsedData": {
+    "cliente": "Nombre del cliente si aparece en el texto, o vacio",
+    "ubicacion": {
+      "ciudad": "Ciudad deducida del texto, o vacio",
+      "departamento": "Departamento deducido del texto, o vacio"
+    },
+    "parametros": ["Lista", "de", "parametros", "analizados"],
+    "resultados": {
+      "pm10": "valor si aparece",
+      "laeq1": "valor si aparece"
+    },
+    "estaciones": [
+      { "codigo": "codigo 1", "descripcion": "desc" }
+    ]
+  }
+}
 
-REGLA ABSOLUTA: NO menciones ni analices datos de otros servicios que no sean ${serviceType}. Si el documento tiene datos de aire y estás analizando agua, SOLO habla de agua.
-Usa tablas de Markdown, negritas e iconos. No incluyas meta-comentarios. Ve directo al grano.`;
+RECUERDA: Emite SOLO el JSON. Asegúrate de escapar las comillas internas en rawText correctamente usando \\".`;
 
             console.log('[LAB ANALYSIS] Calling AI for narrative analysis, prompt length:', prompt.length);
 
@@ -637,6 +650,7 @@ Usa tablas de Markdown, negritas e iconos. No incluyas meta-comentarios. Ve dire
                 model: this.defaultModel,
                 prompt,
                 stream: false,
+                format: 'json',
             });
 
             // For reasoning models, use thinking field which contains the actual analysis

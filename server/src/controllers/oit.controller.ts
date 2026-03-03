@@ -476,18 +476,34 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
                     return record['General'];
                 };
 
-                const groupLabAnalysis = fuzzyLookup(groupedLabAnalyses, groupName) || '';
+                const groupLabAnalysisRaw = fuzzyLookup(groupedLabAnalyses, groupName) || '';
+                let groupLabAnalysisNarrative = typeof groupLabAnalysisRaw === 'string' ? groupLabAnalysisRaw : '';
+                let groupLabAnalysisParsed: any = {};
+
+                if (typeof groupLabAnalysisRaw === 'string') {
+                    try {
+                        const parsed = JSON.parse(groupLabAnalysisRaw);
+                        if (parsed.rawText) {
+                            groupLabAnalysisNarrative = parsed.rawText;
+                            groupLabAnalysisParsed = parsed.parsedData || {};
+                        }
+                    } catch (e) { }
+                } else if (typeof groupLabAnalysisRaw === 'object' && groupLabAnalysisRaw !== null) {
+                    groupLabAnalysisNarrative = (groupLabAnalysisRaw as any).rawText || JSON.stringify(groupLabAnalysisRaw);
+                    groupLabAnalysisParsed = (groupLabAnalysisRaw as any).parsedData || {};
+                }
+
                 const groupSheetAnalysis = fuzzyLookup(groupedSheetAnalysis, groupName) || null;
-                console.log(`[Report] Group "${groupName}": labAnalysis=${groupLabAnalysis ? groupLabAnalysis.slice(0, 80) + '...' : 'EMPTY'}, sheetAnalysis=${groupSheetAnalysis ? 'YES' : 'NO'}`);
+                console.log(`[Report] Group "${groupName}": labAnalysis=${groupLabAnalysisNarrative ? groupLabAnalysisNarrative.slice(0, 80) + '...' : 'EMPTY'}, sheetAnalysis=${groupSheetAnalysis ? 'YES' : 'NO'}`);
 
                 const groupResults = [];
 
                 // 1. Generate Final Report
-                const reportMarkdown = await validationService.generateFinalReportContent(oit, groupLabAnalysis, serviceContext, groupSheetAnalysis);
+                const reportMarkdown = await validationService.generateFinalReportContent(oit, groupLabAnalysisNarrative, serviceContext, groupSheetAnalysis);
                 // Ensure masterTemplate is valid before passing
                 const effectiveTemplate = masterTemplate || (templates.length > 0 ? templates[0] : null);
                 console.log(`[Report] Using template: ${effectiveTemplate?.name}, File: ${effectiveTemplate?.reportTemplateFile}`);
-                const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, effectiveTemplate);
+                const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, effectiveTemplate, groupLabAnalysisParsed);
 
                 groupResults.push({
                     name: `Informe ${groupName}`,
@@ -496,10 +512,10 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
                 });
 
                 // 2. Generate Comunicado for this service group
-                if (groupLabAnalysis) {
+                if (groupLabAnalysisNarrative) {
                     try {
                         console.log(`[Report] Generating comunicado for ${groupName}...`);
-                        const comunicadoContent = await validationService.generateComunicadoContent(oit, groupLabAnalysis, serviceContext);
+                        const comunicadoContent = await validationService.generateComunicadoContent(oit, groupLabAnalysisNarrative, serviceContext);
                         const { comunicadoService } = require('../services/comunicado.service');
                         const comunicadoFilename = await comunicadoService.generateComunicado(oit, comunicadoContent, groupName);
                         groupResults.push({ name: `Comunicado ${groupName}`, url: comunicadoFilename, type: 'docx' as const });
@@ -533,7 +549,7 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
 /**
  * Helper to generate document, returns filename and type
  */
-async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, template: any) {
+async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, template: any, parsedAIData: any = {}) {
     const { pdfService } = require('../services/pdf.service');
     const { docxService } = require('../services/docx.service');
     const { TemplateDataMapper } = require('../config/templateDataMapper');
@@ -553,7 +569,8 @@ async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, te
                     description: oit.description,
                     location: oit.location,
                     scheduledDate: oit.scheduledDate,
-                    serviceName: template.oitType || template.name // Use Type as main title if possible
+                    serviceName: template.oitType || template.name, // Use Type as main title if possible
+                    aiData: Object.keys(parsedAIData).length > 0 ? JSON.stringify(parsedAIData) : undefined
                 },
                 reportMarkdown
             );
