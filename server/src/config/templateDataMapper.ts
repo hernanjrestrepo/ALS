@@ -27,6 +27,7 @@ interface OITData {
     description?: string | null;
     location?: string | null;
     scheduledDate?: Date | null;
+    serviceName?: string | null;
     aiData?: string | null;
     samplingData?: string | null;
     stepValidations?: string | null;
