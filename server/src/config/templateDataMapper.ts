@@ -113,7 +113,9 @@ export class TemplateDataMapper {
     private parseAIData(): ParsedAIData {
         if (!this.oit.aiData) return {};
         try {
-            return JSON.parse(this.oit.aiData);
+            const parsed = JSON.parse(this.oit.aiData);
+            // If the structure is wrapped in another object or has directly the fields
+            return parsed;
         } catch {
             return {};
         }
