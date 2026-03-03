@@ -625,26 +625,52 @@ DEBES RESPONDER EXCLUSIVAMENTE CON UN OBJETO JSON VÁLIDO. NO incluyas texto fue
 El formato exacto del JSON debe ser:
 {
   "rawText": "Aquí va el informe narrativo en estricto MARKDOWN. Estructura requerida:\\n1. **Resumen Ejecutivo**: Una síntesis profesional.\\n2. **Tabla de Resultados Clave**: Comparación de parámetros analizados vs límites normativos.\\n3. **Hallazgos Críticos**: Si hay excedencias o valores preocupantes, lístalos con negritas.\\n4. **Opinión Técnica**: Análisis sobre si el muestreo es coherente.\\n5. **Recomendaciones**: Pasos a seguir.\\n\\nUsa tablas de Markdown, negritas e iconos. Ve directo al grano. REGLA ABSOLUTA: SOLO habla de ${serviceType}.",
-  "parsedData": {
-    "cliente": "Nombre del cliente si aparece en el texto, o vacio",
-    "ubicacion": {
-      "ciudad": "Ciudad deducida del texto, o vacio",
-      "departamento": "Departamento deducido del texto, o vacio"
-    },
-    "parametros": ["Lista", "de", "parametros", "analizados"],
-    "resultados": {
-      "pm10": "valor si aparece",
-      "laeq1": "valor si aparece"
-    },
-    "estaciones": [
-      { "codigo": "codigo 1", "descripcion": "desc" }
-    ]
+    "parsedData": {
+      "cliente": "Nombre exacto del cliente",
+      "nit": "NIT del cliente si existe",
+      "contrato": "Número de contrato u orden de compra",
+      "tituloInforme": "Un título técnico sugerido para el informe",
+      "tipoEstudio": "Tipo de estudio (ej. Caracterización, Monitoreo de Ruido, etc.)",
+      "metodologia": "Resumen de la metodología aplicada según el texto",
+      "objetivos": "Principales objetivos detectados",
+      "ubicacion": {
+        "ciudad": "Ciudad",
+        "departamento": "Departamento",
+        "direccion": "Dirección o sede específica",
+        "ubicacionDetalle": "Descripción detallada del entorno"
+      },
+      "clima": {
+        "temperatura": "valor",
+        "humedad": "valor",
+        "presion": "valor",
+        "rosaVientos": "descripción de dirección del viento si existe"
+      },
+      "jornada": "diurna, nocturna o ambas",
+      "jornadaMonitoreo": "Horarios específicos detectados",
+      "areaEstudio": "Descripción del área de estudio",
+      "sectorCategoria": "Sector o categoría normativa (ej. Sector B, Industrial)",
+      "estaciones": [
+        { "codigo": "EST-1", "descripcion": "ubicación", "norte": "coord", "este": "coord" }
+      ],
+      "parametros": ["Lista de parámetros analizados"],
+      "resultadosResumen": "Resumen técnico de los valores hallados",
+      "cumplimiento": "CUMPLE / NO CUMPLE (conclusión general)",
+      "razonCumplimiento": "Por qué cumple o no cumple brevemente",
+      "recomendaciones": "Recomendaciones técnicas específicas",
+      "equipos": ["Lista de equipos usados - nombre, modelo, serial"],
+      "normativas": ["Resoluciones mencionadas ej. Res 2254/2017"],
+      "otrosDatos": {
+        "correccionO2": "valor de corrección si es fuente fija",
+        "caudal": "valor de caudal si aplica",
+        "metodo": "método específico ej. EPA 5"
+      }
+    }
   }
 }
 
 RECUERDA: Emite SOLO el JSON. Asegúrate de escapar las comillas internas en rawText correctamente usando \\".`;
 
-            console.log('[LAB ANALYSIS] Calling AI for narrative analysis, prompt length:', prompt.length);
+            console.log('[LAB ANALYSIS] Calling MEGA-AI for exhaustive analysis, prompt length:', prompt.length);
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
@@ -656,7 +682,7 @@ RECUERDA: Emite SOLO el JSON. Asegúrate de escapar las comillas internas en raw
             // For reasoning models, use thinking field which contains the actual analysis
             let analysis = response.data.response || response.data.thinking || '';
 
-            if (!analysis || analysis.trim().length === 0) {
+            if (!analysis || typeof analysis !== 'string' || analysis.trim().length === 0) {
                 console.warn('[LAB ANALYSIS] Empty response from AI');
                 return "Error: No se pudo generar el análisis. Respuesta vacía del modelo.";
             }
