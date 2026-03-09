@@ -125,6 +125,10 @@ export class TemplateDataMapper {
         console.log(`[TemplateMapper] Initialized for ${this.templateType} with ${this.templateFields.length} fields`);
     }
 
+    public getTemplateType(): string {
+        return this.templateType;
+    }
+
     private parseAIData(): ParsedAIData {
         if (!this.oit.aiData) return {};
         try {
@@ -350,10 +354,26 @@ export class TemplateDataMapper {
 
             // Results summary patterns (var 21-30) for station tables
             // Only apply if the template type is known to use this pattern
-            const stationTemplates = ['RESPEL', 'ASUB', 'LIXIVIADOS', 'AGUA_SUBTERRANEA'];
+            const stationTemplates = ['RESPEL', 'ASUB', 'LIXIVIADOS', 'AGUA_SUBTERRANEA', 'CALIDAD_AIRE', 'EMISION_RUIDO', 'RUIDO_AMBIENTAL'];
+
+            // Series: var_21-30 typically stations
             if (num >= 21 && num <= 30 && stationTemplates.includes(this.templateType)) {
-                const station = this.parsedAI.estaciones?.[num - 21] || this.parsedAI.puntos?.[num - 21] || {};
+                const idx = num - 21;
+                const station = this.parsedAI.estaciones?.[idx] || this.parsedAI.puntos?.[idx] || {};
                 if (station.codigo || station.nombre) return station.codigo || station.nombre;
+            }
+
+            // Series: var_32-50 typically results (especially for Air Quality)
+            if (num >= 32 && num <= 50 && this.templateType === 'CALIDAD_AIRE') {
+                const idx = num - 32;
+                const res = this.parsedAI.resultados?.[idx] || {};
+                return res.valor !== undefined ? String(res.valor) : (res.resultado || '');
+            }
+
+            // Series: var_6-9 typically noise results
+            if (num >= 6 && num <= 9 && (this.templateType === 'EMISION_RUIDO' || this.templateType === 'RUIDO_AMBIENTAL')) {
+                const idx = num - 6;
+                return this.samplingResults.resultados?.[idx] || this.samplingResults.ruido?.[`laeq${idx + 1}`] || '';
             }
 
             return '';
