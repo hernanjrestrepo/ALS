@@ -57,3 +57,14 @@ prisma/migrations/migration_lock.toml
 
 # OS
 Thumbs.db
+*.zip
+server/direct_ai_run.ts
+server/fix_agua.ts
+server/list_templates.ts
+server/prod_script.ts
+server/prod_script2.ts
+server/test_ai_data.ts
+server/test_report_gen.ts
+server/trigger_analysis.ts
+server/trigger_analysis2.ts
+server/verify_report_gen.ts

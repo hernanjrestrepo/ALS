@@ -608,75 +608,71 @@ Ejemplo INCORRECTO: ["Multiparámetro de ph", "GPS Garmin 64s"]`;
             // Extract the service type from the oitContext for emphasis
             const serviceType = oitContext?.replace(/^.*?Servicio específico:\s*/i, '').trim() || oitContext || 'General';
 
-            const prompt = `Eres un auditor técnico de calidad especialista en laboratorios ambientales.
+            const prompt = `Eres un auditor técnico de calidad especialista en laboratorios ambientales. Tu misión es extraer CADA DATO TÉCNICO del documento para completar un informe legal.
 
 SERVICIO QUE ESTÁS ANALIZANDO: **${serviceType}**
-IMPORTANTE: Este análisis es EXCLUSIVAMENTE para el servicio de ${serviceType}. Si el documento contiene datos de otros servicios (aire, ruido, biota, etc.), IGNÓRALOS COMPLETAMENTE. Solo analiza los datos que correspondan a ${serviceType}.
+REGLA DE EXCLUSIÓN: Solo analiza datos de ${serviceType}. Ignora otros servicios.
 
-Contexto de la OIT (Servicio):
-"${oitContext || 'Sin contexto específico'}"
+Contexto de la OIT: "${oitContext || 'Sin contexto'}"
 
-Contenido Extraído del Reporte de Laboratorio:
-"${documentText.substring(0, 5000).replace(/"/g, "'")}"
+Contenido del Reporte:
+"${documentText.substring(0, 10000).replace(/"/g, "'")}"
 
-Tu tarea es generar un informe detallado, centrado ÚNICAMENTE en el servicio de ${serviceType}.
-DEBES RESPONDER EXCLUSIVAMENTE CON UN OBJETO JSON VÁLIDO. NO incluyas texto fuera del JSON.
-
-El formato exacto del JSON debe ser:
+Responde EXCLUSIVAMENTE con JSON:
 {
-  "rawText": "Aquí va el informe narrativo en estricto MARKDOWN. Estructura requerida:\\n1. **Resumen Ejecutivo**: Una síntesis profesional.\\n2. **Tabla de Resultados Clave**: Comparación de parámetros analizados vs límites normativos.\\n3. **Hallazgos Críticos**: Si hay excedencias o valores preocupantes, lístalos con negritas.\\n4. **Opinión Técnica**: Análisis sobre si el muestreo es coherente.\\n5. **Recomendaciones**: Pasos a seguir.\\n\\nUsa tablas de Markdown, negritas e iconos. Ve directo al grano. REGLA ABSOLUTA: SOLO habla de ${serviceType}.",
-    "parsedData": {
-      "cliente": "Nombre exacto del cliente",
-      "nit": "NIT del cliente si existe",
-      "contrato": "Número de contrato u orden de compra",
-      "tituloInforme": "Un título técnico sugerido para el informe",
-      "tipoEstudio": "Tipo de estudio (ej. Caracterización, Monitoreo de Ruido, etc.)",
-      "metodologia": "Resumen de la metodología aplicada según el texto",
-      "objetivos": "Principales objetivos detectados",
-      "ubicacion": {
-        "ciudad": "Ciudad",
-        "departamento": "Departamento",
-        "direccion": "Dirección o sede específica",
-        "ubicacionDetalle": "Descripción detallada del entorno"
-      },
-      "clima": {
-        "temperatura": "valor",
-        "humedad": "valor",
-        "presion": "valor",
-        "rosaVientos": "descripción de dirección del viento si existe"
-      },
-      "jornada": "diurna, nocturna o ambas",
-      "jornadaMonitoreo": "Horarios específicos detectados",
-      "areaEstudio": "Descripción del área de estudio",
-      "sectorCategoria": "Sector o categoría normativa (ej. Sector B, Industrial)",
-      "estaciones": [
-        { "codigo": "EST-1", "descripcion": "ubicación", "norte": "coord", "este": "coord" }
-      ],
-      "parametros": ["Lista de parámetros analizados"],
-      "resultadosResumen": "Resumen técnico de los valores hallados",
-      "cumplimiento": "CUMPLE / NO CUMPLE (conclusión general)",
-      "razonCumplimiento": "Por qué cumple o no cumple brevemente",
-      "recomendaciones": "Recomendaciones técnicas específicas",
-      "equipos": ["Lista de equipos usados - nombre, modelo, serial"],
-      "normativas": ["Resoluciones mencionadas ej. Res 2254/2017"],
-      "otrosDatos": {
-        "correccionO2": "valor de corrección si es fuente fija",
-        "caudal": "valor de caudal si aplica",
-        "metodo": "método específico ej. EPA 5"
-      }
-    }
+  "rawText": "Informe narrativo en MARKDOWN profesional. Incluye Secciones: Resumen Ejecutivo, Tabla de Resultados, Hallazgos, Opinión Técnica, Recomendaciones.",
+  "parsedData": {
+    "cliente": "Nombre exacto (ej. INTERASEO S.A.S. E.S.P.)",
+    "nit": "NIT con dígito de verificación",
+    "contrato": "Número de OT u Orden",
+    "interventor": "Nombre del interventor si aparece",
+    "sede": "Nombre de la sede/relleno (ej. RS La Miel)",
+    "tituloInforme": "Nombre oficial según el documento",
+    "tipoEstudio": "Ej. Caracterización de Aguas Lluvias",
+    "metodologia": "Resumen metodológico (ej. APHA 24th Ed)",
+    "objetivos": "Lista de objetivos",
+    "ubicacion": {
+      "ciudad": "Municipio",
+      "departamento": "Departamento",
+      "direccion": "Dirección física exacta",
+      "ubicacionDetalle": "Referencia geográfica (ej. Km 5 Vía X)"
+    },
+    "clima": {
+      "temperatura": "valor en °C",
+      "humedad": "valor en %",
+      "presion": "valor en mmHg",
+      "precipitacion": "valor en mm",
+      "rosaVientos": "dirección predominante (ej. NE)",
+      "clasificacion": "Clasificación Köppen-Geiger (ej. As, Am)"
+    },
+    "jornadaMonitoreo": "Fechas y horarios (ej. 11 de diciembre de 2025)",
+    "areaEstudio": "Descripción del sitio",
+    "sectorCategoria": "Resolución/Categoría aplicable",
+    "estaciones": [
+      { "codigo": "ID", "nombre": "Nombre", "norte": "N", "este": "E", "cota": "msnm", "descripcion": "obs" }
+    ],
+    "parametros": ["Lista completa de analitos"],
+    "resultadosResumen": "Párrafos con los valores clave hallados",
+    "cumplimiento": "CUMPLE / NO CUMPLE",
+    "razonCumplimiento": "Explicación breve",
+    "recomendaciones": "Pasos sugeridos",
+    "equipos": ["Marca, Modelo, Serial de cada equipo"],
+    "normativas": ["Lista de Resoluciones/Leyes"],
+    "otrosDatos": { "cualquier": "dato adicional relevante" }
   }
-}
+}`;
 
-RECUERDA: Emite SOLO el JSON. Asegúrate de escapar las comillas internas en rawText correctamente usando \\".`;
-
-            console.log('[LAB ANALYSIS] Calling MEGA-AI for exhaustive analysis, prompt length:', prompt.length);
+            console.log('[LAB ANALYSIS] Calling MEGA-AI with 10k context, prompt length:', prompt.length);
 
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 prompt,
                 stream: false,
                 format: 'json',
+                options: {
+                    num_ctx: 16384,
+                    temperature: 0.1
+                }
             });
 
             // For reasoning models, use thinking field which contains the actual analysis

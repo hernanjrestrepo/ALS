@@ -1,8 +1,6 @@
 /**
  * Template-Specific Configuration
  * Maps each template type to its specific field meanings and data sources
- * 
- * Generated from allTemplateFields.json extraction
  */
 
 export interface FieldMapping {
@@ -25,16 +23,20 @@ const COMMON_FIELDS: Record<string, FieldMapping> = {
     // OIT identification
     'var_1': { source: 'OIT', field: 'oitNumber', description: 'Código OIT' },
     'var_2': { source: 'DATE', field: 'year', description: 'Año del informe' },
+    'var_3': { source: 'OIT', field: 'description', description: 'Descripción OIT' },
 
     // Client info
     'contrato_los_servicios_de_serambiente_s_a_s_para_r_1': { source: 'AI', field: 'cliente', description: 'Nombre del cliente' },
     'contrato_los_servicios_de_serambiente_s_a_s_para_r_2': { source: 'OIT', field: 'description', description: 'Descripción del proyecto' },
+    'contrato_los_servicios_de_serambiente_s_a_s_para_l_1': { source: 'AI', field: 'cliente', description: 'Nombre del cliente' },
     'contrato_los_servicios_de_servicios_de_ingenieria__1': { source: 'AI', field: 'cliente', description: 'Nombre del cliente' },
+    'nombre_cliente_los_cuales_contemplaban_la_toma_de__1': { source: 'AI', field: 'cliente', description: 'Nombre cliente' },
 
     // Location
     'del_localizado_en_1': { source: 'OIT', field: 'location', format: 'location', description: 'Ciudad, Departamento' },
     'localizado_en_departamento_de_1': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento' },
     'ubicado_en_el_1': { source: 'OIT', field: 'location', description: 'Ubicación' },
+    'de_monitoreo_ubicados_en_el_1': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad' },
 
     // Dates
     'realizada_el_dia_1': { source: 'DATE', field: 'day', description: 'Día del monitoreo' },
@@ -43,11 +45,14 @@ const COMMON_FIELDS: Record<string, FieldMapping> = {
     'de_de_1': { source: 'DATE', field: 'year', description: 'Año' },
     'de_de_2': { source: 'DATE', field: 'year', description: 'Año' },
     'el_presente_monitoreo_se_efectuo_1': { source: 'SAMPLING', field: 'dateRange', description: 'Rango de fechas' },
+    'monitoreo_de_calidad_del_aire_ejecutado_entre_el_1': { source: 'SAMPLING', field: 'dateRange', description: 'Rango fechas' },
 
     // Company
     'fuente_serambiente_s_a_s_1': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente' },
     'fuente_serambiente_s_a_s_2': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente' },
     'fuente_serambiente_s_a_s_3': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente' },
+    'fuente_serambiente_s_a_s_4': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente' },
+    'fuente_serambiente_s_a_s_5': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente' },
     'el_monitoreo_fue_realizado_por_la_empresa_servicio_1': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Empresa ejecutora' },
 
     // Climate data
@@ -57,9 +62,9 @@ const COMMON_FIELDS: Record<string, FieldMapping> = {
     'tiene_un_clima_tropical_en_comparacion_con_el_invi_2': { source: 'AI', field: 'clima.humedad', description: 'Humedad' },
 
     // Station info
-    'var_3': { source: 'AI', field: 'estaciones.codigos', description: 'Códigos de estaciones' },
-    'var_4': { source: 'AI', field: 'descripcionArea', description: 'Descripción del área de estudio' },
     'puntos_de_monitoreo_los_cuales_se_ubican_en_el_1': { source: 'OIT', field: 'location', description: 'Ubicación puntos' },
+    'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_1': { source: 'AI', field: 'numeroPuntos', description: 'Número de puntos' },
+    'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_2': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad' },
 
     // Coordinates (var_21-24 typical for station tables)
     'var_21': { source: 'AI', field: 'estaciones[0].codigo', description: 'Código estación 1' },
@@ -100,9 +105,7 @@ export const PUNTO_SECO_CONFIG: TemplateConfig = {
         'informe_tecnico_de_estudio_de_caracterizacion_de_a_1': { source: 'AI', field: 'tituloInforme', description: 'Título del informe' },
         'estudio_de_caracterizacion_1': { source: 'AI', field: 'tipoEstudio', description: 'Tipo de caracterización' },
         'nombre_cliente_los_cuales_contemplaban_la_toma_de__1': { source: 'AI', field: 'cliente', description: 'Nombre cliente' },
-        'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_1': { source: 'AI', field: 'numeroPuntos', description: 'Número de puntos' },
-        'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_2': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad' },
-        'en_el_anexo_2_formatos_de_campo_p_1': { source: 'STATIC', staticValue: 'se adjuntan los formatos de campo', description: 'Referencia anexos' },
+        'var_4': { source: 'AI', field: 'nit', description: 'NIT Cliente' },
         'var_8': { source: 'AI', field: 'parametrosAnalizados', description: 'Parámetros analizados' },
         'var_10': { source: 'AI', field: 'resultadosResumen', description: 'Resumen de resultados' },
         'de_monitoreo_realizado_en_el_1': { source: 'OIT', field: 'location', description: 'Lugar de monitoreo' },
@@ -137,17 +140,14 @@ export const EMISION_RUIDO_CONFIG: TemplateConfig = {
         'el_equipo_utilizado_para_la_medicion_fue_un_sonome_1': { source: 'STATIC', staticValue: 'Sonómetro integrador tipo 1', description: 'Equipo' },
         'el_equipo_utilizado_para_la_medicion_fue_un_sonome_2': { source: 'AI', field: 'equipoModelo', description: 'Modelo equipo' },
         'los_resultados_obtenidos_en_las_medidas_de_la_emis_1': { source: 'AI', field: 'resumenResultados', description: 'Resumen resultados' },
-        // Noise measurements
         'var_6': { source: 'SAMPLING', field: 'ruido.laeq1', format: 'number', description: 'LAeq punto 1' },
         'var_7': { source: 'SAMPLING', field: 'ruido.laeq2', format: 'number', description: 'LAeq punto 2' },
         'var_8': { source: 'SAMPLING', field: 'ruido.laeq3', format: 'number', description: 'LAeq punto 3' },
         'laeq_t_residual_1': { source: 'SAMPLING', field: 'ruido.residual', description: 'LAeq residual' },
-        // Weather conditions
         'var_10': { source: 'SAMPLING', field: 'condiciones.temperatura', description: 'Temperatura' },
         'var_11': { source: 'SAMPLING', field: 'condiciones.humedad', description: 'Humedad' },
         'var_12': { source: 'SAMPLING', field: 'condiciones.presion', description: 'Presión' },
         'var_13': { source: 'AI', field: 'rosaVientos', description: 'Rosa de vientos' },
-        // Compliance
         'grafica_1_se_logra_identificar_que_todos_los_punto_1': { source: 'AI', field: 'analisisGrafico', description: 'Análisis gráfico' },
         'fueron_clasificados_como_conformes_con_respecto_al_1': { source: 'AI', field: 'clasificacionConformidad', description: 'Conformidad' },
     }
@@ -182,27 +182,18 @@ export const CALIDAD_AIRE_CONFIG: TemplateConfig = {
     fields: {
         ...COMMON_FIELDS,
         'e_por_1': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Empresa' },
-        'monitoreo_de_calidad_del_aire_ejecutado_entre_el_1': { source: 'SAMPLING', field: 'dateRange', description: 'Rango de fechas' },
         'calidad_del_aire_ejecutado_entre_el_1': { source: 'SAMPLING', field: 'dateRange', description: 'Período' },
         'calidad_del_aire_en_el_area_de_estudio_del_el_cual_1': { source: 'AI', field: 'areaEstudio', description: 'Área de estudio' },
-
-        // Stations
         'estaciones_en_sitios_representativos_de_la_direcci_1': { source: 'AI', field: 'criterioUbicacion', description: 'Criterio ubicación' },
         'estaciones_ubicadas_en_el_area_de_estudio_del_1': { source: 'AI', field: 'cliente', description: 'Cliente' },
         'estaciones_ubicadas_en_el_area_de_estudio_del_loca_1': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento' },
-
-        // Parameters
         'determinar_los_niveles_de_inmision_de_los_contamin_1': { source: 'AI', field: 'parametros', description: 'Contaminantes medidos' },
         'las_mediciones_toma_de_muestra_y_analisis_de_1': { source: 'STATIC', staticValue: 'calidad del aire', description: 'Tipo análisis' },
         'fue_realizada_por_servicios_de_ingenieria_y_ambien_1': { source: 'STATIC', staticValue: 'Resolución 1262 de 2021', description: 'Acreditación' },
-
-        // Methodology
         'a_fin_de_dar_cumplimiento_a_los_requerimientos_de__1': { source: 'AI', field: 'numeroEstaciones', description: 'Número estaciones' },
         'realizar_la_evaluacion_de_la_calidad_de_aire_en_1': { source: 'AI', field: 'numeroEstaciones', description: 'Número estaciones' },
         'para_determinar_los_niveles_de_calidad_de_aire_de_1': { source: 'AI', field: 'numeroEstaciones', description: 'Número estaciones' },
         'para_el_desarrollo_de_este_estudio_en_particular_f_1': { source: 'AI', field: 'seleccionEstaciones', description: 'Selección de estaciones' },
-
-        // Equipment
         'var_16': { source: 'AI', field: 'equipoPM', description: 'Equipo PM' },
         'var_17': { source: 'AI', field: 'parametros', description: 'Parámetros' },
         'var_18': { source: 'STATIC', staticValue: '24 horas', description: 'Duración muestreo' },
@@ -211,42 +202,27 @@ export const CALIDAD_AIRE_CONFIG: TemplateConfig = {
         'var_27': { source: 'AI', field: 'equipos', description: 'Equipos usados' },
         'var_28': { source: 'STATIC', staticValue: '2.0 m', description: 'Altura muestreo' },
         'var_31': { source: 'AI', field: 'observaciones', description: 'Observaciones' },
-
-        // Results
         'var_32': { source: 'AI', field: 'estaciones[0].codigo', description: 'Código estación' },
         'var_34': { source: 'SAMPLING', field: 'resultados.pm10', format: 'number', description: 'Resultado PM10' },
         'var_51': { source: 'SAMPLING', field: 'resultados.valor', format: 'number', description: 'Valor medido' },
         'los_resultados_de_las_1': { source: 'STATIC', staticValue: 'estaciones de monitoreo', description: 'Referencia resultados' },
-
-        // Normative limits (Colombian Res. 2254/2017)
         'var_53': { source: 'STATIC', staticValue: '75', description: 'Límite PM10 24h' },
         'var_54': { source: 'STATIC', staticValue: '37', description: 'Límite PM2.5 24h' },
         'var_55': { source: 'STATIC', staticValue: '100', description: 'Límite NO2 1h' },
         'var_56': { source: 'STATIC', staticValue: '50', description: 'Límite SO2 24h' },
         'var_57': { source: 'STATIC', staticValue: '24 horas', description: 'Tiempo exposición' },
-
-        // Conclusions
         'las_evaluaciones_de_la_calidad_del_aire_se_efectua_1': { source: 'AI', field: 'numeroEstaciones', description: 'Número estaciones' },
         'las_evaluaciones_de_la_calidad_del_aire_se_efectua_2': { source: 'SAMPLING', field: 'dateRange', description: 'Período evaluación' },
         'de_monitoreo_evaluadas_durante_el_periodo_comprend_1': { source: 'AI', field: 'parametros', description: 'Parámetros evaluados' },
         'en_el_area_de_estudio_1': { source: 'AI', field: 'cliente', description: 'Cliente' },
         'en_el_area_de_estudio_del_1': { source: 'AI', field: 'cliente', description: 'Cliente' },
         'las_normas_de_calidad_del_aire_para_todo_el_territ_1': { source: 'STATIC', staticValue: 'Resolución 2254 de 2017', description: 'Normativa' },
-
-        // PM10/PM2.5 Methods
         'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_1': { source: 'STATIC', staticValue: 'EPA CFR 40 Part 50', description: 'Método PM10' },
         'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_2': { source: 'STATIC', staticValue: 'EPA CFR 40 Part 50', description: 'Método PM10' },
         'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1': { source: 'STATIC', staticValue: 'EPA CFR 40 Part 50', description: 'Método PM2.5' },
-
-        // Technical sheets
         '3_ficha_tecnica_1': { source: 'AI', field: 'estaciones[0].codigo', description: 'Estación ficha' },
-        'tabla_4_contiene_los_numeros_de_identificacion_asi_1': { source: 'STATIC', staticValue: '', description: 'Tabla identificación' },
-
-        // Uncertainties
         'se_presentan_las_incertidumbres_de_los_resultados__1': { source: 'STATIC', staticValue: 'se detallan en el Anexo 4', description: 'Incertidumbres' },
         'las_incertidumbres_de_los_resultados_asociados_a_c_1': { source: 'STATIC', staticValue: 'se detallan en el Anexo 4', description: 'Incertidumbres' },
-
-        // Analysis sections
         'en_las_siguientes_secciones_se_presentan_las_conce_1': { source: 'AI', field: 'parametrosPrincipales', description: 'Parámetros principales' },
         'en_las_siguientes_secciones_se_presentan_las_conce_2': { source: 'AI', field: 'cliente', description: 'Cliente' },
     }
@@ -306,16 +282,16 @@ export const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
  */
 export function getTemplateType(fileName: string): string {
     if (fileName.includes('RESPEL')) return 'RESPEL';
-    if (fileName.includes('PUNTO SECO')) return 'PUNTO_SECO';
+    if (fileName.includes('PUNTO SECO') || fileName.includes('64-10')) return 'PUNTO_SECO';
     if (fileName.includes('EMISIÓN DE RUIDO Y RUIDO AMBIENTAL')) return 'EMISION_RUIDO_AMBIENTAL';
-    if (fileName.includes('EMISIÓN DE RUIDO')) return 'EMISION_RUIDO';
-    if (fileName.includes('RUIDO INTRADOMICILIARIO')) return 'RUIDO_INTRADOMICILIARIO';
-    if (fileName.includes('RUIDO AMBIENTAL')) return 'RUIDO_AMBIENTAL';
-    if (fileName.includes('CALIDAD DE AIRE')) return 'CALIDAD_AIRE';
-    if (fileName.includes('OLORES OFENSIVOS')) return 'OLORES';
-    if (fileName.includes('PARTÍCULAS VIABLES')) return 'PARTICULAS_VIABLES';
-    if (fileName.includes('PREVIOS EN FUENTES FIJAS')) return 'FUENTES_FIJAS_PREVIO';
-    if (fileName.includes('FUENTES FIJAS')) return 'FUENTES_FIJAS';
+    if (fileName.includes('EMISIÓN DE RUIDO') || fileName.includes('65-06')) return 'EMISION_RUIDO';
+    if (fileName.includes('RUIDO INTRADOMICILIARIO') || fileName.includes('65-08')) return 'RUIDO_INTRADOMICILIARIO';
+    if (fileName.includes('RUIDO AMBIENTAL') || fileName.includes('65-07')) return 'RUIDO_AMBIENTAL';
+    if (fileName.includes('CALIDAD DE AIRE') || fileName.includes('66-18')) return 'CALIDAD_AIRE';
+    if (fileName.includes('OLORES OFENSIVOS') || fileName.includes('66-19')) return 'OLORES';
+    if (fileName.includes('PARTÍCULAS VIABLES') || fileName.includes('66-20')) return 'PARTICULAS_VIABLES';
+    if (fileName.includes('PREVIOS EN FUENTES FIJAS') || fileName.includes('67-10')) return 'FUENTES_FIJAS_PREVIO';
+    if (fileName.includes('FUENTES FIJAS') || fileName.includes('67-11')) return 'FUENTES_FIJAS';
     return 'UNKNOWN';
 }
 
