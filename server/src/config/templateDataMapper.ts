@@ -339,8 +339,10 @@ export class TemplateDataMapper {
             if (num === 7) return this.getCity();
             if (num === 8) return this.getDepartment();
 
-            // Results summary patterns (var 20-40)
-            if (num >= 21 && num <= 30) {
+            // Results summary patterns (var 21-30) for station tables
+            // Only apply if the template type is known to use this pattern
+            const stationTemplates = ['RESPEL', 'ASUB', 'LIXIVIADOS', 'AGUA_SUBTERRANEA'];
+            if (num >= 21 && num <= 30 && stationTemplates.includes(this.templateType)) {
                 const station = this.parsedAI.estaciones?.[num - 21] || this.parsedAI.puntos?.[num - 21] || {};
                 if (station.codigo || station.nombre) return station.codigo || station.nombre;
             }

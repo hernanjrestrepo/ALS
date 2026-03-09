@@ -65,12 +65,6 @@ const COMMON_FIELDS: Record<string, FieldMapping> = {
     'puntos_de_monitoreo_los_cuales_se_ubican_en_el_1': { source: 'OIT', field: 'location', description: 'Ubicación puntos' },
     'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_1': { source: 'AI', field: 'numeroPuntos', description: 'Número de puntos' },
     'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_2': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad' },
-
-    // Coordinates (var_21-24 typical for station tables)
-    'var_21': { source: 'AI', field: 'estaciones[0].codigo', description: 'Código estación 1' },
-    'var_22': { source: 'AI', field: 'estaciones[0].descripcion', description: 'Descripción estación 1' },
-    'var_23': { source: 'AI', field: 'estaciones[0].norte', description: 'Coordenada Norte' },
-    'var_24': { source: 'AI', field: 'estaciones[0].este', description: 'Coordenada Este' },
 };
 
 // RESPEL Template (64-09)
@@ -80,6 +74,10 @@ export const RESPEL_CONFIG: TemplateConfig = {
     filePattern: 'FO-PO-PSM-64-09',
     fields: {
         ...COMMON_FIELDS,
+        'var_21': { source: 'AI', field: 'estaciones[0].codigo', description: 'Código estación 1' },
+        'var_22': { source: 'AI', field: 'estaciones[0].descripcion', description: 'Descripción estación 1' },
+        'var_23': { source: 'AI', field: 'estaciones[0].norte', description: 'Coordenada Norte' },
+        'var_24': { source: 'AI', field: 'estaciones[0].este', description: 'Coordenada Este' },
         'de_estudio_de_caracterizacion_de_respel_en_1': { source: 'AI', field: 'tipoResiduo', description: 'Tipo de residuo caracterizado' },
         'determinar_la_concentracion_de_contaminantes_en_lo_1': { source: 'AI', field: 'parametros', description: 'Parámetros analizados' },
         'var_30': { source: 'STATIC', staticValue: 'Resolución 1207/2014', description: 'Resolución aplicable' },
@@ -113,6 +111,20 @@ export const PUNTO_SECO_CONFIG: TemplateConfig = {
         'var_16': { source: 'AI', field: 'recomendaciones', description: 'Recomendaciones' },
         '1_ubicacion_geografica_1': { source: 'STATIC', staticValue: 'Ver mapa en anexos', description: 'Ubicación geográfica' },
         'en_cumplimiento_de_los_compromisos_establecidos_co_1': { source: 'AI', field: 'contrato', description: 'Referencia contrato' },
+    }
+};
+
+// AGUA SUBTERRÁNEA Y LIXIVIADOS Template (64-08)
+export const ASUB_CONFIG: TemplateConfig = {
+    templateType: 'ASUB',
+    displayName: 'Informe de Agua Subterránea / Lixiviados',
+    filePattern: 'FO-PO-PSM-64-08',
+    fields: {
+        ...COMMON_FIELDS,
+        'var_10': { source: 'AI', field: 'resultadosResumen', description: 'Resumen de resultados' },
+        'var_21': { source: 'AI', field: 'estaciones[0].codigo', description: 'ID Piezómetro 1' },
+        'var_22': { source: 'AI', field: 'estaciones[1].codigo', description: 'ID Piezómetro 2' },
+        'var_23': { source: 'AI', field: 'estaciones[2].codigo', description: 'ID Piezómetro 3' },
     }
 };
 
@@ -266,15 +278,64 @@ export const FUENTES_FIJAS_CONFIG: TemplateConfig = {
     }
 };
 
+// EMISIÓN DE RUIDO Y RUIDO AMBIENTAL Template (65-09)
+export const EMISION_RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
+    templateType: 'EMISION_RUIDO_AMBIENTAL',
+    displayName: 'Estudio de Emisión de Ruido y Ruido Ambiental',
+    filePattern: 'FO-PO-PSM-65-09',
+    fields: {
+        ...COMMON_FIELDS,
+        'var_1': { source: 'AI', field: 'tituloInforme', description: 'Título' },
+    }
+};
+
+// RUIDO INTRADOMICILIARIO Template (65-08)
+export const RUIDO_INTRADOMICILIARIO_CONFIG: TemplateConfig = {
+    templateType: 'RUIDO_INTRADOMICILIARIO',
+    displayName: 'Estudio de Ruido Intradomiciliario',
+    filePattern: 'FO-PO-PSM-65-08',
+    fields: {
+        ...COMMON_FIELDS,
+        'var_1': { source: 'AI', field: 'tituloInforme', description: 'Título' },
+    }
+};
+
+// PARTÍCULAS VIABLES Template (66-20)
+export const PARTICULAS_VIABLES_CONFIG: TemplateConfig = {
+    templateType: 'PARTICULAS_VIABLES',
+    displayName: 'Informe de Partículas Viables',
+    filePattern: 'FO-PO-PSM-66-20',
+    fields: {
+        ...COMMON_FIELDS,
+        'var_1': { source: 'AI', field: 'tituloInforme', description: 'Título' },
+    }
+};
+
+// PREVIOS EN FUENTES FIJAS Template (67-10)
+export const FUENTES_FIJAS_PREVIO_CONFIG: TemplateConfig = {
+    templateType: 'FUENTES_FIJAS_PREVIO',
+    displayName: 'Informe Previo de Fuentes Fijas',
+    filePattern: 'FO-PO-PSM-67-10',
+    fields: {
+        ...COMMON_FIELDS,
+        'var_1': { source: 'AI', field: 'tituloInforme', description: 'Título' },
+    }
+};
+
 // Map template type to config
 export const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
     'RESPEL': RESPEL_CONFIG,
     'PUNTO_SECO': PUNTO_SECO_CONFIG,
+    'ASUB': ASUB_CONFIG,
     'EMISION_RUIDO': EMISION_RUIDO_CONFIG,
+    'EMISION_RUIDO_AMBIENTAL': EMISION_RUIDO_AMBIENTAL_CONFIG,
     'RUIDO_AMBIENTAL': RUIDO_AMBIENTAL_CONFIG,
+    'RUIDO_INTRADOMICILIARIO': RUIDO_INTRADOMICILIARIO_CONFIG,
     'CALIDAD_AIRE': CALIDAD_AIRE_CONFIG,
     'OLORES': OLORES_CONFIG,
+    'PARTICULAS_VIABLES': PARTICULAS_VIABLES_CONFIG,
     'FUENTES_FIJAS': FUENTES_FIJAS_CONFIG,
+    'FUENTES_FIJAS_PREVIO': FUENTES_FIJAS_PREVIO_CONFIG,
 };
 
 /**
@@ -283,6 +344,7 @@ export const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
 export function getTemplateType(fileName: string): string {
     if (fileName.includes('RESPEL')) return 'RESPEL';
     if (fileName.includes('PUNTO SECO') || fileName.includes('64-10')) return 'PUNTO_SECO';
+    if (fileName.includes('ASUB') || fileName.includes('64-08') || fileName.includes('SUBTERRÁNEA') || fileName.includes('LIXIVIADOS')) return 'ASUB';
     if (fileName.includes('EMISIÓN DE RUIDO Y RUIDO AMBIENTAL')) return 'EMISION_RUIDO_AMBIENTAL';
     if (fileName.includes('EMISIÓN DE RUIDO') || fileName.includes('65-06')) return 'EMISION_RUIDO';
     if (fileName.includes('RUIDO INTRADOMICILIARIO') || fileName.includes('65-08')) return 'RUIDO_INTRADOMICILIARIO';
