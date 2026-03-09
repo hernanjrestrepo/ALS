@@ -6,6 +6,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import TEMPLATE_CONFIGS, { getTemplateType, FieldMapping, TemplateConfig } from './templateConfigs';
+import { docxService } from '../services/docx.service';
 
 // Load all template fields for reference
 const allFieldsPath = path.join(__dirname, 'allTemplateFields.json');
@@ -160,7 +161,15 @@ export class TemplateDataMapper {
         const template = ALL_TEMPLATE_FIELDS.templates?.find((t: any) =>
             t.fileName === fileName || fileName.includes(t.shortName)
         );
-        return template?.fields || [];
+        if (template?.fields) return template.fields;
+
+        // Fallback to real-time extraction if not in cache
+        try {
+            return docxService.getTemplateFields(fileName);
+        } catch (e) {
+            console.warn(`[TemplateMapper] Fallback extraction failed for ${fileName}`);
+            return [];
+        }
     }
 
     private calculateDateRange(): string {

@@ -36,7 +36,7 @@ async function testAgua() {
 
     try {
         const mapper = new TemplateDataMapper(
-            "FO-PO-PSM-64-08-plantilla.docx",
+            "FO-PO-PSM-64-08 FORMATO PARA LA ELABORACIÓN DE INFORME TÉCNICO DE AGUA SUBTERRÁNEA-plantilla.docx",
             mockOITAgua as any,
             "Contenido narrativo..."
         );
