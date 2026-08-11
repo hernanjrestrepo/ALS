@@ -68,3 +68,5 @@ server/test_report_gen.ts
 server/trigger_analysis.ts
 server/trigger_analysis2.ts
 server/verify_report_gen.ts
+Serambiente-KPair-NV.pem
+*.pem
