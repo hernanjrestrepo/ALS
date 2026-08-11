@@ -1,12 +1,12 @@
 /**
- * Template-Specific Configuration
- * Maps each template type to its specific field meanings and data sources
+ * Template-Specific Configuration V2 — Master Dictionary
+ * Each tag is mapped based on its EXACT context in the Word template.
  */
 
 export interface FieldMapping {
     source: 'OIT' | 'AI' | 'STATIC' | 'SAMPLING' | 'DATE' | 'SYSTEM';
-    field?: string;        // Field path in source data
-    staticValue?: string;  // For STATIC source
+    field?: string;
+    staticValue?: string;
     format?: 'date' | 'number' | 'text' | 'location' | 'percentage';
     description: string;
 }
@@ -18,326 +18,437 @@ export interface TemplateConfig {
     fields: Record<string, FieldMapping>;
 }
 
-// Common field mappings used across templates
-const COMMON_FIELDS: Record<string, FieldMapping> = {
-    // OIT identification
-    'var_1': { source: 'OIT', field: 'oitNumber', description: 'Código OIT' },
-    'var_2': { source: 'DATE', field: 'year', description: 'Año del informe' },
-    'var_3': { source: 'OIT', field: 'description', description: 'Descripción OIT' },
+// ================================================================
+// AGUA SUBTERRÁNEA / LIXIVIADOS — 64-08 (32 tags)
+// Also used for PUNTO SECO — 64-10 (same 32 tags)
+// ================================================================
+const AGUA_FIELDS: Record<string, FieldMapping> = {
+    // --- HEADER (repeated on every page) ---
+    'informe_tecnico_de_estudio_de_caracterizacion_de_a_1': {
+        source: 'STATIC', staticValue: 'AGUA SUBTERRÁNEA',
+        description: 'Header + body title (body AGUA prefix removed from template)'
+    },
+    'var_20': {
+        source: 'STATIC', staticValue: '',
+        description: 'No usado en este template (header code area)'
+    },
+    'tag_header_date': {
+        source: 'DATE', field: 'headerDate',
+        description: 'Fecha en el header de cada página (DD/MM/YYYY)'
+    },
 
-    // Client info
-    'contrato_los_servicios_de_serambiente_s_a_s_para_r_1': { source: 'AI', field: 'cliente', description: 'Nombre del cliente' },
-    'contrato_los_servicios_de_serambiente_s_a_s_para_r_2': { source: 'OIT', field: 'description', description: 'Descripción del proyecto' },
-    'contrato_los_servicios_de_serambiente_s_a_s_para_l_1': { source: 'AI', field: 'cliente', description: 'Nombre del cliente' },
-    'contrato_los_servicios_de_servicios_de_ingenieria__1': { source: 'AI', field: 'cliente', description: 'Nombre del cliente' },
-    'nombre_cliente_los_cuales_contemplaban_la_toma_de__1': { source: 'AI', field: 'cliente', description: 'Nombre cliente' },
+    // --- PORTADA ---
+    'var_1': {
+        source: 'AI', field: 'cliente',
+        description: '"...calidad del agua de la organización {var_1}, con el fin de..."'
+    },
+    'estudio_de_caracterizacion_1': {
+        source: 'AI', field: 'tipoEstudio',
+        description: '"Estudio de caracterización {tag} de {var_2}..." — tipo de agua (ej: "de Agua Residual Doméstica")'
+    },
+    'var_2': {
+        source: 'DATE', field: 'year',
+        description: 'Año en portada: "...de 2026 realizada el día..."'
+    },
+    'realizada_el_dia_1': {
+        source: 'DATE', field: 'day',
+        description: '"realizada el día {tag} de..." — número del día (ej: "05")'
+    },
+    'realizada_el_dia_de_1': {
+        source: 'DATE', field: 'month',
+        description: '"...el día 05 de {tag} del año..." — mes en texto (ej: "mayo")'
+    },
+    'de_del_a_o_1': {
+        source: 'DATE', field: 'year',
+        description: '"...de mayo del año {tag}" — año (ej: "2026")'
+    },
+    'var_3': {
+        source: 'AI', field: 'cliente',
+        description: 'Subtítulo portada — nombre del cliente'
+    },
 
-    // Location
-    'del_localizado_en_1': { source: 'OIT', field: 'location', format: 'location', description: 'Ciudad, Departamento' },
-    'localizado_en_departamento_de_1': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento' },
-    'ubicado_en_el_1': { source: 'OIT', field: 'location', description: 'Ubicación' },
-    'de_monitoreo_ubicados_en_el_1': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad' },
+    // --- SECCIÓN 2.1: INFORMACIÓN DE LA EMPRESA (new tags from template modification) ---
+    'tag_razon_social': {
+        source: 'AI', field: 'cliente',
+        description: 'Razón social completa del cliente'
+    },
+    'tag_correo': {
+        source: 'AI', field: 'otrosDatos.correo',
+        description: 'Correo del contacto ambiental'
+    },
+    'tag_correo_valor': {
+        source: 'AI', field: 'otrosDatos.correo',
+        description: 'Valor del correo contacto'
+    },
+    'tag_representante': {
+        source: 'AI', field: 'otrosDatos.representante',
+        description: 'Nombre del representante del cliente'
+    },
+    'tag_telefono_valor': {
+        source: 'AI', field: 'otrosDatos.telefono',
+        description: 'Teléfono del representante'
+    },
+    'tag_direccion': {
+        source: 'AI', field: 'ubicacion.direccion',
+        description: 'Dirección de la sede del cliente'
+    },
+    'tag_departamento': {
+        source: 'AI', field: 'ubicacion.departamento',
+        description: 'Departamento donde se ejecutó el monitoreo'
+    },
+    'tag_ciudad': {
+        source: 'AI', field: 'ubicacion.ciudad',
+        description: 'Ciudad/municipio donde se ejecutó el monitoreo'
+    },
+    'tag_actividad_economica': {
+        source: 'AI', field: 'otrosDatos.actividadEconomica',
+        description: 'Actividad económica del cliente'
+    },
 
-    // Dates
-    'realizada_el_dia_1': { source: 'DATE', field: 'day', description: 'Día del monitoreo' },
-    'realizada_el_dia_de_1': { source: 'DATE', field: 'month', description: 'Mes del monitoreo' },
-    'de_del_a_o_1': { source: 'DATE', field: 'year', description: 'Año del monitoreo' },
-    'de_de_1': { source: 'DATE', field: 'year', description: 'Año' },
-    'de_de_2': { source: 'DATE', field: 'year', description: 'Año' },
-    'el_presente_monitoreo_se_efectuo_1': { source: 'SAMPLING', field: 'dateRange', description: 'Rango de fechas' },
-    'monitoreo_de_calidad_del_aire_ejecutado_entre_el_1': { source: 'SAMPLING', field: 'dateRange', description: 'Rango fechas' },
+    // --- TABLA 1: LABORATORIOS ---
+    'tag_lab_nombre': {
+        source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.',
+        description: 'Nombre del laboratorio responsable'
+    },
+    'tag_lab_parametro': {
+        source: 'AI', field: 'parametrosAnalizados',
+        description: 'Parámetros analizados por el laboratorio'
+    },
+    'tag_lab_resolucion': {
+        source: 'STATIC', staticValue: 'Resolución 1262 del 18 de junio de 2021',
+        description: 'Número y fecha de resolución de acreditación'
+    },
 
-    // Company
-    'fuente_serambiente_s_a_s_1': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente' },
-    'fuente_serambiente_s_a_s_2': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente' },
-    'fuente_serambiente_s_a_s_3': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente' },
-    'fuente_serambiente_s_a_s_4': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente' },
-    'fuente_serambiente_s_a_s_5': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente' },
-    'el_monitoreo_fue_realizado_por_la_empresa_servicio_1': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Empresa ejecutora' },
+    // --- METODOLOGÍA (new tags) ---
+    'tag_nombre_cliente_met': {
+        source: 'AI', field: 'cliente',
+        description: '"...requerimientos de {tag}, los cuales contemplaban..."'
+    },
+    'tag_num_puntos': {
+        source: 'AI', field: 'numeroPuntos',
+        description: 'Número de puntos de monitoreo: "en {tag} puntos..."'
+    },
+    'tag_ciudad_dept_met': {
+        source: 'AI', field: 'ubicacion.ciudadDepartamento',
+        description: 'Ciudad/departamento en metodología'
+    },
 
-    // Climate data
-    'tiene_un_clima_tropical_de_acuerdo_con_k_ppen_y_ge_1': { source: 'AI', field: 'clima.temperatura', description: 'Temperatura promedio' },
-    'tiene_un_clima_tropical_de_acuerdo_con_k_ppen_y_ge_2': { source: 'AI', field: 'clima.humedad', description: 'Humedad relativa' },
-    'tiene_un_clima_tropical_en_comparacion_con_el_invi_1': { source: 'AI', field: 'clima.temperatura', description: 'Temperatura' },
-    'tiene_un_clima_tropical_en_comparacion_con_el_invi_2': { source: 'AI', field: 'clima.humedad', description: 'Humedad' },
+    // --- CONCLUSIONES (new tags) ---
+    'tag_ciudad_dept_concl': {
+        source: 'AI', field: 'ubicacion.ciudadDepartamento',
+        description: 'Ciudad/departamento en conclusiones'
+    },
+    'tag_num_puntos_concl': {
+        source: 'AI', field: 'numeroPuntos',
+        description: 'Número de puntos en conclusiones'
+    },
 
-    // Station info
-    'puntos_de_monitoreo_los_cuales_se_ubican_en_el_1': { source: 'OIT', field: 'location', description: 'Ubicación puntos' },
-    'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_1': { source: 'AI', field: 'numeroPuntos', description: 'Número de puntos' },
-    'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_2': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad' },
+    // --- FOTOGRAFÍAS ---
+    'tag_foto1_desc': {
+        source: 'AI', field: 'puntos[0].fotoDescripcion',
+        description: 'Descripción de la fotografía 1'
+    },
+    'tag_foto2_desc': {
+        source: 'AI', field: 'puntos[1].fotoDescripcion',
+        description: 'Descripción de la fotografía 2'
+    },
+
+    // --- FUENTE AÑO ---
+    'tag_year': {
+        source: 'DATE', field: 'year',
+        description: 'Año en "Fuente: SERAMBIENTE S.A.S., {tag}"'
+    },
+    'tag_year_earth': {
+        source: 'DATE', field: 'year',
+        description: 'Año en "Google Earth., {tag}"'
+    },
+
+    // --- HISTORIAL DE CAMBIOS ---
+    'tag_ot_code_v00': {
+        source: 'OIT', field: 'oitNumber',
+        description: 'Código OT versión 00'
+    },
+    'tag_ot_code_v01': {
+        source: 'OIT', field: 'oitNumber',
+        description: 'Código OT versión 01'
+    },
+    'tag_ot_code_ref': {
+        source: 'OIT', field: 'oitNumber',
+        description: 'Código OT referencia en nota'
+    },
+    'tag_matriz_hist': {
+        source: 'AI', field: 'tipoMatriz',
+        description: 'Tipo de matriz en historial de cambios'
+    },
+
+    // --- TABLA 3: DATOS GENERALES ---
+    'tag_fecha_monitoreo': {
+        source: 'DATE', field: 'fullDate',
+        description: 'Fecha del monitoreo en Tabla 3'
+    },
+    'tag_lugar_monitoreo': {
+        source: 'AI', field: 'ubicacion.ciudadDepartamento',
+        description: 'Lugar del monitoreo en Tabla 3'
+    },
+    'tag_duracion_muestreo': {
+        source: 'AI', field: 'duracionMuestreo',
+        description: 'Duración del muestreo en Tabla 3'
+    },
+    'tag_puntos_monitoreo': {
+        source: 'AI', field: 'numeroPuntos',
+        description: 'Puntos de monitoreo en Tabla 3'
+    },
+    'tag_tipo_estudio': {
+        source: 'AI', field: 'tipoEstudio',
+        description: 'Tipo de estudio en Tabla 3'
+    },
+
+    // --- FOTOS PLACEHOLDER ---
+    'tag_foto_placeholder': {
+        source: 'STATIC', staticValue: '(Ver registro fotográfico en Anexo 1)',
+        description: 'Placeholder donde van las fotos georreferenciadas'
+    },
+
+    // --- CLIMA ---
+    'tag_temperatura': {
+        source: 'AI', field: 'clima.temperatura',
+        description: 'Temperatura media anual en °C'
+    },
+    'tag_precipitacion': {
+        source: 'AI', field: 'clima.precipitacion',
+        description: 'Precipitación anual en mm'
+    },
+
+
+    'nombre_cliente_los_cuales_contemplaban_la_toma_de__1': {
+        source: 'AI', field: 'cliente',
+        description: '"...características fisicoquímicas {tag}. No obstante..." — nombre del cliente'
+    },
+    'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_1': {
+        source: 'DATE', field: 'fullDate',
+        description: '"...realizada el {tag}, no fue posible..." — fecha completa de la visita'
+    },
+    'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_2': {
+        source: 'AI', field: 'ubicacion.ciudad',
+        description: '"...los puntos se {tag}. A continuación..." — ciudad o estado de los puntos'
+    },
+    'var_4': {
+        source: 'AI', field: 'tipoMatriz',
+        description: 'Tabla 4 — tipo de matriz (ej: "Agua subterránea")'
+    },
+    'en_el_anexo_2_formatos_de_campo_p_1': {
+        source: 'STATIC', staticValue: 'ág. 15',
+        description: '"...formatos de campo (p{tag})" — páginas del anexo'
+    },
+
+    // --- SECCIÓN 3.2: PUNTO DE MUESTREO ---
+    'var_8': {
+        source: 'AI', field: 'puntos[0].nombre',
+        description: 'Tabla 5 — nombre/ID del punto de monitoreo'
+    },
+    'var_10': {
+        source: 'AI', field: 'puntos[0].descripcion',
+        description: 'Tabla 5 — descripción del punto de muestreo'
+    },
+
+    // --- SECCIÓN 3.3: UBICACIÓN Y CLIMA ---
+    'de_monitoreo_realizado_en_el_1': {
+        source: 'AI', field: 'ubicacion.ciudad',
+        description: '"...realizado en el {tag}" — municipio/ciudad (ej: "municipio de Barranquilla")'
+    },
+    'tiene_un_clima_tropical_en_comparacion_con_el_invi_1': {
+        source: 'AI', field: 'ubicacion.ciudad',
+        description: '"{tag} tiene un clima tropical..." — nombre de la ciudad'
+    },
+    'tiene_un_clima_tropical_en_comparacion_con_el_invi_2': {
+        source: 'AI', field: 'ubicacion.ciudad',
+        description: '"En {tag} la temperatura media anual..." — nombre de la ciudad'
+    },
+
+    // --- TABLA 6: COORDENADAS ---
+    'var_15': {
+        source: 'AI', field: 'puntos[0].id',
+        description: 'Tabla 6 — Punto ID (ej: "V00")'
+    },
+    'var_16': {
+        source: 'AI', field: 'puntos[0].idMuestra',
+        description: 'Tabla 6 — ID de la muestra'
+    },
+    'var_17': {
+        source: 'AI', field: 'puntos[0].hora',
+        description: 'Tabla 6 — Hora del muestreo (ej: "08:30")'
+    },
+    'var_13': {
+        source: 'AI', field: 'puntos[0].latitud',
+        description: 'Tabla 6 — Latitud WGS84'
+    },
+    'var_14': {
+        source: 'AI', field: 'puntos[0].longitud',
+        description: 'Tabla 6 — Longitud WGS84'
+    },
+    'var_18': {
+        source: 'AI', field: 'puntos[0].norte',
+        description: 'Tabla 6 — Norte (Magna Sirgas)'
+    },
+    'var_19': {
+        source: 'AI', field: 'puntos[0].este',
+        description: 'Tabla 6 — Este (Magna Sirgas)'
+    },
+
+    // --- FIGURA 1 ---
+    'var_5': {
+        source: 'AI', field: 'puntos[0].nombre',
+        description: 'Nombre del punto debajo de la tabla 6, antes de Figura 1'
+    },
+    '1_ubicacion_geografica_1': {
+        source: 'AI', field: 'ubicacion.ciudadDepartamento',
+        description: '"Ubicación geográfica {tag} de monitoreo" — Ciudad, Departamento'
+    },
+
+    // --- SECCIÓN 4: CONCLUSIONES ---
+    'en_cumplimiento_de_los_compromisos_establecidos_co_1': {
+        source: 'AI', field: 'cliente',
+        description: '"{tag} en cumplimiento de los compromisos..." — nombre del cliente'
+    },
+
+    // --- SECCIÓN 5: BIBLIOGRAFÍA ---
+    'american_public_healt_association_apha_1': {
+        source: 'STATIC', staticValue: 'Standard Methods 24th Ed.',
+        description: '"APHA. {tag}. Standard Methods..." — edición del Standard Methods'
+    },
+    'standard_methods_for_the_examination_of_water_and__1': {
+        source: 'STATIC', staticValue: 'Standard Methods 24th Ed.',
+        description: '"...Wastewater. {tag}. Amer. Pub..." — edición'
+    },
+    'obtenido_de_1': {
+        source: 'STATIC', staticValue: 'IDEAM / Climate-Data.org',
+        description: '"{tag}{obtenido_de_www...}. Obtenido de:..." — fuente de datos climáticos'
+    },
+    'obtenido_de_www_es_climate_data_org_1': {
+        source: 'STATIC', staticValue: 'www.es.climate-data.org',
+        description: '"...Obtenido de: www.es.climate-data.org/" — URL fuente clima'
+    },
 };
 
-// RESPEL Template (64-09)
-export const RESPEL_CONFIG: TemplateConfig = {
-    templateType: 'RESPEL',
-    displayName: 'Caracterización de Residuos Peligrosos',
-    filePattern: 'FO-PO-PSM-64-09',
-    fields: {
-        ...COMMON_FIELDS,
-        'var_21': { source: 'AI', field: 'estaciones[0].codigo', description: 'Código estación 1' },
-        'var_22': { source: 'AI', field: 'estaciones[0].descripcion', description: 'Descripción estación 1' },
-        'var_23': { source: 'AI', field: 'estaciones[0].norte', description: 'Coordenada Norte' },
-        'var_24': { source: 'AI', field: 'estaciones[0].este', description: 'Coordenada Este' },
-        'de_estudio_de_caracterizacion_de_respel_en_1': { source: 'AI', field: 'tipoResiduo', description: 'Tipo de residuo caracterizado' },
-        'determinar_la_concentracion_de_contaminantes_en_lo_1': { source: 'AI', field: 'parametros', description: 'Parámetros analizados' },
-        'var_30': { source: 'STATIC', staticValue: 'Resolución 1207/2014', description: 'Resolución aplicable' },
-        'var_31': { source: 'STATIC', staticValue: 'Resolución 1207/2014', description: 'Resolución aplicable' },
-        'var_32': { source: 'STATIC', staticValue: 'Resolución 1207/2014', description: 'Resolución aplicable' },
-        'var_35': { source: 'OIT', field: 'location', description: 'Sede monitoreo' },
-        'var_36': { source: 'AI', field: 'cumplimiento', description: 'CUMPLE/NO CUMPLE' },
-        'var_37': { source: 'DATE', field: 'fullDate', description: 'Fecha de monitoreo' },
-        'se_realizo_la_toma_de_las_muestras_el_dia_1': { source: 'DATE', field: 'day', description: 'Día muestreo' },
-        'se_realizo_la_toma_de_las_muestras_el_dia_de_1': { source: 'DATE', field: 'monthYear', description: 'Mes y año muestreo' },
-        'punto_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Nombre punto 1' },
-        'finalmente_es_importante_mencionar_los_metodos_emp_1': { source: 'AI', field: 'metodologia', description: 'Metodología empleada' },
-    }
+// ================================================================
+// TEMPLATE CONFIGS
+// ================================================================
+
+export const ASUB_CONFIG: TemplateConfig = {
+    templateType: 'ASUB',
+    displayName: 'Informe de Agua Subterránea / Lixiviados',
+    filePattern: 'FO-PO-PSM-64-08',
+    fields: { ...AGUA_FIELDS }
 };
 
-// PUNTO SECO Template (64-10)
 export const PUNTO_SECO_CONFIG: TemplateConfig = {
     templateType: 'PUNTO_SECO',
     displayName: 'Informe de Punto Seco (Agua)',
     filePattern: 'FO-PO-PSM-64-10',
     fields: {
-        ...COMMON_FIELDS,
-        'informe_tecnico_de_estudio_de_caracterizacion_de_a_1': { source: 'AI', field: 'tituloInforme', description: 'Título del informe' },
-        'estudio_de_caracterizacion_1': { source: 'AI', field: 'tipoEstudio', description: 'Tipo de caracterización' },
-        'nombre_cliente_los_cuales_contemplaban_la_toma_de__1': { source: 'AI', field: 'cliente', description: 'Nombre cliente' },
-        'var_4': { source: 'AI', field: 'nit', description: 'NIT Cliente' },
-        'var_8': { source: 'AI', field: 'parametrosAnalizados', description: 'Parámetros analizados' },
-        'var_10': { source: 'AI', field: 'resultadosResumen', description: 'Resumen de resultados' },
-        'de_monitoreo_realizado_en_el_1': { source: 'OIT', field: 'location', description: 'Lugar de monitoreo' },
-        'var_15': { source: 'AI', field: 'cumplimiento', description: 'Cumplimiento normativo' },
-        'var_16': { source: 'AI', field: 'recomendaciones', description: 'Recomendaciones' },
-        '1_ubicacion_geografica_1': { source: 'STATIC', staticValue: 'Ver mapa en anexos', description: 'Ubicación geográfica' },
-        'en_cumplimiento_de_los_compromisos_establecidos_co_1': { source: 'AI', field: 'contrato', description: 'Referencia contrato' },
+        ...AGUA_FIELDS,
+        'informe_tecnico_de_estudio_de_caracterizacion_de_a_1': {
+            source: 'STATIC', staticValue: 'AGUA - PUNTO SECO',
+            description: 'Título header para punto seco'
+        },
+        'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_2': {
+            source: 'STATIC', staticValue: 'encontraban secos',
+            description: '"...los puntos se {tag}." — estado de los puntos (secos)'
+        },
     }
 };
 
-// AGUA SUBTERRÁNEA Y LIXIVIADOS Template (64-08)
-export const ASUB_CONFIG: TemplateConfig = {
-    templateType: 'ASUB',
-    displayName: 'Informe de Agua Subterránea / Lixiviados',
-    filePattern: 'FO-PO-PSM-64-08',
-    fields: {
-        ...COMMON_FIELDS,
-        'var_10': { source: 'AI', field: 'resultadosResumen', description: 'Resumen de resultados' },
-        'var_21': { source: 'AI', field: 'estaciones[0].codigo', description: 'ID Piezómetro 1' },
-        'var_22': { source: 'AI', field: 'estaciones[1].codigo', description: 'ID Piezómetro 2' },
-        'var_23': { source: 'AI', field: 'estaciones[2].codigo', description: 'ID Piezómetro 3' },
-    }
+// RESPEL (64-09) — placeholder, uses mostly AGUA_FIELDS + extras
+export const RESPEL_CONFIG: TemplateConfig = {
+    templateType: 'RESPEL',
+    displayName: 'Caracterización de Residuos Peligrosos',
+    filePattern: 'FO-PO-PSM-64-09',
+    fields: { ...AGUA_FIELDS }
 };
 
-// EMISIÓN DE RUIDO Template (65-06)
+// EMISIÓN DE RUIDO (65-06)
 export const EMISION_RUIDO_CONFIG: TemplateConfig = {
     templateType: 'EMISION_RUIDO',
     displayName: 'Estudio de Emisión de Ruido',
     filePattern: 'FO-PO-PSM-65-06',
-    fields: {
-        ...COMMON_FIELDS,
-        'monitoreo_de_emision_de_ruido_realizado_el_1': { source: 'DATE', field: 'fullDate', description: 'Fecha monitoreo' },
-        'un_monitoreo_de_emision_de_ruido_en_serambiente_s__1': { source: 'AI', field: 'descripcionMonitoreo', description: 'Descripción' },
-        'vigente_hasta_el_1': { source: 'STATIC', staticValue: 'vigente', description: 'Vigencia certificación' },
-        'las_mediciones_de_emision_de_ruido_se_llevaron_a_c_1': { source: 'AI', field: 'metodologia', description: 'Metodología' },
-        'de_monitoreo_ubicados_en_el_area_de_estudio_de_la__1': { source: 'AI', field: 'cliente', description: 'Área de estudio' },
-        'cabe_se_alar_que_la_jornada_de_monitoreo_se_ejecut_1': { source: 'AI', field: 'jornadaMonitoreo', description: 'Jornada de monitoreo' },
-        'el_monitoreo_se_realizo_1': { source: 'DATE', field: 'dateRange', description: 'Período' },
-        'var_19': { source: 'AI', field: 'jornada', description: 'Jornada (diurna/nocturna)' },
-        'el_proposito_de_la_medicion_es_determinar_los_nive_1': { source: 'AI', field: 'objetivos', description: 'Objetivo de medición' },
-        'aron_a_cabo_mediciones_de_emision_de_ruido_en_1': { source: 'AI', field: 'numeroPuntos', description: 'Número de puntos' },
-        'el_area_de_estudio_de_la_empresa_1': { source: 'AI', field: 'cliente', description: 'Empresa evaluada' },
-        'var_5': { source: 'AI', field: 'descripcionPuntos', description: 'Descripción puntos' },
-        '4_descripcion_y_ubicacion_1': { source: 'AI', field: 'ubicacionDetalle', description: 'Ubicación detallada' },
-        'var_20': { source: 'AI', field: 'sectorCategoria', description: 'Sector/Categoría' },
-        'var_21': { source: 'AI', field: 'estaciones[0].codigo', description: 'ID Estación 1' },
-        'var_22': { source: 'AI', field: 'estaciones[0].norte', description: 'Coord Norte 1' },
-        'var_23': { source: 'AI', field: 'estaciones[0].este', description: 'Coord Este 1' },
-        'el_equipo_utilizado_para_la_medicion_fue_un_sonome_1': { source: 'STATIC', staticValue: 'Sonómetro integrador tipo 1', description: 'Equipo' },
-        'el_equipo_utilizado_para_la_medicion_fue_un_sonome_2': { source: 'AI', field: 'equipoModelo', description: 'Modelo equipo' },
-        'los_resultados_obtenidos_en_las_medidas_de_la_emis_1': { source: 'AI', field: 'resumenResultados', description: 'Resumen resultados' },
-        'var_6': { source: 'SAMPLING', field: 'ruido.laeq1', format: 'number', description: 'LAeq punto 1' },
-        'var_7': { source: 'SAMPLING', field: 'ruido.laeq2', format: 'number', description: 'LAeq punto 2' },
-        'var_8': { source: 'SAMPLING', field: 'ruido.laeq3', format: 'number', description: 'LAeq punto 3' },
-        'laeq_t_residual_1': { source: 'SAMPLING', field: 'ruido.residual', description: 'LAeq residual' },
-        'var_10': { source: 'SAMPLING', field: 'condiciones.temperatura', description: 'Temperatura' },
-        'var_11': { source: 'SAMPLING', field: 'condiciones.humedad', description: 'Humedad' },
-        'var_12': { source: 'SAMPLING', field: 'condiciones.presion', description: 'Presión' },
-        'var_13': { source: 'AI', field: 'rosaVientos', description: 'Rosa de vientos' },
-        'grafica_1_se_logra_identificar_que_todos_los_punto_1': { source: 'AI', field: 'analisisGrafico', description: 'Análisis gráfico' },
-        'fueron_clasificados_como_conformes_con_respecto_al_1': { source: 'AI', field: 'clasificacionConformidad', description: 'Conformidad' },
-    }
+    fields: { ...AGUA_FIELDS }
 };
 
-// RUIDO AMBIENTAL Template (65-07)
+// RUIDO AMBIENTAL (65-07)
 export const RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
     templateType: 'RUIDO_AMBIENTAL',
     displayName: 'Estudio de Ruido Ambiental',
     filePattern: 'FO-PO-PSM-65-07',
-    fields: {
-        ...COMMON_FIELDS,
-        'aron_a_cabo_mediciones_de_ruido_ambiental_1': { source: 'AI', field: 'numeroPuntos', description: 'Número de puntos' },
-        'las_mediciones_de_ruido_ambiental_se_llevaron_a_ca_1': { source: 'AI', field: 'metodologia', description: 'Metodología' },
-        'las_mediciones_de_ruido_ambiental_se_realizaron_co_1': { source: 'AI', field: 'equipoUsado', description: 'Equipo usado' },
-        'la_jornada_de_monitoreo_de_ruido_ambiental_se_ejec_1': { source: 'AI', field: 'jornadaMonitoreo', description: 'Jornada monitoreo' },
-        'ambiental_para_la_fecha_y_hora_del_monitoreo_el_co_1': { source: 'AI', field: 'condicionesAmbientales', description: 'Condiciones' },
-        'ambiental_por_cada_punto_de_muestreo_es_de_una_hor_1': { source: 'STATIC', staticValue: '1 hora', description: 'Duración medición' },
-        '5_2_1_ruido_ambiental_diurno_habil_1': { source: 'AI', field: 'resultadosDiurnoHabil', description: 'Resultados diurno hábil' },
-        '5_2_2_ruido_ambiental_nocturno_habil_1': { source: 'AI', field: 'resultadosNocturnoHabil', description: 'Resultados nocturno hábil' },
-        'ruido_ambiental_diurno_no_habil_1': { source: 'AI', field: 'resultadosDiurnoNoHabil', description: 'Resultados diurno no hábil' },
-        'isofonas_1': { source: 'STATIC', staticValue: 'Ver mapas en anexos', description: 'Referencia isofonas' },
-        'mapas_de_ruido_isofonas_para_el_horario_diurno_hab_1': { source: 'AI', field: 'analisisMapas', description: 'Análisis mapas ruido' },
-        'var_21': { source: 'AI', field: 'estaciones[0].codigo', description: 'ID Estación 1' },
-        'var_22': { source: 'AI', field: 'estaciones[0].norte', description: 'Coord Norte 1' },
-        'var_23': { source: 'AI', field: 'estaciones[1].codigo', description: 'ID Estación 2' },
-        'var_24': { source: 'AI', field: 'estaciones[1].norte', description: 'Coord Norte 2' },
-    }
+    fields: { ...AGUA_FIELDS }
 };
 
-// CALIDAD DE AIRE Template (66-18)
-export const CALIDAD_AIRE_CONFIG: TemplateConfig = {
-    templateType: 'CALIDAD_AIRE',
-    displayName: 'Informe de Calidad de Aire',
-    filePattern: 'FO-PO-PSM-66-18',
-    fields: {
-        ...COMMON_FIELDS,
-        'e_por_1': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Empresa' },
-        'calidad_del_aire_ejecutado_entre_el_1': { source: 'SAMPLING', field: 'dateRange', description: 'Período' },
-        'calidad_del_aire_en_el_area_de_estudio_del_el_cual_1': { source: 'AI', field: 'areaEstudio', description: 'Área de estudio' },
-        'estaciones_en_sitios_representativos_de_la_direcci_1': { source: 'AI', field: 'criterioUbicacion', description: 'Criterio ubicación' },
-        'estaciones_ubicadas_en_el_area_de_estudio_del_1': { source: 'AI', field: 'cliente', description: 'Cliente' },
-        'estaciones_ubicadas_en_el_area_de_estudio_del_loca_1': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento' },
-        'determinar_los_niveles_de_inmision_de_los_contamin_1': { source: 'AI', field: 'parametros', description: 'Contaminantes medidos' },
-        'las_mediciones_toma_de_muestra_y_analisis_de_1': { source: 'STATIC', staticValue: 'calidad del aire', description: 'Tipo análisis' },
-        'fue_realizada_por_servicios_de_ingenieria_y_ambien_1': { source: 'STATIC', staticValue: 'Resolución 1262 de 2021', description: 'Acreditación' },
-        'a_fin_de_dar_cumplimiento_a_los_requerimientos_de__1': { source: 'AI', field: 'numeroEstaciones', description: 'Número estaciones' },
-        'realizar_la_evaluacion_de_la_calidad_de_aire_en_1': { source: 'AI', field: 'numeroEstaciones', description: 'Número estaciones' },
-        'para_determinar_los_niveles_de_calidad_de_aire_de_1': { source: 'AI', field: 'numeroEstaciones', description: 'Número estaciones' },
-        'para_el_desarrollo_de_este_estudio_en_particular_f_1': { source: 'AI', field: 'seleccionEstaciones', description: 'Selección de estaciones' },
-        'var_16': { source: 'AI', field: 'estaciones[0].codigo', description: 'ID Estación 1' },
-        'var_17': { source: 'AI', field: 'estaciones[0].norte', description: 'Coord Norte 1' },
-        'var_18': { source: 'AI', field: 'estaciones[0].este', description: 'Coord Este 1' },
-        'var_19': { source: 'AI', field: 'estaciones[1].codigo', description: 'ID Estación 2' },
-        'var_20': { source: 'AI', field: 'estaciones[1].norte', description: 'Coord Norte 2' },
-        'var_21': { source: 'AI', field: 'estaciones[2].codigo', description: 'ID Estación 3' },
-        'var_27': { source: 'AI', field: 'equipos', description: 'Equipos usados' },
-        'var_28': { source: 'STATIC', staticValue: '2.0 m', description: 'Altura muestreo' },
-        'var_31': { source: 'AI', field: 'observaciones', description: 'Observaciones' },
-        'var_34': { source: 'SAMPLING', field: 'resultados.pm10', format: 'number', description: 'Resultado PM10' },
-        'var_51': { source: 'SAMPLING', field: 'resultados.valor', format: 'number', description: 'Valor medido' },
-        'los_resultados_de_las_1': { source: 'STATIC', staticValue: 'estaciones de monitoreo', description: 'Referencia resultados' },
-        'var_53': { source: 'STATIC', staticValue: '75', description: 'Límite PM10 24h' },
-        'var_54': { source: 'STATIC', staticValue: '37', description: 'Límite PM2.5 24h' },
-        'var_55': { source: 'STATIC', staticValue: '100', description: 'Límite NO2 1h' },
-        'var_56': { source: 'STATIC', staticValue: '50', description: 'Límite SO2 24h' },
-        'var_57': { source: 'STATIC', staticValue: '24 horas', description: 'Tiempo exposición' },
-        'las_evaluaciones_de_la_calidad_del_aire_se_efectua_1': { source: 'AI', field: 'numeroEstaciones', description: 'Número estaciones' },
-        'las_evaluaciones_de_la_calidad_del_aire_se_efectua_2': { source: 'SAMPLING', field: 'dateRange', description: 'Período evaluación' },
-        'de_monitoreo_evaluadas_durante_el_periodo_comprend_1': { source: 'AI', field: 'parametros', description: 'Parámetros evaluados' },
-        'en_el_area_de_estudio_1': { source: 'AI', field: 'cliente', description: 'Cliente' },
-        'en_el_area_de_estudio_del_1': { source: 'AI', field: 'cliente', description: 'Cliente' },
-        'las_normas_de_calidad_del_aire_para_todo_el_territ_1': { source: 'STATIC', staticValue: 'Resolución 2254 de 2017', description: 'Normativa' },
-        'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_1': { source: 'STATIC', staticValue: 'EPA CFR 40 Part 50', description: 'Método PM10' },
-        'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_2': { source: 'STATIC', staticValue: 'EPA CFR 40 Part 50', description: 'Método PM10' },
-        'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1': { source: 'STATIC', staticValue: 'EPA CFR 40 Part 50', description: 'Método PM2.5' },
-        '3_ficha_tecnica_1': { source: 'AI', field: 'estaciones[0].codigo', description: 'Estación ficha' },
-        'se_presentan_las_incertidumbres_de_los_resultados__1': { source: 'STATIC', staticValue: 'se detallan en el Anexo 4', description: 'Incertidumbres' },
-        'las_incertidumbres_de_los_resultados_asociados_a_c_1': { source: 'STATIC', staticValue: 'se detallan en el Anexo 4', description: 'Incertidumbres' },
-        'en_las_siguientes_secciones_se_presentan_las_conce_1': { source: 'AI', field: 'parametrosPrincipales', description: 'Parámetros principales' },
-        'en_las_siguientes_secciones_se_presentan_las_conce_2': { source: 'AI', field: 'cliente', description: 'Cliente' },
-    }
-};
-
-// OLORES OFENSIVOS Template (66-19)
-export const OLORES_CONFIG: TemplateConfig = {
-    templateType: 'OLORES',
-    displayName: 'Informe de Olores Ofensivos',
-    filePattern: 'FO-PO-PSM-66-19',
-    fields: {
-        ...COMMON_FIELDS,
-        'informe_tecnico_de_estudio_de_olores_ofensivos_en__1': { source: 'AI', field: 'cliente', description: 'Cliente' },
-        'olores_ofensivos_en_calidad_de_aire_en_el_area_del_1': { source: 'AI', field: 'areaEstudio', description: 'Área de estudio' },
-        'realizar_la_evaluacion_de_olores_ofensivos_en_cali_1': { source: 'AI', field: 'objetivo', description: 'Objetivo' },
-        'la_calidad_de_aire_por_olores_ofensivos_en_las_1': { source: 'AI', field: 'numeroEstaciones', description: 'Número estaciones' },
-        'de_la_calidad_del_aire_por_olores_ofensivos_se_efe_1': { source: 'AI', field: 'metodologia', description: 'Metodología' },
-        'resolucion_1541_de_2013_del_ministerio_de_ambiente_1': { source: 'STATIC', staticValue: 'Resolución 1541 de 2013', description: 'Normativa' },
-    }
-};
-
-// FUENTES FIJAS Template (67-11)
-export const FUENTES_FIJAS_CONFIG: TemplateConfig = {
-    templateType: 'FUENTES_FIJAS',
-    displayName: 'Informe de Fuentes Fijas',
-    filePattern: 'FO-PO-PSM-67-11',
-    fields: {
-        ...COMMON_FIELDS,
-        'monitoreo_de_emisiones_en_fuentes_fijas_realizado__1': { source: 'DATE', field: 'fullDate', description: 'Fecha monitoreo' },
-        'de_evaluacion_de_emisiones_atmosfericas_de_fuentes_1': { source: 'AI', field: 'objetivoEvaluacion', description: 'Objetivo' },
-        'a_traves_de_monitoreo_isocinetico_1': { source: 'STATIC', staticValue: 'muestreo isocinético', description: 'Tipo muestreo' },
-        'la_legislacion_colombiana_aplicable_a_las_emisione_1': { source: 'STATIC', staticValue: 'Resolución 909 de 2008', description: 'Normativa' },
-        'de_la_resolucion_909_de_2008_al_reportar_una_conce_1': { source: 'AI', field: 'cumplimiento909', description: 'Cumplimiento Res. 909' },
-        'de_la_resolucion_909_de_2008_debido_a_que_se_repor_1': { source: 'AI', field: 'razonCumplimiento', description: 'Razón cumplimiento' },
-        'las_emisiones_de_oxido_de_nitrogeno_nox_para_las_f_1': { source: 'SAMPLING', field: 'emisionesNOx', description: 'Emisiones NOx' },
-        'valor_tomado_de_la_resolucion_909_de_2008_para_flu_1': { source: 'STATIC', staticValue: 'Resolución 909/2008', description: 'Referencia normativa' },
-        'reportadas_a_condiciones_de_referencia_de_presion__1': { source: 'STATIC', staticValue: '25°C y 760 mmHg', description: 'Condiciones referencia' },
-        'se_realizo_correccion_a_oxigeno_de_referencia_del_1': { source: 'AI', field: 'correccionO2', description: 'Corrección O2' },
-        'se_realizo_correccion_a_oxigeno_de_referencia_del__1': { source: 'AI', field: 'correccionO2', description: 'Corrección O2' },
-        'cuantificar_la_emision_de_1': { source: 'AI', field: 'parametrosEmision', description: 'Parámetros de emisión' },
-    }
-};
-
-// EMISIÓN DE RUIDO Y RUIDO AMBIENTAL Template (65-09)
-export const EMISION_RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
-    templateType: 'EMISION_RUIDO_AMBIENTAL',
-    displayName: 'Estudio de Emisión de Ruido y Ruido Ambiental',
-    filePattern: 'FO-PO-PSM-65-09',
-    fields: {
-        ...COMMON_FIELDS,
-        'var_1': { source: 'AI', field: 'tituloInforme', description: 'Título' },
-    }
-};
-
-// RUIDO INTRADOMICILIARIO Template (65-08)
+// RUIDO INTRADOMICILIARIO (65-08)
 export const RUIDO_INTRADOMICILIARIO_CONFIG: TemplateConfig = {
     templateType: 'RUIDO_INTRADOMICILIARIO',
     displayName: 'Estudio de Ruido Intradomiciliario',
     filePattern: 'FO-PO-PSM-65-08',
-    fields: {
-        ...COMMON_FIELDS,
-        'var_1': { source: 'AI', field: 'tituloInforme', description: 'Título' },
-    }
+    fields: { ...AGUA_FIELDS }
 };
 
-// PARTÍCULAS VIABLES Template (66-20)
+// EMISIÓN DE RUIDO Y RUIDO AMBIENTAL (65-09)
+export const EMISION_RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
+    templateType: 'EMISION_RUIDO_AMBIENTAL',
+    displayName: 'Estudio de Emisión de Ruido y Ruido Ambiental',
+    filePattern: 'FO-PO-PSM-65-09',
+    fields: { ...AGUA_FIELDS }
+};
+
+// CALIDAD DE AIRE (66-18)
+export const CALIDAD_AIRE_CONFIG: TemplateConfig = {
+    templateType: 'CALIDAD_AIRE',
+    displayName: 'Informe de Calidad de Aire',
+    filePattern: 'FO-PO-PSM-66-18',
+    fields: { ...AGUA_FIELDS }
+};
+
+// OLORES OFENSIVOS (66-19)
+export const OLORES_CONFIG: TemplateConfig = {
+    templateType: 'OLORES',
+    displayName: 'Informe de Olores Ofensivos',
+    filePattern: 'FO-PO-PSM-66-19',
+    fields: { ...AGUA_FIELDS }
+};
+
+// PARTÍCULAS VIABLES (66-20)
 export const PARTICULAS_VIABLES_CONFIG: TemplateConfig = {
     templateType: 'PARTICULAS_VIABLES',
     displayName: 'Informe de Partículas Viables',
     filePattern: 'FO-PO-PSM-66-20',
-    fields: {
-        ...COMMON_FIELDS,
-        'var_1': { source: 'AI', field: 'tituloInforme', description: 'Título' },
-    }
+    fields: { ...AGUA_FIELDS }
 };
 
-// PREVIOS EN FUENTES FIJAS Template (67-10)
+// PREVIOS EN FUENTES FIJAS (67-10)
 export const FUENTES_FIJAS_PREVIO_CONFIG: TemplateConfig = {
     templateType: 'FUENTES_FIJAS_PREVIO',
     displayName: 'Informe Previo de Fuentes Fijas',
     filePattern: 'FO-PO-PSM-67-10',
-    fields: {
-        ...COMMON_FIELDS,
-        'var_1': { source: 'AI', field: 'tituloInforme', description: 'Título' },
-    }
+    fields: { ...AGUA_FIELDS }
 };
 
-// Map template type to config
+// FUENTES FIJAS (67-11)
+export const FUENTES_FIJAS_CONFIG: TemplateConfig = {
+    templateType: 'FUENTES_FIJAS',
+    displayName: 'Informe de Fuentes Fijas',
+    filePattern: 'FO-PO-PSM-67-11',
+    fields: { ...AGUA_FIELDS }
+};
+
+// ================================================================
+// REGISTRY
+// ================================================================
 export const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
-    'RESPEL': RESPEL_CONFIG,
-    'PUNTO_SECO': PUNTO_SECO_CONFIG,
     'ASUB': ASUB_CONFIG,
+    'PUNTO_SECO': PUNTO_SECO_CONFIG,
+    'RESPEL': RESPEL_CONFIG,
     'EMISION_RUIDO': EMISION_RUIDO_CONFIG,
-    'EMISION_RUIDO_AMBIENTAL': EMISION_RUIDO_AMBIENTAL_CONFIG,
     'RUIDO_AMBIENTAL': RUIDO_AMBIENTAL_CONFIG,
     'RUIDO_INTRADOMICILIARIO': RUIDO_INTRADOMICILIARIO_CONFIG,
+    'EMISION_RUIDO_AMBIENTAL': EMISION_RUIDO_AMBIENTAL_CONFIG,
     'CALIDAD_AIRE': CALIDAD_AIRE_CONFIG,
     'OLORES': OLORES_CONFIG,
     'PARTICULAS_VIABLES': PARTICULAS_VIABLES_CONFIG,
@@ -345,23 +456,21 @@ export const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
     'FUENTES_FIJAS_PREVIO': FUENTES_FIJAS_PREVIO_CONFIG,
 };
 
-/**
- * Get template type from filename
- */
 export function getTemplateType(fileName: string): string {
-    if (fileName.includes('RESPEL')) return 'RESPEL';
-    if (fileName.includes('PUNTO SECO') || fileName.includes('64-10')) return 'PUNTO_SECO';
-    if (fileName.includes('ASUB') || fileName.includes('64-08') || fileName.includes('SUBTERRÁNEA') || fileName.includes('LIXIVIADOS')) return 'ASUB';
-    if (fileName.includes('EMISIÓN DE RUIDO Y RUIDO AMBIENTAL')) return 'EMISION_RUIDO_AMBIENTAL';
-    if (fileName.includes('EMISIÓN DE RUIDO') || fileName.includes('65-06')) return 'EMISION_RUIDO';
-    if (fileName.includes('RUIDO INTRADOMICILIARIO') || fileName.includes('65-08')) return 'RUIDO_INTRADOMICILIARIO';
-    if (fileName.includes('RUIDO AMBIENTAL') || fileName.includes('65-07')) return 'RUIDO_AMBIENTAL';
-    if (fileName.includes('CALIDAD DE AIRE') || fileName.includes('66-18')) return 'CALIDAD_AIRE';
-    if (fileName.includes('OLORES OFENSIVOS') || fileName.includes('66-19')) return 'OLORES';
-    if (fileName.includes('PARTÍCULAS VIABLES') || fileName.includes('66-20')) return 'PARTICULAS_VIABLES';
-    if (fileName.includes('PREVIOS EN FUENTES FIJAS') || fileName.includes('67-10')) return 'FUENTES_FIJAS_PREVIO';
-    if (fileName.includes('FUENTES FIJAS') || fileName.includes('67-11')) return 'FUENTES_FIJAS';
-    return 'UNKNOWN';
+    const upper = fileName.toUpperCase();
+    if (upper.includes('RESPEL') || upper.includes('64-09')) return 'RESPEL';
+    if (upper.includes('PUNTO SECO') || upper.includes('64-10')) return 'PUNTO_SECO';
+    if (upper.includes('64-08') || upper.includes('SUBTERR')) return 'ASUB';
+    if (upper.includes('65-09')) return 'EMISION_RUIDO_AMBIENTAL';
+    if (upper.includes('65-06')) return 'EMISION_RUIDO';
+    if (upper.includes('65-08')) return 'RUIDO_INTRADOMICILIARIO';
+    if (upper.includes('65-07')) return 'RUIDO_AMBIENTAL';
+    if (upper.includes('66-18')) return 'CALIDAD_AIRE';
+    if (upper.includes('66-19')) return 'OLORES';
+    if (upper.includes('66-20')) return 'PARTICULAS_VIABLES';
+    if (upper.includes('67-10')) return 'FUENTES_FIJAS_PREVIO';
+    if (upper.includes('67-11')) return 'FUENTES_FIJAS';
+    return 'ASUB'; // Default to AGUA
 }
 
 export default TEMPLATE_CONFIGS;

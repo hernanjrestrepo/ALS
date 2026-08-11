@@ -52,6 +52,7 @@ const aiService = new ai_service_1.AIService();
 const notification_controller_1 = require("./notification.controller");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+// import { marked } from 'marked';
 const axios_1 = __importDefault(require("axios"));
 const prisma = new client_1.PrismaClient();
 // Accept Planning Proposal
@@ -232,47 +233,54 @@ exports.getSamplingData = getSamplingData;
 const uploadLabResults = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
+        const { group = 'General' } = req.body; // New: optional group
         const file = req.file;
         if (!file) {
             return res.status(400).json({ error: 'No se proporcionó archivo' });
         }
         // Fetch current OIT to append file
         const currentOit = yield prisma.oIT.findUnique({ where: { id }, select: { labResultsUrl: true } });
-        let fileList = [];
+        let groupedFiles = {};
         if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.labResultsUrl) {
             try {
-                // Try parsing as JSON array
                 const parsed = JSON.parse(currentOit.labResultsUrl);
                 if (Array.isArray(parsed)) {
-                    fileList = parsed;
+                    // Migration: treat as General
+                    groupedFiles = { 'General': parsed };
+                }
+                else if (typeof parsed === 'object' && parsed !== null) {
+                    groupedFiles = parsed;
                 }
                 else {
-                    fileList = [currentOit.labResultsUrl];
+                    groupedFiles = { 'General': [currentOit.labResultsUrl] };
                 }
             }
             catch (e) {
-                fileList = [currentOit.labResultsUrl];
+                groupedFiles = { 'General': [currentOit.labResultsUrl] };
             }
         }
         const newPath = `uploads/${file.filename}`;
-        fileList.push(newPath);
+        if (!groupedFiles[group])
+            groupedFiles[group] = [];
+        groupedFiles[group].push(newPath);
         // 1. Return immediate response and set status to ANALYZING
         yield prisma.oIT.update({
             where: { id },
             data: {
-                labResultsUrl: JSON.stringify(fileList),
-                labResultsAnalysis: null, // Clear previous analysis
+                labResultsUrl: JSON.stringify(groupedFiles),
+                // We keep status as ANALYZING. 
+                // Analysis is now stored per group in labResultsAnalysis
                 status: 'ANALYZING'
             }
         });
         res.json({
             success: true,
-            labResultsUrl: JSON.stringify(fileList),
+            labResultsUrl: JSON.stringify(groupedFiles),
             status: 'ANALYZING',
-            message: 'Resultados subidos. Análisis completo en curso...'
+            message: `Resultados para ${group} subidos. Análisis en curso...`
         });
-        // 2. Trigger asynchronous processing
-        processLabResultsAsync(id, fileList.map(url => url.replace('uploads/', ''))).catch(err => {
+        // 2. Trigger asynchronous processing for THIS GROUP
+        processLabResultsAsync(id, groupedFiles[group].map(url => url.replace('uploads/', '')), group).catch(err => {
             console.error('Error in background lab processing:', err);
         });
     }
@@ -284,10 +292,10 @@ const uploadLabResults = (req, res) => __awaiter(void 0, void 0, void 0, functio
 exports.uploadLabResults = uploadLabResults;
 // Background Processor for Lab Results
 // Background Processor for Lab Results
-function processLabResultsAsync(oitId, filenames) {
-    return __awaiter(this, void 0, void 0, function* () {
+function processLabResultsAsync(oitId_1, filenames_1) {
+    return __awaiter(this, arguments, void 0, function* (oitId, filenames, group = 'General') {
         try {
-            console.log(`Starting background lab analysis for OIT ${oitId} with ${filenames.length} files`);
+            console.log(`Starting background lab analysis for OIT ${oitId}, Group: ${group} with ${filenames.length} files`);
             const { pdfService } = require('../services/pdf.service');
             const path = require('path');
             let fullCombinedText = '';
@@ -314,24 +322,35 @@ function processLabResultsAsync(oitId, filenames) {
             }
             // Get OIT Context for better analysis
             const oit = yield prisma.oIT.findUnique({ where: { id: oitId } });
-            const oitContext = (oit === null || oit === void 0 ? void 0 : oit.description) || '';
-            // Analyze with AI - Now returns text
+            const oitContext = `${(oit === null || oit === void 0 ? void 0 : oit.description) || ''} - Servicio específico: ${group}`;
+            // Analyze with AI
             const analysis = yield aiService.analyzeLabResults(fullCombinedText, oitContext);
-            // Update OIT with results - Save as plain text
+            // Update grouped internal analysis
+            let currentAnalyses = {};
+            if (oit === null || oit === void 0 ? void 0 : oit.labResultsAnalysis) {
+                try {
+                    const parsed = JSON.parse(oit.labResultsAnalysis);
+                    currentAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': String(parsed) };
+                }
+                catch (_a) {
+                    currentAnalyses = { 'General': oit.labResultsAnalysis };
+                }
+            }
+            currentAnalyses[group] = analysis;
+            // Update OIT with results
             yield prisma.oIT.update({
                 where: { id: oitId },
                 data: {
-                    labResultsAnalysis: analysis, // Save as text, not JSON
+                    labResultsAnalysis: JSON.stringify(currentAnalyses),
                     status: analysis.includes('Error') ? 'REVIEW_NEEDED' : 'COMPLETED'
                 }
             });
-            console.log(`Lab analysis completed for OIT ${oitId}`);
+            console.log(`Lab analysis completed for OIT ${oitId}, Group: ${group}`);
             // Automatically generate final report if analysis was successful
             if (!analysis.includes('Error')) {
-                console.log(`Triggering automatic report generation for OIT ${oitId}`);
+                console.log(`Triggering automatic report generation for OIT ${oitId}, Group: ${group}`);
                 try {
-                    yield internalGenerateFinalReport(oitId);
-                    console.log(`Automatic report generation successful for OIT ${oitId}`);
+                    yield internalGenerateFinalReport(oitId, group);
                 }
                 catch (reportErr) {
                     console.error(`Automatic report generation failed for OIT ${oitId}:`, reportErr);
@@ -351,134 +370,274 @@ function processLabResultsAsync(oitId, filenames) {
     });
 }
 // Reusable report generation logic
-function internalGenerateFinalReport(id) {
+function internalGenerateFinalReport(id, targetGroup) {
     return __awaiter(this, void 0, void 0, function* () {
         const { pdfService } = require('../services/pdf.service');
+        const { docxService } = require('../services/docx.service');
         const { validationService } = require('../services/validation.service');
-        const marked = require('marked');
-        console.log(`[Report] Starting generation for OIT ${id}`);
+        const { TemplateDataMapper } = require('../config/templateDataMapper');
+        const { marked } = yield Promise.resolve().then(() => __importStar(require('marked')));
+        console.log(`[Report] Starting grouped generation for OIT ${id}`);
         const oit = yield prisma.oIT.findUnique({ where: { id } });
         if (!oit)
             throw new Error('OIT no encontrada');
-        // 1. Extract Lab Text if available
-        let labText = '';
-        if (oit.labResultsUrl) {
-            const uploadsRoot = path_1.default.join(__dirname, '../../');
-            const potentialPath = oit.labResultsUrl.startsWith('/') ? oit.labResultsUrl : path_1.default.join(uploadsRoot, oit.labResultsUrl);
-            const potentialPath2 = path_1.default.join(uploadsRoot, 'uploads', path_1.default.basename(oit.labResultsUrl));
-            if (fs_1.default.existsSync(potentialPath)) {
-                labText = yield pdfService.extractText(potentialPath);
+        // 1. Prepare grouped data
+        let groupedLabAnalyses = {};
+        if (oit.labResultsAnalysis) {
+            try {
+                const parsed = JSON.parse(oit.labResultsAnalysis);
+                groupedLabAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': String(parsed) };
             }
-            else if (fs_1.default.existsSync(potentialPath2)) {
-                labText = yield pdfService.extractText(potentialPath2);
+            catch (_a) {
+                groupedLabAnalyses = { 'General': oit.labResultsAnalysis };
             }
         }
-        // 2. AI Generation
-        // Ensure we have some analysis text even if standard generation fails
-        let reportMarkdown = yield validationService.generateFinalReportContent(oit, labText);
-        if (!reportMarkdown)
-            reportMarkdown = "No se pudo generar el análisis automático.";
-        const date = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
-        // 3. Try to generate Word report if template exists
+        // 2. Parse sampling sheet analysis
+        let groupedSheetAnalysis = {};
+        if (oit.samplingSheetAnalysis) {
+            try {
+                const parsed = JSON.parse(oit.samplingSheetAnalysis);
+                groupedSheetAnalysis = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': parsed };
+            }
+            catch (e) {
+                console.warn('[Report] Failed to parse samplingSheetAnalysis', e);
+            }
+        }
+        console.log(`[Report] Available labAnalysis keys: [${Object.keys(groupedLabAnalyses).join(', ')}]`);
+        console.log(`[Report] Available sheetAnalysis keys: [${Object.keys(groupedSheetAnalysis).join(', ')}]`);
+        // 3. Group Templates by Service Type
+        const templateIds = oit.selectedTemplateIds ? JSON.parse(oit.selectedTemplateIds) : [];
+        const generatedReports = [];
+        if (templateIds.length === 0) {
+            // Fallback: One General Report
+            console.log('[Report] No templates selected, generating general report.');
+            const groupLabAnalysis = groupedLabAnalyses['General'] || '';
+            const groupSheetAnalysis = groupedSheetAnalysis['General'] || null;
+            const reportMarkdown = yield validationService.generateFinalReportContent(oit, groupLabAnalysis, 'General', groupSheetAnalysis);
+            const { filename, isDocx } = yield generateDocumentFromMarkdown(oit, reportMarkdown, null);
+            generatedReports.push({ name: 'Informe General', url: filename, type: isDocx ? 'docx' : 'pdf' });
+            // Generate Comunicado for General
+            if (groupLabAnalysis) {
+                try {
+                    console.log('[Report] Generating comunicado for General...');
+                    const comunicadoContent = yield validationService.generateComunicadoContent(oit, groupLabAnalysis, 'General');
+                    const { comunicadoService } = require('../services/comunicado.service');
+                    const comunicadoFilename = yield comunicadoService.generateComunicado(oit, comunicadoContent, 'General');
+                    generatedReports.push({ name: 'Comunicado General', url: comunicadoFilename, type: 'docx' });
+                }
+                catch (comErr) {
+                    console.error('[Report] Comunicado generation failed for General:', comErr);
+                }
+            }
+        }
+        else {
+            // Fetch all templates
+            const templates = yield prisma.samplingTemplate.findMany({
+                where: { id: { in: templateIds } }
+            });
+            // Group by oitType
+            const groupedTemplates = {};
+            // Fuzzy match helper: checks if either string contains the other (case-insensitive)
+            const matchesGroup = (oitType, target) => {
+                const a = oitType.toLowerCase().trim();
+                const b = target.toLowerCase().trim();
+                return a === b || a.includes(b) || b.includes(a);
+            };
+            for (const t of templates) {
+                const type = t.oitType || 'General';
+                if (targetGroup && targetGroup !== 'General' && !matchesGroup(type, targetGroup))
+                    continue;
+                if (!groupedTemplates[type])
+                    groupedTemplates[type] = [];
+                groupedTemplates[type].push(t);
+            }
+            if (Object.keys(groupedTemplates).length === 0 && targetGroup && targetGroup !== 'General') {
+                console.warn(`[Report] No templates found for targetGroup: "${targetGroup}". Available oitTypes: ${templates.map(t => t.oitType).join(', ')}`);
+            }
+            console.log(`[Report] Found groups to process: ${Object.keys(groupedTemplates).join(', ')}`);
+            // Generate reports for targeted Groups in PARALLEL to avoid timeouts
+            const reportPromises = Object.entries(groupedTemplates).map((_a) => __awaiter(this, [_a], void 0, function* ([groupName, group]) {
+                try {
+                    // Find a valid DOCX template to use
+                    let masterTemplate = group.find(t => t.reportTemplateFile);
+                    // Fallback 1: First in group
+                    if (!masterTemplate && group.length > 0)
+                        masterTemplate = group[0];
+                    if (!masterTemplate || !masterTemplate.reportTemplateFile) {
+                        const errorMsg = `[Report] CRITICAL: No DOCX template configured for service "${groupName}". Please configure a template file for this service in the Templates module.`;
+                        console.error(errorMsg);
+                        throw new Error(`La plantilla DOCX para el servicio "${groupName}" no está configurada.`);
+                    }
+                    // Context description: "Agua Potable (Fisicoquímico, Microbiológico)"
+                    const serviceContext = `${groupName} (${group.map(t => t.name).join(', ')})`;
+                    // Fuzzy key lookup: lab analyses are stored under service names like "SERVICIO 1 - AGUAS"
+                    // but groupName is the oitType like "AGUA". We need to find the matching key.
+                    const fuzzyLookup = (record, key) => {
+                        // 1. Exact match
+                        if (record[key] !== undefined)
+                            return record[key];
+                        // 2. Word-level fuzzy match (same logic as matchesGroup)
+                        const keyLower = key.toLowerCase().trim();
+                        for (const storedKey of Object.keys(record)) {
+                            if (storedKey === 'General')
+                                continue; // Skip General for fuzzy match
+                            const storedLower = storedKey.toLowerCase().trim();
+                            if (storedLower.includes(keyLower) || keyLower.includes(storedLower)) {
+                                console.log(`[Report] Fuzzy key match: "${key}" → "${storedKey}"`);
+                                return record[storedKey];
+                            }
+                            // Word-level: split both and check for significant overlap
+                            const keyWords = keyLower.split(/[\s_\-,]+/).filter(w => w.length >= 3);
+                            const storedWords = storedLower.split(/[\s_\-,]+/).filter(w => w.length >= 3);
+                            const hasOverlap = keyWords.some(w => storedWords.some(sw => sw.includes(w) || w.includes(sw)));
+                            if (hasOverlap) {
+                                console.log(`[Report] Fuzzy word match: "${key}" → "${storedKey}"`);
+                                return record[storedKey];
+                            }
+                        }
+                        // 3. Fallback to General
+                        return record['General'];
+                    };
+                    const groupLabAnalysisRaw = fuzzyLookup(groupedLabAnalyses, groupName) || '';
+                    let groupLabAnalysisNarrative = typeof groupLabAnalysisRaw === 'string' ? groupLabAnalysisRaw : '';
+                    let groupLabAnalysisParsed = {};
+                    if (typeof groupLabAnalysisRaw === 'string') {
+                        try {
+                            const parsed = JSON.parse(groupLabAnalysisRaw);
+                            if (parsed.rawText) {
+                                groupLabAnalysisNarrative = parsed.rawText;
+                                groupLabAnalysisParsed = parsed.parsedData || {};
+                            }
+                        }
+                        catch (e) { }
+                    }
+                    else if (typeof groupLabAnalysisRaw === 'object' && groupLabAnalysisRaw !== null) {
+                        groupLabAnalysisNarrative = groupLabAnalysisRaw.rawText || JSON.stringify(groupLabAnalysisRaw);
+                        groupLabAnalysisParsed = groupLabAnalysisRaw.parsedData || {};
+                    }
+                    const groupSheetAnalysis = fuzzyLookup(groupedSheetAnalysis, groupName) || null;
+                    console.log(`[Report] Group "${groupName}": labAnalysis=${groupLabAnalysisNarrative ? groupLabAnalysisNarrative.slice(0, 80) + '...' : 'EMPTY'}, sheetAnalysis=${groupSheetAnalysis ? 'YES' : 'NO'}`);
+                    const groupResults = [];
+                    // 1. Generate Final Report
+                    const reportMarkdown = yield validationService.generateFinalReportContent(oit, groupLabAnalysisNarrative, serviceContext, groupSheetAnalysis);
+                    // Ensure masterTemplate is valid before passing
+                    const effectiveTemplate = masterTemplate || (templates.length > 0 ? templates[0] : null);
+                    console.log(`[Report] Using template: ${effectiveTemplate === null || effectiveTemplate === void 0 ? void 0 : effectiveTemplate.name}, File: ${effectiveTemplate === null || effectiveTemplate === void 0 ? void 0 : effectiveTemplate.reportTemplateFile}`);
+                    const { filename, isDocx } = yield generateDocumentFromMarkdown(oit, reportMarkdown, effectiveTemplate, groupLabAnalysisParsed);
+                    groupResults.push({
+                        name: `Informe ${groupName}`,
+                        url: filename,
+                        type: (isDocx ? 'docx' : 'pdf')
+                    });
+                    // 2. Generate Comunicado for this service group
+                    if (groupLabAnalysisNarrative) {
+                        try {
+                            console.log(`[Report] Generating comunicado for ${groupName}...`);
+                            const comunicadoContent = yield validationService.generateComunicadoContent(oit, groupLabAnalysisNarrative, serviceContext);
+                            const { comunicadoService } = require('../services/comunicado.service');
+                            const comunicadoFilename = yield comunicadoService.generateComunicado(oit, comunicadoContent, groupName);
+                            groupResults.push({ name: `Comunicado ${groupName}`, url: comunicadoFilename, type: 'docx' });
+                        }
+                        catch (comErr) {
+                            console.error(`[Report] Comunicado generation failed for ${groupName}:`, comErr);
+                        }
+                    }
+                    return groupResults;
+                }
+                catch (err) {
+                    console.error(`[Report] Failed to generate report for group ${groupName}:`, err);
+                    return [];
+                }
+            }));
+            // Wait for all groups to complete
+            const results = yield Promise.all(reportPromises);
+            results.flat().forEach(r => generatedReports.push(r));
+        }
+        // 4. Update OIT
+        yield prisma.oIT.update({
+            where: { id },
+            data: { finalReportUrl: JSON.stringify(generatedReports) }
+        });
+        console.log(`[Report] Completed. Generated ${generatedReports.length} reports.`);
+        // Return compatible object for legacy handling if strictly needed, but new flow uses JSON list
+        return { generatedReports };
+    });
+}
+/**
+ * Helper to generate document, returns filename and type
+ */
+function generateDocumentFromMarkdown(oit_1, reportMarkdown_1, template_1) {
+    return __awaiter(this, arguments, void 0, function* (oit, reportMarkdown, template, parsedAIData = {}) {
+        const { pdfService } = require('../services/pdf.service');
+        const { docxService } = require('../services/docx.service');
+        const { TemplateDataMapper } = require('../config/templateDataMapper');
+        const { marked } = yield Promise.resolve().then(() => __importStar(require('marked')));
         let generatedFileBuffer = null;
         let generatedFileName = '';
         let isDocx = false;
-        try {
-            const templateIds = oit.selectedTemplateIds ? JSON.parse(oit.selectedTemplateIds) : [];
-            if (templateIds.length > 0) {
-                const template = yield prisma.samplingTemplate.findUnique({
-                    where: { id: templateIds[0] }
-                });
-                if (template && template.reportTemplateFile) {
-                    console.log(`[Report] Using Word template: ${template.reportTemplateFile}`);
-                    const { docxService } = require('../services/docx.service');
-                    // Use intelligent template-aware data mapper
-                    const { TemplateDataMapper } = require('../config/templateDataMapper');
-                    const mapper = new TemplateDataMapper(template.reportTemplateFile, {
-                        oitNumber: oit.oitNumber,
-                        description: oit.description,
-                        location: oit.location,
-                        scheduledDate: oit.scheduledDate
-                    }, reportMarkdown);
-                    const docxData = mapper.generateData();
-                    generatedFileBuffer = yield docxService.generateDocument(template.reportTemplateFile, docxData);
-                    generatedFileName = `Informe_Final_${oit.oitNumber}_${Date.now()}.docx`;
-                    isDocx = true;
-                    console.log(`[Report] Word document generated successfully: ${generatedFileName}`);
+        // Try Word Generation
+        if (template && template.reportTemplateFile) {
+            try {
+                const mapper = new TemplateDataMapper(template.reportTemplateFile, {
+                    oitNumber: oit.oitNumber,
+                    description: oit.description,
+                    location: oit.location,
+                    scheduledDate: oit.scheduledDate,
+                    serviceName: template.oitType || template.name, // Use Type as main title if possible
+                    aiData: Object.keys(parsedAIData).length > 0 ? JSON.stringify(parsedAIData) : undefined
+                }, reportMarkdown);
+                const docxData = mapper.generateData();
+                console.log(`[Report] Generated DOCX data with ${Object.keys(docxData).length} keys for template ${template.name}`);
+                generatedFileBuffer = yield docxService.generateDocument(template.reportTemplateFile, docxData);
+                if (generatedFileBuffer) {
+                    console.log(`[Report] Generated DOCX buffer size: ${generatedFileBuffer.length} bytes`);
                 }
-                else {
-                    console.log('[Report] No template file configured for this template.');
-                }
+                // Filename: Informe_Agua_Potable_OIT-123...
+                const safeType = (template.oitType || template.name).replace(/[^a-zA-Z0-9]/g, '_');
+                generatedFileName = `Informe_${safeType}_${oit.oitNumber}_${Date.now()}.docx`;
+                isDocx = true;
+            }
+            catch (e) {
+                console.error('[Report] Docx generation failed, falling back to PDF', e);
             }
         }
-        catch (docxErr) {
-            console.error('[Report] Word generation error, falling back to PDF:', docxErr);
-        }
         if (!isDocx) {
-            console.log('[Report] Generating PDF fallback...');
-            // Fallback: Convert to HTML & PDF 
+            // PDF Generation
+            const date = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
             const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
                 <style>
                     body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-                    h1, h2, h3, h4, h5, h6 { color: #14532d; font-weight: 700; margin-top: 24px; margin-bottom: 12px; }
-                    h1 { border-bottom: 2px solid #22c55e; padding-bottom: 12px; font-size: 28px; }
-                    h2 { background: #f0fdf4; padding: 10px 15px; border-left: 5px solid #22c55e; font-size: 20px; border-radius: 4px; }
-                    h3 { font-size: 18px; color: #15803d; }
-                    p { margin-bottom: 15px; text-align: justify; }
-                    ul, ol { margin-bottom: 15px; padding-left: 20px; }
-                    li { margin-bottom: 6px; }
+                    h1 { border-bottom: 2px solid #22c55e; padding-bottom: 12px; font-size: 24px; color: #14532d; }
+                    h2 { background: #f0fdf4; padding: 8px 12px; border-left: 4px solid #22c55e; font-size: 18px; margin-top:20px; }
                     strong { color: #14532d; }
-                    table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; border: 1px solid #bbf7d0; border-radius: 8px; overflow: hidden; }
-                    thead { background-color: #dcfce7; color: #14532d; }
-                    th { text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 2px solid #bbf7d0; }
-                    td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-                    tr:nth-child(even) { background-color: #f0fdf4; }
-                    .meta { margin-bottom: 40px; font-size: 0.9em; color: #666; border-bottom: 1px solid #eee; padding-bottom: 20px; display: flex; justify-content: space-between; }
-                    .footer { margin-top: 50px; font-size: 0.8em; text-align: center; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                    .meta { margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 15px; display: flex; justify-content: space-between; }
                 </style>
             </head>
             <body>
                 <div class="meta">
                     <div>
-                        <strong style="font-size: 1.2em; color: #14532d;">ALS V2 - Informe de Supervisión IA</strong><br>
-                        <span style="color: #64748b;">Sistema de Gestión Ambiental</span>
+                        <strong>ALS - Informe Técnico</strong><br>
+                        ${(template === null || template === void 0 ? void 0 : template.oitType) || (template === null || template === void 0 ? void 0 : template.name) || 'General'}
                     </div>
-                    <div style="text-align: right;">
-                        <strong>OIT:</strong> ${oit.oitNumber}<br>
-                        <strong>Fecha:</strong> ${date}
-                    </div>
+                    <div>${oit.oitNumber} <br> ${date}</div>
                 </div>
-                <div class="content">
-                    ${marked.parse(reportMarkdown)}
-                </div>
-                <div class="footer">
-                    Este documento ha sido generado automáticamente por el sistema ALS V2.
-                </div>
+                ${(yield Promise.resolve().then(() => __importStar(require('marked')))).marked.parse(reportMarkdown)}
             </body>
             </html>
         `;
-            generatedFileName = `Informe_Final_OIT_${oit.oitNumber}_${Date.now()}.pdf`;
+            generatedFileName = `Informe_${((template === null || template === void 0 ? void 0 : template.oitType) || 'General').replace(/\s+/g, '_')}_${oit.oitNumber}_${Date.now()}.pdf`;
             const pdfPath = yield pdfService.generatePDFFromHTML(htmlContent, generatedFileName);
             generatedFileBuffer = fs_1.default.readFileSync(pdfPath);
         }
-        else {
-            // Ensure uploads directory exists
-            const uploadsDir = path_1.default.join(__dirname, '../../uploads');
-            if (!fs_1.default.existsSync(uploadsDir))
-                fs_1.default.mkdirSync(uploadsDir, { recursive: true });
-            const outputPath = path_1.default.join(uploadsDir, generatedFileName);
-            fs_1.default.writeFileSync(outputPath, generatedFileBuffer);
-        }
-        if (!generatedFileBuffer)
-            throw new Error('No se pudo generar el contenido del informe');
-        yield prisma.oIT.update({
-            where: { id },
-            data: { finalReportUrl: generatedFileName }
-        });
-        return { generatedFileBuffer, generatedFileName, isDocx };
+        // Save File
+        const uploadsDir = path_1.default.join(__dirname, '../../uploads');
+        if (!fs_1.default.existsSync(uploadsDir))
+            fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+        fs_1.default.writeFileSync(path_1.default.join(uploadsDir, generatedFileName), generatedFileBuffer);
+        return { filename: generatedFileName, isDocx };
     });
 }
 // Generate Final Report
@@ -569,6 +728,8 @@ const getAllOITs = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 }
             };
         }
+        console.log('[DEBUG-OIT-LIST] User:', { userId, userRole });
+        console.log('[DEBUG-OIT-LIST] WhereClause:', JSON.stringify(whereClause, null, 2));
         const oits = yield prisma.oIT.findMany({
             where: whereClause,
             orderBy: { createdAt: 'desc' },
@@ -582,6 +743,7 @@ const getAllOITs = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 }
             }
         });
+        console.log(`[DEBUG-OIT-LIST] Found ${oits.length} OITs`);
         // Map to include engineers in a cleaner format
         const result = oits.map((oit) => (Object.assign(Object.assign({}, oit), { engineers: oit.assignedEngineers.map((a) => a.user) })));
         res.status(200).json(result);
@@ -1304,47 +1466,49 @@ exports.generateSamplingReport = generateSamplingReport;
 const uploadSamplingSheets = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
+        const { group = 'General' } = req.body; // New parameter
         const file = req.file;
         if (!file) {
             return res.status(400).json({ error: 'No se proporcionó archivo de planillas' });
         }
         // Fetch current OIT to append file
         const currentOit = yield prisma.oIT.findUnique({ where: { id }, select: { samplingSheetUrl: true } });
-        let fileList = [];
+        let groupedFiles = {};
         if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.samplingSheetUrl) {
             try {
-                // Try parsing as JSON array
                 const parsed = JSON.parse(currentOit.samplingSheetUrl);
                 if (Array.isArray(parsed)) {
-                    fileList = parsed;
+                    groupedFiles = { 'General': parsed };
+                }
+                else if (typeof parsed === 'object' && parsed !== null) {
+                    groupedFiles = parsed;
                 }
                 else {
-                    // Legacy: it was a single string URL
-                    fileList = [currentOit.samplingSheetUrl];
+                    groupedFiles = { 'General': [currentOit.samplingSheetUrl] };
                 }
             }
             catch (e) {
-                // Not JSON, assume simple string
-                fileList = [currentOit.samplingSheetUrl];
+                groupedFiles = { 'General': [currentOit.samplingSheetUrl] };
             }
         }
         const newPath = `uploads/${file.filename}`;
-        fileList.push(newPath);
+        if (!groupedFiles[group])
+            groupedFiles[group] = [];
+        groupedFiles[group].push(newPath);
         // Save file URL list and trigger analysis
         yield prisma.oIT.update({
             where: { id },
             data: {
-                samplingSheetUrl: JSON.stringify(fileList),
-                samplingSheetAnalysis: null, // Reset analysis to force refresh
+                samplingSheetUrl: JSON.stringify(groupedFiles)
             }
         });
         res.json({
             success: true,
-            samplingSheetUrl: JSON.stringify(fileList), // Return updated list
-            message: 'Planillas subidas. Analizando todos los archivos...'
+            samplingSheetUrl: JSON.stringify(groupedFiles), // Return updated list
+            message: `Planillas para ${group} subidas. Analizando...`
         });
-        // Trigger async analysis with ALL files
-        processSamplingSheetsAsync(id, fileList.map(url => url.replace('uploads/', ''))).catch(err => {
+        // Trigger async analysis for THIS GROUP
+        processSamplingSheetsAsync(id, groupedFiles[group].map(url => url.replace('uploads/', '')), group).catch(err => {
             console.error('Error in background sampling sheets processing:', err);
         });
     }
@@ -1358,35 +1522,44 @@ exports.uploadSamplingSheets = uploadSamplingSheets;
 const deleteSamplingSheet = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        const { fileUrl } = req.body;
+        const { fileUrl, group = 'General' } = req.body;
         if (!fileUrl) {
             return res.status(400).json({ error: 'Se requiere fileUrl para eliminar' });
         }
-        const currentOit = yield prisma.oIT.findUnique({ where: { id }, select: { samplingSheetUrl: true } });
-        let fileList = [];
+        const currentOit = yield prisma.oIT.findUnique({ where: { id }, select: { samplingSheetUrl: true, samplingSheetAnalysis: true } });
+        let groupedFiles = {};
         if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.samplingSheetUrl) {
             try {
                 const parsed = JSON.parse(currentOit.samplingSheetUrl);
-                fileList = Array.isArray(parsed) ? parsed : [currentOit.samplingSheetUrl];
+                groupedFiles = Array.isArray(parsed) ? { 'General': parsed } : parsed;
             }
             catch (_a) {
-                fileList = [currentOit.samplingSheetUrl];
+                groupedFiles = { 'General': [currentOit.samplingSheetUrl] };
             }
         }
-        // Remove the file from the list
-        fileList = fileList.filter(url => url !== fileUrl);
+        if (groupedFiles[group]) {
+            groupedFiles[group] = groupedFiles[group].filter(url => url !== fileUrl);
+        }
+        // Handle Analysis reset for that group
+        let groupedAnalyses = {};
+        if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.samplingSheetAnalysis) {
+            try {
+                const parsed = JSON.parse(currentOit.samplingSheetAnalysis);
+                groupedAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': parsed };
+            }
+            catch (_b) {
+                groupedAnalyses = { 'General': currentOit.samplingSheetAnalysis };
+            }
+        }
+        delete groupedAnalyses[group];
         yield prisma.oIT.update({
             where: { id },
             data: {
-                samplingSheetUrl: JSON.stringify(fileList),
-                samplingSheetAnalysis: null // Reset analysis
+                samplingSheetUrl: JSON.stringify(groupedFiles),
+                samplingSheetAnalysis: JSON.stringify(groupedAnalyses)
             }
         });
-        res.json({
-            success: true,
-            samplingSheetUrl: JSON.stringify(fileList),
-            message: 'Archivo eliminado'
-        });
+        res.json({ success: true, samplingSheetUrl: JSON.stringify(groupedFiles), message: 'Archivo eliminado' });
     }
     catch (error) {
         console.error('Error deleting sampling sheet:', error);
@@ -1398,58 +1571,60 @@ exports.deleteSamplingSheet = deleteSamplingSheet;
 const deleteLabResult = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        const { fileUrl } = req.body;
+        const { fileUrl, group = 'General' } = req.body;
         if (!fileUrl) {
             return res.status(400).json({ error: 'Se requiere fileUrl para eliminar' });
         }
-        const currentOit = yield prisma.oIT.findUnique({ where: { id }, select: { labResultsUrl: true } });
-        let fileList = [];
+        const currentOit = yield prisma.oIT.findUnique({ where: { id }, select: { labResultsUrl: true, labResultsAnalysis: true } });
+        let groupedFiles = {};
         if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.labResultsUrl) {
             try {
                 const parsed = JSON.parse(currentOit.labResultsUrl);
-                fileList = Array.isArray(parsed) ? parsed : [currentOit.labResultsUrl];
+                groupedFiles = Array.isArray(parsed) ? { 'General': parsed } : parsed;
             }
             catch (_a) {
-                fileList = [currentOit.labResultsUrl];
+                groupedFiles = { 'General': [currentOit.labResultsUrl] };
             }
         }
-        // Remove the file from the list
-        fileList = fileList.filter(url => url !== fileUrl);
+        if (groupedFiles[group]) {
+            groupedFiles[group] = groupedFiles[group].filter(url => url !== fileUrl);
+        }
+        // Handle Analysis reset for that group
+        let groupedAnalyses = {};
+        if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.labResultsAnalysis) {
+            try {
+                const parsed = JSON.parse(currentOit.labResultsAnalysis);
+                groupedAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': String(parsed) };
+            }
+            catch (_b) {
+                groupedAnalyses = { 'General': currentOit.labResultsAnalysis };
+            }
+        }
+        delete groupedAnalyses[group];
         yield prisma.oIT.update({
             where: { id },
             data: {
-                labResultsUrl: JSON.stringify(fileList),
-                labResultsAnalysis: null // Reset analysis
+                labResultsUrl: JSON.stringify(groupedFiles),
+                labResultsAnalysis: JSON.stringify(groupedAnalyses)
             }
         });
-        res.json({
-            success: true,
-            labResultsUrl: JSON.stringify(fileList),
-            message: 'Archivo eliminado'
-        });
+        res.json({ success: true, labResultsUrl: JSON.stringify(groupedFiles), message: 'Archivo eliminado' });
     }
     catch (error) {
-        console.error('Error deleting lab result:', error);
         res.status(500).json({ error: 'Error al eliminar resultado de laboratorio' });
     }
 });
 exports.deleteLabResult = deleteLabResult;
 // Background Processor for Sampling Sheets
-function processSamplingSheetsAsync(oitId, filenames) {
-    return __awaiter(this, void 0, void 0, function* () {
+function processSamplingSheetsAsync(oitId_1, filenames_1) {
+    return __awaiter(this, arguments, void 0, function* (oitId, filenames, group = 'General') {
         try {
-            console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId} with ${filenames.length} files`);
+            console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId}, Group: ${group} with ${filenames.length} files`);
             const { pdfService } = require('../services/pdf.service');
             const path = require('path');
             let fullCombinedText = '';
             for (const filename of filenames) {
-                const filePath = path.join(__dirname, '../../uploads', filename); // Adjust path logic as needed
-                // NOTE: file.path in controller gives full path, but here we reconstructed from URL.
-                // Better to make sure we resolve correctly.
-                // Assuming uploads are in projectRoot/uploads or similar.
-                // Adjusting based on standard multer behavior usually saving to 'uploads/' rel to CWD.
-                // Let's assume the controller passed paths or filenames relative to uploads dir.
-                // Let's check permissions or existence
+                const filePath = path.join(__dirname, '../../uploads', filename);
                 if (!fs_1.default.existsSync(filePath)) {
                     console.warn(`[SAMPLING_SHEETS] File not found: ${filePath}`);
                     continue;
@@ -1474,54 +1649,102 @@ function processSamplingSheetsAsync(oitId, filenames) {
                         extractedText = allSheetsText;
                     }
                     else {
-                        // Try text read
-                        extractedText = fs_1.default.readFileSync(filePath, 'utf-8');
+                        extractedText = "[Contenido no legible directamente]";
                     }
                 }
                 catch (readErr) {
-                    console.error(`[SAMPLING_SHEETS] Error extracting text from ${filename}:`, readErr);
-                    extractedText = `[Error leyendo ${filename}]`;
                 }
                 fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
             }
-            const oit = yield prisma.oIT.findUnique({ where: { id: oitId } });
+            const oit = yield prisma.oIT.findUnique({ where: { id: oitId }, select: { description: true, samplingSheetAnalysis: true } });
             const oitContext = (oit === null || oit === void 0 ? void 0 : oit.description) || '';
             const analysis = yield aiService.analyzeSamplingSheets(fullCombinedText, oitContext);
+            // Update grouped internal analysis
+            let currentAnalyses = {};
+            if (oit === null || oit === void 0 ? void 0 : oit.samplingSheetAnalysis) {
+                try {
+                    const parsed = JSON.parse(oit.samplingSheetAnalysis);
+                    currentAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': parsed };
+                }
+                catch (_a) {
+                    currentAnalyses = { 'General': oit.samplingSheetAnalysis };
+                }
+            }
+            currentAnalyses[group] = analysis;
             yield prisma.oIT.update({
                 where: { id: oitId },
                 data: {
-                    samplingSheetAnalysis: JSON.stringify(analysis)
+                    samplingSheetAnalysis: JSON.stringify(currentAnalyses)
                 }
             });
-            console.log(`[SAMPLING_SHEETS] Analysis completed for OIT ${oitId}, quality: ${analysis.quality}`);
+            console.log(`[SAMPLING_SHEETS] Analysis completed for OIT ${oitId}, Group: ${group}, quality: ${analysis.quality}`);
+            yield internalGenerateFinalReport(oitId, group).catch(e => console.error("Auto report generation failed", e));
         }
         catch (error) {
             console.error('[SAMPLING_SHEETS] Error in background processing:', error);
-            yield prisma.oIT.update({
-                where: { id: oitId },
-                data: {
-                    samplingSheetAnalysis: JSON.stringify({
-                        summary: "Error en análisis automático",
-                        quality: 'regular',
-                        findings: ["Error durante el procesamiento"],
-                        recommendations: ["Revisar manualmente"]
-                    })
-                }
-            });
         }
     });
 }
 const generateFinalReport = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        const { generatedFileBuffer, generatedFileName, isDocx } = yield internalGenerateFinalReport(id);
-        res.setHeader('Content-Disposition', `attachment; filename=${generatedFileName}`);
-        res.setHeader('Content-Type', isDocx ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf');
-        res.send(generatedFileBuffer);
+        const { group } = req.body; // New: optional group parameter
+        // If no group specified, clear everything (legacy behavior)
+        // If group is specified, we'll merge instead of clearing the whole field
+        if (!group || group === 'General') {
+            yield prisma.oIT.update({
+                where: { id },
+                data: { finalReportUrl: null }
+            });
+        }
+        else {
+            // Optional: clear only reports for this group?
+            // For now, internalGenerateFinalReport will handle the merge logic if we pass the group.
+        }
+        // Start generation in background (Fire and Forget)
+        internalGenerateFinalReport(id, group)
+            .then((_a) => __awaiter(void 0, [_a], void 0, function* ({ generatedReports }) {
+            console.log(`[Report] Background generation completed for OIT ${id}. Group: ${group || 'All'}.`);
+            // MERGE LOGIC: If a group was targeted, preserve reports from other groups
+            if (group && group !== 'General') {
+                const currentOit = yield prisma.oIT.findUnique({ where: { id } });
+                let existingReports = [];
+                if (currentOit === null || currentOit === void 0 ? void 0 : currentOit.finalReportUrl) {
+                    try {
+                        existingReports = JSON.parse(currentOit.finalReportUrl);
+                        if (!Array.isArray(existingReports))
+                            existingReports = [];
+                    }
+                    catch (_b) {
+                        existingReports = [];
+                    }
+                }
+                // Remove existing reports that match ANY of the newly generated report names
+                // This ensures we replace old versions of the same reports
+                const newReportNames = new Set(generatedReports.map(r => r.name));
+                const otherReports = existingReports.filter(r => !newReportNames.has(r.name));
+                const mergedReports = [...otherReports, ...generatedReports];
+                console.log(`[Report] Merge: ${existingReports.length} existing, ${generatedReports.length} new, ${otherReports.length} kept = ${mergedReports.length} total`);
+                yield prisma.oIT.update({
+                    where: { id },
+                    data: { finalReportUrl: JSON.stringify(mergedReports) }
+                });
+            }
+        }))
+            .catch(error => {
+            console.error(`[Report] Background generation failed for OIT ${id}:`, error);
+        });
+        // Return immediately to avoid 504 Timeout
+        res.status(202).json({
+            success: true,
+            processing: true,
+            message: 'La generación de informes ha comenzado en segundo plano.',
+            reports: []
+        });
     }
     catch (error) {
         console.error('Final Report Error:', error);
-        res.status(500).json({ error: 'Error generando informe final' });
+        res.status(500).json({ error: 'Error iniciando generación de informe final' });
     }
 });
 exports.generateFinalReport = generateFinalReport;
@@ -1682,15 +1905,47 @@ const updateServiceDates = (req, res) => __awaiter(void 0, void 0, void 0, funct
         const { serviceDates } = req.body;
         // serviceDates format:
         // { [serviceId]: { name, date, time, engineerIds[], confirmed } }
-        yield prisma.oIT.update({
-            where: { id },
-            data: {
-                serviceDates: JSON.stringify(serviceDates),
-                status: 'SCHEDULED',
-                planningAccepted: true
+        // 1. Extract all unique engineer IDs from all service dates
+        const engineerIds = new Set();
+        if (serviceDates) {
+            Object.values(serviceDates).forEach((schedule) => {
+                if (schedule.engineerIds && Array.isArray(schedule.engineerIds)) {
+                    schedule.engineerIds.forEach((eid) => engineerIds.add(eid));
+                }
+            });
+        }
+        const uniqueEngineerIds = Array.from(engineerIds);
+        // 2. Transaction to update OIT and sync assignments
+        yield prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            // Update OIT JSON
+            yield tx.oIT.update({
+                where: { id },
+                data: {
+                    serviceDates: JSON.stringify(serviceDates),
+                    status: 'SCHEDULED',
+                    planningAccepted: true
+                }
+            });
+            // Sync Assignments
+            // First, delete existing assignments for this OIT
+            yield tx.oITAssignment.deleteMany({
+                where: { oitId: id }
+            });
+            // Create new assignments
+            if (uniqueEngineerIds.length > 0) {
+                yield tx.oITAssignment.createMany({
+                    data: uniqueEngineerIds.map((userId) => ({
+                        oitId: id,
+                        userId
+                    }))
+                });
             }
+        }));
+        res.json({
+            success: true,
+            message: 'Programación actualizada correctamente',
+            assignedEngineersCount: uniqueEngineerIds.length
         });
-        res.json({ success: true, message: 'Programación actualizada correctamente' });
     }
     catch (error) {
         console.error('Error updating service dates:', error);

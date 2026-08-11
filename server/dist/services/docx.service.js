@@ -37,7 +37,6 @@ exports.docxService = {
         const content = fs_1.default.readFileSync(templatePath, 'binary');
         const zip = new pizzip_1.default(content);
         // Create docxtemplater instance
-        // START DEBUG: Inspect keys inside the zip
         const InspectModule = require("docxtemplater/js/inspect-module");
         const inspectModule = new InspectModule();
         const doc = new docxtemplater_1.default(zip, {
@@ -45,34 +44,32 @@ exports.docxService = {
             linebreaks: true,
             delimiters: { start: '{', end: '}' },
             modules: [inspectModule],
-            nullGetter: (part) => {
-                if (!part.module) {
-                    return "---";
-                }
-                if (part.module === "rawxml") {
-                    return "";
-                }
-                return "";
-            }
+            nullGetter: () => ""
         });
-        // Debug: Print found placeholders
+        // Debug
         const tags = inspectModule.getAllTags();
         console.log('[DocxService] DEBUG - Template Tags Found:', JSON.stringify(tags));
         console.log('[DocxService] DEBUG - Data Keys Provided:', JSON.stringify(Object.keys(data)));
+        // Ensure we don't pass buffers to standard text tags which would corrupt output
+        const safeData = Object.assign({}, data);
+        Object.keys(safeData).forEach(k => {
+            if (Buffer.isBuffer(safeData[k]) || (safeData[k] && typeof safeData[k] === 'object' && safeData[k].type === 'Buffer')) {
+                safeData[k] = '(Gráfico generado en Anexo)';
+            }
+        });
         // Render the document with data
         try {
-            doc.render(data);
+            doc.render(safeData);
         }
         catch (error) {
-            console.error('[DocxService] Render Error:', error);
+            console.error('[DocxService] Render Error:', error.stack);
             throw error;
         }
         // Generate output buffer
-        const buffer = doc.getZip().generate({
+        return doc.getZip().generate({
             type: 'nodebuffer',
             compression: 'DEFLATE'
         });
-        return buffer;
     }),
     /**
      * List available templates

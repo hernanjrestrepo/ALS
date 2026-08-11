@@ -70,3 +70,8 @@ server/trigger_analysis2.ts
 server/verify_report_gen.ts
 Serambiente-KPair-NV.pem
 *.pem
+
+# audit cleanup 2026-08-11
+server/dist.backup-*
+*.pybak
+*.backup

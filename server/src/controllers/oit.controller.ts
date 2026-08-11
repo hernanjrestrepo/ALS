@@ -5,7 +5,7 @@ const aiService = new AIService();
 import { createNotification } from './notification.controller';
 import fs from 'fs';
 import path from 'path';
-import { marked } from 'marked';
+// import { marked } from 'marked';
 import axios from 'axios';
 
 const prisma = new PrismaClient();
@@ -348,7 +348,7 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
     const { docxService } = require('../services/docx.service');
     const { validationService } = require('../services/validation.service');
     const { TemplateDataMapper } = require('../config/templateDataMapper');
-    const marked = require('marked');
+    const { marked } = await import('marked');
 
     console.log(`[Report] Starting grouped generation for OIT ${id}`);
     const oit = await prisma.oIT.findUnique({ where: { id } });
@@ -553,7 +553,7 @@ async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, te
     const { pdfService } = require('../services/pdf.service');
     const { docxService } = require('../services/docx.service');
     const { TemplateDataMapper } = require('../config/templateDataMapper');
-    const marked = require('marked');
+    const { marked } = await import('marked');
 
     let generatedFileBuffer: Buffer | null = null;
     let generatedFileName = '';
@@ -614,7 +614,7 @@ async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, te
                     </div>
                     <div>${oit.oitNumber} <br> ${date}</div>
                 </div>
-                ${marked.parse(reportMarkdown)}
+                ${((await import('marked')) as any).marked.parse(reportMarkdown)}
             </body>
             </html>
         `;

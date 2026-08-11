@@ -6,7 +6,7 @@ import path from 'path';
 const TEMPLATES_DIR = path.join(__dirname, '../../templates/reports');
 
 export interface DocxTemplateData {
-    [key: string]: string | number | boolean | undefined;
+    [key: string]: string | number | boolean | Buffer | undefined;
 }
 
 /**
@@ -31,7 +31,6 @@ export const docxService = {
         const zip = new PizZip(content);
 
         // Create docxtemplater instance
-        // START DEBUG: Inspect keys inside the zip
         const InspectModule = require("docxtemplater/js/inspect-module");
         const inspectModule = new InspectModule();
 
@@ -40,37 +39,35 @@ export const docxService = {
             linebreaks: true,
             delimiters: { start: '{', end: '}' },
             modules: [inspectModule],
-            nullGetter: (part) => {
-                if (!part.module) {
-                    return "---";
-                }
-                if (part.module === "rawxml") {
-                    return "";
-                }
-                return "";
-            }
+            nullGetter: () => ""
         });
 
-        // Debug: Print found placeholders
+        // Debug
         const tags = inspectModule.getAllTags();
         console.log('[DocxService] DEBUG - Template Tags Found:', JSON.stringify(tags));
         console.log('[DocxService] DEBUG - Data Keys Provided:', JSON.stringify(Object.keys(data)));
 
+        // Ensure we don't pass buffers to standard text tags which would corrupt output
+        const safeData = { ...data };
+        Object.keys(safeData).forEach(k => {
+            if (Buffer.isBuffer(safeData[k]) || (safeData[k] && typeof safeData[k] === 'object' && (safeData[k] as any).type === 'Buffer')) {
+                safeData[k] = '(Gráfico generado en Anexo)';
+            }
+        });
+
         // Render the document with data
         try {
-            doc.render(data);
+            doc.render(safeData);
         } catch (error: any) {
-            console.error('[DocxService] Render Error:', error);
+            console.error('[DocxService] Render Error:', error.stack);
             throw error;
         }
 
         // Generate output buffer
-        const buffer = doc.getZip().generate({
+        return doc.getZip().generate({
             type: 'nodebuffer',
             compression: 'DEFLATE'
         });
-
-        return buffer;
     },
 
     /**

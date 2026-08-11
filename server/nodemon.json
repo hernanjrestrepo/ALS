@@ -1,0 +1,8 @@
+{
+  "watch": ["src"],
+  "ext": "ts,json",
+  "ignore": ["node_modules", "uploads", "prisma/*.db", "prisma/*.db-journal", "dist"],
+  "execMap": {
+    "ts": "ts-node"
+  }
+}

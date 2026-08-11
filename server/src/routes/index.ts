@@ -6,7 +6,7 @@ import aiRoutes from './ai.routes';
 import notificationRoutes from './notification.routes';
 import standardRoutes from './standard.routes';
 import samplingTemplateRoutes from './sampling-template.routes';
-import filesRoutes from './files.routes';
+import filesRoutes from './_files.routes';
 import userRoutes from './user.routes';
 import pushRoutes from './push.routes';
 import feedbackRoutes from '../controllers/feedback.controller';

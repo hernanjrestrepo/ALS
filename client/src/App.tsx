@@ -21,6 +21,7 @@ import EditTemplatePage from '@/pages/EditTemplatePage';
 import UsersPage from '@/pages/UsersPage';
 import QuotationsPage from '@/pages/QuotationsPage';
 import QuotationDetailPage from '@/pages/QuotationDetailPage';
+import TemplateTestsPage from '@/pages/TemplateTestsPage';
 
 function App() {
   return (
@@ -44,8 +45,9 @@ function App() {
             <Route path="sampling-templates/create" element={<CreateTemplatePage />} />
             <Route path="sampling-templates/edit/:id" element={<EditTemplatePage />} />
             <Route path="quotations" element={<QuotationsPage />} />
-            <Route path="quotations/:id" element={<QuotationDetailPage />} />
-            <Route path="ai" element={<AIAssistantPage />} />
+            <Route path='quotations/:id' element={<QuotationDetailPage />} />
+            <Route path='template-tests' element={<TemplateTestsPage />} />
+            <Route path='ai' element={<AIAssistantPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="calendar" element={<CalendarPage />} />
           </Route>

@@ -110,10 +110,13 @@
 - **pdf-parse** - Extracción de texto PDF
 - **bcryptjs** - Hashing de contraseñas
 - **jsonwebtoken** - Autenticación JWT
+- **docxtemplater** - Motor de plantillas Word
+- **pizzip** - Manipulación ZIP para DOCX
 
 ### IA & ML
 - **Ollama** - Servidor de modelos LLM local
 - **llama3.2:3b** - Modelo de lenguaje
+- **ChartService** - Generación de gráficos (índices de agua, etc.)
 
 ---
 
@@ -144,28 +147,45 @@ als-v2/
 │
 ├── server/                          # Backend Node.js
 │   ├── src/
-│   │   ├── controllers/
-│   │   │   ├── oit.controller.ts    # Lógica OIT completa
+│   │   ├── controllers/             # 10+ controllers
+│   │   │   ├── oit.controller.ts    # Lógica OIT completa + informes
+│   │   │   ├── ai.controller.ts     # Chat, análisis de documentos
 │   │   │   ├── auth.controller.ts   # Autenticación
+│   │   │   ├── quotation.controller.ts # Cotizaciones independientes
+│   │   │   ├── user.controller.ts   # Gestión de usuarios y roles
 │   │   │   └── notification.controller.ts
 │   │   ├── services/
 │   │   │   ├── ai.service.ts        # Integración Ollama
 │   │   │   ├── compliance.service.ts # Verificación normas
+│   │   │   ├── docx.service.ts      # Motor docxtemplater
+│   │   │   ├── chart.service.ts     # Generación de gráficos
+│   │   │   ├── pdf.service.ts      # Conversión DOCX → PDF
 │   │   │   └── planning.service.ts  # Generación propuestas
-│   │   ├── routes/
-│   │   │   ├── oit.routes.ts        # 15+ endpoints OIT
+│   │   ├── routes/                  # 11 routers
+│   │   │   ├── oit.routes.ts      # 25+ endpoints OIT
+│   │   │   ├── ai.routes.ts
 │   │   │   ├── auth.routes.ts
-│   │   │   └── templates.routes.ts
+│   │   │   ├── quotation.routes.ts
+│   │   │   ├── user.routes.ts
+│   │   │   ├── files.routes.ts
+│   │   │   └── push.routes.ts
+│   │   ├── config/
+│   │   │   ├── templateConfigs.ts   # Diccionario de variables por template
+│   │   │   └── templateDataMapper.ts # Mapeo OIT/AI → datos docxtemplater
 │   │   ├── middleware/
 │   │   │   └── auth.middleware.ts   # JWT validation
 │   │   └── server.ts
 │   ├── prisma/
-│   │   └── schema.prisma            # Esquema DB
-│   ├── uploads/                     # Archivos subidos
+│   │   └── schema.prisma            # Esquema DB (10+ modelos)
+│   ├── templates/
+│   │   ├── docxtemplater/           # 13 plantillas .docx normalizadas
+│   │   └── comunicado/              # Assets para comunicados (header, body)
+│   ├── scripts/
+│   │   └── templates/               # Scripts de normalización y render
+│   ├── uploads/                     # Archivos subidos + informes generados
 │   └── package.json
 │
 └── README.md                        # Este archivo
-```
 
 ---
 
@@ -403,11 +423,73 @@ El sistema permite crear plantillas de muestreo con **6 tipos de pasos** que se 
     }
   ]
 }
-```
 
 ---
 
-## ⚙️ Instalación y Configuración
+## 📄 Sistema de Informes Técnicos (Docxtemplater)
+
+El sistema genera informes técnicos ambientales de forma **determinística** usando plantillas Word normalizadas compatibles con [docxtemplater](https://github.com/open-xml-templating/docxtemplater).
+
+### Pipeline de Generación
+
+```
+OIT + Cotización + Planillas + Resultados Lab
+                ↓
+    IA (Ollama) extrae y normaliza datos
+                ↓
+        JSON Universal
+                ↓
+    TemplateDataMapper (templateDataMapper.ts)
+                ↓
+      docxtemplater + PizZip
+                ↓
+          DOCX Final
+                ↓
+         PDF (opcional)
+```
+
+### 13 Plantillas Normalizadas
+
+| # | Matriz | Archivo DOCX | Estado Config |
+|---|--------|--------------|---------------|
+| 1 | Agua Marina | `PLANTILLA_AGUA_MARINA_DOCXTEMPLATER.docx` | ✅ Mapeado |
+| 2 | Biota Marina | `PLANTILLA_BIOTA_DOCXTEMPLATER.docx` | ⚠️ Pendiente mapeo completo |
+| 3 | Calidad de Aire | `PLANTILLA_CA_CALIDAD_AIRE_DOCXTEMPLATER.docx` | ✅ Mapeado |
+| 4 | Olores Ofensivos | `PLANTILLA_CA_OLORES_DOCXTEMPLATER.docx` | ✅ Mapeado |
+| 5 | CA Automáticos | `PLANTILLA_CA_AUTOMATICOS_DOCXTEMPLATER.docx` | ⚠️ Pendiente mapeo completo |
+| 6 | Emisión de Ruido | `PLANTILLA_EMISION_RUIDO_DOCXTEMPLATER.docx` | ✅ Mapeado |
+| 7 | ER/RA Unificado | `PLANTILLA_ER_RA_UNIFICADO_DOCXTEMPLATER.docx` | ⚠️ Pendiente mapeo completo |
+| 8 | Fuentes Fijas | `PLANTILLA_FF_DOCXTEMPLATER.docx` | ✅ Mapeado |
+| 9 | Partículas Viables | `PLANTILLA_PARTICULAS_VIABLES_DOCXTEMPLATER.docx` | ⚠️ Pendiente mapeo completo |
+| 10 | Punto Seco (Agua) | `PLANTILLA_PUNTO_SECO_DOCXTEMPLATER.docx` | ✅ Mapeado |
+| 11 | RESPEL | `PLANTILLA_RESPEL_DOCXTEMPLATER.docx` | ✅ Mapeado |
+| 12 | Ruido Ambiental | `PLANTILLA_RUIDO_AMBIENTAL_DOCXTEMPLATER.docx` | ✅ Mapeado |
+| 13 | Suelo | `PLANTILLA_SUELO_DOCXTEMPLATER.docx` | ⚠️ Pendiente mapeo completo |
+
+### Arquitectura de Datos
+
+Cada template usa placeholders semánticos en sintaxis docxtemplater:
+
+- **Variables simples**: `{cliente_nombre}`, `{monitoreo_fecha}`, `{informe_codigo}`
+- **Loops en tablas**: `{#laboratorios_parametros}{nombre} | {parametro} | {resolucion}{/laboratorios_parametros}`
+- **Condicionales**: `{#tiene_fotografias}...{/tiene_fotografias}`
+- **Imágenes**: `{%fotografia_punto_1}` (con image-module-free)
+- **Narrativas IA**: placeholders que la IA rellena con texto técnico generado
+
+### Archivos Clave
+
+| Archivo | Propósito |
+|---------|-----------|
+| `src/services/docx.service.ts` | Motor de renderizado docxtemplater |
+| `src/config/templateConfigs.ts` | Diccionario maestro: qué variable va en cada template |
+| `src/config/templateDataMapper.ts` | Transforma OIT + AI Data → JSON plano para docxtemplater |
+| `src/services/chart.service.ts` | Genera gráficos (índices ICA, WQI) como buffers PNG |
+| `templates/docxtemplater/` | 13 plantillas `.docx` normalizadas |
+| `scripts/templates/` | Scripts de normalización y render de prueba |
+
+> **Nota**: Las plantillas originales (pre-docxtemplater) aún existen en `templates/reports/` pero están **obsoletas**. El sistema activo usa únicamente las plantillas de `templates/docxtemplater/`.
+
+---
 
 ### Prerrequisitos
 
@@ -515,42 +597,74 @@ curl http://localhost:11434/api/tags
 ```
 POST   /api/auth/register      - Registrar usuario
 POST   /api/auth/login         - Iniciar sesión
-GET    /api/auth/me            - Obtener usuario actual
 ```
 
-### OIT
+### Usuarios
 
 ```
-GET    /api/oits               - Listar OITs
-GET    /api/oits/:id           - Obtener OIT
-POST   /api/oits/async         - Crear OIT con archivos
-PUT    /api/oits/:id           - Actualizar OIT
-DELETE /api/oits/:id           - Eliminar OIT
+GET    /api/users/profile             - Perfil del usuario actual
+GET    /api/users/engineers           - Listar ingenieros (Admin+)
+GET    /api/users                     - Listar todos (SuperAdmin)
+POST   /api/users                     - Crear usuario (SuperAdmin)
+PUT    /api/users/:id/role            - Cambiar rol (SuperAdmin)
+PUT    /api/users/:id/password        - Actualizar contraseña (Admin+)
 ```
 
-### Verificación y Planeación
+### OIT (25+ endpoints)
 
 ```
-POST   /api/oits/:id/compliance          - Verificar normas
-POST   /api/oits/:id/accept-planning     - Aceptar propuesta
-POST   /api/oits/:id/reject-planning     - Rechazar propuesta
+GET    /api/oits                    - Listar OITs
+GET    /api/oits/:id                - Obtener OIT
+POST   /api/oits                    - Crear OIT simple
+POST   /api/oits/async              - Crear OIT con archivos (oitFile + quotationFile)
+POST   /api/oits/from-url           - Crear OIT desde URL
+PUT    /api/oits/:id                - Actualizar OIT
+PATCH  /api/oits/:id                - Actualizar OIT con archivos
+DELETE /api/oits/:id                - Eliminar OIT
+
+POST   /api/oits/:id/compliance     - Verificar normas
+POST   /api/oits/:id/reanalyze      - Reanalizar OIT con IA
+
+# Planeación
+POST   /api/oits/:id/accept-planning  - Aceptar propuesta
+POST   /api/oits/:id/reject-planning  - Rechazar propuesta
+PUT    /api/oits/:id/service-dates    - Actualizar fechas de servicio
+
+# Muestreo
+POST   /api/oits/:id/sampling-data    - Guardar datos muestreo
+GET    /api/oits/:id/sampling-data    - Obtener datos muestreo
+POST   /api/oits/:id/validate-step    - Validar paso
+POST   /api/oits/:id/finalize-sampling - Finalizar muestreo
+POST   /api/oits/:id/submit-sampling  - Enviar muestreo
+GET    /api/oits/:id/sampling-report  - Generar reporte de muestreo
+POST   /api/oits/:id/verify          - Verificar consistencia
+POST   /api/oits/:id/request-redo    - Solicitar rehacer pasos (Admin)
+
+# Asignación de ingenieros
+POST   /api/oits/:id/assign-engineers - Asignar ingenieros (Admin)
+GET    /api/oits/:id/engineers        - Ver ingenieros asignados
+PUT    /api/oits/:id/resources        - Actualizar recursos
+
+# Laboratorio e Informes
+POST   /api/oits/:id/lab-results        - Upload resultados lab
+DELETE /api/oits/:id/lab-results        - Eliminar resultado lab
+POST   /api/oits/:id/sampling-sheets    - Upload planillas
+DELETE /api/oits/:id/sampling-sheets    - Eliminar planilla
+POST   /api/oits/:id/generate-final-report - Generar informe IA + DOCX
 ```
 
-### Muestreo
+### Cotizaciones
 
 ```
-POST   /api/oits/:id/sampling-data       - Guardar datos muestreo
-GET    /api/oits/:id/sampling-data       - Obtener datos muestreo
+GET    /api/quotations              - Listar cotizaciones
+GET    /api/quotations/:id          - Obtener cotización
+POST   /api/quotations              - Crear con archivo PDF
+PUT    /api/quotations/:id          - Actualizar
+DELETE /api/quotations/:id          - Eliminar
+POST   /api/quotations/:id/analyze   - Analizar con IA
 ```
 
-### Informes
-
-```
-POST   /api/oits/:id/lab-results         - Upload resultados lab
-POST   /api/oits/:id/generate-final-report - Generar informe IA
-```
-
-### Plantillas
+### Plantillas de Muestreo
 
 ```
 GET    /api/sampling-templates            - Listar plantillas
@@ -563,8 +677,33 @@ DELETE /api/sampling-templates/:id        - Eliminar plantilla
 ### Normas
 
 ```
-GET    /api/standards                     - Listar normas
-POST   /api/standards                     - Crear norma
+GET    /api/standards               - Listar normas
+POST   /api/standards               - Crear norma
+```
+
+### IA
+
+```
+POST   /api/ai/chat                 - Chat con IA
+GET    /api/ai/models               - Listar modelos Ollama
+POST   /api/ai/analyze              - Analizar documento
+POST   /api/ai/recommend            - Recomendar recursos
+POST   /api/ai/validate-oit-documents - Validar documentos OIT
+```
+
+### Archivos
+
+```
+POST   /api/files/upload            - Subir archivo genérico
+GET    /api/files/download/:filename - Descargar archivo
+```
+
+### Notificaciones & Push
+
+```
+GET    /api/notifications           - Listar notificaciones
+POST   /api/notifications/:id/read   - Marcar como leída
+POST   /api/push/subscribe          - Suscribirse a push
 ```
 
 ---

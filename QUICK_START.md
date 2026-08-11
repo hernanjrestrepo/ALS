@@ -96,6 +96,21 @@ git push
 
 ---
 
+## 🧪 Templates Docxtemplater
+
+El sistema usa 13 plantillas Word normalizadas para docxtemplater en `server/templates/docxtemplater/`.
+
+Para probar renderizados localmente:
+
+```bash
+cd server
+node scripts/templates/render_all_matrices.js
+```
+
+Los resultados se guardan en `server/uploads/reports/`.
+
+---
+
 ## ✅ Checklist Pre-Commit
 
 Antes de hacer commit, verifica:
@@ -107,6 +122,7 @@ Antes de hacer commit, verifica:
 - [ ] ✅ `.env.example` SÍ está incluido con valores de ejemplo
 - [ ] ✅ README.md está actualizado
 - [ ] ✅ Código compila sin errores (`npm run build` en ambos folders)
+- [ ] ✅ Templates docxtemplater funcionan (`node scripts/templates/render_all_matrices.js`)
 
 ---
 
@@ -137,12 +153,12 @@ VITE_API_URL=http://localhost:3000
 
 ---
 
-## 🌐 Preparar para AWS
+## 🌐 Preparar para Producción
 
-1. **Revisa:** `DEPLOYMENT.md` para instrucciones completas
-2. **Actualiza** variables de entorno para producción
-3. **Genera** JWT_SECRET seguro
-4. **Verifica** que Ollama esté instalado en el servidor
+1. **Actualiza** variables de entorno para producción
+2. **Genera** JWT_SECRET seguro
+3. **Verifica** que Ollama esté instalado en el servidor (si usas IA local)
+4. **Revisa** que los templates docxtemplater estén en `server/templates/docxtemplater/`
 
 ---
 
@@ -184,13 +200,23 @@ ollama serve
 # Debe coincidir con el puerto del frontend
 ```
 
+### Templates docxtemplater no renderizan
+
+```bash
+# Verificar que las plantillas existen
+ls server/templates/docxtemplater/
+
+# Verificar que no hay errores de sintaxis en placeholders
+node scripts/templates/render_all_matrices.js
+```
+
 ---
 
 ## 📚 Documentación Adicional
 
 - **README.md** - Arquitectura completa y guía técnica
-- **DEPLOYMENT.md** - Guía detallada para AWS
-- **COMMIT_MESSAGE.md** - Template para commits importantes
+- **server/docs/templates/README.md** - Documentación de templates docxtemplater
+- **server/docs/templates/RESUMEN_EJECUTIVO.md** - Resumen de normalización
 
 ---
 
@@ -198,11 +224,9 @@ ollama serve
 
 Una vez que todo funcione localmente:
 
-1. Ejecuta: `bash pre-deploy-check.sh` (en Git Bash o Linux)
-2. Revisa que todo esté ✅
-3. Haz commit con `git commit -F COMMIT_MESSAGE.md`
-4. Push a tu repositorio
-5. Sigue las instrucciones en DEPLOYMENT.md para AWS
+1. Revisa que todo esté ✅
+2. Haz commit con `git commit -m "descripción del cambio"`
+3. Push a tu repositorio
 
 ---
 
