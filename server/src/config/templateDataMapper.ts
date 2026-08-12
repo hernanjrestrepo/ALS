@@ -196,6 +196,7 @@ export class TemplateDataMapper {
                 if (mapping.field === 'duracionMuestreo') return this.parsedAI.duracionMuestreo || '8 horas';
                 if (mapping.field === 'numeroPuntos') return this.parsedAI.numeroPuntos || '1 (uno)';
                 if (mapping.field === 'parametrosAnalizados') return this.parsedAI.parametrosAnalizados || 'Según OIT';
+                if (mapping.field === 'periodoMuestreo') return this.parsedAI.periodoMuestreo || this.fullDate;
                 return '';
 
             case 'OIT':
