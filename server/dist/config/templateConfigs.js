@@ -299,56 +299,6 @@ const AGUA_FIELDS = {
     },
 };
 // ================================================================
-// TEMPLATE CONFIGS
-// ================================================================
-exports.ASUB_CONFIG = {
-    templateType: 'ASUB',
-    displayName: 'Informe de Agua Subterránea / Lixiviados',
-    filePattern: 'FO-PO-PSM-64-08',
-    fields: Object.assign({}, AGUA_FIELDS)
-};
-exports.PUNTO_SECO_CONFIG = {
-    templateType: 'PUNTO_SECO',
-    displayName: 'Informe de Punto Seco (Agua)',
-    filePattern: 'FO-PO-PSM-64-10',
-    fields: Object.assign(Object.assign({}, AGUA_FIELDS), { 'informe_tecnico_de_estudio_de_caracterizacion_de_a_1': {
-            source: 'STATIC', staticValue: 'AGUA - PUNTO SECO',
-            description: 'Título header para punto seco'
-        }, 'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_2': {
-            source: 'STATIC', staticValue: 'encontraban secos',
-            description: '"...los puntos se {tag}." — estado de los puntos (secos)'
-        } })
-};
-// RESPEL (64-09) — placeholder, uses mostly AGUA_FIELDS + extras
-exports.RESPEL_CONFIG = {
-    templateType: 'RESPEL',
-    displayName: 'Caracterización de Residuos Peligrosos',
-    filePattern: 'FO-PO-PSM-64-09',
-    fields: Object.assign({}, AGUA_FIELDS)
-};
-// EMISIÓN DE RUIDO (65-06)
-exports.EMISION_RUIDO_CONFIG = {
-    templateType: 'EMISION_RUIDO',
-    displayName: 'Estudio de Emisión de Ruido',
-    filePattern: 'FO-PO-PSM-65-06',
-    fields: Object.assign({}, AGUA_FIELDS)
-};
-// RUIDO AMBIENTAL (65-07)
-exports.RUIDO_AMBIENTAL_CONFIG = {
-    templateType: 'RUIDO_AMBIENTAL',
-    displayName: 'Estudio de Ruido Ambiental',
-    filePattern: 'FO-PO-PSM-65-07',
-    fields: Object.assign({}, AGUA_FIELDS)
-};
-// RUIDO INTRADOMICILIARIO (65-08)
-exports.RUIDO_INTRADOMICILIARIO_CONFIG = {
-    templateType: 'RUIDO_INTRADOMICILIARIO',
-    displayName: 'Estudio de Ruido Intradomiciliario',
-    filePattern: 'FO-PO-PSM-65-08',
-    fields: Object.assign({}, AGUA_FIELDS)
-};
-// EMISIÓN DE RUIDO Y RUIDO AMBIENTAL (65-09)
-// ================================================================
 // ER/RA UNIFICADO (65-09) — mapeo completo, plantilla legacy
 // Resolución 0627 de 2006 (límites por sector), Resolución 2087 de 2014 (protocolo)
 // Nota: las tablas de mediciones acústicas específicas (LAeq/Lmax/Lmin/Correcciones K
@@ -466,6 +416,148 @@ const ERRA_LEGACY_FIELDS = {
     'var_61': { source: 'STATIC', staticValue: '', description: 'Anexo 8' },
     'var_36': { source: 'STATIC', staticValue: '', description: 'Cierre del informe' },
 };
+// ================================================================
+// TEMPLATE CONFIGS
+// ================================================================
+exports.ASUB_CONFIG = {
+    templateType: 'ASUB',
+    displayName: 'Informe de Agua Subterránea / Lixiviados',
+    filePattern: 'FO-PO-PSM-64-08',
+    fields: Object.assign({}, AGUA_FIELDS)
+};
+exports.PUNTO_SECO_CONFIG = {
+    templateType: 'PUNTO_SECO',
+    displayName: 'Informe de Punto Seco (Agua)',
+    filePattern: 'FO-PO-PSM-64-10',
+    fields: Object.assign(Object.assign({}, AGUA_FIELDS), { 'informe_tecnico_de_estudio_de_caracterizacion_de_a_1': {
+            source: 'STATIC', staticValue: 'AGUA - PUNTO SECO',
+            description: 'Título header para punto seco'
+        }, 'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_2': {
+            source: 'STATIC', staticValue: 'encontraban secos',
+            description: '"...los puntos se {tag}." — estado de los puntos (secos)'
+        } })
+};
+// RESPEL (64-09) — placeholder, uses mostly AGUA_FIELDS + extras
+exports.RESPEL_CONFIG = {
+    templateType: 'RESPEL',
+    displayName: 'Caracterización de Residuos Peligrosos',
+    filePattern: 'FO-PO-PSM-64-09',
+    fields: Object.assign({}, AGUA_FIELDS)
+};
+// EMISIÓN DE RUIDO (65-06)
+// ================================================================
+// EMISIÓN DE RUIDO (65-06) — delta sobre AGUA_FIELDS + ERRA_LEGACY_FIELDS
+// ================================================================
+const EMISION_RUIDO_DELTA_FIELDS = {
+    'monitoreo_de_emision_de_ruido_realizado_el_1': { source: 'DATE', field: 'fullDate', description: 'Fecha de monitoreo (portada)' },
+    'un_monitoreo_de_emision_de_ruido_en_serambiente_s__1': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución acreditación' },
+    'las_mediciones_de_emision_de_ruido_se_llevaron_a_c_1': { source: 'STATIC', staticValue: 'tres (3) puntos', description: 'Número de puntos' },
+    'de_monitoreo_ubicados_en_el_area_de_estudio_de_la__1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización compañía' },
+    'cabe_se_alar_que_la_jornada_de_monitoreo_se_ejecut_1': { source: 'DATE', field: 'fullDate', description: 'Días de jornada' },
+    'el_monitoreo_se_realizo_1': { source: 'STATIC', staticValue: 'en jornada diurna y nocturna', description: 'Descripción del monitoreo' },
+    'siguiendo_lo_establecido_en_el_articulo_5_de_la_re_1': { source: 'STATIC', staticValue: '15 minutos de captura de información', description: 'Duración mínima de medición' },
+    'aron_a_cabo_mediciones_de_emision_de_ruido_en_1': { source: 'STATIC', staticValue: 'tres (3) puntos', description: 'Puntos de medición (ubicación)' },
+    'el_area_de_estudio_de_la_empresa_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización empresa' },
+    'fuente_manual_del_equipo_1': { source: 'DATE', field: 'year', description: 'Año fuente manual equipo' },
+    'los_resultados_obtenidos_en_las_medidas_de_la_emis_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Ubicación (procedimiento)' },
+    'laeq_t_residual_1': { source: 'STATIC', staticValue: '', description: 'Continuación fórmula LAeq' },
+    'eq_t_lraeq_t_residual_y_1': { source: 'STATIC', staticValue: 'LRAeq, T, Residual', description: 'Continuación fórmula LRAeq' },
+    'de_la_empresa_en_el_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización (metodología campo)' },
+    'relacionar_equipo_empleado_1': { source: 'STATIC', staticValue: 'Se verificó el correcto funcionamiento del equipo', description: 'Verificación de equipo' },
+    'asociada_al_desarrollo_de_su_actividad_para_la_fec_1': { source: 'STATIC', staticValue: 'fue la habitual, sin condiciones atípicas identificadas.', description: 'Condiciones operativas' },
+    'de_acuerdo_con_lo_establecido_en_la_resolucion_062_1': { source: 'STATIC', staticValue: 'anemómetro', description: 'Instrumento medición viento' },
+    'tabla_7_se_observa_la_velocidad_del_viento_la_cual_1': { source: 'STATIC', staticValue: 'anemómetro', description: 'Instrumento (tabla)' },
+    'en_el_formato_de_campo_planilla_de_campo_emision_d_1': { source: 'STATIC', staticValue: 'Se registraron los datos de campo conforme al formato establecido.', description: 'Registro formato de campo' },
+    'fuente_datos_abiertos_de_colombia_1': { source: 'DATE', field: 'year', description: 'Año fuente datos abiertos' },
+    'y_areas_importantes_para_la_conservacion_de_las_av_1': { source: 'STATIC', staticValue: '', description: 'Continuación cita AICAs' },
+    'fuente_tomado_y_modificado_de_cartografia_basica_i_1': { source: 'STATIC', staticValue: '1:100.000', description: 'Escala cartografía IGAC' },
+    'grafica_1_se_logra_identificar_que_todos_los_punto_1': { source: 'STATIC', staticValue: 'presentan niveles acordes', description: 'Hallazgo gráfica diurna' },
+    'siendo_este_de_db_a_correspondiente_al_1': { source: 'STATIC', staticValue: 'sector', description: 'Continuación límite diurno' },
+    'grafica_2_los_1': { source: 'STATIC', staticValue: 'puntos', description: 'Hallazgo gráfica nocturna' },
+    'respecto_el_limite_maximo_permisible_para_el_horar_1': { source: 'STATIC', staticValue: 'de acuerdo con la clasificación del sector', description: 'Cumplimiento nocturno' },
+    'en_la_jornada_diurna_los_1': { source: 'STATIC', staticValue: 'tres (3)', description: 'Número de puntos jornada diurna' },
+    'puntos_de_monitoreo_con_respecto_al_limite_maximo__1': { source: 'STATIC', staticValue: '65', description: 'Límite jornada diurna (referencial)' },
+    'con_respecto_al_limite_maximo_permisible_para_jorn_1': { source: 'STATIC', staticValue: 'Comercial', description: 'Sector de clasificación' },
+    'se_presentan_las_descripciones_de_algunas_fuentes__1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización (fuentes de ruido)' },
+    'anexo_6_hoja_de_calculo_incertidumbre_ruido_se_pre_1': { source: 'STATIC', staticValue: 'de acuerdo con la metodología de estimación de incertidumbre del laboratorio', description: 'Incertidumbre' },
+    'en_la_jornada_diurna_el_1': { source: 'STATIC', staticValue: 'total de los puntos evaluados', description: 'Conclusión jornada diurna' },
+    'fueron_clasificados_como_conformes_con_respecto_al_1': { source: 'STATIC', staticValue: 'clasificándose como conforme', description: 'Clasificación de conformidad' },
+    'var_41': { source: 'STATIC', staticValue: '', description: 'Anexo 1' },
+    'certificado_sonometro_1': { source: 'STATIC', staticValue: 'Ver Anexo 3', description: 'Certificado sonómetro' },
+    'certificado_pistofono_1': { source: 'STATIC', staticValue: 'Ver Anexo 3', description: 'Certificado pistófono' },
+    'hoja_de_calculo_ot_1': { source: 'OIT', field: 'oitNumber', description: 'Código OT hoja de cálculo' },
+};
+// ================================================================
+// RUIDO AMBIENTAL (65-07) — delta sobre AGUA_FIELDS + ERRA_LEGACY_FIELDS
+// ================================================================
+const RUIDO_AMBIENTAL_DELTA_FIELDS = {
+    'contrato_los_servicios_de_servicios_de_ingenieria__3': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución acreditación IDEAM' },
+    'las_mediciones_de_ruido_ambiental_se_llevaron_a_ca_1': { source: 'STATIC', staticValue: 'tres (3) puntos', description: 'Número de puntos monitoreados' },
+    'el_monitoreo_se_realizo_en_horario_1': { source: 'STATIC', staticValue: 'diurno y nocturno, hábil y no hábil', description: 'Horarios de monitoreo' },
+    'aron_a_cabo_mediciones_de_ruido_ambiental_1': { source: 'STATIC', staticValue: 'en tres (3) puntos', description: 'Puntos de medición ubicación' },
+    'xxx_x_xxx_1': { source: 'STATIC', staticValue: 'puntos de monitoreo', description: 'Puntos seleccionados (protocolo)' },
+    'y_para_los_puntos_punto_1': { source: 'OIT', field: 'oitNumber', description: 'ID Sonómetro / Serial (referencia OT)' },
+    'las_isofonas_son_generadas_en_arcgis_modulo_arcmap_2': { source: 'STATIC', staticValue: 'interpolación de tipo IDW (Distancia Inversa Ponderada)', description: 'Método de interpolación isófonas' },
+    'ambiental_para_la_fecha_y_hora_del_monitoreo_el_co_1': { source: 'STATIC', staticValue: 'condiciones meteorológicas fueron acordes a lo esperado para la temporada, sin afectaciones a la medición.', description: 'Comportamiento condiciones ambientales' },
+    'tabla_8_se_observa_la_velocidad_del_viento_la_cual_1': { source: 'STATIC', staticValue: 'anemómetro', description: 'Instrumento medición viento' },
+    'teniendo_en_cuenta_lo_establecido_en_el_po_psm_11__1': { source: 'STATIC', staticValue: 'meteorológica más cercana al área de estudio.', description: 'Estación meteorológica de referencia' },
+    'realizo_la_descarga_de_los_registros_de_la_estacio_1': { source: 'STATIC', staticValue: 'Se realizó la descarga de los registros de la estación meteorológica correspondientes al periodo de monitoreo.', description: 'Descarga de registros meteorológicos' },
+    'po_psm_11_procedimiento_de_mediciones_de_emision_d_1': { source: 'STATIC', staticValue: '.', description: 'Continuación referencia procedimiento PO-PSM-11' },
+    'fuente_datos_abiertos_de_colombi_1': { source: 'DATE', field: 'year', description: 'Año fuente Datos Abiertos Colombia' },
+    'se_tomo_como_normativa_de_referencia_el_articulo_1_1': { source: 'STATIC', staticValue: 'de clasificación del área conforme a la Resolución 0627 de 2006.', description: 'Normativa de referencia (sector)' },
+    'el_articulo_17_establece_los_estandares_maximos_pe_1': { source: 'STATIC', staticValue: 'correspondiente al uso del suelo del área de estudio', description: 'Estándares máximos permisibles (sector)' },
+    'grafica_1_se_logra_identificar_que_1': { source: 'STATIC', staticValue: 'todos los puntos de monitoreo', description: 'Hallazgo Gráfica 1 (diurno hábil)' },
+    'se_logra_identificar_que_en_el_horario_diurno_habi_1': { source: 'STATIC', staticValue: 'presentaron niveles de presión sonora conformes', description: 'Cumplimiento diurno hábil' },
+    'correspondiente_al_1': { source: 'STATIC', staticValue: 'sector evaluado', description: 'Sector correspondiente (límite diurno)' },
+    'de_monitoreo_respecto_el_limite_maximo_permisible__1': { source: 'STATIC', staticValue: 'los puntos de monitoreo', description: 'Puntos evaluados (límite nocturno)' },
+    'grafica_3_para_el_horario_diurno_no_habil_1': { source: 'STATIC', staticValue: 'se evidenció que los puntos de monitoreo', description: 'Hallazgo Gráfica 3 (diurno no hábil)' },
+    'con_respecto_al_limite_aceptable_permisible_para_j_1': { source: 'STATIC', staticValue: 'el límite establecido para el sector', description: 'Continuación límite diurno no hábil' },
+    'maximo_permisible_para_jornada_nocturna_establecid_1': { source: 'STATIC', staticValue: 'la Resolución 0627 de 2006', description: 'Norma límite nocturno' },
+    'en_la_jornada_diurna_habil_y_no_habil_los_1': { source: 'STATIC', staticValue: 'tres (3)', description: 'Número de puntos jornada diurna' },
+    'con_respecto_al_limite_maximo_permisible_para_jorn_2': { source: 'STATIC', staticValue: 'dB(A)', description: 'Unidad límite nocturno' },
+    'en_la_jornada_diurna_habil_y_no_habil_el_1': { source: 'STATIC', staticValue: 'total de los puntos evaluados', description: 'Conclusión jornada diurna/nocturna' },
+    'fueron_clasificados_como_conformes_con_respecto_al_2': { source: 'STATIC', staticValue: 'evaluado', description: 'Sector (conformidad diurna)' },
+    'fueron_clasificados_como_conformes_con_respecto_al_3': { source: 'STATIC', staticValue: 'evaluado', description: 'Sector (conformidad nocturna)' },
+    'mapas_de_ruido_isofonas_para_el_horario_diurno_hab_1': { source: 'STATIC', staticValue: 'horario diurno hábil', description: 'Horario mapas de isófonas' },
+    'para_el_1': { source: 'STATIC', staticValue: 'área de estudio', description: 'Contexto mapas de isófonas' },
+    'y_para_los_puntos_punto_y_punto_1': { source: 'STATIC', staticValue: 'evaluados en la jornada diurna hábil.', description: 'Cierre referencia puntos diurno hábil' },
+    'ara_la_jornada_nocturna_habil_los_puntos_de_monito_1': { source: 'STATIC', staticValue: 'de colores correspondiente al rango de niveles de presión sonora registrado', description: 'Código de colores isófonas nocturno hábil' },
+    'correspondiente_al_rango_de_1': { source: 'STATIC', staticValue: 'niveles de presión sonora', description: 'Rango dB(A) isófonas' },
+    'db_a_para_el_punto_1': { source: 'OIT', field: 'oitNumber', description: 'Referencia punto de monitoreo (dB(A))' },
+    'para_el_punto_1': { source: 'STATIC', staticValue: 'evaluado', description: 'Punto de monitoreo evaluado' },
+    'db_a_para_los_puntos_1': { source: 'STATIC', staticValue: 'evaluados en jornada nocturna hábil.', description: 'Cierre referencia puntos nocturno hábil' },
+    'diurno_no_habil_se_presento_que_los_puntos_de_1': { source: 'STATIC', staticValue: 'monitoreo', description: 'Puntos jornada diurna no hábil' },
+    'se_posicionaron_en_el_rango_1': { source: 'STATIC', staticValue: 'de niveles de presión sonora conformes', description: 'Rango de conformidad (diurno no hábil)' },
+    'se_posicionaron_en_el_rango_2': { source: 'STATIC', staticValue: 'establecido para el sector evaluado', description: 'Rango de conformidad (continuación)' },
+    'lo_que_corresponde_a_los_1': { source: 'STATIC', staticValue: 'límites máximos permisibles definidos en la Resolución 0627 de 2006.', description: 'Cierre referencia límites (diurno no hábil)' },
+    'para_el_horario_nocturno_no_habil_se_presento_que__1': { source: 'STATIC', staticValue: 'de monitoreo', description: 'Puntos jornada nocturna no hábil' },
+    'se_posicionaron_en_el_rango_de_1': { source: 'STATIC', staticValue: 'niveles de presión sonora conformes', description: 'Rango de conformidad (nocturno no hábil)' },
+    'el_analisis_realizado_para_los_mapas_de_ruido_isof_1': { source: 'STATIC', staticValue: '5 dB(A)', description: 'Intervalo de contornos de isófonas' },
+    'var_39': { source: 'STATIC', staticValue: '', description: 'Anexo 1 (celda tabla anexos)' },
+    'isofonas_1': { source: 'STATIC', staticValue: 'Ver Anexo 8', description: 'Referencia archivos de isófonas' },
+    'var_40': { source: 'STATIC', staticValue: '', description: 'Continuación título portada' },
+};
+exports.EMISION_RUIDO_CONFIG = {
+    templateType: 'EMISION_RUIDO',
+    displayName: 'Estudio de Emisión de Ruido',
+    filePattern: 'FO-PO-PSM-65-06',
+    fields: Object.assign(Object.assign(Object.assign({}, AGUA_FIELDS), ERRA_LEGACY_FIELDS), EMISION_RUIDO_DELTA_FIELDS)
+};
+// RUIDO AMBIENTAL (65-07)
+exports.RUIDO_AMBIENTAL_CONFIG = {
+    templateType: 'RUIDO_AMBIENTAL',
+    displayName: 'Estudio de Ruido Ambiental',
+    filePattern: 'FO-PO-PSM-65-07',
+    fields: Object.assign(Object.assign(Object.assign({}, AGUA_FIELDS), ERRA_LEGACY_FIELDS), RUIDO_AMBIENTAL_DELTA_FIELDS)
+};
+// RUIDO INTRADOMICILIARIO (65-08)
+exports.RUIDO_INTRADOMICILIARIO_CONFIG = {
+    templateType: 'RUIDO_INTRADOMICILIARIO',
+    displayName: 'Estudio de Ruido Intradomiciliario',
+    filePattern: 'FO-PO-PSM-65-08',
+    fields: Object.assign({}, AGUA_FIELDS)
+};
+// EMISIÓN DE RUIDO Y RUIDO AMBIENTAL (65-09)
 exports.EMISION_RUIDO_AMBIENTAL_CONFIG = {
     templateType: 'EMISION_RUIDO_AMBIENTAL',
     displayName: 'Estudio de Emisión de Ruido y Ruido Ambiental',
