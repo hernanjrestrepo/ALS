@@ -211,14 +211,83 @@ export class AIService {
 
     public async analyzeLabResults(documentText: string, oitContext?: string): Promise<string> {
         try {
+            const safeText = documentText.substring(0, 20000);
+            const prompt = `Eres Analista Técnico Ambiental de Serambiente. Analiza el siguiente resultado de laboratorio y extrae la información en el formato exacto solicitado.
+
+CONTEXTO DE LA OIT: ${oitContext || 'No especificado'}
+
+DOCUMENTO DE LABORATORIO:
+${safeText}
+
+Responde ÚNICAMENTE con un JSON válido con esta forma exacta:
+{
+  "rawText": "[ESCRIBE AQUÍ 3-5 párrafos de análisis técnico real basado en los resultados encontrados: qué se midió, valores destacados, comparación con la normativa citada si aplica, observaciones relevantes. NO copies estas instrucciones, redacta el análisis real.]",
+  "parsedData": {
+    "cliente": "Nombre o razón social del cliente/empresa (extraer del documento, NO inventar)",
+    "nit": "NIT del cliente si aparece, o cadena vacía",
+    "ubicacion": {
+      "ciudad": "Ciudad donde se realizó el monitoreo",
+      "departamento": "Departamento donde se realizó el monitoreo",
+      "direccion": "Dirección de la sede o punto de muestreo si aparece"
+    },
+    "tipoEstudio": "Descripción corta del tipo de estudio/matriz analizada",
+    "tipoMatriz": "Agua | Aire | Ruido | Suelo | Biota | Residuos (la que aplique)",
+    "puntos": [
+      {
+        "id": "Identificador del punto de muestreo",
+        "nombre": "Nombre del punto",
+        "descripcion": "Descripción del punto",
+        "idMuestra": "Identificador de la muestra",
+        "hora": "Hora de muestreo si aparece (HH:MM)",
+        "latitud": "Latitud si aparece",
+        "longitud": "Longitud si aparece",
+        "norte": "Coordenada norte si aparece",
+        "este": "Coordenada este si aparece"
+      }
+    ],
+    "resultados": [
+      {
+        "parametro": "Nombre del parámetro medido",
+        "valor": "Valor numérico o texto del resultado",
+        "unidad": "Unidad de medida",
+        "metodo": "Método analítico si aparece",
+        "limite": "Límite de cuantificación si aparece",
+        "normativa": "Límite normativo aplicable si se identifica",
+        "cumple": true
+      }
+    ]
+  }
+}
+
+REGLAS ESTRICTAS:
+- Extrae SOLO datos que existan literalmente en el documento. Si un dato no aparece, usa cadena vacía "" o null. NUNCA inventes nombres, cifras o ubicaciones.
+- "resultados" debe incluir TODOS los parámetros medidos que encuentres en el documento, no solo algunos.
+- Responde SOLO el JSON, sin texto adicional antes o después.`;
+
             const response = await axios.post(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
-                prompt: `Analiza: ${documentText.substring(0, 15000)}`,
+                prompt,
                 stream: false,
+                format: 'json',
             });
-            return response.data.response || '';
-        } catch (error) {
-            return 'Error';
+
+            let responseText = (response.data.response || '').trim();
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonStart = responseText.indexOf('{');
+            const jsonEnd = responseText.lastIndexOf('}');
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                responseText = responseText.substring(jsonStart, jsonEnd + 1);
+            }
+
+            const parsed = JSON.parse(responseText);
+            if (!parsed.rawText) {
+                // Model didn't follow the schema; fall back to treating the whole response as narrative
+                return JSON.stringify({ rawText: response.data.response || '', parsedData: parsed.parsedData || {} });
+            }
+            return JSON.stringify(parsed);
+        } catch (error: any) {
+            console.error('Lab results analysis error:', error.response?.data || error.message);
+            return JSON.stringify({ rawText: 'Error en análisis IA de resultados de laboratorio', parsedData: {} });
         }
     }
 
