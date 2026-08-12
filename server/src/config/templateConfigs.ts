@@ -753,6 +753,48 @@ export const FUENTES_FIJAS_CONFIG: TemplateConfig = {
     fields: { ...AGUA_FIELDS }
 };
 
+
+// ================================================================
+// CAMPOS COMPARTIDOS V2 (tags semánticos modernos, plantillas
+// recuperadas de templates/docxtemplater/ y activadas en templates/reports/)
+// ================================================================
+const V2_COMMON_FIELDS: Record<string, FieldMapping> = {
+    'cliente_nombre': { source: 'AI', field: 'cliente', description: 'Nombre del cliente' },
+    'monitoreo_ciudad': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad del monitoreo' },
+    'monitoreo_departamento': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento del monitoreo' },
+    'empresa_responsable_estudio': { source: 'SYSTEM', description: 'Empresa que ejecuta el estudio' },
+    'cliente_representante_nombre': { source: 'AI', field: 'representanteNombre', description: 'Representante del cliente' },
+    'cliente_representante_telefono': { source: 'AI', field: 'representanteTelefono', description: 'Teléfono del representante' },
+    'cliente_direccion': { source: 'AI', field: 'ubicacion.direccion', description: 'Dirección del cliente' },
+    'muestra_id': { source: 'AI', field: 'puntos[0].idMuestra', description: 'Identificador de la muestra' },
+    'muestra_fecha': { source: 'DATE', field: 'fullDate', description: 'Fecha de la muestra' },
+    'punto_nombre': { source: 'AI', field: 'puntos[0].nombre', description: 'Nombre del punto de muestreo' },
+    'reporte_numero': { source: 'OIT', field: 'oitNumber', description: 'Número de OIT/reporte' },
+    'informe_version': { source: 'STATIC', staticValue: 'V00', description: 'Versión del informe' },
+    'informe_codigo_v01': { source: 'OIT', field: 'oitNumber', description: 'Código del informe' },
+    'informe_fecha_emision': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión' },
+    'elaborado_nombre': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Elaborado por' },
+    'revisado_nombre': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Revisado por' },
+    'autorizado_nombre': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Autorizado por' },
+};
+
+// BIOTA (74-01) — sin veredicto de conformidad (índices/BMW dejados como sección
+// condicional vacía hasta que Dirección Técnica confirme la tabla de referencia)
+export const BIOTA_CONFIG: TemplateConfig = {
+    templateType: 'BIOTA',
+    displayName: 'Informe de Biota',
+    filePattern: 'FO-PO-PSM-74-01',
+    fields: { ...V2_COMMON_FIELDS }
+};
+
+// SUELOS (64-11) — sin veredicto de conformidad (no existe normativa colombiana de referencia)
+export const SUELO_CONFIG: TemplateConfig = {
+    templateType: 'SUELO',
+    displayName: 'Informe de Suelos',
+    filePattern: 'FO-PO-PSM-64-11',
+    fields: { ...V2_COMMON_FIELDS }
+};
+
 // ================================================================
 // REGISTRY
 // ================================================================
@@ -769,6 +811,8 @@ export const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
     'PARTICULAS_VIABLES': PARTICULAS_VIABLES_CONFIG,
     'FUENTES_FIJAS': FUENTES_FIJAS_CONFIG,
     'FUENTES_FIJAS_PREVIO': FUENTES_FIJAS_PREVIO_CONFIG,
+    'BIOTA': BIOTA_CONFIG,
+    'SUELO': SUELO_CONFIG,
 };
 
 export function getTemplateType(fileName: string): string {
@@ -776,6 +820,8 @@ export function getTemplateType(fileName: string): string {
     if (upper.includes('RESPEL') || upper.includes('64-09')) return 'RESPEL';
     if (upper.includes('PUNTO SECO') || upper.includes('64-10')) return 'PUNTO_SECO';
     if (upper.includes('64-08') || upper.includes('SUBTERR')) return 'ASUB';
+    if (upper.includes('74-01') || upper.includes('BIOTA')) return 'BIOTA';
+    if (upper.includes('64-11') || upper.includes('SUELO')) return 'SUELO';
     if (upper.includes('65-09')) return 'EMISION_RUIDO_AMBIENTAL';
     if (upper.includes('65-06')) return 'EMISION_RUIDO';
     if (upper.includes('65-08')) return 'RUIDO_INTRADOMICILIARIO';
