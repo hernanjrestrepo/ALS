@@ -860,12 +860,74 @@ exports.PARTICULAS_VIABLES_CONFIG = {
     filePattern: 'FO-PO-PSM-66-20',
     fields: Object.assign(Object.assign({}, AGUA_FIELDS), PARTICULAS_LEGACY_FIELDS)
 };
+// ================================================================
+// FUENTES FIJAS - INFORME PREVIO (67-10) — delta sobre AGUA_FIELDS
+// ================================================================
+const FUENTES_FIJAS_PREVIO_DELTA_FIELDS = {
+    'a_traves_del_representante_legal_1': { source: 'AI', field: 'representanteNombre', description: 'Representante legal' },
+    'identificado_con_cedula_de_ciudadania_no_1': { source: 'STATIC', staticValue: '', description: 'Cédula representante legal' },
+    'de_evaluacion_de_emisiones_atmosfericas_de_fuentes_1': { source: 'AI', field: 'tipoEstudio', description: 'Tipo de evaluación de emisiones' },
+    'la_cual_se_encuentra_ubicada_en_las_instalaciones__1': { source: 'AI', field: 'cliente', description: 'Instalaciones del cliente' },
+    'localizado_en_1': { source: 'AI', field: 'ubicacion.direccion', description: 'Dirección de las instalaciones' },
+    'en_la_organizacion_tiene_como_actividad_principal_1': { source: 'STATIC', staticValue: 'actividades industriales sujetas a control de emisiones atmosféricas.', description: 'Actividad principal de la organización' },
+    'erambiente_s_a_s_empresa_acreditada_por_el_institu_1': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución acreditación IDEAM' },
+    'para_producir_informacion_cuantitativa_fisica_y_qu_1': { source: 'STATIC', staticValue: '', description: 'Continuación acreditación (1)' },
+    'fisica_y_quimica_para_los_estudios_o_analisis_ambi_1': { source: 'STATIC', staticValue: '', description: 'Continuación acreditación (2)' },
+    'la_fecha_programada_para_llevar_a_cabo_la_evaluaci_1': { source: 'DATE', field: 'fullDate', description: 'Fecha programada de evaluación' },
+    'a_evaluar_por_medicion_directa_de_material_1': { source: 'STATIC', staticValue: 'Particulado (PM) y gases de combustión', description: 'Contaminantes a evaluar' },
+    'var_6': { source: 'STATIC', staticValue: '', description: 'Objetivo específico (1)' },
+    'var_7': { source: 'STATIC', staticValue: '', description: 'Objetivo específico (2)' },
+    'var_9': { source: 'STATIC', staticValue: '', description: 'Operación de instalaciones (1)' },
+    'var_11': { source: 'STATIC', staticValue: '', description: 'Operación de instalaciones (2)' },
+    'var_12': { source: 'STATIC', staticValue: '', description: 'Operación de instalaciones (3)' },
+    'var_24': { source: 'STATIC', staticValue: '', description: 'Operación de instalaciones (4)' },
+    'var_25': { source: 'STATIC', staticValue: '', description: 'Operación de instalaciones (5)' },
+    'para_la_planeacion_previa_a_la_evaluacion_de_las_m_1': { source: 'STATIC', staticValue: 'de campo correspondientes,', description: 'Formatos de planeación previa' },
+    'var_47': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (1)' },
+    'var_27': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (2)' },
+    'var_28': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (3)' },
+    'var_30': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (4)' },
+    'var_31': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (5)' },
+    'var_33': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (6)' },
+    'var_34': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (7)' },
+    'var_36': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (8)' },
+    'var_37': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (9)' },
+    'var_39': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (10)' },
+    'var_40': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (11)' },
+    'var_42': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (12)' },
+    'var_43': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (13)' },
+    'var_45': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (14)' },
+    'var_46': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (15)' },
+    'var_48': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (16)' },
+    'var_49': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (17)' },
+    'var_50': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (18)' },
+    'fuente_serambiente_s_a_s_1': { source: 'DATE', field: 'year', description: 'Año fuente SERAMBIENTE (tabla)' },
+    'muestreo_preliminar_1': { source: 'STATIC', staticValue: '', description: 'Encabezado muestreo preliminar' },
+    'metodos_preliminares_1': { source: 'STATIC', staticValue: '', description: 'Encabezado métodos preliminares' },
+    'var_51': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (1)' },
+    'var_52': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (2)' },
+    'var_53': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (3)' },
+    'var_54': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (4)' },
+    'var_55': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (5)' },
+    'var_56': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (6)' },
+    'var_57': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (7)' },
+    'var_58': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (8)' },
+    'fuente_1': { source: 'STATIC', staticValue: 'EPA (Environmental Protection Agency)', description: 'Fuente normativa métodos preliminares' },
+    'para_determinar_parametros_que_son_fundamentales_p_1': { source: 'STATIC', staticValue: 'para el diseño del muestreo isocinético.', description: 'Propósito del muestreo preliminar' },
+    'var_21': { source: 'STATIC', staticValue: '', description: 'Métodos de toma de muestra (final)' },
+    'var_59': { source: 'STATIC', staticValue: '', description: 'Esquema del sistema de muestreo (1)' },
+    'var_60': { source: 'STATIC', staticValue: '', description: 'Esquema del sistema de muestreo (2)' },
+    'var_61': { source: 'STATIC', staticValue: '', description: 'Esquema del sistema de muestreo (3)' },
+    'var_22': { source: 'STATIC', staticValue: '', description: 'Nota final del informe (1)' },
+    'var_23': { source: 'STATIC', staticValue: '', description: 'Nota final del informe (2)' },
+    'var_62': { source: 'STATIC', staticValue: '', description: 'Continuación título portada' },
+};
 // PREVIOS EN FUENTES FIJAS (67-10)
 exports.FUENTES_FIJAS_PREVIO_CONFIG = {
     templateType: 'FUENTES_FIJAS_PREVIO',
     displayName: 'Informe Previo de Fuentes Fijas',
     filePattern: 'FO-PO-PSM-67-10',
-    fields: Object.assign({}, AGUA_FIELDS)
+    fields: Object.assign(Object.assign({}, AGUA_FIELDS), FUENTES_FIJAS_PREVIO_DELTA_FIELDS)
 };
 // FUENTES FIJAS (67-11)
 exports.FUENTES_FIJAS_CONFIG = {
