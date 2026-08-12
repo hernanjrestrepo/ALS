@@ -4,7 +4,7 @@
  * Each tag is mapped based on its EXACT context in the Word template.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TEMPLATE_CONFIGS = exports.FUENTES_FIJAS_CONFIG = exports.FUENTES_FIJAS_PREVIO_CONFIG = exports.PARTICULAS_VIABLES_CONFIG = exports.OLORES_CONFIG = exports.CALIDAD_AIRE_CONFIG = exports.EMISION_RUIDO_AMBIENTAL_CONFIG = exports.RUIDO_INTRADOMICILIARIO_CONFIG = exports.RUIDO_AMBIENTAL_CONFIG = exports.EMISION_RUIDO_CONFIG = exports.RESPEL_CONFIG = exports.PUNTO_SECO_CONFIG = exports.ASUB_CONFIG = void 0;
+exports.TEMPLATE_CONFIGS = exports.SUELO_CONFIG = exports.BIOTA_CONFIG = exports.FUENTES_FIJAS_CONFIG = exports.FUENTES_FIJAS_PREVIO_CONFIG = exports.PARTICULAS_VIABLES_CONFIG = exports.OLORES_CONFIG = exports.CALIDAD_AIRE_CONFIG = exports.EMISION_RUIDO_AMBIENTAL_CONFIG = exports.RUIDO_INTRADOMICILIARIO_CONFIG = exports.RUIDO_AMBIENTAL_CONFIG = exports.EMISION_RUIDO_CONFIG = exports.RESPEL_CONFIG = exports.PUNTO_SECO_CONFIG = exports.ASUB_CONFIG = void 0;
 exports.getTemplateType = getTemplateType;
 // ================================================================
 // AGUA SUBTERRÁNEA / LIXIVIADOS — 64-08 (32 tags)
@@ -699,6 +699,44 @@ exports.FUENTES_FIJAS_CONFIG = {
     fields: Object.assign({}, AGUA_FIELDS)
 };
 // ================================================================
+// CAMPOS COMPARTIDOS V2 (tags semánticos modernos, plantillas
+// recuperadas de templates/docxtemplater/ y activadas en templates/reports/)
+// ================================================================
+const V2_COMMON_FIELDS = {
+    'cliente_nombre': { source: 'AI', field: 'cliente', description: 'Nombre del cliente' },
+    'monitoreo_ciudad': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad del monitoreo' },
+    'monitoreo_departamento': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento del monitoreo' },
+    'empresa_responsable_estudio': { source: 'SYSTEM', description: 'Empresa que ejecuta el estudio' },
+    'cliente_representante_nombre': { source: 'AI', field: 'representanteNombre', description: 'Representante del cliente' },
+    'cliente_representante_telefono': { source: 'AI', field: 'representanteTelefono', description: 'Teléfono del representante' },
+    'cliente_direccion': { source: 'AI', field: 'ubicacion.direccion', description: 'Dirección del cliente' },
+    'muestra_id': { source: 'AI', field: 'puntos[0].idMuestra', description: 'Identificador de la muestra' },
+    'muestra_fecha': { source: 'DATE', field: 'fullDate', description: 'Fecha de la muestra' },
+    'punto_nombre': { source: 'AI', field: 'puntos[0].nombre', description: 'Nombre del punto de muestreo' },
+    'reporte_numero': { source: 'OIT', field: 'oitNumber', description: 'Número de OIT/reporte' },
+    'informe_version': { source: 'STATIC', staticValue: 'V00', description: 'Versión del informe' },
+    'informe_codigo_v01': { source: 'OIT', field: 'oitNumber', description: 'Código del informe' },
+    'informe_fecha_emision': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión' },
+    'elaborado_nombre': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Elaborado por' },
+    'revisado_nombre': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Revisado por' },
+    'autorizado_nombre': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Autorizado por' },
+};
+// BIOTA (74-01) — sin veredicto de conformidad (índices/BMW dejados como sección
+// condicional vacía hasta que Dirección Técnica confirme la tabla de referencia)
+exports.BIOTA_CONFIG = {
+    templateType: 'BIOTA',
+    displayName: 'Informe de Biota',
+    filePattern: 'FO-PO-PSM-74-01',
+    fields: Object.assign({}, V2_COMMON_FIELDS)
+};
+// SUELOS (64-11) — sin veredicto de conformidad (no existe normativa colombiana de referencia)
+exports.SUELO_CONFIG = {
+    templateType: 'SUELO',
+    displayName: 'Informe de Suelos',
+    filePattern: 'FO-PO-PSM-64-11',
+    fields: Object.assign({}, V2_COMMON_FIELDS)
+};
+// ================================================================
 // REGISTRY
 // ================================================================
 exports.TEMPLATE_CONFIGS = {
@@ -714,6 +752,8 @@ exports.TEMPLATE_CONFIGS = {
     'PARTICULAS_VIABLES': exports.PARTICULAS_VIABLES_CONFIG,
     'FUENTES_FIJAS': exports.FUENTES_FIJAS_CONFIG,
     'FUENTES_FIJAS_PREVIO': exports.FUENTES_FIJAS_PREVIO_CONFIG,
+    'BIOTA': exports.BIOTA_CONFIG,
+    'SUELO': exports.SUELO_CONFIG,
 };
 function getTemplateType(fileName) {
     const upper = fileName.toUpperCase();
@@ -723,6 +763,10 @@ function getTemplateType(fileName) {
         return 'PUNTO_SECO';
     if (upper.includes('64-08') || upper.includes('SUBTERR'))
         return 'ASUB';
+    if (upper.includes('74-01') || upper.includes('BIOTA'))
+        return 'BIOTA';
+    if (upper.includes('64-11') || upper.includes('SUELO'))
+        return 'SUELO';
     if (upper.includes('65-09'))
         return 'EMISION_RUIDO_AMBIENTAL';
     if (upper.includes('65-06'))

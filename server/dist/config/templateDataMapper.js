@@ -379,6 +379,53 @@ class TemplateDataMapper {
         data['incluye_microbiologia'] = hasMicrobiologia;
         data['incluye_comparacion_normativa'] = true;
         data['es_agua_marina'] = this.templateType === 'ASUB' && (this.oit.description || '').toLowerCase().includes('marina');
+        // ===== V2 loop builders (tags semánticos: Biota, Suelo, y futuras plantillas) =====
+        const rawResultadosForLabs = this.parsedAI.resultados || [];
+        data['laboratorios_parametros'] = rawResultadosForLabs.length > 0
+            ? rawResultadosForLabs.map((r) => ({
+                laboratorio_nombre: 'SERAMBIENTE S.A.S.',
+                parametro_nombre: r.parametro || '',
+                resolucion_numero_fecha: 'Resolución 1262 del 18 de junio de 2021'
+            }))
+            : [{ laboratorio_nombre: 'SERAMBIENTE S.A.S.', parametro_nombre: this.parsedAI.parametrosAnalizados || 'Según OIT', resolucion_numero_fecha: 'Resolución 1262 del 18 de junio de 2021' }];
+        data['tiene_laboratorios_parametros'] = data['laboratorios_parametros'].length > 0;
+        data['metodos_analiticos'] = rawResultadosForLabs.map((r) => ({
+            parametro_nombre: r.parametro || '',
+            metodo_analitico: r.metodo || 'Ver certificado de acreditación',
+            parametro_unidad: r.unidad || '',
+            equipo_nombre: '',
+            rango_trabajo: '',
+            limite_cuantificacion: r.limite || 'N.A.'
+        }));
+        data['tiene_metodos_analiticos'] = data['metodos_analiticos'].length > 0;
+        data['resultados_laboratorio'] = (data['resultados_laboratorio'] || []).map((r) => (Object.assign(Object.assign({}, r), { parametro_nombre: r.parametro, parametro_unidad: r.unidad, resultado_valor: r.punto_1 || '' })));
+        data['tiene_resultados_laboratorio'] = data['resultados_laboratorio'].length > 0;
+        const infiltracionResults = rawResultadosForLabs.filter((r) => (r.parametro || '').toLowerCase().includes('infiltra'));
+        data['pruebas_infiltracion'] = infiltracionResults.map((r) => ({ infiltracion_parametro: r.parametro, infiltracion_valor: r.valor }));
+        data['tiene_pruebas_infiltracion'] = data['pruebas_infiltracion'].length > 0;
+        // Esfuerzo de muestreo (Biota) -- sin fuente confiable de extracción todavía
+        data['esfuerzo_muestreo'] = [];
+        data['tiene_esfuerzo_muestreo'] = false;
+        const anexosList = [];
+        if (this.oit.oitFileUrl)
+            anexosList.push({ anexo_nombre: 'OIT', anexo_laboratorio: 'SERAMBIENTE S.A.S.', anexo_archivo: 'Ver sistema ALS', anexo_paginas: 'N.A.' });
+        if (this.oit.labResultsUrl)
+            anexosList.push({ anexo_nombre: 'Resultados de laboratorio', anexo_laboratorio: 'SERAMBIENTE S.A.S.', anexo_archivo: 'Ver sistema ALS', anexo_paginas: 'N.A.' });
+        data['anexos'] = anexosList;
+        data['tiene_anexos'] = anexosList.length > 0;
+        // Tablas de referencia científica (índices ecológicos, clasificación BMW/ASPT) --
+        // dejadas vacías intencionalmente hasta que Dirección Técnica de Serambiente
+        // confirme la tabla exacta que usan (ver auditoría 2026-08-12).
+        data['indices_biologicos'] = [];
+        data['tiene_indices_biologicos'] = false;
+        data['bmw_col'] = [];
+        data['tiene_bmw_col'] = false;
+        data['categorias_tamano'] = [];
+        data['tiene_categorias_tamano'] = false;
+        data['parametros_puntaje'] = [];
+        data['tiene_parametros_puntaje'] = false;
+        data['puntos_monitoreo'] = data['puntos_monitoreo'].map((p) => (Object.assign(Object.assign({}, p), { punto_descripcion: p.nombre, punto_hora: p.hora, punto_cota: 'N.A.', punto_latitud_gms: p.latitud, punto_longitud_gms: p.longitud, punto_norte_or: p.norte, punto_este_or: p.este })));
+        data['tiene_puntos_monitoreo'] = data['puntos_monitoreo'].length > 0;
         console.log(`[TemplateMapper] Generated ${Object.keys(data).length} data keys (with structured layout)`);
         return data;
     }
