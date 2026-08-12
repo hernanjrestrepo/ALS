@@ -17,11 +17,19 @@ const OIT_TYPE_CATEGORIES: Record<string, string[]> = {
     'RUIDO_MIXTO': ['RUIDO'],
     'AIRE': ['AIRE'],
     'OLORES': ['OLORES'],
-    'PARTICULAS': ['AIRE'],
+    'PARTICULAS': ['PARTICULAS_VIABLES'], // Reference: clasificación de Boutin (internacional), no Resolución colombiana
+    'BIOTA': ['BIOTA'],
+    'SUELO': ['SUELO'],
     'FUENTES_FIJAS_PREVIO': ['FUENTES_FIJAS'],
     'FUENTES_FIJAS': ['FUENTES_FIJAS'],
     'DEFAULT': ['GENERAL']
 };
+
+// Matrices sin criterio de cumplimiento normativo aplicable, confirmado por Dirección Técnica
+// de Serambiente (2026-08-12): Biota se interpreta con índices ecológicos y potencial
+// bioindicador; Suelos no tiene normativa colombiana de referencia y se limita a
+// caracterización descriptiva. Para estos casos no se debe emitir veredicto conforme/no conforme.
+const NO_COMPLIANCE_VERDICT_TYPES = new Set(['BIOTA', 'SUELO']);
 
 export class ComplianceService {
     private detectOitType(oit: any): string {
@@ -36,6 +44,8 @@ export class ComplianceService {
         if (combined.includes('aire')) return 'AIRE';
         if (combined.includes('olores')) return 'OLORES';
         if (combined.includes('partículas') || combined.includes('particulas')) return 'PARTICULAS';
+        if (combined.includes('biota')) return 'BIOTA';
+        if (combined.includes('suelo')) return 'SUELO';
         return 'DEFAULT';
     }
 
@@ -91,7 +101,24 @@ export class ComplianceService {
             standardsContent = await aiService.cascadeSummary(standardsContent, 'Resumir requisitos técnicos clave de estas normas ambientales');
         }
 
-        const prompt = `Analiza cumplimiento ambiental.
+        const noVerdict = NO_COMPLIANCE_VERDICT_TYPES.has(oitType);
+        const prompt = noVerdict
+            ? `Analiza la información técnica de esta matriz ambiental. No existe normativa colombiana de cumplimiento aplicable para esta matriz (${oitType}); NO emitas un veredicto de conformidad. Limítate a describir e interpretar la información disponible.
+## OIT: ${oit.oitNumber} (${oitType})
+## COTIZACIÓN: ${quotationContent.substring(0, 10000)}
+## REFERENCIAS: ${standardsContent}
+
+Responde SOLO JSON (compliant siempre null, no evalúes conformidad):
+{
+  "compliant": null,
+  "score": null,
+  "oitType": "${oitType}",
+  "summary": "",
+  "exclusions": [],
+  "issues": [],
+  "recommendations": []
+}`
+            : `Analiza conformidad ambiental.
 ## OIT: ${oit.oitNumber} (${oitType})
 ## COTIZACIÓN: ${quotationContent.substring(0, 10000)}
 ## NORMAS: ${standardsContent}
@@ -111,8 +138,14 @@ Responde SOLO JSON:
             const aiResponse = await aiService.chat(prompt);
             const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
             const result = JSON.parse(jsonMatch ? jsonMatch[0] : '{}');
+            if (noVerdict) {
+                result.compliant = null;
+                result.score = null;
+            }
 
-            await createNotification(userId, `Cumplimiento: ${oit.oitNumber}`, `Resultado: ${result.score}/100`, result.compliant ? 'SUCCESS' : 'WARNING', oitId);
+            const notifTitle = noVerdict ? `Análisis técnico: ${oit.oitNumber}` : `Conformidad: ${oit.oitNumber}`;
+            const notifBody = noVerdict ? 'Matriz sin veredicto de conformidad (no aplica normativa)' : `Resultado: ${result.score}/100`;
+            await createNotification(userId, notifTitle, notifBody, noVerdict ? 'INFO' : (result.compliant ? 'SUCCESS' : 'WARNING'), oitId);
             return result;
         } catch (error) {
             console.error('Compliance error:', error);

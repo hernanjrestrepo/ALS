@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
     FileText, Building2, Calendar, Download, Link2,
     Sparkles, Loader2, DollarSign, CheckCircle2,
-    Clock, Hash, AlertTriangle, XCircle
+    Clock, Hash, AlertTriangle, XCircle, Info
 } from 'lucide-react';
 import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackModal';
 import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
@@ -603,18 +603,22 @@ export default function QuotationDetailPage() {
                                 {/* Score & Status Banner */}
                                 <div className={`rounded-xl p-6 border ${complianceResult.compliant === true ? 'bg-green-50 border-green-200' :
                                     complianceResult.compliant === false ? 'bg-red-50 border-red-200' :
-                                        'bg-amber-50 border-amber-200'
+                                        complianceResult.compliant === null ? 'bg-slate-50 border-slate-200' :
+                                            'bg-amber-50 border-amber-200'
                                     }`}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
                                             <div className={`h-16 w-16 rounded-full flex items-center justify-center ${complianceResult.compliant === true ? 'bg-green-100' :
                                                 complianceResult.compliant === false ? 'bg-red-100' :
-                                                    'bg-amber-100'
+                                                    complianceResult.compliant === null ? 'bg-slate-100' :
+                                                        'bg-amber-100'
                                                 }`}>
                                                 {complianceResult.compliant === true ? (
                                                     <CheckCircle2 className="h-8 w-8 text-green-600" />
                                                 ) : complianceResult.compliant === false ? (
                                                     <XCircle className="h-8 w-8 text-red-600" />
+                                                ) : complianceResult.compliant === null ? (
+                                                    <Info className="h-8 w-8 text-slate-600" />
                                                 ) : (
                                                     <AlertTriangle className="h-8 w-8 text-amber-600" />
                                                 )}
@@ -622,11 +626,13 @@ export default function QuotationDetailPage() {
                                             <div>
                                                 <h3 className={`text-xl font-bold ${complianceResult.compliant === true ? 'text-green-900' :
                                                     complianceResult.compliant === false ? 'text-red-900' :
-                                                        'text-amber-900'
+                                                        complianceResult.compliant === null ? 'text-slate-900' :
+                                                            'text-amber-900'
                                                     }`}>
-                                                    {complianceResult.compliant === true ? 'CUMPLE' :
-                                                        complianceResult.compliant === false ? 'NO CUMPLE' :
-                                                            'REQUIERE REVISIÓN'}
+                                                    {complianceResult.compliant === true ? 'CONFORME' :
+                                                        complianceResult.compliant === false ? 'NO CONFORME' :
+                                                            complianceResult.compliant === null ? 'SIN VEREDICTO NORMATIVO (matriz descriptiva)' :
+                                                                'REQUIERE REVISIÓN'}
                                                 </h3>
                                                 <p className="text-sm text-slate-600 mt-1">
                                                     Verificado: {complianceResult.analyzedAt ?

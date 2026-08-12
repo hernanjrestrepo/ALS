@@ -342,7 +342,7 @@ export class TemplateDataMapper {
             punto_2: r.punto_2 || '',
             punto_3: r.punto_3 || '',
             normativa: r.normativa || '',
-            cumplimiento: r.cumple !== undefined ? (r.cumple ? 'Cumple' : 'No cumple') : 'N.A.'
+            cumplimiento: r.cumple !== undefined ? (r.cumple ? 'Conforme' : 'No conforme') : 'N.A.'
         })) : [];
 
         // Lab info
