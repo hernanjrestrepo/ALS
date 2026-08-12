@@ -178,6 +178,8 @@ class TemplateDataMapper {
                     return this.parsedAI.numeroPuntos || '1 (uno)';
                 if (mapping.field === 'parametrosAnalizados')
                     return this.parsedAI.parametrosAnalizados || 'Según OIT';
+                if (mapping.field === 'periodoMuestreo')
+                    return this.parsedAI.periodoMuestreo || this.fullDate;
                 return '';
             case 'OIT':
                 const oitVal = this.getNestedValue(this.oit, mapping.field || '');
