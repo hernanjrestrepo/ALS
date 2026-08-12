@@ -413,17 +413,21 @@ class TemplateDataMapper {
             anexosList.push({ anexo_nombre: 'Resultados de laboratorio', anexo_laboratorio: 'SERAMBIENTE S.A.S.', anexo_archivo: 'Ver sistema ALS', anexo_paginas: 'N.A.' });
         data['anexos'] = anexosList;
         data['tiene_anexos'] = anexosList.length > 0;
-        // Tablas de referencia científica (índices ecológicos, clasificación BMW/ASPT) --
-        // dejadas vacías intencionalmente hasta que Dirección Técnica de Serambiente
-        // confirme la tabla exacta que usan (ver auditoría 2026-08-12).
+        // Tablas de referencia científica (índices ecológicos, clasificación BMW/ASPT,
+        // categorías de tamaño). El contenido de estas tablas ya está redactado como texto
+        // fijo dentro de la plantilla (metodología Roldán 2003 / Moreno 2001 / Margalef 1969,
+        // citada en la bibliografía del propio informe); los condicionales tiene_* solo
+        // controlan si esa sección fija se muestra u oculta, por eso deben ir en true.
+        // Los arreglos de loop quedan vacíos: son para filas EXTRA específicas de la muestra,
+        // no para el contenido estándar (que ya está fijo en la plantilla).
         data['indices_biologicos'] = [];
-        data['tiene_indices_biologicos'] = false;
+        data['tiene_indices_biologicos'] = true;
         data['bmw_col'] = [];
-        data['tiene_bmw_col'] = false;
+        data['tiene_bmw_col'] = true;
         data['categorias_tamano'] = [];
-        data['tiene_categorias_tamano'] = false;
+        data['tiene_categorias_tamano'] = true;
         data['parametros_puntaje'] = [];
-        data['tiene_parametros_puntaje'] = false;
+        data['tiene_parametros_puntaje'] = true;
         data['puntos_monitoreo'] = data['puntos_monitoreo'].map((p) => (Object.assign(Object.assign({}, p), { punto_descripcion: p.nombre, punto_hora: p.hora, punto_cota: 'N.A.', punto_latitud_gms: p.latitud, punto_longitud_gms: p.longitud, punto_norte_or: p.norte, punto_este_or: p.este })));
         data['tiene_puntos_monitoreo'] = data['puntos_monitoreo'].length > 0;
         console.log(`[TemplateMapper] Generated ${Object.keys(data).length} data keys (with structured layout)`);
