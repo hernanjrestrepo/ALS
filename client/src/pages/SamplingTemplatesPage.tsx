@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks } from 'lucide-react';
+import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks, FileText } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -39,6 +39,7 @@ interface SamplingTemplate {
     description: string;
     oitType: string;
     steps: string;
+    reportTemplateFile?: string | null;
     createdAt: string;
 }
 
@@ -251,18 +252,35 @@ export default function SamplingTemplatesPage() {
 
             {/* Diálogo "Ver" — solo lectura */}
             <Dialog open={!!viewTemplate} onOpenChange={(open) => !open && setViewTemplate(null)}>
-                <DialogContent className="max-w-lg">
-                    <DialogHeader>
+                <DialogContent className="max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+                    <DialogHeader className="shrink-0">
                         <DialogTitle className="flex items-center gap-2">
                             <Workflow className="h-4 w-4 text-slate-400" />
                             {viewTemplate?.name}
                         </DialogTitle>
                         <DialogDescription>{viewTemplate?.description}</DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-3">
+                    <div className="space-y-4 overflow-y-auto pr-1">
                         <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">
                             {viewTemplate?.oitType}
                         </Badge>
+
+                        <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                <FileText className="h-4 w-4" />
+                                Plantilla de informe asociada
+                            </div>
+                            {viewTemplate?.reportTemplateFile ? (
+                                <p className="text-sm bg-slate-50 border border-slate-100 rounded-md px-3 py-2 text-slate-700 break-words">
+                                    {viewTemplate.reportTemplateFile}
+                                </p>
+                            ) : (
+                                <p className="text-sm text-slate-400 italic">
+                                    Esta plantilla no tiene un informe (.docx) asociado todavía.
+                                </p>
+                            )}
+                        </div>
+
                         <div className="space-y-2">
                             <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
                                 <ListChecks className="h-4 w-4" />
