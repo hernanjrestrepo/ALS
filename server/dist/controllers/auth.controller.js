@@ -12,9 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.register = void 0;
+exports.resetPassword = exports.forgotPassword = exports.login = exports.register = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const crypto_1 = __importDefault(require("crypto"));
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -78,3 +79,64 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.login = login;
+// Genera un token de recuperación de un solo uso, válido 1 hora.
+// No hay proveedor de correo configurado en este sistema todavía, así que el
+// link se retorna directamente en la respuesta para que el frontend lo muestre.
+// El usuario escribe su nueva contraseña directamente en el navegador; el
+// backend nunca recibe ni registra la contraseña en texto plano fuera de este flujo.
+const forgotPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { email } = req.body;
+        const user = yield prisma.user.findUnique({ where: { email } });
+        // Respuesta genérica siempre, para no revelar si el correo existe o no
+        const genericResponse = { message: 'Si el correo existe, se generó un link de recuperación.' };
+        if (!user || !user.isActive) {
+            return res.status(200).json(genericResponse);
+        }
+        const rawToken = crypto_1.default.randomBytes(32).toString('hex');
+        const tokenHash = crypto_1.default.createHash('sha256').update(rawToken).digest('hex');
+        const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+        yield prisma.user.update({
+            where: { id: user.id },
+            data: { resetTokenHash: tokenHash, resetTokenExpiry: expiry },
+        });
+        const frontendUrl = process.env.FRONTEND_URL || 'https://als.paradixe.xyz';
+        const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
+        res.status(200).json(Object.assign(Object.assign({}, genericResponse), { resetUrl }));
+    }
+    catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+});
+exports.forgotPassword = forgotPassword;
+const resetPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { email, token, password } = req.body;
+        if (!password || password.length < 6) {
+            return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+        }
+        const user = yield prisma.user.findUnique({ where: { email } });
+        if (!user || !user.resetTokenHash || !user.resetTokenExpiry) {
+            return res.status(400).json({ message: 'Link de recuperación inválido o expirado' });
+        }
+        if (user.resetTokenExpiry < new Date()) {
+            return res.status(400).json({ message: 'Link de recuperación inválido o expirado' });
+        }
+        const tokenHash = crypto_1.default.createHash('sha256').update(token || '').digest('hex');
+        if (tokenHash !== user.resetTokenHash) {
+            return res.status(400).json({ message: 'Link de recuperación inválido o expirado' });
+        }
+        const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
+        yield prisma.user.update({
+            where: { id: user.id },
+            data: { password: hashedPassword, resetTokenHash: null, resetTokenExpiry: null },
+        });
+        res.status(200).json({ message: 'Contraseña actualizada correctamente' });
+    }
+    catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+});
+exports.resetPassword = resetPassword;
