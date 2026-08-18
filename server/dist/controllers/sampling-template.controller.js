@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.restoreTemplate = exports.deleteTemplate = exports.updateTemplate = exports.createTemplate = exports.getTemplateById = exports.getTrashedTemplates = exports.getTemplates = void 0;
+exports.restoreTemplateVersion = exports.restoreTemplate = exports.deleteTemplate = exports.updateTemplate = exports.createTemplate = exports.getTemplateVersions = exports.getTemplateById = exports.getTrashedTemplates = exports.getTemplates = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const TRASH_RETENTION_DAYS = 90;
@@ -21,6 +21,32 @@ function sweepExpiredTrash() {
         const cutoff = new Date(Date.now() - TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000);
         yield prisma.samplingTemplate.deleteMany({
             where: { deletedAt: { not: null, lt: cutoff } },
+        });
+    });
+}
+// Guarda un snapshot del estado ACTUAL de la plantilla como una nueva version
+// en el historial, antes de sobreescribirla. Nunca se pierde una version anterior.
+function snapshotVersion(templateId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const current = yield prisma.samplingTemplate.findUnique({ where: { id: templateId } });
+        if (!current)
+            return;
+        const lastVersion = yield prisma.samplingTemplateVersion.findFirst({
+            where: { samplingTemplateId: templateId },
+            orderBy: { versionNumber: 'desc' },
+        });
+        const nextVersionNumber = ((lastVersion === null || lastVersion === void 0 ? void 0 : lastVersion.versionNumber) || 0) + 1;
+        yield prisma.samplingTemplateVersion.create({
+            data: {
+                samplingTemplateId: templateId,
+                versionNumber: nextVersionNumber,
+                name: current.name,
+                description: current.description,
+                oitType: current.oitType,
+                steps: current.steps,
+                reportTemplateFile: current.reportTemplateFile,
+                startMessage: current.startMessage,
+            },
         });
     });
 }
@@ -77,6 +103,21 @@ const getTemplateById = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.getTemplateById = getTemplateById;
+const getTemplateVersions = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const versions = yield prisma.samplingTemplateVersion.findMany({
+            where: { samplingTemplateId: id },
+            orderBy: { versionNumber: 'desc' },
+        });
+        res.json(versions);
+    }
+    catch (error) {
+        console.error('Error fetching template versions:', error);
+        res.status(500).json({ error: 'Error al obtener el historial de versiones' });
+    }
+});
+exports.getTemplateVersions = getTemplateVersions;
 const createTemplate = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { name, description, oitType, steps } = req.body;
@@ -100,6 +141,9 @@ const updateTemplate = (req, res) => __awaiter(void 0, void 0, void 0, function*
     try {
         const { id } = req.params;
         const { name, description, oitType, steps } = req.body;
+        // El usuario aprueba el cambio al guardar: se conserva el estado anterior
+        // como una version nueva en el historial antes de sobreescribir.
+        yield snapshotVersion(id);
         const template = yield prisma.samplingTemplate.update({
             where: { id },
             data: {
@@ -149,3 +193,33 @@ const restoreTemplate = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.restoreTemplate = restoreTemplate;
+// Restaura una version anterior del historial como el estado actual. El estado
+// que estaba activo antes de restaurar tambien se guarda como version (nunca se
+// pierde nada), asi que esto es siempre reversible.
+const restoreTemplateVersion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id, versionId } = req.params;
+        const version = yield prisma.samplingTemplateVersion.findUnique({ where: { id: versionId } });
+        if (!version || version.samplingTemplateId !== id) {
+            return res.status(404).json({ error: 'Version no encontrada' });
+        }
+        yield snapshotVersion(id);
+        const template = yield prisma.samplingTemplate.update({
+            where: { id },
+            data: {
+                name: version.name,
+                description: version.description,
+                oitType: version.oitType,
+                steps: version.steps,
+                reportTemplateFile: version.reportTemplateFile,
+                startMessage: version.startMessage,
+            },
+        });
+        res.json(template);
+    }
+    catch (error) {
+        console.error('Error restoring template version:', error);
+        res.status(500).json({ error: 'Error al restaurar la version' });
+    }
+});
+exports.restoreTemplateVersion = restoreTemplateVersion;

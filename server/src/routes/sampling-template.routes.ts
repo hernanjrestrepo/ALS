@@ -4,10 +4,12 @@ import {
     getTemplates,
     getTrashedTemplates,
     getTemplateById,
+    getTemplateVersions,
     createTemplate,
     updateTemplate,
     deleteTemplate,
-    restoreTemplate
+    restoreTemplate,
+    restoreTemplateVersion
 } from '../controllers/sampling-template.controller';
 import { docxService } from '../services/docx.service';
 
@@ -18,10 +20,12 @@ router.use(authMiddleware);
 router.get('/', getTemplates);
 router.get('/trash', getTrashedTemplates);
 router.get('/:id', getTemplateById);
+router.get('/:id/versions', getTemplateVersions);
 router.post('/', createTemplate);
 router.put('/:id', updateTemplate);
 router.delete('/:id', deleteTemplate);
 router.post('/:id/restore', restoreTemplate);
+router.post('/:id/versions/:versionId/restore', restoreTemplateVersion);
 
 // Get template fields (docxtemplater tags)
 router.get('/fields/:fileName', (req: Request, res: Response) => {

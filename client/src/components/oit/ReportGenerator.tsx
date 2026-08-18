@@ -9,6 +9,7 @@ import api from '@/lib/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackModal';
+import { ReportVersionHistoryButton } from '@/components/oit/ReportVersionHistoryButton';
 
 interface ReportGeneratorProps {
     oitId: string;
@@ -32,6 +33,25 @@ export function ReportGenerator({
     const [finalReportUrl, setFinalReportUrl] = useState<string | null>(null);
     const [reportGenerated, setReportGenerated] = useState(false);
     const [reportList, setReportList] = useState<Array<{ name: string; url: string; type: string }>>([]);
+
+    // Refresca la lista de informes desde el OIT (usado tras reactivar una version anterior)
+    const refreshReportList = async () => {
+        try {
+            const oitResponse = await api.get(`/oits/${oitId}`);
+            const oitData = oitResponse.data;
+            if (oitData.finalReportUrl) {
+                const parsed = JSON.parse(oitData.finalReportUrl);
+                if (Array.isArray(parsed)) {
+                    const filtered = parsed.filter((r: any) =>
+                        serviceGroup === 'General' || matchesService(r.name, serviceGroup)
+                    );
+                    setReportList(filtered);
+                }
+            }
+        } catch (error) {
+            console.error('Error refreshing report list:', error);
+        }
+    };
 
     // Sampling Sheet State
     const [sheetUrls, setSheetUrls] = useState<string[]>(() => {
@@ -688,11 +708,14 @@ export function ReportGenerator({
                                                         </div>
                                                         <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
                                                     </div>
-                                                    <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
-                                                        <a href={reportUrl} download title="Descargar informe">
-                                                            <Download className="h-4 w-4" />
-                                                        </a>
-                                                    </Button>
+                                                    <div className="flex items-center gap-0.5">
+                                                        <ReportVersionHistoryButton oitId={oitId} reportName={report.name} onActivated={refreshReportList} />
+                                                        <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                                                            <a href={reportUrl} download title="Descargar informe">
+                                                                <Download className="h-4 w-4" />
+                                                            </a>
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             );
                                         })}
@@ -726,11 +749,14 @@ export function ReportGenerator({
                                                         </div>
                                                         <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
                                                     </div>
-                                                    <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-teal-400 hover:text-teal-600 hover:bg-teal-50">
-                                                        <a href={reportUrl} download title="Descargar comunicado">
-                                                            <Download className="h-4 w-4" />
-                                                        </a>
-                                                    </Button>
+                                                    <div className="flex items-center gap-0.5">
+                                                        <ReportVersionHistoryButton oitId={oitId} reportName={report.name} onActivated={refreshReportList} />
+                                                        <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-teal-400 hover:text-teal-600 hover:bg-teal-50">
+                                                            <a href={reportUrl} download title="Descargar comunicado">
+                                                                <Download className="h-4 w-4" />
+                                                            </a>
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             );
                                         })}

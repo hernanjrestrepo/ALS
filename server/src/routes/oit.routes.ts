@@ -17,6 +17,8 @@ import {
     deleteSamplingSheet,
     deleteLabResult,
     generateFinalReport,
+    getReportVersions,
+    activateReportVersion,
     validateStepData,
     finalizeSampling,
     generateSamplingReport,
@@ -74,6 +76,8 @@ router.delete('/:id/lab-results', authMiddleware, deleteLabResult);
 router.post('/:id/sampling-sheets', authMiddleware, upload.single('file'), uploadSamplingSheets);
 router.delete('/:id/sampling-sheets', authMiddleware, deleteSamplingSheet);
 router.post('/:id/generate-final-report', authMiddleware, generateFinalReport);
+router.get('/:id/report-versions', authMiddleware, getReportVersions);
+router.post('/:id/report-versions/:versionId/activate', authMiddleware, activateReportVersion);
 
 // Sampling validation workflow
 router.post('/:id/validate-step', authMiddleware, validateStepData);

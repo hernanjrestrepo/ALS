@@ -10,6 +10,37 @@ import axios from 'axios';
 
 const prisma = new PrismaClient();
 
+// Guarda un snapshot de version por cada informe (name/url/type) generado para
+// un OIT, y marca como inactivas las versiones anteriores con el mismo nombre.
+// Nunca borra archivos ni filas -- solo ajusta isActive. Es aditivo: se llama
+// justo despues de escribir finalReportUrl, sin cambiar la logica existente.
+async function recordReportVersions(oitId: string, reports: Array<{ name: string; url: string; type: 'pdf' | 'docx' }>) {
+    for (const report of reports) {
+        try {
+            await prisma.oITReportVersion.updateMany({
+                where: { oitId, name: report.name, isActive: true },
+                data: { isActive: false },
+            });
+            const last = await prisma.oITReportVersion.findFirst({
+                where: { oitId, name: report.name },
+                orderBy: { versionNumber: 'desc' },
+            });
+            await prisma.oITReportVersion.create({
+                data: {
+                    oitId,
+                    name: report.name,
+                    url: report.url,
+                    type: report.type,
+                    versionNumber: (last?.versionNumber || 0) + 1,
+                    isActive: true,
+                },
+            });
+        } catch (err) {
+            console.error(`[ReportVersion] Failed to record version for "${report.name}":`, err);
+        }
+    }
+}
+
 // Accept Planning Proposal
 export const acceptPlanning = async (req: Request, res: Response) => {
     try {
@@ -540,6 +571,7 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
         where: { id },
         data: { finalReportUrl: JSON.stringify(generatedReports) }
     });
+    await recordReportVersions(id, generatedReports);
 
     console.log(`[Report] Completed. Generated ${generatedReports.length} reports.`);
     // Return compatible object for legacy handling if strictly needed, but new flow uses JSON list
@@ -1786,6 +1818,65 @@ async function processSamplingSheetsAsync(oitId: string, filenames: string[], gr
     }
 }
 
+export const getReportVersions = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const versions = await prisma.oITReportVersion.findMany({
+            where: { oitId: id },
+            orderBy: [{ name: 'asc' }, { versionNumber: 'desc' }],
+        });
+        res.json(versions);
+    } catch (error) {
+        console.error('Error fetching report versions:', error);
+        res.status(500).json({ error: 'Error al obtener el historial de versiones del informe' });
+    }
+};
+
+// Reactiva una version anterior de un informe: la marca isActive y actualiza
+// finalReportUrl para que la UI y las descargas apunten a ese archivo. La
+// version que estaba activa queda marcada inactiva, pero su fila y su archivo
+// permanecen intactos -- siempre reversible.
+export const activateReportVersion = async (req: Request, res: Response) => {
+    try {
+        const { id, versionId } = req.params;
+
+        const version = await prisma.oITReportVersion.findUnique({ where: { id: versionId } });
+        if (!version || version.oitId !== id) {
+            return res.status(404).json({ error: 'Version no encontrada' });
+        }
+
+        await prisma.oITReportVersion.updateMany({
+            where: { oitId: id, name: version.name, isActive: true },
+            data: { isActive: false },
+        });
+        await prisma.oITReportVersion.update({
+            where: { id: versionId },
+            data: { isActive: true },
+        });
+
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+        let reports: Array<{ name: string; url: string; type: 'pdf' | 'docx' }> = [];
+        if (oit?.finalReportUrl) {
+            try {
+                reports = JSON.parse(oit.finalReportUrl);
+                if (!Array.isArray(reports)) reports = [];
+            } catch { reports = []; }
+        }
+        const otherReports = reports.filter(r => r.name !== version.name);
+        const updatedReports = [...otherReports, { name: version.name, url: version.url, type: version.type as 'pdf' | 'docx' }];
+
+        await prisma.oIT.update({
+            where: { id },
+            data: { finalReportUrl: JSON.stringify(updatedReports) },
+        });
+
+        res.json({ message: 'Version reactivada', activeVersion: version });
+    } catch (error) {
+        console.error('Error activating report version:', error);
+        res.status(500).json({ error: 'Error al reactivar la version' });
+    }
+};
+
 export const generateFinalReport = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -1831,6 +1922,7 @@ export const generateFinalReport = async (req: Request, res: Response) => {
                         where: { id },
                         data: { finalReportUrl: JSON.stringify(mergedReports) }
                     });
+                    await recordReportVersions(id, generatedReports);
                 }
             })
             .catch(error => {

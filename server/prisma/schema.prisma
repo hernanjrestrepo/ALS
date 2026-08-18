@@ -148,6 +148,41 @@ model SamplingTemplate {
   updatedAt           DateTime @updatedAt
 }
 
+// Historial de versiones de SamplingTemplate. Se crea un snapshot cada vez que
+// el usuario guarda un cambio (updateTemplate); permite ver quien cambio que y
+// restaurar una version anterior sin perder el historial completo.
+model SamplingTemplateVersion {
+  id                  String   @id @default(uuid())
+  samplingTemplateId  String
+  versionNumber       Int
+  name                String
+  description         String
+  oitType             String
+  steps               String
+  reportTemplateFile  String?
+  startMessage        String?
+  createdAt           DateTime @default(now())
+
+  @@index([samplingTemplateId])
+}
+
+// Historial de versiones de informes generados por OIT. Cada vez que se
+// (re)genera un informe con un nombre dado (ej. "Informe Agua"), se guarda
+// una nueva version y se marca la anterior como inactiva -- nunca se borra
+// el archivo anterior, solo deja de ser la version activa.
+model OITReportVersion {
+  id            String   @id @default(uuid())
+  oitId         String
+  name          String   // ej. "Informe Agua", "Comunicado General"
+  url           String   // filename del docx/pdf generado
+  type          String   // 'docx' | 'pdf'
+  versionNumber Int
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@index([oitId, name])
+}
+
 // AI Feedback System - stores user corrections to improve AI outputs
 model AIFeedback {
   id              String   @id @default(uuid())

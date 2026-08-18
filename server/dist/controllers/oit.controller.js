@@ -45,7 +45,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyConsistency = exports.updateServiceDates = exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.deleteLabResult = exports.deleteSamplingSheet = exports.uploadSamplingSheets = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOITFromUrl = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
+exports.verifyConsistency = exports.updateServiceDates = exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.activateReportVersion = exports.getReportVersions = exports.deleteLabResult = exports.deleteSamplingSheet = exports.uploadSamplingSheets = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOITFromUrl = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
 const client_1 = require("@prisma/client");
 const ai_service_1 = require("../services/ai.service");
 const aiService = new ai_service_1.AIService();
@@ -55,6 +55,39 @@ const path_1 = __importDefault(require("path"));
 // import { marked } from 'marked';
 const axios_1 = __importDefault(require("axios"));
 const prisma = new client_1.PrismaClient();
+// Guarda un snapshot de version por cada informe (name/url/type) generado para
+// un OIT, y marca como inactivas las versiones anteriores con el mismo nombre.
+// Nunca borra archivos ni filas -- solo ajusta isActive. Es aditivo: se llama
+// justo despues de escribir finalReportUrl, sin cambiar la logica existente.
+function recordReportVersions(oitId, reports) {
+    return __awaiter(this, void 0, void 0, function* () {
+        for (const report of reports) {
+            try {
+                yield prisma.oITReportVersion.updateMany({
+                    where: { oitId, name: report.name, isActive: true },
+                    data: { isActive: false },
+                });
+                const last = yield prisma.oITReportVersion.findFirst({
+                    where: { oitId, name: report.name },
+                    orderBy: { versionNumber: 'desc' },
+                });
+                yield prisma.oITReportVersion.create({
+                    data: {
+                        oitId,
+                        name: report.name,
+                        url: report.url,
+                        type: report.type,
+                        versionNumber: ((last === null || last === void 0 ? void 0 : last.versionNumber) || 0) + 1,
+                        isActive: true,
+                    },
+                });
+            }
+            catch (err) {
+                console.error(`[ReportVersion] Failed to record version for "${report.name}":`, err);
+            }
+        }
+    });
+}
 // Accept Planning Proposal
 const acceptPlanning = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
@@ -558,6 +591,7 @@ function internalGenerateFinalReport(id, targetGroup) {
             where: { id },
             data: { finalReportUrl: JSON.stringify(generatedReports) }
         });
+        yield recordReportVersions(id, generatedReports);
         console.log(`[Report] Completed. Generated ${generatedReports.length} reports.`);
         // Return compatible object for legacy handling if strictly needed, but new flow uses JSON list
         return { generatedReports };
@@ -1685,6 +1719,66 @@ function processSamplingSheetsAsync(oitId_1, filenames_1) {
         }
     });
 }
+const getReportVersions = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const versions = yield prisma.oITReportVersion.findMany({
+            where: { oitId: id },
+            orderBy: [{ name: 'asc' }, { versionNumber: 'desc' }],
+        });
+        res.json(versions);
+    }
+    catch (error) {
+        console.error('Error fetching report versions:', error);
+        res.status(500).json({ error: 'Error al obtener el historial de versiones del informe' });
+    }
+});
+exports.getReportVersions = getReportVersions;
+// Reactiva una version anterior de un informe: la marca isActive y actualiza
+// finalReportUrl para que la UI y las descargas apunten a ese archivo. La
+// version que estaba activa queda marcada inactiva, pero su fila y su archivo
+// permanecen intactos -- siempre reversible.
+const activateReportVersion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id, versionId } = req.params;
+        const version = yield prisma.oITReportVersion.findUnique({ where: { id: versionId } });
+        if (!version || version.oitId !== id) {
+            return res.status(404).json({ error: 'Version no encontrada' });
+        }
+        yield prisma.oITReportVersion.updateMany({
+            where: { oitId: id, name: version.name, isActive: true },
+            data: { isActive: false },
+        });
+        yield prisma.oITReportVersion.update({
+            where: { id: versionId },
+            data: { isActive: true },
+        });
+        const oit = yield prisma.oIT.findUnique({ where: { id } });
+        let reports = [];
+        if (oit === null || oit === void 0 ? void 0 : oit.finalReportUrl) {
+            try {
+                reports = JSON.parse(oit.finalReportUrl);
+                if (!Array.isArray(reports))
+                    reports = [];
+            }
+            catch (_a) {
+                reports = [];
+            }
+        }
+        const otherReports = reports.filter(r => r.name !== version.name);
+        const updatedReports = [...otherReports, { name: version.name, url: version.url, type: version.type }];
+        yield prisma.oIT.update({
+            where: { id },
+            data: { finalReportUrl: JSON.stringify(updatedReports) },
+        });
+        res.json({ message: 'Version reactivada', activeVersion: version });
+    }
+    catch (error) {
+        console.error('Error activating report version:', error);
+        res.status(500).json({ error: 'Error al reactivar la version' });
+    }
+});
+exports.activateReportVersion = activateReportVersion;
 const generateFinalReport = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
@@ -1729,6 +1823,7 @@ const generateFinalReport = (req, res) => __awaiter(void 0, void 0, void 0, func
                     where: { id },
                     data: { finalReportUrl: JSON.stringify(mergedReports) }
                 });
+                yield recordReportVersions(id, generatedReports);
             }
         }))
             .catch(error => {

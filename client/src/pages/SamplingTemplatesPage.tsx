@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks, FileText, FileSearch } from 'lucide-react';
+import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks, FileText, FileSearch, History, RotateCcw } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -13,6 +13,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -43,6 +44,16 @@ interface SamplingTemplate {
     createdAt: string;
 }
 
+interface TemplateVersion {
+    id: string;
+    versionNumber: number;
+    name: string;
+    description: string;
+    oitType: string;
+    reportTemplateFile?: string | null;
+    createdAt: string;
+}
+
 export default function SamplingTemplatesPage() {
     const navigate = useNavigate();
     const [templates, setTemplates] = useState<SamplingTemplate[]>([]);
@@ -51,6 +62,9 @@ export default function SamplingTemplatesPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [viewTemplate, setViewTemplate] = useState<SamplingTemplate | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<SamplingTemplate | null>(null);
+    const [versions, setVersions] = useState<TemplateVersion[]>([]);
+    const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+    const [restoreVersionTarget, setRestoreVersionTarget] = useState<TemplateVersion | null>(null);
 
     useEffect(() => {
         fetchTemplates();
@@ -87,6 +101,36 @@ export default function SamplingTemplatesPage() {
             t.oitType.toLowerCase().includes(lowerTerm)
         );
         setFilteredTemplates(filtered);
+    };
+
+    useEffect(() => {
+        if (!viewTemplate) {
+            setVersions([]);
+            return;
+        }
+        setIsLoadingVersions(true);
+        api.get(`/sampling-templates/${viewTemplate.id}/versions`)
+            .then(res => setVersions(res.data))
+            .catch(err => {
+                console.error('Error fetching versions:', err);
+                setVersions([]);
+            })
+            .finally(() => setIsLoadingVersions(false));
+    }, [viewTemplate]);
+
+    const confirmRestoreVersion = async () => {
+        if (!restoreVersionTarget || !viewTemplate) return;
+        try {
+            const response = await api.post(`/sampling-templates/${viewTemplate.id}/versions/${restoreVersionTarget.id}/restore`);
+            setTemplates(templates.map(t => t.id === viewTemplate.id ? response.data : t));
+            setViewTemplate(response.data);
+            toast.success(`Restaurada la versión ${restoreVersionTarget.versionNumber}`);
+        } catch (error) {
+            console.error('Error restoring version:', error);
+            toast.error('Error al restaurar la versión');
+        } finally {
+            setRestoreVersionTarget(null);
+        }
     };
 
     const confirmDelete = async () => {
@@ -260,60 +304,130 @@ export default function SamplingTemplatesPage() {
                         </DialogTitle>
                         <DialogDescription>{viewTemplate?.description}</DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 overflow-y-auto pr-1">
-                        <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">
-                            {viewTemplate?.oitType}
-                        </Badge>
+                    <Tabs defaultValue="detalles" className="flex-1 flex flex-col overflow-hidden">
+                        <TabsList className="shrink-0 w-fit">
+                            <TabsTrigger value="detalles">Detalles</TabsTrigger>
+                            <TabsTrigger value="historial">
+                                Historial de versiones
+                                {versions.length > 0 && (
+                                    <Badge variant="outline" className="ml-1.5 h-5 px-1.5 bg-slate-50">{versions.length}</Badge>
+                                )}
+                            </TabsTrigger>
+                        </TabsList>
 
-                        <div className="space-y-1.5">
-                            <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                                <FileText className="h-4 w-4" />
-                                Plantilla de informe asociada
-                            </div>
-                            {viewTemplate?.reportTemplateFile ? (
-                                <div className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-md px-3 py-2">
-                                    <p className="text-sm text-slate-700 break-words">
-                                        {viewTemplate.reportTemplateFile}
+                        <TabsContent value="detalles" className="space-y-4 overflow-y-auto pr-1 mt-3">
+                            <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">
+                                {viewTemplate?.oitType}
+                            </Badge>
+
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                    <FileText className="h-4 w-4" />
+                                    Plantilla de informe asociada
+                                </div>
+                                {viewTemplate?.reportTemplateFile ? (
+                                    <div className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-md px-3 py-2">
+                                        <p className="text-sm text-slate-700 break-words">
+                                            {viewTemplate.reportTemplateFile}
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="shrink-0 border-slate-200"
+                                            onClick={() => {
+                                                const base = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
+                                                window.open(`${base}/api/files/preview/${encodeURIComponent(viewTemplate!.reportTemplateFile!)}`, '_blank');
+                                            }}
+                                        >
+                                            <FileSearch className="mr-1.5 h-3.5 w-3.5" />
+                                            Ver documento
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-slate-400 italic">
+                                        Esta plantilla no tiene un informe (.docx) asociado todavía.
                                     </p>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="shrink-0 border-slate-200"
-                                        onClick={() => {
-                                            const base = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
-                                            window.open(`${base}/api/files/preview/${encodeURIComponent(viewTemplate!.reportTemplateFile!)}`, '_blank');
-                                        }}
-                                    >
-                                        <FileSearch className="mr-1.5 h-3.5 w-3.5" />
-                                        Ver documento
-                                    </Button>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                    <ListChecks className="h-4 w-4" />
+                                    Pasos del flujo
+                                </div>
+                                <ol className="space-y-2">
+                                    {viewTemplate && parseSteps(viewTemplate.steps).map((step, i) => (
+                                        <li key={step.id ?? i} className="text-sm bg-slate-50 border border-slate-100 rounded-md px-3 py-2">
+                                            <span className="font-medium text-slate-900">{i + 1}. {step.title}</span>
+                                            {step.description && (
+                                                <p className="text-slate-500 mt-0.5">{step.description}</p>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ol>
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="historial" className="overflow-y-auto pr-1 mt-3">
+                            {isLoadingVersions ? (
+                                <div className="space-y-2">
+                                    <Skeleton className="h-14 w-full" />
+                                    <Skeleton className="h-14 w-full" />
+                                </div>
+                            ) : versions.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center gap-2 py-10 text-slate-500">
+                                    <History className="h-8 w-8 text-slate-300" />
+                                    <p className="text-sm">Todavía no hay cambios guardados en esta plantilla.</p>
                                 </div>
                             ) : (
-                                <p className="text-sm text-slate-400 italic">
-                                    Esta plantilla no tiene un informe (.docx) asociado todavía.
-                                </p>
+                                <ul className="space-y-2">
+                                    {versions.map((v) => (
+                                        <li key={v.id} className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-md px-3 py-2">
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="outline" className="bg-white shrink-0">v{v.versionNumber}</Badge>
+                                                    <span className="text-sm font-medium text-slate-900 truncate">{v.name}</span>
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-0.5">
+                                                    {new Date(v.createdAt).toLocaleString('es-CO')}
+                                                </p>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="shrink-0 border-slate-200"
+                                                onClick={() => setRestoreVersionTarget(v)}
+                                            >
+                                                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                                                Restaurar
+                                            </Button>
+                                        </li>
+                                    ))}
+                                </ul>
                             )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                                <ListChecks className="h-4 w-4" />
-                                Pasos del flujo
-                            </div>
-                            <ol className="space-y-2">
-                                {viewTemplate && parseSteps(viewTemplate.steps).map((step, i) => (
-                                    <li key={step.id ?? i} className="text-sm bg-slate-50 border border-slate-100 rounded-md px-3 py-2">
-                                        <span className="font-medium text-slate-900">{i + 1}. {step.title}</span>
-                                        {step.description && (
-                                            <p className="text-slate-500 mt-0.5">{step.description}</p>
-                                        )}
-                                    </li>
-                                ))}
-                            </ol>
-                        </div>
-                    </div>
+                        </TabsContent>
+                    </Tabs>
                 </DialogContent>
             </Dialog>
+
+            {/* Confirmación antes de restaurar una versión anterior */}
+            <AlertDialog open={!!restoreVersionTarget} onOpenChange={(open) => !open && setRestoreVersionTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Restaurar la versión {restoreVersionTarget?.versionNumber}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            El estado actual de "{viewTemplate?.name}" se guardará como una nueva versión antes de
+                            restaurar, así que nada se pierde y puedes deshacer esto después.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmRestoreVersion}>
+                            Restaurar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Confirmación antes de eliminar */}
             <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
