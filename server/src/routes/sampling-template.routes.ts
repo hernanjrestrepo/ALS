@@ -2,10 +2,12 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import {
     getTemplates,
+    getTrashedTemplates,
     getTemplateById,
     createTemplate,
     updateTemplate,
-    deleteTemplate
+    deleteTemplate,
+    restoreTemplate
 } from '../controllers/sampling-template.controller';
 import { docxService } from '../services/docx.service';
 
@@ -14,10 +16,12 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get('/', getTemplates);
+router.get('/trash', getTrashedTemplates);
 router.get('/:id', getTemplateById);
 router.post('/', createTemplate);
 router.put('/:id', updateTemplate);
 router.delete('/:id', deleteTemplate);
+router.post('/:id/restore', restoreTemplate);
 
 // Get template fields (docxtemplater tags)
 router.get('/fields/:fileName', (req: Request, res: Response) => {

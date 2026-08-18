@@ -143,6 +143,7 @@ model SamplingTemplate {
   steps               String   // JSON con los pasos del flujo
   reportTemplateFile  String?  // Nombre del archivo .docx de plantilla de informe
   startMessage        String?  // Rich text instruction shown at start
+  deletedAt           DateTime? // Soft-delete: papelera de reciclaje, recuperable 90 dias
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }

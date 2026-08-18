@@ -16,6 +16,7 @@ import NotificationsPage from '@/pages/NotificationsPage';
 import CalendarPage from '@/pages/CalendarPage';
 import StandardsPage from '@/pages/StandardsPage';
 import SamplingTemplatesPage from '@/pages/SamplingTemplatesPage';
+import SamplingTemplatesTrashPage from '@/pages/SamplingTemplatesTrashPage';
 import CreateStandardPage from '@/pages/CreateStandardPage';
 import CreateTemplatePage from '@/pages/CreateTemplatePage';
 import EditStandardPage from '@/pages/EditStandardPage';
@@ -46,6 +47,7 @@ function App() {
             <Route path="standards/create" element={<CreateStandardPage />} />
             <Route path="standards/edit/:id" element={<EditStandardPage />} />
             <Route path="sampling-templates" element={<SamplingTemplatesPage />} />
+            <Route path="sampling-templates/trash" element={<SamplingTemplatesTrashPage />} />
             <Route path="sampling-templates/create" element={<CreateTemplatePage />} />
             <Route path="sampling-templates/edit/:id" element={<EditTemplatePage />} />
             <Route path="quotations" element={<QuotationsPage />} />

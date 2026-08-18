@@ -5,13 +5,24 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, MoreHorizontal, Workflow, Trash2, Edit } from 'lucide-react';
+import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks } from 'lucide-react';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,6 +48,8 @@ export default function SamplingTemplatesPage() {
     const [filteredTemplates, setFilteredTemplates] = useState<SamplingTemplate[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [viewTemplate, setViewTemplate] = useState<SamplingTemplate | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<SamplingTemplate | null>(null);
 
     useEffect(() => {
         fetchTemplates();
@@ -75,14 +88,17 @@ export default function SamplingTemplatesPage() {
         setFilteredTemplates(filtered);
     };
 
-    const handleDelete = async (id: string) => {
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
         try {
-            await api.delete(`/sampling-templates/${id}`);
-            setTemplates(templates.filter(t => t.id !== id));
-            toast.success('Plantilla eliminada');
+            await api.delete(`/sampling-templates/${deleteTarget.id}`);
+            setTemplates(templates.filter(t => t.id !== deleteTarget.id));
+            toast.success('Plantilla movida a la papelera. Se puede recuperar durante 90 días.');
         } catch (error) {
             console.error('Error deleting template:', error);
             toast.error('Error al eliminar plantilla');
+        } finally {
+            setDeleteTarget(null);
         }
     };
 
@@ -103,13 +119,23 @@ export default function SamplingTemplatesPage() {
                         Define flujos de trabajo reutilizables para diferentes tipos de OIT.
                     </p>
                 </div>
-                <Button
-                    onClick={() => navigate('/sampling-templates/create')}
-                    className="bg-slate-900 hover:bg-slate-800 text-white"
-                >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nueva Plantilla
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => navigate('/sampling-templates/trash')}
+                        className="border-slate-200"
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Papelera
+                    </Button>
+                    <Button
+                        onClick={() => navigate('/sampling-templates/create')}
+                        className="bg-slate-900 hover:bg-slate-800 text-white"
+                    >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Nueva Plantilla
+                    </Button>
+                </div>
             </div>
 
             <Card className="border-slate-200 shadow-sm bg-white">
@@ -146,7 +172,7 @@ export default function SamplingTemplatesPage() {
                                             <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[80px]" /></TableCell>
                                             <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[300px]" /></TableCell>
                                             <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[60px]" /></TableCell>
-                                            <TableCell className="py-3 px-4 text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                            <TableCell className="py-3 px-4 text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                                         </TableRow>
                                     ))
                                 ) : filteredTemplates.length === 0 ? (
@@ -183,23 +209,35 @@ export default function SamplingTemplatesPage() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="py-3 px-4 text-right">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-900">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem onClick={() => navigate(`/sampling-templates/edit/${template.id}`)}>
-                                                                <Edit className="mr-2 h-4 w-4" />
-                                                                Editar
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(template.id)}>
-                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                Eliminar
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-slate-900"
+                                                            title="Ver"
+                                                            onClick={() => setViewTemplate(template)}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-slate-900"
+                                                            title="Editar"
+                                                            onClick={() => navigate(`/sampling-templates/edit/${template.id}`)}
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-red-600"
+                                                            title="Eliminar"
+                                                            onClick={() => setDeleteTarget(template)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         );
@@ -210,6 +248,62 @@ export default function SamplingTemplatesPage() {
                     </div>
                 </CardContent>
             </Card>
-        </div >
+
+            {/* Diálogo "Ver" — solo lectura */}
+            <Dialog open={!!viewTemplate} onOpenChange={(open) => !open && setViewTemplate(null)}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Workflow className="h-4 w-4 text-slate-400" />
+                            {viewTemplate?.name}
+                        </DialogTitle>
+                        <DialogDescription>{viewTemplate?.description}</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                        <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">
+                            {viewTemplate?.oitType}
+                        </Badge>
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                <ListChecks className="h-4 w-4" />
+                                Pasos del flujo
+                            </div>
+                            <ol className="space-y-2">
+                                {viewTemplate && parseSteps(viewTemplate.steps).map((step, i) => (
+                                    <li key={step.id ?? i} className="text-sm bg-slate-50 border border-slate-100 rounded-md px-3 py-2">
+                                        <span className="font-medium text-slate-900">{i + 1}. {step.title}</span>
+                                        {step.description && (
+                                            <p className="text-slate-500 mt-0.5">{step.description}</p>
+                                        )}
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Confirmación antes de eliminar */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro de eliminar esta plantilla?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            "{deleteTarget?.name}" se moverá a la papelera de reciclaje y podrás recuperarla
+                            durante los próximos 90 días. Después de ese plazo se eliminará de forma permanente.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={confirmDelete}
+                        >
+                            Eliminar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
     );
 }
