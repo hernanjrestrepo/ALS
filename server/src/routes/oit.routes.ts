@@ -19,6 +19,8 @@ import {
     generateFinalReport,
     getReportVersions,
     activateReportVersion,
+    reportChatPreview,
+    reportChatApprove,
     validateStepData,
     finalizeSampling,
     generateSamplingReport,
@@ -78,6 +80,8 @@ router.delete('/:id/sampling-sheets', authMiddleware, deleteSamplingSheet);
 router.post('/:id/generate-final-report', authMiddleware, generateFinalReport);
 router.get('/:id/report-versions', authMiddleware, getReportVersions);
 router.post('/:id/report-versions/:versionId/activate', authMiddleware, activateReportVersion);
+router.post('/:id/report-chat', authMiddleware, reportChatPreview);
+router.post('/:id/report-chat/approve', authMiddleware, reportChatApprove);
 
 // Sampling validation workflow
 router.post('/:id/validate-step', authMiddleware, validateStepData);

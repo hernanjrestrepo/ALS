@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackModal';
 import { ReportVersionHistoryButton } from '@/components/oit/ReportVersionHistoryButton';
+import { ReportChatDialog } from '@/components/oit/ReportChatDialog';
 
 interface ReportGeneratorProps {
     oitId: string;
@@ -709,6 +710,7 @@ export function ReportGenerator({
                                                         <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
                                                     </div>
                                                     <div className="flex items-center gap-0.5">
+                                                        <ReportChatDialog oitId={oitId} reportName={report.name} group={serviceGroup} onApproved={refreshReportList} />
                                                         <ReportVersionHistoryButton oitId={oitId} reportName={report.name} onActivated={refreshReportList} />
                                                         <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
                                                             <a href={reportUrl} download title="Descargar informe">

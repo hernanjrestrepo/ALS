@@ -95,7 +95,37 @@ export class AIService {
         return summaries.join('\n\n--- CONTINUACIÓN ---\n\n');
     }
 
-    public async chat(message: string, model?: string, system?: string): Promise<string> {
+    // Aplica un cambio solicitado por el usuario a la narrativa de un informe ya
+    // generado (chat de edicion). Devuelve el markdown completo revisado, no un diff --
+    // el usuario revisa el resultado completo antes de aprobar.
+    public async reviseReportNarrative(currentMarkdown: string, userRequest: string): Promise<string> {
+        const prompt = `A continuación está el contenido en Markdown de un informe técnico ambiental ya redactado:
+
+---INICIO DEL INFORME ACTUAL---
+${currentMarkdown}
+---FIN DEL INFORME ACTUAL---
+
+El usuario solicitó el siguiente cambio sobre este informe:
+"${userRequest}"
+
+Aplica ÚNICAMENTE el cambio solicitado, conservando el resto del contenido, la estructura de
+secciones, el formato Markdown y el tono técnico-formal exactamente como está. No agregues
+comentarios ni explicaciones fuera del informe. No inventes datos, cifras o resultados que no
+existan ya en el informe original -- si el cambio solicitado requiere un dato que no está
+disponible, dejá el marcador [DATO NO DISPONIBLE] en su lugar en vez de inventarlo.
+
+Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adicional antes o después.`;
+
+        const response = await this.chat(prompt, undefined, 'Eres un editor técnico ambiental que aplica cambios solicitados a informes ya redactados, sin inventar datos.');
+        // Algunos modelos locales repiten los delimitadores del prompt en la respuesta
+        // pese a la instruccion de no hacerlo -- se limpian aqui para no depender de eso.
+        return response
+            .replace(/---\s*INICIO DEL INFORME ACTUAL\s*---/gi, '')
+            .replace(/---\s*FIN DEL INFORME ACTUAL\s*---/gi, '')
+            .trim();
+    }
+
+        public async chat(message: string, model?: string, system?: string): Promise<string> {
         const useModel = model || this.defaultModel;
         console.log(`[AI] Sending Chat Request. Model: ${useModel}`);
         try {

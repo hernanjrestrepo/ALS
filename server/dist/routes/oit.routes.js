@@ -36,6 +36,8 @@ router.delete('/:id/sampling-sheets', auth_middleware_1.authMiddleware, oit_cont
 router.post('/:id/generate-final-report', auth_middleware_1.authMiddleware, oit_controller_1.generateFinalReport);
 router.get('/:id/report-versions', auth_middleware_1.authMiddleware, oit_controller_1.getReportVersions);
 router.post('/:id/report-versions/:versionId/activate', auth_middleware_1.authMiddleware, oit_controller_1.activateReportVersion);
+router.post('/:id/report-chat', auth_middleware_1.authMiddleware, oit_controller_1.reportChatPreview);
+router.post('/:id/report-chat/approve', auth_middleware_1.authMiddleware, oit_controller_1.reportChatApprove);
 // Sampling validation workflow
 router.post('/:id/validate-step', auth_middleware_1.authMiddleware, oit_controller_1.validateStepData);
 router.post('/:id/finalize-sampling', auth_middleware_1.authMiddleware, oit_controller_1.finalizeSampling);

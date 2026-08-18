@@ -45,7 +45,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyConsistency = exports.updateServiceDates = exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.activateReportVersion = exports.getReportVersions = exports.deleteLabResult = exports.deleteSamplingSheet = exports.uploadSamplingSheets = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOITFromUrl = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
+exports.verifyConsistency = exports.updateServiceDates = exports.requestRedoSteps = exports.updatePlanningResources = exports.generateFinalReport = exports.activateReportVersion = exports.getReportVersions = exports.reportChatApprove = exports.reportChatPreview = exports.deleteLabResult = exports.deleteSamplingSheet = exports.uploadSamplingSheets = exports.generateSamplingReport = exports.finalizeSampling = exports.validateStepData = exports.checkCompliance = exports.deleteOIT = exports.updateOIT = exports.reanalyzeOIT = exports.createOITAsync = exports.createOITFromUrl = exports.createOIT = exports.getOITById = exports.getAllOITs = exports.getAssignedEngineers = exports.assignEngineers = exports.uploadLabResults = exports.getSamplingData = exports.submitSampling = exports.saveSamplingData = exports.rejectPlanning = exports.acceptPlanning = void 0;
 const client_1 = require("@prisma/client");
 const ai_service_1 = require("../services/ai.service");
 const aiService = new ai_service_1.AIService();
@@ -1719,6 +1719,145 @@ function processSamplingSheetsAsync(oitId_1, filenames_1) {
         }
     });
 }
+// Reconstruye el contexto (analisis de laboratorio, planillas, plantilla maestra)
+// para un grupo/servicio especifico de un OIT. Es una version aislada de la misma
+// logica de busqueda difusa usada en internalGenerateFinalReport, para no tocar esa
+// funcion ya probada -- se usa solo en el flujo de chat de edicion de informes.
+function getGroupContextForReport(oit, groupName) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let groupedLabAnalyses = {};
+        if (oit.labResultsAnalysis) {
+            try {
+                const parsed = JSON.parse(oit.labResultsAnalysis);
+                groupedLabAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { General: parsed };
+            }
+            catch (e) { }
+        }
+        const matchesGroup = (oitType, target) => {
+            const a = oitType.toLowerCase().trim();
+            const b = target.toLowerCase().trim();
+            return a === b || a.includes(b) || b.includes(a);
+        };
+        const fuzzyLookup = (record, key) => {
+            if (record[key] !== undefined)
+                return record[key];
+            const keyLower = key.toLowerCase().trim();
+            for (const storedKey of Object.keys(record)) {
+                if (storedKey === 'General')
+                    continue;
+                const storedLower = storedKey.toLowerCase().trim();
+                if (storedLower.includes(keyLower) || keyLower.includes(storedLower))
+                    return record[storedKey];
+                const keyWords = keyLower.split(/[\s_\-,]+/).filter(w => w.length >= 3);
+                const storedWords = storedLower.split(/[\s_\-,]+/).filter(w => w.length >= 3);
+                const hasOverlap = keyWords.some(w => storedWords.some(sw => sw.includes(w) || w.includes(sw)));
+                if (hasOverlap)
+                    return record[storedKey];
+            }
+            return record['General'];
+        };
+        const groupLabAnalysisRaw = fuzzyLookup(groupedLabAnalyses, groupName) || '';
+        let groupLabAnalysisNarrative = typeof groupLabAnalysisRaw === 'string' ? groupLabAnalysisRaw : '';
+        let groupLabAnalysisParsed = {};
+        if (typeof groupLabAnalysisRaw === 'string') {
+            try {
+                const parsed = JSON.parse(groupLabAnalysisRaw);
+                if (parsed.rawText) {
+                    groupLabAnalysisNarrative = parsed.rawText;
+                    groupLabAnalysisParsed = parsed.parsedData || {};
+                }
+            }
+            catch (e) { }
+        }
+        else if (typeof groupLabAnalysisRaw === 'object' && groupLabAnalysisRaw !== null) {
+            groupLabAnalysisNarrative = groupLabAnalysisRaw.rawText || JSON.stringify(groupLabAnalysisRaw);
+            groupLabAnalysisParsed = groupLabAnalysisRaw.parsedData || {};
+        }
+        let groupedSheetAnalysis = {};
+        if (oit.samplingSheetAnalysis) {
+            try {
+                const parsed = JSON.parse(oit.samplingSheetAnalysis);
+                groupedSheetAnalysis = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { General: parsed };
+            }
+            catch (e) { }
+        }
+        const groupSheetAnalysis = fuzzyLookup(groupedSheetAnalysis, groupName) || null;
+        const templateIds = oit.selectedTemplateIds ? JSON.parse(oit.selectedTemplateIds) : [];
+        let masterTemplate = null;
+        if (templateIds.length > 0) {
+            const templates = yield prisma.samplingTemplate.findMany({ where: { id: { in: templateIds } } });
+            const groupTemplates = templates.filter(t => matchesGroup(t.oitType || 'General', groupName));
+            masterTemplate = groupTemplates.find(t => t.reportTemplateFile) || groupTemplates[0]
+                || templates.find(t => t.reportTemplateFile) || templates[0] || null;
+        }
+        return { groupLabAnalysisNarrative, groupLabAnalysisParsed, groupSheetAnalysis, masterTemplate };
+    });
+}
+// Chat de edicion de informes: el usuario pide un cambio en lenguaje natural, la IA
+// propone una version revisada del markdown, y el usuario aprueba o descarta. No
+// modifica nada hasta que se llama a reportChatApprove.
+const reportChatPreview = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { reportName, group, message, currentMarkdown } = req.body;
+        if (!reportName || !message) {
+            return res.status(400).json({ error: 'Se requiere reportName y message' });
+        }
+        const oit = yield prisma.oIT.findUnique({ where: { id } });
+        if (!oit)
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        const { validationService } = require('../services/validation.service');
+        const context = yield getGroupContextForReport(oit, group || 'General');
+        const baselineMarkdown = currentMarkdown || (yield validationService.generateFinalReportContent(oit, context.groupLabAnalysisNarrative, `${group || 'General'} (${reportName})`, context.groupSheetAnalysis));
+        const proposedMarkdown = yield aiService.reviseReportNarrative(baselineMarkdown, message);
+        res.json({ currentMarkdown: baselineMarkdown, proposedMarkdown });
+    }
+    catch (error) {
+        console.error('Error in report chat preview:', error);
+        res.status(500).json({ error: 'Error al generar la propuesta de cambio' });
+    }
+});
+exports.reportChatPreview = reportChatPreview;
+// Aplica un markdown ya aprobado por el usuario: regenera el docx real y crea una
+// nueva version (via recordReportVersions), sin tocar el flujo de generacion original.
+const reportChatApprove = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { reportName, group, approvedMarkdown } = req.body;
+        if (!reportName || !approvedMarkdown) {
+            return res.status(400).json({ error: 'Se requiere reportName y approvedMarkdown' });
+        }
+        const oit = yield prisma.oIT.findUnique({ where: { id } });
+        if (!oit)
+            return res.status(404).json({ error: 'OIT no encontrada' });
+        const context = yield getGroupContextForReport(oit, group || 'General');
+        if (!context.masterTemplate || !context.masterTemplate.reportTemplateFile) {
+            return res.status(400).json({ error: 'No se encontro la plantilla de informe asociada a este servicio' });
+        }
+        const { filename, isDocx } = yield generateDocumentFromMarkdown(oit, approvedMarkdown, context.masterTemplate, context.groupLabAnalysisParsed);
+        let existingReports = [];
+        if (oit.finalReportUrl) {
+            try {
+                existingReports = JSON.parse(oit.finalReportUrl);
+                if (!Array.isArray(existingReports))
+                    existingReports = [];
+            }
+            catch (_a) {
+                existingReports = [];
+            }
+        }
+        const newReport = { name: reportName, url: filename, type: (isDocx ? 'docx' : 'pdf') };
+        const updatedReports = [...existingReports.filter(r => r.name !== reportName), newReport];
+        yield prisma.oIT.update({ where: { id }, data: { finalReportUrl: JSON.stringify(updatedReports) } });
+        yield recordReportVersions(id, [newReport]);
+        res.json({ message: 'Informe actualizado y nueva version creada', report: newReport });
+    }
+    catch (error) {
+        console.error('Error approving report chat edit:', error);
+        res.status(500).json({ error: 'Error al aplicar el cambio aprobado' });
+    }
+});
+exports.reportChatApprove = reportChatApprove;
 const getReportVersions = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
