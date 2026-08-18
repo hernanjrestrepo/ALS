@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks, FileText } from 'lucide-react';
+import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks, FileText, FileSearch } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -271,9 +271,23 @@ export default function SamplingTemplatesPage() {
                                 Plantilla de informe asociada
                             </div>
                             {viewTemplate?.reportTemplateFile ? (
-                                <p className="text-sm bg-slate-50 border border-slate-100 rounded-md px-3 py-2 text-slate-700 break-words">
-                                    {viewTemplate.reportTemplateFile}
-                                </p>
+                                <div className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-md px-3 py-2">
+                                    <p className="text-sm text-slate-700 break-words">
+                                        {viewTemplate.reportTemplateFile}
+                                    </p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="shrink-0 border-slate-200"
+                                        onClick={() => {
+                                            const base = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
+                                            window.open(`${base}/api/files/preview/${encodeURIComponent(viewTemplate!.reportTemplateFile!)}`, '_blank');
+                                        }}
+                                    >
+                                        <FileSearch className="mr-1.5 h-3.5 w-3.5" />
+                                        Ver documento
+                                    </Button>
+                                </div>
                             ) : (
                                 <p className="text-sm text-slate-400 italic">
                                     Esta plantilla no tiene un informe (.docx) asociado todavía.
