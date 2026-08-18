@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import {
     LayoutDashboard,
     FileText,
+    BarChart3,
     Box,
     Settings,
     LogOut,
@@ -30,6 +31,7 @@ const getNavigationItems = (userRole?: string) => {
         { icon: Calendar, label: 'Calendario', href: '/calendar' },
         { icon: Scale, label: 'Normas', href: '/standards' },
         { icon: Workflow, label: 'Plantillas', href: '/sampling-templates' },
+        { icon: BarChart3, label: 'Analítica', href: '/analytics' },
         { icon: Sparkles, label: 'Asistente IA', href: '/ai' },
         { icon: Bell, label: 'Notificaciones', href: '/notifications' },
     ];
