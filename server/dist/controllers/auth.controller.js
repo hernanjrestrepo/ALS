@@ -17,6 +17,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
 const client_1 = require("@prisma/client");
+const email_service_1 = require("../services/email.service");
 const prisma = new client_1.PrismaClient();
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -102,7 +103,14 @@ const forgotPassword = (req, res) => __awaiter(void 0, void 0, void 0, function*
         });
         const frontendUrl = process.env.FRONTEND_URL || 'https://als.paradixe.xyz';
         const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
-        res.status(200).json(Object.assign(Object.assign({}, genericResponse), { resetUrl }));
+        try {
+            yield (0, email_service_1.sendPasswordResetEmail)(email, resetUrl);
+        }
+        catch (emailError) {
+            console.error('Error sending password reset email:', emailError);
+            // No revelamos el link en la respuesta ni el error real al cliente
+        }
+        res.status(200).json(genericResponse);
     }
     catch (error) {
         console.error('Forgot password error:', error);

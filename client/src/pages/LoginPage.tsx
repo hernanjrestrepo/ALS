@@ -18,6 +18,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import type { AuthResponse } from '@/types/auth';
 import { ArrowRight, Loader2 } from 'lucide-react';
+import { ParadixeFooter } from '@/components/brand/ParadixeFooter';
 
 const formSchema = z.object({
     email: z.string().email({
@@ -57,7 +58,7 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
+        <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-slate-50 gap-4">
             <Card className="w-full max-w-[400px] shadow-none border-slate-200">
                 <CardHeader className="space-y-1 text-center pb-8">
                     <div className="flex justify-center mb-4">
@@ -146,6 +147,7 @@ export default function LoginPage() {
                     </p>
                 </CardFooter>
             </Card>
+            <ParadixeFooter />
         </div>
     );
 }

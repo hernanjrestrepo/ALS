@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { ParadixeFooter } from '@/components/brand/ParadixeFooter';
 
 const formSchema = z
     .object({
@@ -61,7 +62,7 @@ export default function ResetPasswordPage() {
 
     if (!token || !email) {
         return (
-            <div className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
+            <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-slate-50 gap-4">
                 <Card className="w-full max-w-[400px] shadow-none border-slate-200">
                     <CardHeader className="text-center">
                         <CardTitle className="text-xl font-semibold text-slate-900">
@@ -168,6 +169,7 @@ export default function ResetPasswordPage() {
                     )}
                 </CardContent>
             </Card>
+            <ParadixeFooter />
         </div>
     );
 }

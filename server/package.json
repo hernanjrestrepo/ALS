@@ -8,6 +8,7 @@
         "build": "tsc"
     },
     "dependencies": {
+        "@aws-sdk/client-sesv2": "^3.967.0",
         "@prisma/client": "^5.7.0",
         "axios": "^1.13.2",
         "bcryptjs": "^2.4.3",

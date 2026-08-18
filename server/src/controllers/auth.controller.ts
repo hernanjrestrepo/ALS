@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import { sendPasswordResetEmail } from '../services/email.service';
 
 const prisma = new PrismaClient();
 
@@ -106,7 +107,14 @@ export const forgotPassword = async (req: Request, res: Response) => {
         const frontendUrl = process.env.FRONTEND_URL || 'https://als.paradixe.xyz';
         const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
 
-        res.status(200).json({ ...genericResponse, resetUrl });
+        try {
+            await sendPasswordResetEmail(email, resetUrl);
+        } catch (emailError) {
+            console.error('Error sending password reset email:', emailError);
+            // No revelamos el link en la respuesta ni el error real al cliente
+        }
+
+        res.status(200).json(genericResponse);
     } catch (error) {
         console.error('Forgot password error:', error);
         res.status(500).json({ message: 'Error del servidor' });

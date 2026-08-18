@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { ArrowRight, Loader2 } from 'lucide-react';
+import { ParadixeFooter } from '@/components/brand/ParadixeFooter';
 
 const formSchema = z.object({
     email: z.string().email({
@@ -26,7 +27,7 @@ const formSchema = z.object({
 export default function ForgotPasswordPage() {
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [resetUrl, setResetUrl] = useState<string | null>(null);
+    const [sent, setSent] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -36,14 +37,9 @@ export default function ForgotPasswordPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         setError(null);
-        setResetUrl(null);
         try {
-            const response = await api.post('/auth/forgot-password', values);
-            if (response.data.resetUrl) {
-                setResetUrl(response.data.resetUrl);
-            } else {
-                setError('Si el correo existe en el sistema, se generó un link de recuperación.');
-            }
+            await api.post('/auth/forgot-password', values);
+            setSent(true);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Error al procesar la solicitud');
         } finally {
@@ -52,7 +48,7 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
+        <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-slate-50 gap-4">
             <Card className="w-full max-w-[400px] shadow-none border-slate-200">
                 <CardHeader className="space-y-1 text-center pb-8">
                     <div className="flex justify-center mb-4">
@@ -68,18 +64,10 @@ export default function ForgotPasswordPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {resetUrl ? (
-                        <div className="space-y-4">
-                            <div className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-3">
-                                Link de recuperación generado. Este sistema aún no envía correos automáticos,
-                                así que compártelo de forma segura o ábrelo directamente:
-                            </div>
-                            <a
-                                href={resetUrl}
-                                className="block text-sm text-blue-700 break-all underline hover:text-blue-900"
-                            >
-                                {resetUrl}
-                            </a>
+                    {sent ? (
+                        <div className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-3">
+                            Si el correo existe en el sistema, te enviamos un link de recuperación.
+                            Revisa tu bandeja de entrada (y la carpeta de spam) durante la próxima hora.
                         </div>
                     ) : (
                         <Form {...form}>
@@ -132,6 +120,7 @@ export default function ForgotPasswordPage() {
                     </p>
                 </CardFooter>
             </Card>
+            <ParadixeFooter />
         </div>
     );
 }
