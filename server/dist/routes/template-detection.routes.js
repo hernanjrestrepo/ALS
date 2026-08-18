@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const multer_1 = require("../config/multer");
+const template_detection_controller_1 = require("../controllers/template-detection.controller");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.authMiddleware);
+router.post('/analyze', multer_1.upload.single('file'), template_detection_controller_1.analyzeTemplateTags);
+router.post('/apply', template_detection_controller_1.applyTemplateTags);
+exports.default = router;

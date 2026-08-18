@@ -12,6 +12,7 @@ import pushRoutes from './push.routes';
 import feedbackRoutes from '../controllers/feedback.controller';
 import quotationRoutes from './quotation.routes';
 import analyticsRoutes from './analytics.routes';
+import templateDetectionRoutes from './template-detection.routes';
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use('/push', pushRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/quotations', quotationRoutes);
 router.use('/analytics', analyticsRoutes);
+router.use('/template-detection', templateDetectionRoutes);
 
 export default router;

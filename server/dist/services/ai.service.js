@@ -230,6 +230,86 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
             return ['GPS', 'Vehículo'];
         });
     }
+    // Detecta frases candidatas a convertirse en tags de docxtemplater dentro de un
+    // formato de informe SIN tags (limpio). La IA solo SUGIERE -- el reemplazo real
+    // en el XML del docx es un paso determinista aparte (busca-y-reemplaza texto
+    // exacto), nunca edicion directa del documento por la IA.
+    detectTemplateTags(documentText) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const safeText = documentText.substring(0, 20000);
+            const prompt = `Eres un analista que prepara formatos de informes técnicos ambientales para automatización con docxtemplater.
+
+A continuación está el texto extraído de un formato de informe SIN tags de automatización (texto plano, sin llaves {}):
+
+${safeText}
+
+Tu tarea: identificar cada frase o palabra que sea un PLACEHOLDER (marcador de contenido que debería reemplazarse por un dato dinámico cuando se genere un informe real). Ejemplos típicos de placeholders en estos formatos: texto en MAYÚSCULAS SOSTENIDAS que describe qué dato va ahí (ej. "NOMBRE DEL CLIENTE", "LUGAR DEL MONITOREO"), patrones como "xx de mes de año" o "día xx", números de referencia como "XXX", o campos vacíos claramente indicados.
+
+NO marques como placeholder: títulos de sección fijos (ej. "INTRODUCCIÓN", "OBJETIVOS"), texto narrativo normal, ni nombres de normas/resoluciones ya escritos con su número real.
+
+Ejemplo de un candidato real (con datos inventados solo para ilustrar el formato -- tus candidatos deben venir del documento de arriba, no de este ejemplo):
+{
+  "candidates": [
+    {
+      "phrase": "NOMBRE DEL CLIENTE",
+      "suggestedTagName": "cliente_nombre",
+      "suggestedSource": "AI",
+      "suggestedField": "cliente",
+      "suggestedDescription": "Nombre del cliente"
+    }
+  ]
+}
+
+Responde con un objeto JSON con esta forma EXACTA (una clave "candidates" con el array -- no un array suelto ni un objeto de un solo candidato):
+{
+  "candidates": [ ... ]
+}
+
+REGLAS ESTRICTAS E INQUEBRANTABLES:
+- El campo "phrase" de cada candidato DEBE ser un fragmento de texto que copiaste literalmente del DOCUMENTO de arriba (el que empieza después de "A continuación está el texto extraído..."). NUNCA copies el ejemplo de arriba, ni la palabra "phrase", ni ninguna instrucción de este prompt como si fuera un valor.
+- Si no puedes encontrar un placeholder real y copiarlo exacto del documento, no incluyas ese candidato.
+- No inventes placeholders que no estén en el texto.
+- Máximo 40 candidatos.
+- Responde SOLO el objeto JSON con la clave "candidates", sin texto adicional antes o después.`;
+            try {
+                const response = yield axios_1.default.post(`${this.baseURL}/api/generate`, {
+                    model: this.defaultModel,
+                    system: 'Eres un asistente experto en preparar plantillas de documentos para automatizacion. Solo extraes texto que existe literalmente en el documento que se te da, nunca copias instrucciones ni ejemplos del prompt como si fueran datos reales.',
+                    prompt,
+                    stream: false,
+                    format: 'json',
+                });
+                let responseText = (response.data.response || '').trim();
+                responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+                const objStart = responseText.indexOf('{');
+                const objEnd = responseText.lastIndexOf('}');
+                if (objStart !== -1 && objEnd !== -1) {
+                    responseText = responseText.substring(objStart, objEnd + 1);
+                }
+                const parsed = JSON.parse(responseText);
+                let candidates = [];
+                if (Array.isArray(parsed))
+                    candidates = parsed;
+                else if (Array.isArray(parsed.candidates))
+                    candidates = parsed.candidates;
+                // Defensivo: si el modelo devolvio un solo candidato suelto sin envolver
+                else if (parsed.phrase && parsed.suggestedTagName)
+                    candidates = [parsed];
+                // Filtra alucinaciones obvias donde el modelo copio el prompt/instrucciones
+                // en vez de un valor real del documento (bug conocido de este modelo).
+                const promptEchoMarkers = ['texto exacto', 'copiado literalmente', 'suggestedtagname', 'nombre_de_tag', 'el documento de arriba'];
+                return candidates.filter(c => {
+                    const p = (c.phrase || '').toLowerCase();
+                    return p.length > 0 && !promptEchoMarkers.some(marker => p.includes(marker));
+                });
+            }
+            catch (error) {
+                console.error('Template tag detection error:', ((_a = error.response) === null || _a === void 0 ? void 0 : _a.data) || error.message);
+                return [];
+            }
+        });
+    }
     analyzeLabResults(documentText, oitContext) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;

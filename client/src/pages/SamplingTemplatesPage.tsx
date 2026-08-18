@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks, FileText, FileSearch, History, RotateCcw } from 'lucide-react';
+import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks, FileText, FileSearch, History, RotateCcw, Sparkles } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -165,6 +165,14 @@ export default function SamplingTemplatesPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => navigate('/sampling-templates/detect-tags')}
+                        className="border-slate-200"
+                    >
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Detectar Tags con IA
+                    </Button>
                     <Button
                         variant="outline"
                         onClick={() => navigate('/sampling-templates/trash')}

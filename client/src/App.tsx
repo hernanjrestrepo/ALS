@@ -17,6 +17,7 @@ import CalendarPage from '@/pages/CalendarPage';
 import StandardsPage from '@/pages/StandardsPage';
 import SamplingTemplatesPage from '@/pages/SamplingTemplatesPage';
 import AnalyticsPage from '@/pages/AnalyticsPage';
+import UploadTemplateDetectionPage from '@/pages/UploadTemplateDetectionPage';
 import SamplingTemplatesTrashPage from '@/pages/SamplingTemplatesTrashPage';
 import CreateStandardPage from '@/pages/CreateStandardPage';
 import CreateTemplatePage from '@/pages/CreateTemplatePage';
@@ -49,6 +50,7 @@ function App() {
             <Route path="standards/edit/:id" element={<EditStandardPage />} />
             <Route path="sampling-templates" element={<SamplingTemplatesPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="sampling-templates/detect-tags" element={<UploadTemplateDetectionPage />} />
             <Route path="sampling-templates/trash" element={<SamplingTemplatesTrashPage />} />
             <Route path="sampling-templates/create" element={<CreateTemplatePage />} />
             <Route path="sampling-templates/edit/:id" element={<EditTemplatePage />} />
