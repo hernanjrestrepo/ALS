@@ -61,6 +61,9 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (!isPasswordValid) {
             return res.status(400).json({ message: 'Credenciales inválidas' });
         }
+        if (!user.isActive) {
+            return res.status(403).json({ message: 'Cuenta inactiva. Contacte al administrador.' });
+        }
         const token = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET, {
             expiresIn: '24h',
         });

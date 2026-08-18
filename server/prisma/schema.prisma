@@ -13,6 +13,7 @@ model User {
   password         String
   name             String
   role             String         @default("USER") // SUPER_ADMIN, ADMIN, ENGINEER, USER
+  isActive         Boolean        @default(true)
   pushSubscription String?        // JSON string with push subscription data
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt

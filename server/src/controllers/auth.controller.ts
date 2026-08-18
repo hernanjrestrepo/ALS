@@ -57,6 +57,10 @@ export const login = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Credenciales inválidas' });
         }
 
+        if (!user.isActive) {
+            return res.status(403).json({ message: 'Cuenta inactiva. Contacte al administrador.' });
+        }
+
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, {
             expiresIn: '24h',
         });
