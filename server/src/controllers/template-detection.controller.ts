@@ -78,14 +78,45 @@ export const analyzeTemplateTags = async (req: Request, res: Response) => {
     }
 };
 
+// Inserta un tag en la SIGUIENTE celda de tabla despues de la celda que contiene
+// labelText (busca <w:tc> etiqueta -> </w:tc> -> siguiente <w:tc> -> inserta un
+// <w:r><w:t>{tag}</w:t></w:r> antes de su ultimo </w:p>). Se usa cuando la celda de
+// VALOR esta genuinamente vacia (sin texto que reemplazar) en el formato limpio --
+// comun en tablas tipo "Etiqueta | (vacio)".
+function insertIntoNextCell(xml: string, labelText: string, tagName: string): { success: boolean; xml: string } {
+    const escapedLabel = xmlEscape(labelText);
+    let labelIdx = xml.indexOf(`>${escapedLabel}<`);
+    if (labelIdx === -1) labelIdx = xml.indexOf(`>${labelText}<`);
+    if (labelIdx === -1) return { success: false, xml };
+
+    const tcEndAfterLabel = xml.indexOf('</w:tc>', labelIdx);
+    if (tcEndAfterLabel === -1) return { success: false, xml };
+
+    const nextTcStart = xml.indexOf('<w:tc>', tcEndAfterLabel);
+    if (nextTcStart === -1) return { success: false, xml };
+    const nextTcEnd = xml.indexOf('</w:tc>', nextTcStart);
+    if (nextTcEnd === -1) return { success: false, xml };
+
+    const cellContent = xml.slice(nextTcStart, nextTcEnd);
+    const lastPClose = cellContent.lastIndexOf('</w:p>');
+    if (lastPClose === -1) return { success: false, xml };
+
+    const runXml = `<w:r><w:t>{${tagName}}</w:t></w:r>`;
+    const newCellContent = cellContent.slice(0, lastPClose) + runXml + cellContent.slice(lastPClose);
+    const newXml = xml.slice(0, nextTcStart) + newCellContent + xml.slice(nextTcEnd);
+    return { success: true, xml: newXml };
+}
+
 // Aplica los reemplazos (ya revisados/editados por el usuario) sobre el archivo subido
 // en el paso anterior. Reemplazo determinista de texto exacto dentro de <w:t>, no edicion
-// de la IA sobre el documento.
+// de la IA sobre el documento. "insertions" cubre celdas de tabla genuinamente vacias
+// (sin texto que reemplazar): inserta el tag en la celda siguiente a labelText.
 export const applyTemplateTags = async (req: Request, res: Response) => {
     try {
-        const { filename, replacements, outputName } = req.body as {
+        const { filename, replacements, insertions, outputName } = req.body as {
             filename: string;
             replacements: Array<{ phrase: string; tagName: string }>;
+            insertions?: Array<{ afterLabel: string; tagName: string }>;
             outputName?: string;
         };
 
@@ -99,34 +130,77 @@ export const applyTemplateTags = async (req: Request, res: Response) => {
         }
 
         const zip = new PizZip(fs.readFileSync(filePath));
-        let xml = zip.file('word/document.xml')!.asText();
 
-        const report: Array<{ phrase: string; tagName: string; occurrencesReplaced: number }> = [];
+        // Tags pueden vivir en el cuerpo O en header/footer (encabezado repetido,
+        // pie de pagina). Se procesan todas las partes XML relevantes que existan
+        // en el docx.
+        const candidateParts = [
+            'word/document.xml',
+            'word/header1.xml', 'word/header2.xml', 'word/header3.xml',
+            'word/footer1.xml', 'word/footer2.xml', 'word/footer3.xml',
+        ];
+        const parts = candidateParts.filter(p => zip.file(p) !== null);
+        const partsXml: Record<string, string> = {};
+        for (const p of parts) partsXml[p] = zip.file(p)!.asText();
 
+        const report: Array<{ phrase: string; tagName: string; occurrencesReplaced: number; part?: string }> = [];
+
+        // Reemplazo SECUENCIAL: cada candidato reemplaza solo la PRIMERA ocurrencia
+        // restante de su frase (no todas), buscando primero en document.xml y luego
+        // en header/footer en orden. Esto es critico cuando la misma frase (ej.
+        // "NOMBRE CLIENTE") aparece varias veces pero cada aparicion necesita un tag
+        // distinto -- el orden de "replacements" debe coincidir con el orden en que
+        // aparecen en el documento.
         for (const { phrase, tagName } of replacements) {
             if (!phrase || !tagName) continue;
             const escapedPhrase = xmlEscape(phrase);
             const tagLiteral = `{${tagName}}`;
             let occurrencesReplaced = 0;
+            let matchedPart: string | undefined;
 
-            xml = xml.replace(/<w:t([^>]*)>([^<]*)<\/w:t>/g, (full, attrs, textContent) => {
-                if (textContent.includes(escapedPhrase)) {
-                    occurrencesReplaced++;
-                    const newText = textContent.split(escapedPhrase).join(tagLiteral);
-                    return `<w:t${attrs}>${newText}</w:t>`;
+            for (const part of parts) {
+                let didReplace = false;
+                partsXml[part] = partsXml[part].replace(/<w:t([^>]*)>([^<]*)<\/w:t>/g, (full, attrs, textContent) => {
+                    if (didReplace) return full;
+                    let matchPhrase: string | null = null;
+                    if (textContent.includes(escapedPhrase)) matchPhrase = escapedPhrase;
+                    else if (textContent.includes(phrase)) matchPhrase = phrase;
+                    if (matchPhrase) {
+                        didReplace = true;
+                        const idx = textContent.indexOf(matchPhrase);
+                        const newText = textContent.slice(0, idx) + tagLiteral + textContent.slice(idx + matchPhrase.length);
+                        return `<w:t${attrs}>${newText}</w:t>`;
+                    }
+                    return full;
+                });
+                if (didReplace) {
+                    occurrencesReplaced = 1;
+                    matchedPart = part;
+                    break;
                 }
-                if (textContent.includes(phrase)) {
-                    occurrencesReplaced++;
-                    const newText = textContent.split(phrase).join(tagLiteral);
-                    return `<w:t${attrs}>${newText}</w:t>`;
-                }
-                return full;
-            });
+            }
 
-            report.push({ phrase, tagName, occurrencesReplaced });
+            report.push({ phrase, tagName, occurrencesReplaced, part: matchedPart });
         }
 
-        zip.file('word/document.xml', xml);
+        const insertionReport: Array<{ afterLabel: string; tagName: string; inserted: boolean; part?: string }> = [];
+        for (const { afterLabel, tagName } of (insertions || [])) {
+            if (!afterLabel || !tagName) continue;
+            let inserted = false;
+            let matchedPart: string | undefined;
+            for (const part of parts) {
+                const result = insertIntoNextCell(partsXml[part], afterLabel, tagName);
+                if (result.success) {
+                    partsXml[part] = result.xml;
+                    inserted = true;
+                    matchedPart = part;
+                    break;
+                }
+            }
+            insertionReport.push({ afterLabel, tagName, inserted, part: matchedPart });
+        }
+
+        for (const part of parts) zip.file(part, partsXml[part]);
         const outputBuffer = zip.generate({ type: 'nodebuffer' });
 
         const safeOutputName = (outputName || `plantilla-tagged-${Date.now()}.docx`).replace(/[^a-zA-Z0-9_\-. ]/g, '_');
@@ -136,8 +210,11 @@ export const applyTemplateTags = async (req: Request, res: Response) => {
         res.json({
             outputFilename: safeOutputName,
             report,
+            insertionReport,
             totalReplaced: report.filter(r => r.occurrencesReplaced > 0).length,
             totalFailed: report.filter(r => r.occurrencesReplaced === 0).length,
+            totalInserted: insertionReport.filter(r => r.inserted).length,
+            totalInsertFailed: insertionReport.filter(r => !r.inserted).length,
         });
     } catch (error: any) {
         console.error('[TemplateDetection] applyTemplateTags error:', error.message);

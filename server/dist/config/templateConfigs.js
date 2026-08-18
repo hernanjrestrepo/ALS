@@ -425,17 +425,97 @@ exports.ASUB_CONFIG = {
     filePattern: 'FO-PO-PSM-64-08',
     fields: Object.assign({}, AGUA_FIELDS)
 };
+// ================================================================
+// PUNTO SECO V2 (64-10) — formato actualizado Serambiente (agosto 2026)
+// Tageado con IA (gpt-oss:120b-cloud) + verificacion posicional exacta,
+// aplicado sobre el formato limpio entregado por Xiomara Quintero.
+// ================================================================
+const PUNTO_SECO_V2_FIELDS = {
+    // --- HEADER ---
+    'header_matriz': { source: 'STATIC', staticValue: 'AGUA - PUNTO SECO', description: 'Título del header repetido en cada página' },
+    // --- PORTADA ---
+    'nombre_cliente': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (portada)' },
+    'dia': { source: 'DATE', field: 'day', description: 'Día de la fecha del informe' },
+    'ano': { source: 'DATE', field: 'year', description: 'Año de la fecha del informe' },
+    'codigo_adicional': { source: 'STATIC', staticValue: '', description: 'Código adicional (portada, sin uso conocido)' },
+    'ciudad': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad del monitoreo' },
+    'departamento': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento del monitoreo' },
+    // --- INFORMACIÓN DE LA EMPRESA ---
+    'razon_social': { source: 'AI', field: 'cliente', description: 'Razón social completa del cliente' },
+    'nombre_representante_cliente': { source: 'AI', field: 'representanteNombre', description: 'Nombre del representante del cliente' },
+    'telefono_representante': { source: 'AI', field: 'representanteTelefono', description: 'Teléfono del representante del cliente' },
+    'direccion_cliente': { source: 'AI', field: 'ubicacion.direccion', description: 'Dirección de la sede del cliente' },
+    'departamento_monitoreo': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento donde se ejecutó el monitoreo' },
+    'municipio_monitoreo': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio/ciudad donde se ejecutó el monitoreo' },
+    // --- LABORATORIO / METODOLOGÍA ---
+    'referencia': { source: 'STATIC', staticValue: 'Resolución 1262 del 18 de junio de 2021', description: 'Resolución de acreditación IDEAM' },
+    // --- TABLA 3: DATOS GENERALES (celdas insertadas) ---
+    'fecha_monitoreo': { source: 'DATE', field: 'fullDate', description: 'Fecha del monitoreo' },
+    'lugar_monitoreo': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Lugar del monitoreo' },
+    'duracion_muestreo': { source: 'AI', field: 'duracionMuestreo', description: 'Duración del muestreo' },
+    'puntos_monitoreo': { source: 'AI', field: 'numeroPuntos', description: 'Número de puntos de monitoreo' },
+    'tipo_estudio': { source: 'AI', field: 'tipoEstudio', description: 'Tipo de estudio' },
+    // --- TABLA 4: VISITA DE CAMPO (celdas insertadas) ---
+    'fecha_visita_label': { source: 'DATE', field: 'fullDate', description: 'Fecha de la visita de campo' },
+    'sitio_visita': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Sitio o lugar de la visita' },
+    // --- TABLA 5: DESCRIPCIÓN DEL PUNTO ---
+    'codigo_descripcion': { source: 'AI', field: 'puntos[0].descripcion', description: 'Descripción del punto de monitoreo' },
+    'foto1_descripcion': { source: 'AI', field: 'puntos[0].fotoDescripcion', description: 'Descripción fotografía 1' },
+    'foto2_descripcion': { source: 'AI', field: 'puntos[1].fotoDescripcion', description: 'Descripción fotografía 2' },
+    'fuente_foto': { source: 'DATE', field: 'year', description: 'Año fuente registro fotográfico' },
+    // --- UBICACIÓN Y CLIMA ---
+    'municipio': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio del punto de monitoreo' },
+    'departamento_monitoreo_2': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento del punto de monitoreo' },
+    'ciudad_repetido': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad (repetida en párrafo de clima)' },
+    'codigo_clima': { source: 'STATIC', staticValue: 'Aw', description: 'Clasificación climática Köppen-Geiger' },
+    'temperatura_media_anual': { source: 'AI', field: 'clima.temperatura', description: 'Temperatura media anual (°C)' },
+    'precipitacion_anual': { source: 'AI', field: 'clima.precipitacion', description: 'Precipitación anual (mm)' },
+    // --- TABLA 6: COORDENADAS ---
+    'nombre_punto': { source: 'AI', field: 'puntos[0].nombre', description: 'Nombre del punto de monitoreo' },
+    'coordenada_latitud_grados': { source: 'AI', field: 'puntos[0].latitud', description: 'Latitud del punto (formato grados/min/seg completo)' },
+    'coordenada_latitud_minutos': { source: 'STATIC', staticValue: '', description: 'Minutos de latitud (incluido en coordenada_latitud_grados)' },
+    'coordenada_latitud_segundos': { source: 'STATIC', staticValue: '', description: 'Segundos de latitud (incluido en coordenada_latitud_grados)' },
+    'coordenada_latitud_dir': { source: 'STATIC', staticValue: 'N', description: 'Dirección de latitud' },
+    'coordenada_longitud_grados': { source: 'AI', field: 'puntos[0].longitud', description: 'Longitud del punto (formato grados/min/seg completo)' },
+    'coordenada_longitud_minutos': { source: 'STATIC', staticValue: '', description: 'Minutos de longitud (incluido en coordenada_longitud_grados)' },
+    'fuente_imagen': { source: 'DATE', field: 'year', description: 'Año fuente tabla coordenadas' },
+    'fuente_imagen_2': { source: 'DATE', field: 'year', description: 'Año fuente imagen Google Earth' },
+    // --- CONCLUSIONES ---
+    'nombre_empresa': { source: 'AI', field: 'cliente', description: 'Nombre de la empresa (conclusiones)' },
+    'numero_puntos': { source: 'AI', field: 'numeroPuntos', description: 'Cantidad de puntos de monitoreo (conclusiones)' },
+    'numero_puntos_detalle': { source: 'STATIC', staticValue: '', description: 'Detalle adicional del número de puntos' },
+    // --- ANEXOS ---
+    'fuente_anexos': { source: 'DATE', field: 'year', description: 'Año fuente tabla de anexos' },
+    // --- HISTORIAL DE CAMBIOS (versión 00) ---
+    'identificacion_informe': { source: 'OIT', field: 'oitNumber', description: 'Identificador único del informe (versión 00)' },
+    'fecha_emision': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (versión 00)' },
+    'firma_autor1': { source: 'STATIC', staticValue: '', description: 'Firma del elaborador' },
+    'firma_autor2': { source: 'STATIC', staticValue: '', description: 'Firma del revisor' },
+    'firma_autor3': { source: 'STATIC', staticValue: '', description: 'Firma del aprobador' },
+    'nombre_firmante1': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Nombre del elaborador' },
+    'nombre_firmante2': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre del revisor' },
+    'nombre_firmante3': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre del aprobador' },
+    'fecha_emision_label': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (celda insertada, versión 01)' },
+    // --- HISTORIAL DE CAMBIOS (versión 01) ---
+    'identificacion_informe_version': { source: 'OIT', field: 'oitNumber', description: 'Identificador único del informe (versión 01)' },
+    'fecha_version': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (versión 01)' },
+    'firma_version1': { source: 'STATIC', staticValue: '', description: 'Firma del elaborador (versión 01)' },
+    'firma_version2': { source: 'STATIC', staticValue: '', description: 'Firma del revisor (versión 01)' },
+    'firma_version3': { source: 'STATIC', staticValue: '', description: 'Firma del aprobador (versión 01)' },
+    'nombre_firmante_version1': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Nombre del elaborador (versión 01)' },
+    'nombre_firmante_version2': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre del revisor (versión 01)' },
+    'nombre_firmante_version3': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre del aprobador (versión 01)' },
+    'fuente_modificacion': { source: 'DATE', field: 'year', description: 'Año fuente historial de cambios' },
+    // --- NOTA FINAL (identificación de anulación) ---
+    'codigo_matriz_anulada': { source: 'AI', field: 'tipoMatriz', description: 'Tipo de matriz del informe anulado' },
+    'identificacion_anulada': { source: 'OIT', field: 'oitNumber', description: 'Identificador del informe anulado' },
+    'identificacion_nueva': { source: 'OIT', field: 'oitNumber', description: 'Identificador del informe nuevo (reemplazo)' },
+};
 exports.PUNTO_SECO_CONFIG = {
     templateType: 'PUNTO_SECO',
     displayName: 'Informe de Punto Seco (Agua)',
     filePattern: 'FO-PO-PSM-64-10',
-    fields: Object.assign(Object.assign({}, AGUA_FIELDS), { 'informe_tecnico_de_estudio_de_caracterizacion_de_a_1': {
-            source: 'STATIC', staticValue: 'AGUA - PUNTO SECO',
-            description: 'Título header para punto seco'
-        }, 'en_xxx_xx_puntos_de_monitoreo_ubicados_en_la_ciuda_2': {
-            source: 'STATIC', staticValue: 'encontraban secos',
-            description: '"...los puntos se {tag}." — estado de los puntos (secos)'
-        } })
+    fields: Object.assign({}, PUNTO_SECO_V2_FIELDS)
 };
 // RESPEL (64-09) — placeholder, uses mostly AGUA_FIELDS + extras
 exports.RESPEL_CONFIG = {
