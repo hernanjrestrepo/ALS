@@ -426,96 +426,108 @@ exports.ASUB_CONFIG = {
     fields: Object.assign({}, AGUA_FIELDS)
 };
 // ================================================================
-// PUNTO SECO V2 (64-10) — formato actualizado Serambiente (agosto 2026)
-// Tageado con IA (gpt-oss:120b-cloud) + verificacion posicional exacta,
-// aplicado sobre el formato limpio entregado por Xiomara Quintero.
+// AGUA / PUNTO SECO (64-10) — REEMPLAZO DE CONTENIDO (agosto 2026): el
+// archivo que Serambiente entrega bajo el código 64-10 cambió de una
+// versión específica de "Punto Seco" a una plantilla GENÉRICA de
+// "Caracterización de AGUA (matriz)" reutilizable para varios tipos de
+// agua (el placeholder "(matriz)"/"MATRÍZ" indica el tipo variable —
+// ej. agua residual, punto seco, subterránea — según el proyecto),
+// confirmado por el cliente. Se descartó el mapeo anterior
+// (PUNTO_SECO_V2_FIELDS) y se reconstruyó desde cero (536 nodos).
+// Tageado con IA (gpt-oss:120b-cloud) + verificación posicional exacta
+// + corrección de 3 mismatches de texto (espacios) + 1 candidato
+// convertido a specialSubstring (matriz_tipo_note) + 1 placeholder
+// "mes" no detectado por el modelo, agregado manualmente (único caso,
+// verificado que no hay otras ocurrencias sueltas) + bug importante en
+// la tabla "Información de la empresa": el modelo generó DOS candidatos
+// por fila (uno anclado en la celda 1 [label] y otro en la celda 2
+// [hint, celda terminal de la fila]); el mecanismo insertIntoNextCell
+// funciona bien solo cuando ancla en celda 1 (la "siguiente celda" cae
+// en la celda 2 de la MISMA fila), pero cuando ancla en la celda 2 (ya
+// terminal), salta a la celda 1 de la fila SIGUIENTE — un campo
+// completamente distinto. Se verificó la tabla completa fila por fila
+// contra el XML crudo y se resolvió manteniendo el tag mejor alineado
+// semánticamente con el texto real de cada celda (5 candidatos
+// duplicados rechazados, 6 reimplementados como append directo al nodo
+// correcto sin búsqueda). tipo_matriz se mapea a AI (variable por
+// proyecto) en vez de STATIC como en el Punto Seco específico anterior.
 // ================================================================
-const PUNTO_SECO_V2_FIELDS = {
-    // --- HEADER ---
-    'header_matriz': { source: 'STATIC', staticValue: 'AGUA - PUNTO SECO', description: 'Título del header repetido en cada página' },
+const AGUA_GENERICA_FIELDS = {
     // --- PORTADA ---
-    'nombre_cliente': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (portada)' },
-    'dia': { source: 'DATE', field: 'day', description: 'Día de la fecha del informe' },
-    'ano': { source: 'DATE', field: 'year', description: 'Año de la fecha del informe' },
-    'codigo_adicional': { source: 'STATIC', staticValue: '', description: 'Código adicional (portada, sin uso conocido)' },
-    'ciudad': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad del monitoreo' },
-    'departamento': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento del monitoreo' },
+    'matriz_tipo': { source: 'AI', field: 'tipoMatriz', description: 'Tipo de matriz de agua (portada, título y objetivo — variable por proyecto: residual, subterránea, punto seco, etc.)' },
+    'nombre_cliente': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (portada + metodología, nodo repetido 3 veces)' },
+    'matriz_parentesis': { source: 'AI', field: 'tipoMatriz', description: 'Tipo de matriz entre paréntesis en el objetivo (nota: el nodo original incluye el paréntesis de cierre ")" fusionado con la palabra, se pierde cosméticamente al reemplazar por el valor AI)' },
+    'dia': { source: 'DATE', field: 'day', description: 'Día de realización (portada)' },
+    'mes_realizacion': { source: 'DATE', field: 'month', description: 'Mes de realización (portada) — placeholder "mes" no detectado por el análisis de IA, agregado manualmente tras verificar que es único en el documento' },
+    'ano_parcial': { source: 'DATE', field: 'year', description: 'Año de realización completo (portada) — se concatena con numero_informe (vacío)' },
+    'numero_informe': { source: 'STATIC', staticValue: '', description: 'Vacío: completa la concatenación con ano_parcial (el template partió el año en dos runs "X"+"XXX")' },
+    'ciudad': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad (portada)' },
+    'departamento': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento (portada)' },
     // --- INFORMACIÓN DE LA EMPRESA ---
     'razon_social': { source: 'AI', field: 'cliente', description: 'Razón social completa del cliente' },
-    'nombre_representante_cliente': { source: 'AI', field: 'representanteNombre', description: 'Nombre del representante del cliente' },
-    'telefono_representante': { source: 'AI', field: 'representanteTelefono', description: 'Teléfono del representante del cliente' },
-    'direccion_cliente': { source: 'AI', field: 'ubicacion.direccion', description: 'Dirección de la sede del cliente' },
+    'correo_contacto': { source: 'AI', field: 'otrosDatos.correo', description: 'Correo del contacto ambiental' },
+    'nombre_representante_cliente': { source: 'AI', field: 'otrosDatos.representante', description: 'Nombre del representante del cliente' },
+    'telefono_representante': { source: 'AI', field: 'otrosDatos.telefono', description: 'Teléfono del representante del cliente' },
+    'direccion_completa': { source: 'AI', field: 'ubicacion.direccion', description: 'Dirección de la sede del cliente' },
     'departamento_monitoreo': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento donde se ejecutó el monitoreo' },
     'municipio_monitoreo': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio/ciudad donde se ejecutó el monitoreo' },
-    // --- LABORATORIO / METODOLOGÍA ---
-    'referencia': { source: 'STATIC', staticValue: 'Resolución 1262 del 18 de junio de 2021', description: 'Resolución de acreditación IDEAM' },
-    // --- TABLA 3: DATOS GENERALES (celdas insertadas) ---
-    'fecha_monitoreo': { source: 'DATE', field: 'fullDate', description: 'Fecha del monitoreo' },
-    'lugar_monitoreo': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Lugar del monitoreo' },
+    'actividad_economica': { source: 'STATIC', staticValue: '', description: 'Actividad económica (se obtiene del RUES o la web del cliente, sin dato confiable disponible)' },
+    'fuente_anio': { source: 'DATE', field: 'year', description: 'Año fuente (cita SERAMBIENTE S.A.S., varias citas en el documento)' },
+    // --- CARACTERÍSTICAS DEL MONITOREO ---
+    'fecha_monitoreo': { source: 'DATE', field: 'fullDate', description: 'Fecha de monitoreo' },
+    'lugar_monitoreo': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Lugar de monitoreo' },
     'duracion_muestreo': { source: 'AI', field: 'duracionMuestreo', description: 'Duración del muestreo' },
-    'puntos_monitoreo': { source: 'AI', field: 'numeroPuntos', description: 'Número de puntos de monitoreo' },
+    'puntos_monitoreo': { source: 'AI', field: 'numeroPuntos', description: 'Cantidad de puntos de monitoreo' },
     'tipo_estudio': { source: 'AI', field: 'tipoEstudio', description: 'Tipo de estudio' },
-    // --- TABLA 4: VISITA DE CAMPO (celdas insertadas) ---
-    'fecha_visita_label': { source: 'DATE', field: 'fullDate', description: 'Fecha de la visita de campo' },
-    'sitio_visita': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Sitio o lugar de la visita' },
-    // --- TABLA 5: DESCRIPCIÓN DEL PUNTO ---
-    'codigo_descripcion': { source: 'AI', field: 'puntos[0].descripcion', description: 'Descripción del punto de monitoreo' },
-    'foto1_descripcion': { source: 'AI', field: 'puntos[0].fotoDescripcion', description: 'Descripción fotografía 1' },
-    'foto2_descripcion': { source: 'AI', field: 'puntos[1].fotoDescripcion', description: 'Descripción fotografía 2' },
-    'fuente_foto': { source: 'DATE', field: 'year', description: 'Año fuente registro fotográfico' },
-    // --- UBICACIÓN Y CLIMA ---
-    'municipio': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio del punto de monitoreo' },
-    'departamento_monitoreo_2': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento del punto de monitoreo' },
-    'ciudad_repetido': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad (repetida en párrafo de clima)' },
-    'codigo_clima': { source: 'STATIC', staticValue: 'Aw', description: 'Clasificación climática Köppen-Geiger' },
-    'temperatura_media_anual': { source: 'AI', field: 'clima.temperatura', description: 'Temperatura media anual (°C)' },
-    'precipitacion_anual': { source: 'AI', field: 'clima.precipitacion', description: 'Precipitación anual (mm)' },
-    // --- TABLA 6: COORDENADAS ---
-    'nombre_punto': { source: 'AI', field: 'puntos[0].nombre', description: 'Nombre del punto de monitoreo' },
-    'coordenada_latitud_grados': { source: 'AI', field: 'puntos[0].latitud', description: 'Latitud del punto (formato grados/min/seg completo)' },
-    'coordenada_latitud_minutos': { source: 'STATIC', staticValue: '', description: 'Minutos de latitud (incluido en coordenada_latitud_grados)' },
-    'coordenada_latitud_segundos': { source: 'STATIC', staticValue: '', description: 'Segundos de latitud (incluido en coordenada_latitud_grados)' },
-    'coordenada_latitud_dir': { source: 'STATIC', staticValue: 'N', description: 'Dirección de latitud' },
-    'coordenada_longitud_grados': { source: 'AI', field: 'puntos[0].longitud', description: 'Longitud del punto (formato grados/min/seg completo)' },
-    'coordenada_longitud_minutos': { source: 'STATIC', staticValue: '', description: 'Minutos de longitud (incluido en coordenada_longitud_grados)' },
-    'fuente_imagen': { source: 'DATE', field: 'year', description: 'Año fuente tabla coordenadas' },
-    'fuente_imagen_2': { source: 'DATE', field: 'year', description: 'Año fuente imagen Google Earth' },
-    // --- CONCLUSIONES ---
-    'nombre_empresa': { source: 'AI', field: 'cliente', description: 'Nombre de la empresa (conclusiones)' },
-    'numero_puntos': { source: 'AI', field: 'numeroPuntos', description: 'Cantidad de puntos de monitoreo (conclusiones)' },
-    'numero_puntos_detalle': { source: 'STATIC', staticValue: '', description: 'Detalle adicional del número de puntos' },
-    // --- ANEXOS ---
-    'fuente_anexos': { source: 'DATE', field: 'year', description: 'Año fuente tabla de anexos' },
+    // --- PUNTO DE MONITOREO / FOTOGRAFÍAS ---
+    'descripcion_codigo': { source: 'AI', field: 'puntos[0].nombre', description: 'Código/nombre del punto de monitoreo' },
+    'figura1_caption': { source: 'STATIC', staticValue: '', description: 'Descripción de fotografía 1 (sin dato AI disponible)' },
+    'figura2_caption': { source: 'STATIC', staticValue: '', description: 'Descripción de fotografía 2 (sin dato AI disponible)' },
+    'fuente_anio_foto': { source: 'DATE', field: 'year', description: 'Año fuente (registro fotográfico)' },
+    'codigo_lugar': { source: 'DATE', field: 'year', description: 'Año fuente (cita SERAMBIENTE, sección metodología)' },
+    // --- TABLA DE CARACTERÍSTICAS DEL MONITOREO (georreferenciación) ---
+    'hora_formato': { source: 'STATIC', staticValue: 'hh:mm', description: 'Texto estático del formato de hora en el encabezado de columna (no es un dato variable)' },
+    'coordenada_latitud_completa': { source: 'AI', field: 'puntos[0].latitud', description: 'Coordenada de latitud completa del punto' },
+    'coordenada_latitud_grados': { source: 'STATIC', staticValue: '', description: 'Grados de latitud (incluidos en coordenada_latitud_completa)' },
+    'coordenada_latitud_minutos': { source: 'STATIC', staticValue: '', description: 'Minutos de latitud (incluidos en coordenada_latitud_completa)' },
+    'coordenada_latitud_segundos': { source: 'STATIC', staticValue: '', description: 'Segundos de latitud (incluidos en coordenada_latitud_completa)' },
+    'coordenada_latitud_decimales': { source: 'STATIC', staticValue: '', description: 'Decimales de latitud (incluidos en coordenada_latitud_completa)' },
+    'coordenada_latitud_direccion': { source: 'STATIC', staticValue: 'N', description: 'Dirección de latitud' },
+    'coordenada_longitud_completa': { source: 'AI', field: 'puntos[0].longitud', description: 'Coordenada de longitud completa del punto' },
+    'coordenada_longitud_grados': { source: 'STATIC', staticValue: '', description: 'Grados de longitud (incluidos en coordenada_longitud_completa)' },
+    'coordenada_longitud_minutos': { source: 'STATIC', staticValue: '', description: 'Minutos de longitud (incluidos en coordenada_longitud_completa)' },
+    'coordenada_longitud_segundos': { source: 'STATIC', staticValue: '', description: 'Segundos de longitud (incluidos en coordenada_longitud_completa)' },
+    'coordenada_longitud_grados_con_simbolo': { source: 'STATIC', staticValue: '', description: 'Grados de longitud con símbolo ° (incluidos en coordenada_longitud_completa)' },
+    'fuente_anio_adicional': { source: 'DATE', field: 'year', description: 'Año fuente (tabla de coordenadas / imagen Google Earth)' },
+    'fuente_anio_digito': { source: 'STATIC', staticValue: '', description: 'Dígito adicional sin fuente AI estructurada (fila de ejemplo de tabla), queda vacío' },
     // --- HISTORIAL DE CAMBIOS (versión 00) ---
-    'identificacion_informe': { source: 'OIT', field: 'oitNumber', description: 'Identificador único del informe (versión 00)' },
-    'fecha_emision': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (versión 00)' },
-    'firma_autor1': { source: 'STATIC', staticValue: '', description: 'Firma del elaborador' },
-    'firma_autor2': { source: 'STATIC', staticValue: '', description: 'Firma del revisor' },
-    'firma_autor3': { source: 'STATIC', staticValue: '', description: 'Firma del aprobador' },
-    'nombre_firmante1': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Nombre del elaborador' },
-    'nombre_firmante2': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre del revisor' },
-    'nombre_firmante3': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre del aprobador' },
-    'fecha_emision_label': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (celda insertada, versión 01)' },
+    'ot_id': { source: 'OIT', field: 'oitNumber', description: 'Identificador único del informe (versión 00)' },
+    'fecha_ot': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (versión 00)' },
+    'firma_elaborado': { source: 'STATIC', staticValue: '', description: 'Firma de quien elabora (versión 00)' },
+    'firma_revisado': { source: 'STATIC', staticValue: '', description: 'Firma de quien revisa (versión 00)' },
+    'firma_autorizado': { source: 'STATIC', staticValue: '', description: 'Firma de quien autoriza (versión 00)' },
+    'nombre_elaborado': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Nombre de quien elabora (versión 00)' },
+    'nombre_revisado': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien revisa (versión 00)' },
+    'nombre_autorizado': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien autoriza (versión 00)' },
     // --- HISTORIAL DE CAMBIOS (versión 01) ---
-    'identificacion_informe_version': { source: 'OIT', field: 'oitNumber', description: 'Identificador único del informe (versión 01)' },
-    'fecha_version': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (versión 01)' },
-    'firma_version1': { source: 'STATIC', staticValue: '', description: 'Firma del elaborador (versión 01)' },
-    'firma_version2': { source: 'STATIC', staticValue: '', description: 'Firma del revisor (versión 01)' },
-    'firma_version3': { source: 'STATIC', staticValue: '', description: 'Firma del aprobador (versión 01)' },
-    'nombre_firmante_version1': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Nombre del elaborador (versión 01)' },
-    'nombre_firmante_version2': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre del revisor (versión 01)' },
-    'nombre_firmante_version3': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre del aprobador (versión 01)' },
-    'fuente_modificacion': { source: 'DATE', field: 'year', description: 'Año fuente historial de cambios' },
-    // --- NOTA FINAL (identificación de anulación) ---
-    'codigo_matriz_anulada': { source: 'AI', field: 'tipoMatriz', description: 'Tipo de matriz del informe anulado' },
-    'identificacion_anulada': { source: 'OIT', field: 'oitNumber', description: 'Identificador del informe anulado' },
-    'identificacion_nueva': { source: 'OIT', field: 'oitNumber', description: 'Identificador del informe nuevo (reemplazo)' },
+    'version_num': { source: 'STATIC', staticValue: '01', description: 'Número de versión (fila de ejemplo de revisión futura)' },
+    'ot_id_revision': { source: 'STATIC', staticValue: '', description: 'Identificador del informe (versión 01) — el nodo original está partido "OTXXXX-X-A-XXXX-V0"+"1" con el "1" final estático; se deja vacío para no generar un identificador con un "1" extra concatenado' },
+    'fecha_revision': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (versión 01)' },
+    'firma_elaborado_rev': { source: 'STATIC', staticValue: '', description: 'Firma de quien elabora (versión 01)' },
+    'firma_revisado_rev': { source: 'STATIC', staticValue: '', description: 'Firma de quien revisa (versión 01)' },
+    'firma_autorizado_rev': { source: 'STATIC', staticValue: '', description: 'Firma de quien autoriza (versión 01)' },
+    'nombre_elaborado_rev': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Nombre de quien elabora (versión 01)' },
+    'nombre_revisado_rev': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien revisa (versión 01)' },
+    'nombre_autorizado_rev': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien autoriza (versión 01)' },
+    // --- NOTA FINAL (identificación de anulación, aplica solo si el informe reemplaza uno anterior) ---
+    'matriz_tipo_note': { source: 'AI', field: 'tipoMatriz', description: 'Tipo de matriz del informe anulado (nota de reemplazo, boilerplate del template)' },
+    'ot_id_final': { source: 'OIT', field: 'oitNumber', description: 'Identificador del informe nuevo que reemplaza al anulado' },
 };
 exports.PUNTO_SECO_CONFIG = {
     templateType: 'PUNTO_SECO',
-    displayName: 'Informe de Punto Seco (Agua)',
+    displayName: 'Caracterización de Agua (matriz genérica)',
     filePattern: 'FO-PO-PSM-64-10',
-    fields: Object.assign({}, PUNTO_SECO_V2_FIELDS)
+    fields: Object.assign({}, AGUA_GENERICA_FIELDS)
 };
 // ================================================================
 // CARACTERIZACIÓN DE RESIDUOS SÓLIDOS (64-09) — REEMPLAZO DE CONTENIDO
