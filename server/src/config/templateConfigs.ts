@@ -1015,11 +1015,13 @@ export const EMISION_RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
 // el dato de ESTE cliente en el informe de OTRO. Los metodos de referencia
 // EPA para PM10/PM2.5 (Alto/Bajo Volumen, manual) siguen sin resolver: el
 // informe de referencia uso un metodo automatico distinto (GRIMM/EN16450) para
-// esos dos parametros, un escenario que la plantilla no representa. El tag
-// 'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1' es una colision real
-// (se repite x5 con valores distintos) documentada en su propio comentario, con
-// los 4 codigos automaticos reales listos para cuando se haga la cirugia de
-// separacion. Los datos de resultados de laboratorio, fechas/IDs de muestras y
+// esos dos parametros, un escenario que la plantilla no representa. RESUELTO
+// 2026-08-19: el tag 'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1' era
+// una colision real (se repetia x5 con valores distintos); cirugia PizZip por
+// indice de nodo separo las 4 ocurrencias automaticas (SO2/NO2/CO/O3) en tags
+// unicos nuevos (metodo_referencia_so2/no2/co/o3); la ocurrencia de PM2.5
+// (manual) se dejo con el tag original, vacia (mismo motivo que PM10, sin
+// codigo manual real en la fuente). Los datos de resultados de laboratorio, fechas/IDs de muestras y
 // fuentes de emision especificas de Galapa siguen STATIC vacios -- son
 // genuinamente variables por cliente/ubicacion, no se copian del ejemplo.
 // ================================================================
@@ -1075,16 +1077,20 @@ const CALIDAD_AIRE_LEGACY_FIELDS: Record<string, FieldMapping> = {
     // sin inventar un código de referencia manual (RFPS-...) que no existe en la fuente. Se deja vacío.
     'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM10 (Alto Volumen, método MANUAL) -- el informe de referencia real usó un método automático distinto (GRIMM/EN16450) para PM10, no aplica; no se inventa el código de referencia manual' },
     'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_2': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM10 (referencia manual) -- mismo caso que el anterior, método no representado en el informe de referencia' },
-    // Este MISMO tag se repite 5 veces en el docx (cierre PM2.5 manual + SO2/NO2/CO/O3
-    // automático), cada ocurrencia necesitando un valor DISTINTO -- es una colisión de tags
-    // real (mismo patrón que var_21..var_73 documentado arriba), no un campo simple. El informe
-    // de referencia SÍ trae los 4 códigos automáticos reales: SO2=RFSA-1219-255,
-    // NO2=RFNA-0819-254, CO=RFCA-0419-252, O3=EQOA-0719-253 (PM2.5 manual no aplica, mismo
-    // motivo que PM10 arriba) -- confirmados útiles para cuando se haga la cirugía de tags que
-    // separe esta colisión en 5 tags únicos (mismo método PizZip usado en la cirugía de
-    // 2026-08-19). Hasta entonces, llenar con UN solo valor repetiría el código equivocado en
-    // 4 de las 5 frases, así que se deja vacío -- mejor vacío que un dato incorrecto fijo.
-    'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración métodos PM2.5(manual)/SO2/NO2/CO/O3(automático) -- tag repetido x5, colisión real de tags (no un campo simple); códigos reales confirmados por el informe de referencia para cuando se separe: SO2=RFSA-1219-255, NO2=RFNA-0819-254, CO=RFCA-0419-252, O3=EQOA-0719-253' },
+    // RESUELTO 2026-08-19: este tag se repetía 5 veces en el docx (cierre PM2.5 manual +
+    // SO2/NO2/CO/O3 automático) -- colisión real de tags (mismo patrón que var_21..var_73
+    // documentado arriba). Cirugía PizZip por índice de nodo (verificación posicional exacta
+    // contra el XML real, mismo método usado el 2026-08-19 en la cirugía de duplicados)
+    // separó las 4 ocurrencias automáticas (SO2/NO2/CO/O3) en tags únicos nuevos, ver abajo.
+    // La ocurrencia de PM2.5 (método MANUAL, Apéndice L Bajo Volumen) se dejó CON ESTE MISMO
+    // tag/nombre original y sigue vacía: el informe de referencia usó un método automático
+    // distinto (GRIMM/EN16450) para PM2.5, igual que para PM10 arriba -- no existe un código
+    // de referencia manual real en la fuente para no inventarlo.
+    'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM2.5 (Bajo Volumen, método MANUAL) -- el informe de referencia real usó un método automático distinto (GRIMM/EN16450) para PM2.5, no aplica; no se inventa el código de referencia manual. Las otras 4 ocurrencias que compartían este tag (SO2/NO2/CO/O3) se separaron en tags únicos -- ver metodo_referencia_so2/no2/co/o3' },
+    'metodo_referencia_so2': { source: 'STATIC', staticValue: 'RFSA-1219-255', description: 'Cierre de oración método SO2 (US EPA CFR Título 40, Cap. I, Subcap. C, Parte 50, Apéndice A-1, Fluorescencia Ultravioleta, método de referencia automático) -- separado del tag colisionado se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1 el 2026-08-19; código confirmado por el informe de referencia real (Xiomara/Serambiente)' },
+    'metodo_referencia_no2': { source: 'STATIC', staticValue: 'RFNA-0819-254', description: 'Cierre de oración método NO2 (US EPA CFR Título 40, Cap. I, Subcap. C, Parte 50, Apéndice F, Quimioluminiscencia Fase Gaseosa, método de referencia automático) -- separado del tag colisionado se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1 el 2026-08-19; código confirmado por el informe de referencia real (Xiomara/Serambiente)' },
+    'metodo_referencia_co': { source: 'STATIC', staticValue: 'RFCA-0419-252', description: 'Cierre de oración método CO (US EPA CFR Título 40, Cap. I, Subcap. C, Parte 50, Apéndice C, Infrarrojo No Dispersivo, método de referencia automático) -- separado del tag colisionado se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1 el 2026-08-19; código confirmado por el informe de referencia real (Xiomara/Serambiente)' },
+    'metodo_referencia_o3': { source: 'STATIC', staticValue: 'EQOA-0719-253', description: 'Cierre de oración método O3 (US EPA CFR Título 40, Cap. I, Subcap. C, Parte 50, Apéndice D, Quimioluminiscencia, método de referencia automático) -- separado del tag colisionado se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1 el 2026-08-19; código confirmado por el informe de referencia real (Xiomara/Serambiente)' },
 
     // --- TABLA 1: RESUMEN DE DETALLES DEL MUESTREO (fila única, no repetible; NO son
     // duplicados -- cada var_16..var_20 ocurre una sola vez. La celda de VALOR (columna 2,
