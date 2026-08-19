@@ -729,6 +729,14 @@ const EMISION_RUIDO_DELTA_FIELDS: Record<string, FieldMapping> = {
     'certificado_sonometro_1': { source: 'STATIC', staticValue: 'Ver Anexo 3', description: 'Certificado sonómetro' },
     'certificado_pistofono_1': { source: 'STATIC', staticValue: 'Ver Anexo 3', description: 'Certificado pistófono' },
     'hoja_de_calculo_ot_1': { source: 'OIT', field: 'oitNumber', description: 'Código OT hoja de cálculo' },
+    '1_ubicacion_1': { source: 'STATIC', staticValue: '', description: 'Figura 1: continuacion del titulo Ubicacion...' },
+    '2_mediciones_en_el_punto_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 2: nombre del punto (jornada nocturna)' },
+    '3_mediciones_en_el_punto_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 4: nombre del punto (jornada nocturna)' },
+    '4_descripcion_y_ubicacion_1': { source: 'STATIC', staticValue: '', description: 'Tabla 4: continuacion del titulo Descripcion y ubicacion...' },
+    '4_se_muestra_la_rosa_de_los_vientos_presentando_ex_1': { source: 'STATIC', staticValue: '', description: 'Direccion predominante del viento (dato especifico, no determinable)' },
+    '5_2_1_emision_de_ruido_1': { source: 'STATIC', staticValue: '', description: 'Encabezado 5.2.1: continuacion Emision de ruido - [sector]' },
+    '5_mediciones_en_el_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 6: nombre del punto (jornada nocturna)' },
+    'var_42': { source: 'STATIC', staticValue: '', description: 'Header de pagina (header1.xml): fragmento final tras los campos de numero de pagina' },
 };
 
 // ================================================================
@@ -780,6 +788,29 @@ const RUIDO_AMBIENTAL_DELTA_FIELDS: Record<string, FieldMapping> = {
     'var_39': { source: 'STATIC', staticValue: '', description: 'Anexo 1 (celda tabla anexos)' },
     'isofonas_1': { source: 'STATIC', staticValue: 'Ver Anexo 8', description: 'Referencia archivos de isófonas' },
     'var_40': { source: 'STATIC', staticValue: '', description: 'Continuación título portada' },
+    '10_mediciones_en_el_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 10: nombre del punto (jornada nocturna dia habil)' },
+    '2_mediciones_en_el_punto_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 2: nombre del punto (jornada nocturna dia habil)' },
+    '5_2_1_ruido_ambiental_diurno_habil_1': { source: 'STATIC', staticValue: '', description: 'Encabezado 5.2.1: continuacion Ruido ambiental diurno habil - [sector]' },
+    '5_2_2_ruido_ambiental_nocturno_habil_1': { source: 'STATIC', staticValue: '', description: 'Encabezado 5.2.2: continuacion Ruido ambiental nocturno habil - [sector]' },
+    '5_descripcion_y_ubicacion_1': { source: 'STATIC', staticValue: '', description: 'Tabla 5: continuacion del titulo Descripcion y ubicacion...' },
+    '5_mediciones_en_el_punto_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 6: nombre del punto (jornada nocturna dia habil)' },
+    '5_se_muestra_la_rosa_de_los_vientos_presentando_ex_1': { source: 'STATIC', staticValue: '', description: 'Direccion predominante del viento (dato especifico, no determinable)' },
+    '9_mediciones_en_el_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 9: nombre del punto (jornada diurna dia habil)' },
+    'anexo_6_hoja_de_calculo_incertidumbre_ruido_se_pre_1': { source: 'STATIC', staticValue: 'de acuerdo con la metodologia de estimacion de incertidumbre del laboratorio', description: 'Metodologia de incertidumbre (Anexo 6)' },
+    'certificado_pistofono_1': { source: 'STATIC', staticValue: 'Ver Anexo 3', description: 'Certificado pistofono' },
+    'certificado_sonometro_1': { source: 'STATIC', staticValue: 'Ver Anexo 3', description: 'Certificado sonometro' },
+    'con_respecto_al_limite_maximo_permisible_para_jorn_1': { source: 'STATIC', staticValue: '', description: 'Valor numerico del limite maximo permisible jornada diurna dB(A) (dato especifico del sector, no determinable)' },
+    'de_acuerdo_con_lo_establecido_en_la_resolucion_062_1': { source: 'STATIC', staticValue: 'anemometro', description: 'Instrumento medicion del viento (Articulo 20, Resolucion 0627 de 2006)' },
+    'de_monitoreo_ubicados_en_el_area_de_estudio_de_la__1': { source: 'AI', field: 'cliente', description: 'Compania del area de estudio' },
+    'fuente_manual_del_equipo_1': { source: 'DATE', field: 'year', description: 'Anyo fuente manual del equipo (Figura 2)' },
+    'fuente_tomado_y_modificado_de_cartografia_basica_i_1': { source: 'STATIC', staticValue: '1:100.000', description: 'Escala cartografia IGAC (Figura 6)' },
+    'fueron_clasificados_como_conformes_con_respecto_al_1': { source: 'STATIC', staticValue: '', description: 'Valor numerico del limite maximo permisible jornada diurna dB(A) (dato especifico del sector, no determinable)' },
+    'grafica_2_los_1': { source: 'STATIC', staticValue: 'puntos', description: 'Grafica 2: bridge word (los [puntos] de monitoreo)' },
+    'hoja_de_calculo_ot_1': { source: 'OIT', field: 'oitNumber', description: 'Codigo OT hoja de calculo incertidumbre' },
+    'relacionar_equipo_empleado_1': { source: 'STATIC', staticValue: 'Se verifico el correcto funcionamiento del equipo', description: 'Verificacion del equipo (medicion de viento)' },
+    'respecto_el_limite_maximo_permisible_para_el_horar_1': { source: 'STATIC', staticValue: '', description: 'Valor numerico del limite maximo permisible jornada nocturna dB(A) (dato especifico del sector, no determinable)' },
+    'siguiendo_lo_establecido_en_el_articulo_5_de_la_re_1': { source: 'STATIC', staticValue: '15 minutos de captura de informacion', description: 'Duracion minima de medicion (Articulo 5, Resolucion 627 de 2006)' },
+    'y_areas_importantes_para_la_conservacion_de_las_av_1': { source: 'STATIC', staticValue: '1:100.000', description: 'Escala cartografia IGAC (Figura 6, segundo fragmento)' },
 };
 
 export const EMISION_RUIDO_CONFIG: TemplateConfig = {
@@ -881,6 +912,17 @@ const RUIDO_INTRADOMICILIARIO_DELTA_FIELDS: Record<string, FieldMapping> = {
     'var_56': { source: 'STATIC', staticValue: '', description: 'Conclusiones (5)' },
     'var_57': { source: 'STATIC', staticValue: '', description: 'Nota final del informe' },
     'var_95': { source: 'STATIC', staticValue: '', description: 'Continuación título portada' },
+    'cabe_se_alar_que_la_jornada_de_monitoreo_se_ejecut_1': { source: 'DATE', field: 'fullDate', description: 'Fecha en que se ejecuto la jornada de monitoreo' },
+    'certificado_sonometro_1': { source: 'STATIC', staticValue: 'Ver Anexo 3', description: 'Certificado sonometro' },
+    'de_monitoreo_ubicados_en_el_area_de_estudio_de_la__1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localizacion de la companyia (area de estudio)' },
+    'en_el_formato_de_campo_planilla_de_campo_emision_d_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oracion (referencia formato de campo)' },
+    'fuente_manual_del_equipo_1': { source: 'DATE', field: 'year', description: 'Anyo fuente manual del equipo' },
+    'hoja_de_calculo_ot_1': { source: 'OIT', field: 'oitNumber', description: 'Codigo OT hoja de calculo incertidumbre' },
+    'po_psm_11_procedimiento_de_mediciones_de_emision_d_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oracion referencia PO-PSM-11' },
+    'siguiendo_lo_establecido_en_el_articulo_5_de_la_re_1': { source: 'STATIC', staticValue: '15 minutos de captura de informacion', description: 'Duracion minima de medicion (Articulo 5, Resolucion 627 de 2006)' },
+    'var_39': { source: 'STATIC', staticValue: '', description: 'Tabla ruido intradomiciliario nocturna: celda fila' },
+    'var_40': { source: 'STATIC', staticValue: '', description: 'Tabla ruido intradomiciliario nocturna: celda fila 2' },
+    'var_41': { source: 'STATIC', staticValue: '', description: 'Tabla ruido intradomiciliario nocturna: celda fila 3' },
 };
 
 export const RUIDO_INTRADOMICILIARIO_CONFIG: TemplateConfig = {
@@ -893,11 +935,22 @@ export const RUIDO_INTRADOMICILIARIO_CONFIG: TemplateConfig = {
 // EMISIÓN DE RUIDO Y RUIDO AMBIENTAL (65-09)
 
 
+const EMISION_RUIDO_AMBIENTAL_DELTA_FIELDS: Record<string, FieldMapping> = {
+    '10_se_observa_la_velocidad_del_viento_la_cual_fue__1': { source: 'STATIC', staticValue: 'anemometro', description: 'Instrumento medicion del viento (Tabla 10)' },
+    '2_hora_de_inicio_y_finalizacion_1': { source: 'STATIC', staticValue: '', description: 'Tabla 2: continuacion del titulo Hora de Inicio y finalizacion' },
+    '2_mediciones_en_el_punto_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 2: nombre del punto (jornada nocturna)' },
+    '3_hora_de_inicio_y_1': { source: 'STATIC', staticValue: '', description: 'Tabla 3: continuacion del titulo Hora de Inicio y finalizacion' },
+    '5_2_1_emision_de_ruido_diurno_sector_1': { source: 'STATIC', staticValue: '', description: 'Encabezado 5.2.1: continuacion Emision de ruido diurno - Sector [nombre]' },
+    '6_rosa_de_viento_1': { source: 'STATIC', staticValue: 'consolidada', description: 'Tipo de rosa de vientos (Figura 6)' },
+    '6_se_muestra_la_rosa_de_los_vientos_presentando_ex_1': { source: 'STATIC', staticValue: '', description: 'Direccion predominante del viento (dato especifico, no determinable)' },
+    'var_62': { source: 'STATIC', staticValue: '', description: 'Header de pagina (header1.xml): fragmento final tras los campos de numero de pagina' },
+};
+
 export const EMISION_RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
     templateType: 'EMISION_RUIDO_AMBIENTAL',
     displayName: 'Estudio de Emisión de Ruido y Ruido Ambiental',
     filePattern: 'FO-PO-PSM-65-09',
-    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS }
+    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...EMISION_RUIDO_AMBIENTAL_DELTA_FIELDS }
 };
 
 // ================================================================
@@ -1182,6 +1235,13 @@ const OLORES_LEGACY_FIELDS: Record<string, FieldMapping> = {
     'var_15': { source: 'STATIC', staticValue: 'Las condiciones meteorológicas registradas fueron consistentes con las esperadas para la zona de estudio.', description: 'Conclusión 3' },
     'var_16': { source: 'STATIC', staticValue: '', description: 'Conclusión 4 (opcional)' },
     'var_17': { source: 'STATIC', staticValue: '', description: 'Conclusión 5 (opcional)' },
+    '2s_vs_norma_1_hora_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Grafica 4: nombre de estacion (comparacion promedios 1 hora H2S vs norma)' },
+    '3_ficha_tecnica_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Tabla 3: nombre de la estacion (ficha tecnica)' },
+    '3_reportados_para_monitoreo_en_estos_se_puede_1': { source: 'STATIC', staticValue: '', description: 'Narrativa NH3: continuacion ambigua, redaccion exacta no determinable' },
+    '91_g_m3_para_tiempo_de_exposicion_de_24_horas_esta_1': { source: 'STATIC', staticValue: '', description: 'Valor numerico de concentracion NH3 24h (dato especifico de laboratorio, no se puede generar)' },
+    'var_49': { source: 'STATIC', staticValue: '', description: 'Header de pagina (header2.xml): fragmento final tras los campos de numero de pagina' },
+    'xxxx_c_1': { source: 'STATIC', staticValue: '', description: 'Tabla meteorologica: valor de temperatura (dato especifico, no determinable)' },
+    'xxxx_c_2': { source: 'STATIC', staticValue: '', description: 'Tabla meteorologica: valor de temperatura 2 (dato especifico, no determinable)' },
 };
 
 // OLORES OFENSIVOS (66-19)
@@ -1289,6 +1349,13 @@ const PARTICULAS_LEGACY_FIELDS: Record<string, FieldMapping> = {
     'las_especies_bacterianas_presuntivas_de_mayores_cr_1': { source: 'STATIC', staticValue: 'Bacillus spp. y Staphylococcus spp.', description: 'Especies bacterianas predominantes' },
     'las_estructuras_microscopicas_micoticas_presuntiva_1': { source: 'STATIC', staticValue: 'Aspergillus spp. y Penicillium spp.', description: 'Estructuras micóticas predominantes' },
     'el_punto_presenta_las_concentraciones_mas_altas_de_1': { source: 'DATE', field: 'monthYear', description: 'Mes de concentración más alta' },
+    '17_resultados_del_recuento_de_microorganismos_1': { source: 'STATIC', staticValue: '', description: 'Tabla 17: continuacion del titulo Resultados del Recuento de microorganismos' },
+    '1_permite_identificar_que_bajo_las_condiciones_amb_1': { source: 'STATIC', staticValue: '', description: 'Flujo promedio de operacion durante el muestreo (dato especifico de campo, no determinable)' },
+    '3_se_muestra_la_rosa_de_vientos_consolidada_por_el_1': { source: 'DATE', field: 'year', description: 'Anyo de la rosa de vientos consolidada IDEAM (Figura 3)' },
+    '7_resultados_del_recuento_de_microorganismos_1': { source: 'STATIC', staticValue: '', description: 'Tabla 7: continuacion del titulo Resultados del Recuento de microorganismos' },
+    'var_21': { source: 'STATIC', staticValue: '', description: 'Tabla identificacion/microorganismo: celda fila (tag repetido)' },
+    'var_22': { source: 'STATIC', staticValue: '', description: 'Tabla identificacion/microorganismo: celda fila 2 (tag repetido)' },
+    'var_48': { source: 'STATIC', staticValue: '', description: 'Header de pagina (header2.xml): fragmento final tras los campos de numero de pagina' },
 };
 
 export const PARTICULAS_VIABLES_CONFIG: TemplateConfig = {
