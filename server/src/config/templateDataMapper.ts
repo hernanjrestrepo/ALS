@@ -54,6 +54,17 @@ interface ParsedAIData {
         longitud?: string;
         norte?: string;
         este?: string;
+        // Campos agregados 2026-08-19 para Calidad de Aire (66-18) tras procesar el informe
+        // de referencia real de Xiomara/Serambiente: ficha técnica por estación (Tabla 3),
+        // genuinamente variables por estación/informe (equipos, alturas, distancias difieren
+        // entre estaciones del mismo informe), extraídos vía IA cuando el documento de origen
+        // los trae -- ver esquema de extracción en ai.service.ts (analyzeLabResults).
+        cota?: string;
+        marcaModeloPM10?: string;
+        marcaModeloPM25?: string;
+        parametrosMuestreados?: string;
+        alturaAndamios?: string;
+        distanciaFuentesEnergia?: string;
     }>;
     estaciones?: any[];
     resultados?: Array<{

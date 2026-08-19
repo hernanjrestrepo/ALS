@@ -932,8 +932,32 @@ exports.EMISION_RUIDO_AMBIENTAL_CONFIG = {
 // Resolucion 2254 de 2017, resultados de laboratorio por estacion). No se
 // inventa contenido -- mismo criterio para fragmentos narrativos donde el
 // texto exacto original no se puede determinar con certeza (listas de
-// contaminantes, resultados estadisticos especificos). Pendiente del
-// informe de referencia real que compartira Xiomara (laboratorio).
+// contaminantes, resultados estadisticos especificos).
+//
+// INFORME DE REFERENCIA REAL (2026-08-19, procesado): Xiomara (Serambiente)
+// compartio un informe 66-18 real, ya diligenciado y entregado a un cliente
+// (DESARROLLO SERAMBIENTE S.A.S., estaciones "Vientos arriba"/"Vientos abajo",
+// Galapa, Atlantico -- server/uploads/referencia-calidad-aire/). Se uso para
+// llenar: (a) boilerplate genuinamente fijo -- panel de contaminantes
+// (PM10/PM2.5/NO2/SO2/CO/O3), texto normativo de la Res. 2254/2017 (incluida
+// la Tabla 13 completa con limites y tiempos de exposicion exactos, verificados
+// fila por fila), texto metodologico de incertidumbre, observacion estandar de
+// ficha tecnica, etiquetas de la Tabla 1; (b) campos AI nuevos -- se agrego
+// 'cota', 'marcaModeloPM10', 'marcaModeloPM25', 'parametrosMuestreados',
+// 'alturaAndamios' y 'distanciaFuentesEnergia' al esquema de extraccion de IA
+// (ai.service.ts) y a ParsedAIData (templateDataMapper.ts) porque el informe de
+// referencia confirmo que son datos genuinamente variables POR ESTACION (ej.
+// GRIMM-011 vs GRIMM-003), no fijos -- mapear esto como STATIC habria repetido
+// el dato de ESTE cliente en el informe de OTRO. Los metodos de referencia
+// EPA para PM10/PM2.5 (Alto/Bajo Volumen, manual) siguen sin resolver: el
+// informe de referencia uso un metodo automatico distinto (GRIMM/EN16450) para
+// esos dos parametros, un escenario que la plantilla no representa. El tag
+// 'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1' es una colision real
+// (se repite x5 con valores distintos) documentada en su propio comentario, con
+// los 4 codigos automaticos reales listos para cuando se haga la cirugia de
+// separacion. Los datos de resultados de laboratorio, fechas/IDs de muestras y
+// fuentes de emision especificas de Galapa siguen STATIC vacios -- son
+// genuinamente variables por cliente/ubicacion, no se copian del ejemplo.
 // ================================================================
 const CALIDAD_AIRE_LEGACY_FIELDS = {
     // --- PORTADA ---
@@ -945,21 +969,21 @@ const CALIDAD_AIRE_LEGACY_FIELDS = {
     'chart_indices': { source: 'STATIC', staticValue: '', description: 'Placeholder de gráfico (índice de tablas)' },
     'tag_fecha_monitoreo': { source: 'DATE', field: 'fullDate', description: 'Fecha de monitoreo (Tabla 4, índice de tablas)' },
     // 'var_3' se reemplazo por el loop '{#puntos_monitoreo}{nombre}{/puntos_monitoreo}' -- no requiere entrada en el diccionario (igual que en 64-11/74-01).
-    'var_4': { source: 'STATIC', staticValue: '', description: 'Párrafo de portada, ocurrencia única, no relacionado con la lista de estaciones -- redacción exacta no determinable (comentario original de Word cercano habla del lugar de ejecución del monitoreo)' },
+    'var_4': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Párrafo de portada tras la lista de estaciones -- confirmado con el informe de referencia real (Xiomara/Serambiente): es el municipio+departamento del monitoreo en mayúsculas (ej. "GALAPA, ATLÁNTICO", centrado en la portada antes del salto a la tabla de contenido)' },
     // --- INTRODUCCIÓN ---
     'contrato_los_servicios_de_serambiente_s_a_s_para_r_1': { source: 'AI', field: 'cliente', description: 'Cliente que contrata el servicio' },
     'contrato_los_servicios_de_serambiente_s_a_s_para_r_2': { source: 'AI', field: 'cliente', description: 'Organización del área de estudio' },
     'del_localizado_en_1': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad del área de estudio' },
     'localizado_en_departamento_de_1': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento del área de estudio' },
     'a_fin_de_dar_cumplimiento_a_los_requerimientos_de__1': { source: 'STATIC', staticValue: 'tres (3)', description: 'Número de estaciones seleccionadas (numeral)' },
-    'estaciones_en_sitios_representativos_de_la_direcci_1': { source: 'STATIC', staticValue: '', description: 'Descripción del muestreador ubicado (texto ambiguo, no se puede determinar la redacción exacta original)' },
+    'estaciones_en_sitios_representativos_de_la_direcci_1': { source: 'STATIC', staticValue: 'determinador de Partículas respirables menores a 10 y 2.5 micras (PM10 y PM2.5), un equipo determinador de Dióxido de Azufre (SO2), un equipo determinador de Monóxido de Carbono (CO), un equipo determinador de Dióxido de Nitrógeno (NO2) y un equipo determinador de Ozono (O3)', description: 'Descripción del muestreador ubicado en cada estación -- confirmado con el informe de referencia real: panel FIJO de equipos (PM10/PM2.5, SO2, CO, NO2, O3), igual en todo informe 66-18 ya que el panel de contaminantes del formato es fijo (coincide con e_por_1)' },
     'el_presente_documento_de_caracter_tecnico_contiene_1': { source: 'AI', field: 'periodoMuestreo', description: 'Periodo de monitoreo comprendido (resumen del documento)' },
     'de_noviembre_de_2017_del_ministerio_de_ambiente_y__1': { source: 'STATIC', staticValue: '', description: 'Artefacto de salto de párrafo antes de "OBJETIVOS"' },
     // --- OBJETIVOS ---
     'realizar_la_evaluacion_de_la_calidad_de_aire_en_1': { source: 'STATIC', staticValue: 'tres (3)', description: 'Número de estaciones evaluadas (objetivo general + objetivo específico, mismo tag x2)' },
     'estaciones_ubicadas_en_el_area_de_estudio_del_1': { source: 'AI', field: 'cliente', description: 'Organización del área de estudio (objetivo general)' },
     'estaciones_ubicadas_en_el_area_de_estudio_del_loca_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización del área de estudio (objetivo general)' },
-    'determinar_los_niveles_de_inmision_de_los_contamin_1': { source: 'STATIC', staticValue: '', description: 'Lista de contaminantes evaluados (objetivo específico) -- redacción exacta no determinable' },
+    'determinar_los_niveles_de_inmision_de_los_contamin_1': { source: 'STATIC', staticValue: 'por partículas menores a 10 (PM10) y 2.5 micras (PM2.5), Dióxido de Nitrógeno (NO2), Dióxido de Azufre (SO2), Monóxido de carbono (CO) y Ozono (O3)', description: 'Lista de contaminantes evaluados (objetivo específico) -- confirmado con el informe de referencia real, panel fijo (coincide con e_por_1)' },
     // --- INFORMACIÓN DE LA EMPRESA ---
     'tag_correo_valor': { source: 'AI', field: 'otrosDatos.correo', description: 'Correo de contacto ambiental (nodo repetido: razón social + correo)' },
     'tag_representante': { source: 'AI', field: 'otrosDatos.representante', description: 'Nombre del representante / cliente' },
@@ -969,65 +993,95 @@ const CALIDAD_AIRE_LEGACY_FIELDS = {
     'tag_ciudad': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio donde se ejecutó el monitoreo' },
     'tag_actividad_economica': { source: 'AI', field: 'otrosDatos.actividadEconomica', description: 'Actividad económica del cliente' },
     // --- EMPRESA RESPONSABLE / EVALUACIÓN DE LA CALIDAD DEL AIRE ---
-    'las_mediciones_toma_de_muestra_y_analisis_de_1': { source: 'STATIC', staticValue: '', description: 'Lista de contaminantes (empresa responsable del estudio) -- redacción exacta no determinable' },
+    'las_mediciones_toma_de_muestra_y_analisis_de_1': { source: 'STATIC', staticValue: 'partículas menores a 10 (PM10) y 2.5 micras (PM2.5), Dióxido de Nitrógeno (NO2), Dióxido de Azufre (SO2), Monóxido de carbono (CO) y Ozono (O3)', description: 'Lista de contaminantes (empresa responsable del estudio) -- confirmado con el informe de referencia real, panel fijo (coincide con e_por_1)' },
     'fue_realizada_por_servicios_de_ingenieria_y_ambien_1': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución de acreditación IDEAM' },
     'para_determinar_los_niveles_de_calidad_de_aire_de_1': { source: 'STATIC', staticValue: 'tres (3) estaciones', description: 'Número de estaciones de monitoreo (evaluación calidad del aire)' },
     'de_de_monitoreo_ubicadas_en_el_area_de_estudio_del_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización del área de estudio (evaluación calidad del aire)' },
     // --- MÉTODOS DE REFERENCIA (cierres de oración, artefactos de formato) ---
-    'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM10 (Alto Volumen)' },
-    'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_2': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM10 (referencia manual)' },
-    'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración métodos PM2.5/SO2/NO2/CO/O3 (tag repetido x5 en cada cierre)' },
+    // Revisado contra el docx real: el tag PM10 (t_1/t_2) cierra la frase "...Apéndice J:
+    // Alto Volumen." (método MANUAL/gravimétrico). El informe de referencia real de Xiomara
+    // usó un método totalmente distinto para PM10/PM2.5 (equipo automático GRIMM EDM 180C,
+    // dispersión láser EN16450:2017, SIN muestras físicas) -- no aplica el método manual que
+    // asume la plantilla, por lo que el informe de referencia NO sirve para llenar este cierre
+    // sin inventar un código de referencia manual (RFPS-...) que no existe en la fuente. Se deja vacío.
+    'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM10 (Alto Volumen, método MANUAL) -- el informe de referencia real usó un método automático distinto (GRIMM/EN16450) para PM10, no aplica; no se inventa el código de referencia manual' },
+    'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_2': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM10 (referencia manual) -- mismo caso que el anterior, método no representado en el informe de referencia' },
+    // Este MISMO tag se repite 5 veces en el docx (cierre PM2.5 manual + SO2/NO2/CO/O3
+    // automático), cada ocurrencia necesitando un valor DISTINTO -- es una colisión de tags
+    // real (mismo patrón que var_21..var_73 documentado arriba), no un campo simple. El informe
+    // de referencia SÍ trae los 4 códigos automáticos reales: SO2=RFSA-1219-255,
+    // NO2=RFNA-0819-254, CO=RFCA-0419-252, O3=EQOA-0719-253 (PM2.5 manual no aplica, mismo
+    // motivo que PM10 arriba) -- confirmados útiles para cuando se haga la cirugía de tags que
+    // separe esta colisión en 5 tags únicos (mismo método PizZip usado en la cirugía de
+    // 2026-08-19). Hasta entonces, llenar con UN solo valor repetiría el código equivocado en
+    // 4 de las 5 frases, así que se deja vacío -- mejor vacío que un dato incorrecto fijo.
+    'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración métodos PM2.5(manual)/SO2/NO2/CO/O3(automático) -- tag repetido x5, colisión real de tags (no un campo simple); códigos reales confirmados por el informe de referencia para cuando se separe: SO2=RFSA-1219-255, NO2=RFNA-0819-254, CO=RFCA-0419-252, O3=EQOA-0719-253' },
     // --- TABLA 1: RESUMEN DE DETALLES DEL MUESTREO (fila única, no repetible; NO son
-    // duplicados -- cada var_16..var_20 ocurre una sola vez. Quedan sin tocar: la celda
-    // de valor real (columna 2, junto a cada etiqueta) esta vacia y sin tag propio en
-    // el .docx -- requiere retagueo distinto (no es el defecto de colision) y el
-    // informe de referencia real para saber que 5 filas son. Ver comentario superior. ---
-    'var_16': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (fila 1, etiqueta -- celda de valor vacía y sin tag)' },
-    'var_17': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (fila 2, etiqueta -- celda de valor vacía y sin tag)' },
-    'var_18': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (fila 3, etiqueta -- celda de valor vacía y sin tag)' },
-    'var_19': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (fila 4, etiqueta -- celda de valor vacía y sin tag)' },
-    'var_20': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (fila 5, etiqueta -- celda de valor vacía y sin tag)' },
+    // duplicados -- cada var_16..var_20 ocurre una sola vez. La celda de VALOR (columna 2,
+    // junto a cada etiqueta) esta vacia y SIN NINGÚN tag en el .docx (verificado en el XML
+    // crudo: <w:p></w:p> vacío, sin <w:r>) -- no se puede inyectar el dato real sin agregar un
+    // tag nuevo ahí (cirugía de docx, fuera de alcance de un cambio de solo diccionario). El
+    // informe de referencia SÍ confirma qué son las 5 filas (Tabla 1: Fecha de muestreo / Sitio
+    // de muestreo / Duración del muestreo / Número total de muestras / Parámetros estudiados) --
+    // esas etiquetas SÍ son fijas (estructura de tabla estándar de Serambiente, no dependen del
+    // cliente) y se llenan aquí; el VALOR de cada fila sigue sin poder mostrarse hasta que se
+    // agregue el tag faltante en la celda vecina. ---
+    'var_16': { source: 'STATIC', staticValue: 'Fecha de muestreo', description: 'Tabla 1: resumen de detalles del muestreo (fila 1, etiqueta -- confirmado con el informe de referencia real; la celda de valor vecina sigue vacía, sin tag en el .docx)' },
+    'var_17': { source: 'STATIC', staticValue: 'Sitio de muestreo', description: 'Tabla 1: resumen de detalles del muestreo (fila 2, etiqueta -- confirmado con el informe de referencia real; la celda de valor vecina sigue vacía, sin tag en el .docx)' },
+    'var_18': { source: 'STATIC', staticValue: 'Duración del muestreo', description: 'Tabla 1: resumen de detalles del muestreo (fila 3, etiqueta -- confirmado con el informe de referencia real; la celda de valor vecina sigue vacía, sin tag en el .docx)' },
+    'var_19': { source: 'STATIC', staticValue: 'Número total de muestras', description: 'Tabla 1: resumen de detalles del muestreo (fila 4, etiqueta -- confirmado con el informe de referencia real; la celda de valor vecina sigue vacía, sin tag en el .docx)' },
+    'var_20': { source: 'STATIC', staticValue: 'Parámetros estudiados', description: 'Tabla 1: resumen de detalles del muestreo (fila 5, etiqueta -- confirmado con el informe de referencia real; la celda de valor vecina sigue vacía, sin tag en el .docx)' },
     // --- PERIODO Y FRECUENCIA DE MUESTREO ---
     'las_evaluaciones_de_la_calidad_del_aire_se_efectua_1': { source: 'STATIC', staticValue: 'tres (3) estaciones', description: 'Número de estaciones evaluadas' },
     'las_evaluaciones_de_la_calidad_del_aire_se_efectua_2': { source: 'AI', field: 'periodoMuestreo', description: 'Periodo comprendido de evaluación' },
-    'de_monitoreo_evaluadas_durante_el_periodo_comprend_1': { source: 'STATIC', staticValue: '', description: 'Lista de contaminantes muestreados -- redacción exacta no determinable' },
+    'de_monitoreo_evaluadas_durante_el_periodo_comprend_1': { source: 'STATIC', staticValue: 'partículas menores a 10 (PM10) y 2.5 micras (PM2.5), Dióxido de Nitrógeno (NO2), Dióxido de Azufre (SO2), Monóxido de carbono (CO) y Ozono (O3)', description: 'Lista de contaminantes muestreados -- confirmado con el informe de referencia real, panel fijo (coincide con e_por_1)' },
     // --- UBICACIÓN DE LAS ESTACIONES DE MONITOREO ---
     'el_presente_monitoreo_se_efectuo_1': { source: 'DATE', field: 'fullDate', description: 'Fecha del monitoreo (ubicación de estaciones)' },
     'en_el_area_de_estudio_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Área de estudio (ubicación de estaciones)' },
     'para_el_desarrollo_de_este_estudio_en_particular_f_1': { source: 'STATIC', staticValue: 'tres (3) estaciones', description: 'Número de estaciones seleccionadas (Resolución 2254 de 2017)' },
     // --- TABLA 2: COORDENADAS DE ESTACIONES DE MONITOREO (post-cirugia: cada
     // estación/columna tiene su propio tag, ya no colisionan) ---
+    // 'cota' se agregó al esquema de extracción IA (ai.service.ts, sección "puntos") y a
+    // ParsedAIData (templateDataMapper.ts) en la misma tanda de este cambio -- el informe de
+    // referencia confirma que cada estación tiene su propia cota en msnm, genuinamente variable
+    // por informe (79 msnm / 84 msnm en el ejemplo), no un valor fijo -- se mapea a AI, no STATIC.
     'estacion_nombre_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Tabla 2: nombre de la estación 1 (era {var_21})' },
-    'estacion_cota_msnm_1': { source: 'STATIC', staticValue: '', description: 'Tabla 2: cota en msnm de la estación 1 -- sin campo AI disponible (era {var_22})' },
+    'estacion_cota_msnm_1': { source: 'AI', field: 'puntos[0].cota', description: 'Tabla 2: cota en msnm de la estación 1 (era {var_22}) -- campo AI nuevo (puntos[N].cota), agregado al esquema de extracción tras confirmar con el informe de referencia real que es un dato variable por estación, no fijo' },
     'estacion_wgs84_norte_1': { source: 'AI', field: 'puntos[0].latitud', description: 'Tabla 2: coordenada WGS84 Norte de la estación 1 (era {var_23})' },
     'estacion_wgs84_oeste_1': { source: 'AI', field: 'puntos[0].longitud', description: 'Tabla 2: coordenada WGS84 Oeste de la estación 1 (era {var_23})' },
     'estacion_origen_nacional_norte_1': { source: 'AI', field: 'puntos[0].norte', description: 'Tabla 2: coordenada origen Nacional Norte (m) de la estación 1 (era {var_24})' },
     'estacion_origen_nacional_este_1': { source: 'AI', field: 'puntos[0].este', description: 'Tabla 2: coordenada origen Nacional Este (m) de la estación 1 (era {var_24})' },
     'estacion_nombre_2': { source: 'AI', field: 'puntos[1].nombre', description: 'Tabla 2: nombre de la estación 2 (era {var_21})' },
-    'estacion_cota_msnm_2': { source: 'STATIC', staticValue: '', description: 'Tabla 2: cota en msnm de la estación 2 -- sin campo AI disponible (era {var_22})' },
+    'estacion_cota_msnm_2': { source: 'AI', field: 'puntos[1].cota', description: 'Tabla 2: cota en msnm de la estación 2 (era {var_22}) -- campo AI nuevo, ver nota arriba' },
     'estacion_wgs84_norte_2': { source: 'AI', field: 'puntos[1].latitud', description: 'Tabla 2: coordenada WGS84 Norte de la estación 2 (era {var_23})' },
     'estacion_wgs84_oeste_2': { source: 'AI', field: 'puntos[1].longitud', description: 'Tabla 2: coordenada WGS84 Oeste de la estación 2 (era {var_23})' },
     'estacion_origen_nacional_norte_2': { source: 'AI', field: 'puntos[1].norte', description: 'Tabla 2: coordenada origen Nacional Norte (m) de la estación 2 (era {var_24})' },
     'estacion_origen_nacional_este_2': { source: 'AI', field: 'puntos[1].este', description: 'Tabla 2: coordenada origen Nacional Este (m) de la estación 2 (era {var_24})' },
     'estacion_nombre_3': { source: 'AI', field: 'puntos[2].nombre', description: 'Tabla 2: nombre de la estación 3 (era {var_21})' },
-    'estacion_cota_msnm_3': { source: 'STATIC', staticValue: '', description: 'Tabla 2: cota en msnm de la estación 3 -- sin campo AI disponible (era {var_22})' },
+    'estacion_cota_msnm_3': { source: 'AI', field: 'puntos[2].cota', description: 'Tabla 2: cota en msnm de la estación 3 (era {var_22}) -- campo AI nuevo, ver nota arriba' },
     'estacion_wgs84_norte_3': { source: 'AI', field: 'puntos[2].latitud', description: 'Tabla 2: coordenada WGS84 Norte de la estación 3 (era {var_23})' },
     'estacion_wgs84_oeste_3': { source: 'AI', field: 'puntos[2].longitud', description: 'Tabla 2: coordenada WGS84 Oeste de la estación 3 (era {var_23})' },
     'estacion_origen_nacional_norte_3': { source: 'AI', field: 'puntos[2].norte', description: 'Tabla 2: coordenada origen Nacional Norte (m) de la estación 3 (era {var_24})' },
     'estacion_origen_nacional_este_3': { source: 'AI', field: 'puntos[2].este', description: 'Tabla 2: coordenada origen Nacional Este (m) de la estación 3 (era {var_24})' },
     // --- TABLA 3: FICHA TÉCNICA (estación representativa, misma convención puntos[0]
-    // ya usada por '3_ficha_tecnica_1'; post-cirugia cada celda tiene su propio tag) ---
+    // ya usada por '3_ficha_tecnica_1'; post-cirugia cada celda tiene su propio tag).
+    // Equipo marca/modelo, parámetros muestreados, altura de andamios y distancia a fuentes de
+    // energía son datos genuinamente variables por estación (confirmados distintos entre
+    // "Vientos arriba"/"Vientos abajo" en el informe de referencia -- ej. GRIMM-011 vs GRIMM-003)
+    // -- se agregaron como campos AI nuevos (puntos[N].marcaModeloPM10/marcaModeloPM25/
+    // parametrosMuestreados/alturaAndamios/distanciaFuentesEnergia) al esquema de extracción en
+    // ai.service.ts, en vez de STATIC, para no repetir un dato de ESTE cliente en otro informe. ---
     '3_ficha_tecnica_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Tabla 3: nombre de la estación (título de la ficha técnica)' },
-    'ficha_tecnica_encabezado': { source: 'STATIC', staticValue: '', description: 'Tabla 3: fila de encabezado antes de "Información general" -- redacción exacta no determinable (era {var_27})' },
+    'ficha_tecnica_encabezado': { source: 'AI', field: 'puntos[0].nombre', description: 'Tabla 3: encabezado repetido antes de "Información general" (era {var_27}) -- confirmado con el informe de referencia real: es el mismo nombre de la estación repetido como encabezado de la ficha técnica (ej. "Vientos arriba" aparece dos veces: como título de la Tabla 3 y de nuevo aquí, arriba de "Información general | Registro fotográfico")' },
     'ficha_tecnica_coordenada_origen_nacional_norte': { source: 'AI', field: 'puntos[0].norte', description: 'Tabla 3: coordenada origen Nacional Norte, Sistema Magna Sirgas (era {var_24})' },
     'ficha_tecnica_coordenada_origen_nacional_este': { source: 'AI', field: 'puntos[0].este', description: 'Tabla 3: coordenada origen Nacional Este, Sistema Magna Sirgas (era {var_24})' },
-    'ficha_tecnica_equipo_marca_modelo_pm10': { source: 'STATIC', staticValue: '', description: 'Tabla 3: marca/modelo del equipo PM10 -- sin campo AI disponible (era {var_22})' },
-    'ficha_tecnica_equipo_marca_modelo_pm25': { source: 'STATIC', staticValue: '', description: 'Tabla 3: marca/modelo del equipo PM2.5 -- sin campo AI disponible (era {var_22})' },
-    'ficha_tecnica_parametros_muestreados': { source: 'STATIC', staticValue: '', description: 'Tabla 3: parámetros muestreados en la estación -- sin campo AI disponible (era {var_22})' },
-    'ficha_tecnica_altura_andamios': { source: 'STATIC', staticValue: '', description: 'Tabla 3: altura de andamios -- sin campo AI disponible (era {var_22})' },
-    'ficha_tecnica_distancia_fuentes_energia': { source: 'STATIC', staticValue: '', description: 'Tabla 3: distancia a fuentes de energía -- sin campo AI disponible (era {var_22})' },
-    'ficha_tecnica_registro_fotografico_nota': { source: 'STATIC', staticValue: '', description: 'Tabla 3: nota en columna de registro fotográfico -- redacción exacta no determinable (era {var_28})' },
-    'ficha_tecnica_observaciones': { source: 'STATIC', staticValue: '', description: 'Tabla 3: observaciones de la ficha técnica -- específico del sitio, no determinable (era {var_31})' },
+    'ficha_tecnica_equipo_marca_modelo_pm10': { source: 'AI', field: 'puntos[0].marcaModeloPM10', description: 'Tabla 3: marca/modelo del equipo PM10 (era {var_22}) -- campo AI nuevo (puntos[N].marcaModeloPM10), genuinamente variable por estación (ej. "GRIMM-011 GRIMM EDM 180C" vs "GRIMM-003 GRIMM EDM 180C" en el informe de referencia)' },
+    'ficha_tecnica_equipo_marca_modelo_pm25': { source: 'AI', field: 'puntos[0].marcaModeloPM25', description: 'Tabla 3: marca/modelo del equipo PM2.5 (era {var_22}) -- campo AI nuevo (puntos[N].marcaModeloPM25), mismo motivo que PM10' },
+    'ficha_tecnica_parametros_muestreados': { source: 'AI', field: 'puntos[0].parametrosMuestreados', description: 'Tabla 3: parámetros muestreados en la estación (era {var_22}) -- campo AI nuevo (puntos[N].parametrosMuestreados)' },
+    'ficha_tecnica_altura_andamios': { source: 'AI', field: 'puntos[0].alturaAndamios', description: 'Tabla 3: altura de andamios (era {var_22}) -- campo AI nuevo (puntos[N].alturaAndamios)' },
+    'ficha_tecnica_distancia_fuentes_energia': { source: 'AI', field: 'puntos[0].distanciaFuentesEnergia', description: 'Tabla 3: distancia a fuentes de energía (era {var_22}) -- campo AI nuevo (puntos[N].distanciaFuentesEnergia)' },
+    'ficha_tecnica_registro_fotografico_nota': { source: 'STATIC', staticValue: '', description: 'Tabla 3: nota en columna de registro fotográfico (era {var_28}) -- confirmado con el informe de referencia real que es la leyenda de la foto ("Fotografía 1. [nombre estación]"), pero el número de fotografía y el nombre de estación son específicos del informe (no hay un patrón fijo reusable sin concatenar campos, que este diccionario no soporta); se deja vacío en vez de arriesgar una leyenda incorrecta' },
+    'ficha_tecnica_observaciones': { source: 'STATIC', staticValue: 'La estación de monitoreo se localiza en un área abierta donde no se identifican fuentes puntuales cercanas de emisión. Las vías de acceso y zonas adyacentes se encuentran descubiertas, con presencia de suelo desnudo y material particulado susceptible a resuspensión. Las condiciones del entorno favorecen procesos de erosión y resuspensión de partículas por acción del viento, los cuales se consideran como factores potenciales de influencia sobre las concentraciones de material particulado. Se observa cobertura vegetal propia de áreas abiertas, con presencia de arbustos y árboles de mediana altura, cuya incidencia sobre el flujo del viento se considera baja a moderada. En el área se registra tránsito de vehículos livianos y pesados asociados a actividades operativas, lo que puede contribuir de manera puntual a la generación de material particulado. Es importante mencionar que la zona de estudio no cuenta dentro de sus alrededores con ecosistemas estratégicos, teniendo en cuenta lo establecido por el Sistema de Información Ambiental de Colombia SIAC y la Comisión Colombiana del Océano CCO.', description: 'Tabla 3: observaciones de la ficha técnica (era {var_31}) -- confirmado con el informe de referencia real que esta redacción es prácticamente idéntica para ambas estaciones del ejemplo (una plantilla de redacción estándar de Serambiente para describir el entorno de una estación de calidad de aire, no un dato único por cliente); se usa la versión sin la cláusula de distancia puntual ("a una distancia aproximada de 30 metros...") que solo aparecía en una de las dos estaciones del ejemplo' },
     // --- TABLA 4: IDENTIFICACIÓN DE MUESTRAS Y CONTAMINANTES (18 filas x 3 estaciones,
     // post-cirugia con tag único por celda. Los nombres de estación (fila 1, columnas
     // 1/3/5, con vMerge hacia abajo) sí tienen fuente AI real. Fecha e ID por fila NO
@@ -1035,7 +1089,7 @@ const CALIDAD_AIRE_LEGACY_FIELDS = {
     // variable por informe que no existe en el modelo actual) salvo la fila 1, donde
     // 'puntos[N].idMuestra' sí aplica -- no se convirtió a loop (la columna de nombre
     // de estación usa vMerge de 18 filas, retagueo posicional es más seguro) ---
-    'tabla_4_contiene_los_numeros_de_identificacion_asi_1': { source: 'STATIC', staticValue: '', description: 'Continuación de la nota introductoria de la Tabla 4' },
+    'tabla_4_contiene_los_numeros_de_identificacion_asi_1': { source: 'STATIC', staticValue: '', description: 'Continuación de la nota introductoria de la Tabla 4 -- la plantilla asume que el laboratorio asigna códigos de identificación a MUESTRAS FÍSICAS; en el informe de referencia real el monitoreo fue 100% automático (PM10, PM2.5, NO2, SO2, CO y O3 medidos en línea por equipos, sin muestras físicas ni códigos de identificación -- ver informe de referencia sección 3.6), un escenario distinto al que asume esta tabla, por lo que no aplica y no se puede tomar el texto de continuación de ahí' },
     'muestras_estacion_nombre_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Tabla 4: nombre de la estación 1 (columna con vMerge, 18 filas)' },
     'muestras_estacion_nombre_2': { source: 'AI', field: 'puntos[1].nombre', description: 'Tabla 4: nombre de la estación 2 (columna con vMerge, 18 filas)' },
     'muestras_estacion_nombre_3': { source: 'AI', field: 'puntos[2].nombre', description: 'Tabla 4: nombre de la estación 3 (columna con vMerge, 18 filas)' },
@@ -1122,40 +1176,47 @@ const CALIDAD_AIRE_LEGACY_FIELDS = {
     // usando patrón _fila_N -- no se determina con certeza a qué contaminante
     // corresponde cada fila sin el informe de referencia, y los límites de la
     // Resolución 2254 de 2017 son valores normativos exactos que no se inventan) ---
-    'las_normas_de_calidad_del_aire_para_todo_el_territ_1': { source: 'STATIC', staticValue: '', description: 'Continuación introducción normativa (Resolución 2254 de 2017)' },
-    'normas_contaminante_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 1 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_55})' },
-    'normas_limite_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 1 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_53})' },
-    'normas_tiempo_exposicion_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 1 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_54})' },
-    'normas_limite_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 2 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_56})' },
-    'normas_tiempo_exposicion_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 2 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_57})' },
-    'normas_contaminante_fila_3': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 3 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_60})' },
-    'normas_limite_fila_3': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 3 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_59})' },
-    'normas_tiempo_exposicion_fila_3': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 3 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_54})' },
-    'normas_limite_fila_4': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 4 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_53})' },
-    'normas_tiempo_exposicion_fila_4': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 4 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_57})' },
-    'normas_contaminante_fila_5': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 5 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_62})' },
-    'normas_limite_fila_5': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 5 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_53})' },
-    'normas_tiempo_exposicion_fila_5': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 5 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_57})' },
-    'normas_limite_fila_6': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 6 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_56})' },
-    'normas_tiempo_exposicion_fila_6': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 6 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_63})' },
-    'normas_contaminante_fila_7': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 7 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_66})' },
-    'normas_limite_fila_7': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 7 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_65})' },
-    'normas_tiempo_exposicion_fila_7': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 7 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_54})' },
-    'normas_limite_fila_8': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 8 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_67})' },
-    'normas_tiempo_exposicion_fila_8': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 8 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_63})' },
-    'normas_contaminante_fila_9': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 9 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_68})' },
-    'normas_limite_fila_9': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 9 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_56})' },
-    'normas_tiempo_exposicion_fila_9': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 9 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_69})' },
-    'normas_contaminante_fila_10': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 10 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_72})' },
-    'normas_limite_fila_10': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 10 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_71})' },
-    'normas_tiempo_exposicion_fila_10': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 10 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_69})' },
-    'normas_limite_fila_11': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 11 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_73})' },
-    'normas_tiempo_exposicion_fila_11': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 11 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_63})' },
+    'las_normas_de_calidad_del_aire_para_todo_el_territ_1': { source: 'STATIC', staticValue: 'En el artículo 2 de dicha Resolución, se establecen los niveles máximos permisibles para contaminantes criterios en el aire, a condiciones de referencia (25°C y 760 mmHg).', description: 'Continuación introducción normativa (Resolución 2254 de 2017) -- confirmado con el informe de referencia real, texto normativo fijo' },
+    // Tabla 13 llenada con los valores EXACTOS de la Resolución 2254 de 2017 (norma nacional,
+    // texto legal fijo -- no depende del cliente), verificados contra la Tabla 12 del informe de
+    // referencia real (que reproduce el artículo 2 de la Resolución) fila por fila: PM10
+    // (Anual/24h), PM2.5 (Anual/24h), SO2 (24h/1h), NO2 (Anual/1h), O3 (8h, una sola fila), CO
+    // (8h/1h) = 11 filas en total, coincide exactamente con las 11 filas del .docx. La columna
+    // "contaminante" solo tiene tag propio en la primera fila de cada grupo (vMerge hacia abajo
+    // en el .docx real), por eso fila_2/4/6/8/11 no tienen 'normas_contaminante_fila_N'.
+    'normas_contaminante_fila_1': { source: 'STATIC', staticValue: 'PM10', description: 'Tabla 13: nombre del contaminante, fila 1 -- Resolución 2254 de 2017, verificado contra el informe de referencia real (era {var_55})' },
+    'normas_limite_fila_1': { source: 'STATIC', staticValue: '50', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 1 -- PM10 anual, Resolución 2254 de 2017 (era {var_53})' },
+    'normas_tiempo_exposicion_fila_1': { source: 'STATIC', staticValue: 'Anual', description: 'Tabla 13: tiempo de exposición, fila 1 -- PM10 anual, Resolución 2254 de 2017 (era {var_54})' },
+    'normas_limite_fila_2': { source: 'STATIC', staticValue: '100', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 2 -- PM10 24 horas, Resolución 2254 de 2017 (era {var_56})' },
+    'normas_tiempo_exposicion_fila_2': { source: 'STATIC', staticValue: '24 horas', description: 'Tabla 13: tiempo de exposición, fila 2 -- PM10 24 horas, Resolución 2254 de 2017 (era {var_57})' },
+    'normas_contaminante_fila_3': { source: 'STATIC', staticValue: 'PM2.5', description: 'Tabla 13: nombre del contaminante, fila 3 -- Resolución 2254 de 2017 (era {var_60})' },
+    'normas_limite_fila_3': { source: 'STATIC', staticValue: '25', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 3 -- PM2.5 anual, Resolución 2254 de 2017 (era {var_59})' },
+    'normas_tiempo_exposicion_fila_3': { source: 'STATIC', staticValue: 'Anual', description: 'Tabla 13: tiempo de exposición, fila 3 -- PM2.5 anual, Resolución 2254 de 2017 (era {var_54})' },
+    'normas_limite_fila_4': { source: 'STATIC', staticValue: '50', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 4 -- PM2.5 24 horas, Resolución 2254 de 2017 (era {var_53})' },
+    'normas_tiempo_exposicion_fila_4': { source: 'STATIC', staticValue: '24 horas', description: 'Tabla 13: tiempo de exposición, fila 4 -- PM2.5 24 horas, Resolución 2254 de 2017 (era {var_57})' },
+    'normas_contaminante_fila_5': { source: 'STATIC', staticValue: 'SO2', description: 'Tabla 13: nombre del contaminante, fila 5 -- Resolución 2254 de 2017 (era {var_62})' },
+    'normas_limite_fila_5': { source: 'STATIC', staticValue: '50', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 5 -- SO2 24 horas, Resolución 2254 de 2017 (era {var_53})' },
+    'normas_tiempo_exposicion_fila_5': { source: 'STATIC', staticValue: '24 horas', description: 'Tabla 13: tiempo de exposición, fila 5 -- SO2 24 horas, Resolución 2254 de 2017 (era {var_57})' },
+    'normas_limite_fila_6': { source: 'STATIC', staticValue: '100', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 6 -- SO2 1 hora, Resolución 2254 de 2017 (era {var_56})' },
+    'normas_tiempo_exposicion_fila_6': { source: 'STATIC', staticValue: '1 hora', description: 'Tabla 13: tiempo de exposición, fila 6 -- SO2 1 hora, Resolución 2254 de 2017 (era {var_63})' },
+    'normas_contaminante_fila_7': { source: 'STATIC', staticValue: 'NO2', description: 'Tabla 13: nombre del contaminante, fila 7 -- Resolución 2254 de 2017 (era {var_66})' },
+    'normas_limite_fila_7': { source: 'STATIC', staticValue: '60', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 7 -- NO2 anual, Resolución 2254 de 2017 (era {var_65})' },
+    'normas_tiempo_exposicion_fila_7': { source: 'STATIC', staticValue: 'Anual', description: 'Tabla 13: tiempo de exposición, fila 7 -- NO2 anual, Resolución 2254 de 2017 (era {var_54})' },
+    'normas_limite_fila_8': { source: 'STATIC', staticValue: '200', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 8 -- NO2 1 hora, Resolución 2254 de 2017 (era {var_67})' },
+    'normas_tiempo_exposicion_fila_8': { source: 'STATIC', staticValue: '1 hora', description: 'Tabla 13: tiempo de exposición, fila 8 -- NO2 1 hora, Resolución 2254 de 2017 (era {var_63})' },
+    'normas_contaminante_fila_9': { source: 'STATIC', staticValue: 'O3', description: 'Tabla 13: nombre del contaminante, fila 9 -- Resolución 2254 de 2017 (era {var_68})' },
+    'normas_limite_fila_9': { source: 'STATIC', staticValue: '100', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 9 -- O3 8 horas, Resolución 2254 de 2017 (era {var_56})' },
+    'normas_tiempo_exposicion_fila_9': { source: 'STATIC', staticValue: '8 horas', description: 'Tabla 13: tiempo de exposición, fila 9 -- O3 8 horas, Resolución 2254 de 2017 (era {var_69})' },
+    'normas_contaminante_fila_10': { source: 'STATIC', staticValue: 'CO', description: 'Tabla 13: nombre del contaminante, fila 10 -- Resolución 2254 de 2017 (era {var_72})' },
+    'normas_limite_fila_10': { source: 'STATIC', staticValue: '5000', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 10 -- CO 8 horas, Resolución 2254 de 2017 (era {var_71})' },
+    'normas_tiempo_exposicion_fila_10': { source: 'STATIC', staticValue: '8 horas', description: 'Tabla 13: tiempo de exposición, fila 10 -- CO 8 horas, Resolución 2254 de 2017 (era {var_69})' },
+    'normas_limite_fila_11': { source: 'STATIC', staticValue: '35000', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 11 -- CO 1 hora, Resolución 2254 de 2017 (era {var_73})' },
+    'normas_tiempo_exposicion_fila_11': { source: 'STATIC', staticValue: '1 hora', description: 'Tabla 13: tiempo de exposición, fila 11 -- CO 1 hora, Resolución 2254 de 2017 (era {var_63})' },
     'var_9': { source: 'STATIC', staticValue: '', description: 'Artefacto de salto de párrafo antes de "METODOLOGÍAS DE MUESTREO"' },
     // --- DATOS Y RESULTADOS CALIDAD DEL AIRE ---
     'se_presentan_las_incertidumbres_de_los_resultados__1': { source: 'STATIC', staticValue: 'de acuerdo con la metodología de estimación de incertidumbre del laboratorio', description: 'Metodología de incertidumbre' },
-    'las_incertidumbres_de_los_resultados_asociados_a_c_1': { source: 'STATIC', staticValue: '', description: 'Cierre de la oración de incertidumbre' },
-    'en_las_siguientes_secciones_se_presentan_las_conce_1': { source: 'STATIC', staticValue: '', description: 'Lista de contaminantes criterio -- redacción exacta no determinable' },
+    'las_incertidumbres_de_los_resultados_asociados_a_c_1': { source: 'STATIC', staticValue: 'del mismo modo se relaciona el cálculo de la probabilidad de aceptación falsa, probabilidad de aceptación verdadera y el nivel de riesgo asociado a la regla de decisión empleada', description: 'Cierre de la oración de incertidumbre -- confirmado con el informe de referencia real, es texto metodológico fijo (describe qué contiene siempre el anexo de incertidumbre, no depende del cliente)' },
+    'en_las_siguientes_secciones_se_presentan_las_conce_1': { source: 'STATIC', staticValue: 'los contaminantes partículas menores a 10 (PM10) y 2.5 micras (PM2.5), Dióxido de Nitrógeno (NO2), Dióxido de Azufre (SO2), Monóxido de carbono (CO) y Ozono (O3),', description: 'Lista de contaminantes criterio -- confirmado con el informe de referencia real, panel fijo (coincide con e_por_1)' },
     'en_las_siguientes_secciones_se_presentan_las_conce_2': { source: 'AI', field: 'cliente', description: 'Organización del área de estudio (resultados)' },
     'los_resultados_de_las_1': { source: 'STATIC', staticValue: 'tres (3)', description: 'Número de estaciones (referencia recurrente en toda la sección de resultados, tag repetido x10)' },
     'var_33': { source: 'STATIC', staticValue: '', description: 'Tabla 14: resultados diarios por fecha/estación (tag repetido 3 veces, tabla no representable)' },
@@ -1190,7 +1251,7 @@ const CALIDAD_AIRE_LEGACY_FIELDS = {
     '17_tratamiento_estadistico_para_los_datos_de_pm10__1': { source: 'STATIC', staticValue: '', description: 'Número de estaciones (encabezado Tabla 17)' },
     'de_lo_anterior_se_concluye_que_la_mayor_proporcion_1': { source: 'STATIC', staticValue: '', description: 'Conclusión estadística de distribución de datos -- específica de resultados de laboratorio' },
     'de_lo_anterior_se_concluye_que_la_mayor_proporcion_2': { source: 'STATIC', staticValue: '', description: 'Continuación conclusión estadística (porcentaje)' },
-    'los_resultados_1': { source: 'STATIC', staticValue: '', description: 'Palabra de enlace antes de "de las [N] estaciones" (SO2/NO2/CO)' },
+    'los_resultados_1': { source: 'STATIC', staticValue: 'máximos', description: 'Palabra de enlace antes de "de las [N] estaciones" -- verificado en el .docx real: ocurrencia ÚNICA (no repetida, la descripción original sugería SO2/NO2/CO pero solo aparece una vez, en el cierre de la sección de CO); confirmado con el informe de referencia real, coincide con "máximos" en las tres secciones equivalentes (SO2, NO2, CO)' },
     'var_11': { source: 'STATIC', staticValue: '', description: 'Celda adicional de fuente (después de resumen CO)' },
     'var_12': { source: 'STATIC', staticValue: '', description: 'Celda adicional de fuente' },
     'var_13': { source: 'STATIC', staticValue: '', description: 'Celda adicional de fuente' },

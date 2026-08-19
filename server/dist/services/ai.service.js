@@ -345,7 +345,13 @@ Responde ÚNICAMENTE con un JSON válido con esta forma exacta:
         "latitud": "Latitud si aparece",
         "longitud": "Longitud si aparece",
         "norte": "Coordenada norte si aparece",
-        "este": "Coordenada este si aparece"
+        "este": "Coordenada este si aparece",
+        "cota": "Cota/elevación en msnm de la estación si aparece (tabla de georreferenciación)",
+        "marcaModeloPM10": "Marca/modelo del equipo de PM10 de esta estación si aparece (ficha técnica)",
+        "marcaModeloPM25": "Marca/modelo del equipo de PM2.5 de esta estación si aparece (ficha técnica)",
+        "parametrosMuestreados": "Lista de parámetros muestreados en esta estación si aparece (ficha técnica)",
+        "alturaAndamios": "Altura de andamios de esta estación si aparece (ficha técnica, en metros)",
+        "distanciaFuentesEnergia": "Distancia a fuentes de energía de esta estación si aparece (ficha técnica, en metros)"
       }
     ],
     "resultados": [
