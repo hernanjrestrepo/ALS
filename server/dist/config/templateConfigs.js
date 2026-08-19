@@ -837,12 +837,174 @@ exports.EMISION_RUIDO_AMBIENTAL_CONFIG = {
     filePattern: 'FO-PO-PSM-65-09',
     fields: Object.assign(Object.assign({}, AGUA_FIELDS), ERRA_LEGACY_FIELDS)
 };
+// ================================================================
+// CALIDAD DE AIRE (66-18) — mapeo completo, plantilla legacy. El config
+// anterior reutilizaba literalmente `{ ...AGUA_FIELDS }` sin ningun campo
+// propio (114 tags unicos en el documento, 90 sin mapeo real). El docx de
+// produccion YA tenia los placeholders convertidos a tags {tag} (trabajo
+// previo de tageado legacy, estilo frase-completa igual que OLORES/
+// PARTICULAS_VIABLES) -- lo que faltaba era escribir el diccionario de
+// mapeo, no re-tagear el .docx.
+//
+// HALLAZGO IMPORTANTE (documentado para revision humana / trabajo futuro):
+// las tablas 1, 2, 3, 4 y 13 (resumen de muestreo, coordenadas de
+// estaciones, fichas tecnicas, identificacion de muestras/contaminantes,
+// limites normativos) usan el MISMO nombre de tag generico (var_16..var_20,
+// var_21..var_24, var_27/28/31, var_32/34/51, var_53..var_73) repetido
+// docenas de veces en celdas estructuralmente distintas (ej. var_22
+// aparece 24 veces: como "Georreferenciacion", luego como marca/modelo de
+// equipo PM10, PM2.5, parametros muestreados, altura de andamios,
+// distancia a fuentes de energia -- todas celdas DIFERENTES). Docxtemplater
+// unifica tags con el mismo nombre a un unico valor en todo el documento,
+// asi que estas tablas NO pueden poblarse correctamente con el esquema de
+// tags actual del .docx -- requieren retagueo real (renombrar cada
+// ocurrencia a un tag unico por celda) para ser dinamicas. Se dejan como
+// STATIC vacio (blanco) hasta que se justifique ese trabajo; no se inventa
+// contenido. Mismo criterio para fragmentos narrativos donde el texto
+// exacto original no se puede determinar con certeza (p.ej. listas de
+// contaminantes, resultados estadisticos especificos de laboratorio).
+// ================================================================
+const CALIDAD_AIRE_LEGACY_FIELDS = {
+    // --- PORTADA ---
+    'var_74': { source: 'STATIC', staticValue: '', description: 'Header de pagina (header2.xml): fragmento final tras los campos de numero de pagina, sin contenido esperado' },
+    'e_por_1': { source: 'STATIC', staticValue: 'PARTÍCULAS MENORES A 10 (PM10) Y 2.5 MICRAS (PM2.5), DIÓXIDO DE NITRÓGENO (NO2), DIÓXIDO DE AZUFRE (SO2), MONÓXIDO DE CARBONO (CO) Y OZONO (O3)', description: 'Panel de contaminantes en el título (portada, fijo -- coincide con el documento fuente)' },
+    'var_1': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (portada, primer fragmento "NOMBRE CLIENTE" partido en 2 runs)' },
+    'var_2': { source: 'STATIC', staticValue: '', description: 'Vacío: completa la concatenación con var_1 (runs partidos del mismo placeholder "NOMBRE CLIENTE")' },
+    'monitoreo_de_calidad_del_aire_ejecutado_entre_el_1': { source: 'AI', field: 'periodoMuestreo', description: 'Periodo de ejecución del monitoreo (portada)' },
+    'var_3': { source: 'STATIC', staticValue: '', description: 'Lista de nombres de estaciones (portada) -- cantidad variable, no representable con un solo campo' },
+    'var_4': { source: 'STATIC', staticValue: '', description: 'Continuación lista de estaciones (portada)' },
+    'chart_indices': { source: 'STATIC', staticValue: '', description: 'Placeholder de gráfico (índice de tablas)' },
+    'tag_fecha_monitoreo': { source: 'DATE', field: 'fullDate', description: 'Fecha de monitoreo (Tabla 4, índice de tablas)' },
+    // --- INTRODUCCIÓN ---
+    'contrato_los_servicios_de_serambiente_s_a_s_para_r_1': { source: 'AI', field: 'cliente', description: 'Cliente que contrata el servicio' },
+    'contrato_los_servicios_de_serambiente_s_a_s_para_r_2': { source: 'AI', field: 'cliente', description: 'Organización del área de estudio' },
+    'del_localizado_en_1': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad del área de estudio' },
+    'localizado_en_departamento_de_1': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento del área de estudio' },
+    'a_fin_de_dar_cumplimiento_a_los_requerimientos_de__1': { source: 'STATIC', staticValue: 'tres (3)', description: 'Número de estaciones seleccionadas (numeral)' },
+    'estaciones_en_sitios_representativos_de_la_direcci_1': { source: 'STATIC', staticValue: '', description: 'Descripción del muestreador ubicado (texto ambiguo, no se puede determinar la redacción exacta original)' },
+    'el_presente_documento_de_caracter_tecnico_contiene_1': { source: 'AI', field: 'periodoMuestreo', description: 'Periodo de monitoreo comprendido (resumen del documento)' },
+    'de_noviembre_de_2017_del_ministerio_de_ambiente_y__1': { source: 'STATIC', staticValue: '', description: 'Artefacto de salto de párrafo antes de "OBJETIVOS"' },
+    // --- OBJETIVOS ---
+    'realizar_la_evaluacion_de_la_calidad_de_aire_en_1': { source: 'STATIC', staticValue: 'tres (3)', description: 'Número de estaciones evaluadas (objetivo general + objetivo específico, mismo tag x2)' },
+    'estaciones_ubicadas_en_el_area_de_estudio_del_1': { source: 'AI', field: 'cliente', description: 'Organización del área de estudio (objetivo general)' },
+    'estaciones_ubicadas_en_el_area_de_estudio_del_loca_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización del área de estudio (objetivo general)' },
+    'determinar_los_niveles_de_inmision_de_los_contamin_1': { source: 'STATIC', staticValue: '', description: 'Lista de contaminantes evaluados (objetivo específico) -- redacción exacta no determinable' },
+    // --- INFORMACIÓN DE LA EMPRESA ---
+    'tag_correo_valor': { source: 'AI', field: 'otrosDatos.correo', description: 'Correo de contacto ambiental (nodo repetido: razón social + correo)' },
+    'tag_representante': { source: 'AI', field: 'otrosDatos.representante', description: 'Nombre del representante / cliente' },
+    'tag_telefono_valor': { source: 'AI', field: 'otrosDatos.telefono', description: 'Teléfono de contacto' },
+    'tag_direccion': { source: 'AI', field: 'ubicacion.direccion', description: 'Dirección de la sede del cliente' },
+    'tag_departamento': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento donde se ejecutó el monitoreo' },
+    'tag_ciudad': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio donde se ejecutó el monitoreo' },
+    'tag_actividad_economica': { source: 'AI', field: 'otrosDatos.actividadEconomica', description: 'Actividad económica del cliente' },
+    // --- EMPRESA RESPONSABLE / EVALUACIÓN DE LA CALIDAD DEL AIRE ---
+    'las_mediciones_toma_de_muestra_y_analisis_de_1': { source: 'STATIC', staticValue: '', description: 'Lista de contaminantes (empresa responsable del estudio) -- redacción exacta no determinable' },
+    'fue_realizada_por_servicios_de_ingenieria_y_ambien_1': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución de acreditación IDEAM' },
+    'para_determinar_los_niveles_de_calidad_de_aire_de_1': { source: 'STATIC', staticValue: 'tres (3) estaciones', description: 'Número de estaciones de monitoreo (evaluación calidad del aire)' },
+    'de_de_monitoreo_ubicadas_en_el_area_de_estudio_del_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización del área de estudio (evaluación calidad del aire)' },
+    // --- MÉTODOS DE REFERENCIA (cierres de oración, artefactos de formato) ---
+    'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM10 (Alto Volumen)' },
+    'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_2': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM10 (referencia manual)' },
+    'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración métodos PM2.5/SO2/NO2/CO/O3 (tag repetido x5 en cada cierre)' },
+    // --- TABLA 1: RESUMEN DE DETALLES DEL MUESTREO (fila única, no repetible) ---
+    'var_16': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (columna 1)' },
+    'var_17': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (columna 2)' },
+    'var_18': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (columna 3)' },
+    'var_19': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (columna 4)' },
+    'var_20': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (columna 5)' },
+    // --- PERIODO Y FRECUENCIA DE MUESTREO ---
+    'las_evaluaciones_de_la_calidad_del_aire_se_efectua_1': { source: 'STATIC', staticValue: 'tres (3) estaciones', description: 'Número de estaciones evaluadas' },
+    'las_evaluaciones_de_la_calidad_del_aire_se_efectua_2': { source: 'AI', field: 'periodoMuestreo', description: 'Periodo comprendido de evaluación' },
+    'de_monitoreo_evaluadas_durante_el_periodo_comprend_1': { source: 'STATIC', staticValue: '', description: 'Lista de contaminantes muestreados -- redacción exacta no determinable' },
+    // --- UBICACIÓN DE LAS ESTACIONES DE MONITOREO ---
+    'el_presente_monitoreo_se_efectuo_1': { source: 'DATE', field: 'fullDate', description: 'Fecha del monitoreo (ubicación de estaciones)' },
+    'en_el_area_de_estudio_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Área de estudio (ubicación de estaciones)' },
+    'para_el_desarrollo_de_este_estudio_en_particular_f_1': { source: 'STATIC', staticValue: 'tres (3) estaciones', description: 'Número de estaciones seleccionadas (Resolución 2254 de 2017)' },
+    // --- TABLA 2: COORDENADAS DE ESTACIONES — tag reutilizado en TODAS las filas
+    // (var_21/22/23/24), no representable de forma dinámica con el esquema actual ---
+    'var_21': { source: 'STATIC', staticValue: '', description: 'Tabla 2: columna Estación (tag repetido en las 3 filas, no soporta valores distintos por fila)' },
+    'var_22': { source: 'STATIC', staticValue: '', description: 'Tabla 2/3: reutilizado en 24 celdas estructuralmente distintas (georreferenciación, marca/modelo equipos PM10/PM2.5, parámetros muestreados, altura andamios, distancia energía) -- imposible de poblar correctamente sin retagueo' },
+    'var_23': { source: 'STATIC', staticValue: '', description: 'Tabla 2: coordenadas WGS84 Norte/Oeste (tag repetido en 6 celdas)' },
+    'var_24': { source: 'STATIC', staticValue: '', description: 'Tabla 2/3: coordenadas origen Nacional Norte/Este, reutilizado también en Tabla 3 (8 celdas distintas)' },
+    // --- TABLA 3: FICHA TÉCNICA POR ESTACIÓN ---
+    '3_ficha_tecnica_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Tabla 3: nombre de la estación (título de la ficha técnica)' },
+    'var_27': { source: 'STATIC', staticValue: '', description: 'Tabla 3: información general de la estación' },
+    'var_28': { source: 'STATIC', staticValue: '', description: 'Tabla 3: observaciones de equipos' },
+    'var_31': { source: 'STATIC', staticValue: '', description: 'Tabla 3: observaciones adicionales' },
+    // --- TABLA 4: IDENTIFICACIÓN DE MUESTRAS Y CONTAMINANTES (tabla dinámica por estación/contaminante, no representable) ---
+    'tabla_4_contiene_los_numeros_de_identificacion_asi_1': { source: 'STATIC', staticValue: '', description: 'Continuación de la nota introductoria de la Tabla 4' },
+    'var_32': { source: 'STATIC', staticValue: '', description: 'Tabla 4: columna ID (tag repetido 18 veces, celdas de distintas estaciones/contaminantes)' },
+    'var_34': { source: 'STATIC', staticValue: '', description: 'Tabla 4: columna Fecha/Estación/ID (tag repetido 54 veces)' },
+    'var_51': { source: 'STATIC', staticValue: '', description: 'Tabla 4: columna Fecha (tag repetido 3 veces)' },
+    // --- DETERMINANTES AMBIENTALES / FUENTES DE EMISIÓN ---
+    'tag_year': { source: 'DATE', field: 'year', description: 'Año de la fuente normativa (Resolución 2254 de 2017, citas repetidas x6)' },
+    'en_el_area_de_estudio_del_1': { source: 'AI', field: 'cliente', description: 'Organización del área de estudio (determinantes ambientales)' },
+    'var_5': { source: 'STATIC', staticValue: '', description: 'Tabla 10: descripción de fuente de emisión 1 -- específico del sitio, no determinable' },
+    'var_6': { source: 'STATIC', staticValue: '', description: 'Tabla 10: descripción de fuente de emisión 2' },
+    'var_7': { source: 'STATIC', staticValue: '', description: 'Tabla 10: descripción de fuente de emisión 3' },
+    'var_8': { source: 'STATIC', staticValue: '', description: 'Tabla 10: descripción de fuente de emisión 4' },
+    // --- NORMAS DE CALIDAD DEL AIRE / TABLA 13 (límites normativos, tag reutilizado) ---
+    'las_normas_de_calidad_del_aire_para_todo_el_territ_1': { source: 'STATIC', staticValue: '', description: 'Continuación introducción normativa (Resolución 2254 de 2017)' },
+    'var_53': { source: 'STATIC', staticValue: '', description: 'Tabla 13: límites normativos por contaminante (tag repetido 3 veces)' },
+    'var_54': { source: 'STATIC', staticValue: '', description: 'Tabla 13: límites normativos (tag repetido 3 veces)' },
+    'var_55': { source: 'STATIC', staticValue: '', description: 'Tabla 13: encabezado de fila' },
+    'var_56': { source: 'STATIC', staticValue: '', description: 'Tabla 13: límites normativos (tag repetido 3 veces)' },
+    'var_57': { source: 'STATIC', staticValue: '', description: 'Tabla 13: límites normativos (tag repetido 3 veces)' },
+    'var_59': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'var_60': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'var_62': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'var_63': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional (tag repetido 3 veces)' },
+    'var_65': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'var_66': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'var_67': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'var_68': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'var_69': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional (tag repetido x2)' },
+    'var_71': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'var_72': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'var_73': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'var_9': { source: 'STATIC', staticValue: '', description: 'Artefacto de salto de párrafo antes de "METODOLOGÍAS DE MUESTREO"' },
+    // --- DATOS Y RESULTADOS CALIDAD DEL AIRE ---
+    'se_presentan_las_incertidumbres_de_los_resultados__1': { source: 'STATIC', staticValue: 'de acuerdo con la metodología de estimación de incertidumbre del laboratorio', description: 'Metodología de incertidumbre' },
+    'las_incertidumbres_de_los_resultados_asociados_a_c_1': { source: 'STATIC', staticValue: '', description: 'Cierre de la oración de incertidumbre' },
+    'en_las_siguientes_secciones_se_presentan_las_conce_1': { source: 'STATIC', staticValue: '', description: 'Lista de contaminantes criterio -- redacción exacta no determinable' },
+    'en_las_siguientes_secciones_se_presentan_las_conce_2': { source: 'AI', field: 'cliente', description: 'Organización del área de estudio (resultados)' },
+    'los_resultados_de_las_1': { source: 'STATIC', staticValue: 'tres (3)', description: 'Número de estaciones (referencia recurrente en toda la sección de resultados, tag repetido x10)' },
+    'var_33': { source: 'STATIC', staticValue: '', description: 'Tabla 14: resultados diarios por fecha/estación (tag repetido 3 veces, tabla no representable)' },
+    'fuente_serambiente_s_a_s_1': { source: 'DATE', field: 'year', description: 'Año de la fuente SERAMBIENTE (Tabla 14, tag repetido x3)' },
+    '16_la_realizada_con_el_limite_permisible_para_tiem_1': { source: 'STATIC', staticValue: '', description: 'Número de días de monitoreo (comparación indicativa) -- no determinable con certeza' },
+    'var_10': { source: 'STATIC', staticValue: '', description: 'Celda adicional antes de Tabla 15' },
+    'fuente_serambiente_s_a_s_2': { source: 'DATE', field: 'year', description: 'Año de la fuente SERAMBIENTE (citas recurrentes en tablas/gráficas, tag repetido x21)' },
+    'fuente_serambiente_s_a_s_3': { source: 'DATE', field: 'year', description: 'Año de la fuente SERAMBIENTE (citas recurrentes en gráficas, tag repetido x6)' },
+    'realizando_un_analisis_estadistico_el_promedio_glo_1': { source: 'STATIC', staticValue: '', description: 'Resultados estadísticos específicos de laboratorio (promedio/máximo/mínimo/porcentaje) -- datos numéricos de resultados reales, no se pueden generar (tag repetido x5)' },
+    'con_valor_maximo_de_g_m3_reportado_1': { source: 'STATIC', staticValue: '', description: 'Estación con valor máximo reportado -- dato de resultado específico' },
+    'y_un_minimo_de_g_m3_reportado_1': { source: 'STATIC', staticValue: '', description: 'Estación con valor mínimo reportado -- dato de resultado específico' },
+    '17_tratamiento_estadistico_para_los_datos_de_pm10__1': { source: 'STATIC', staticValue: '', description: 'Número de estaciones (encabezado Tabla 17)' },
+    'de_lo_anterior_se_concluye_que_la_mayor_proporcion_1': { source: 'STATIC', staticValue: '', description: 'Conclusión estadística de distribución de datos -- específica de resultados de laboratorio' },
+    'de_lo_anterior_se_concluye_que_la_mayor_proporcion_2': { source: 'STATIC', staticValue: '', description: 'Continuación conclusión estadística (porcentaje)' },
+    'los_resultados_1': { source: 'STATIC', staticValue: '', description: 'Palabra de enlace antes de "de las [N] estaciones" (SO2/NO2/CO)' },
+    'var_11': { source: 'STATIC', staticValue: '', description: 'Celda adicional de fuente (después de resumen CO)' },
+    'var_12': { source: 'STATIC', staticValue: '', description: 'Celda adicional de fuente' },
+    'var_13': { source: 'STATIC', staticValue: '', description: 'Celda adicional de fuente' },
+    '6_a_la_grafica_1': { source: 'STATIC', staticValue: '', description: 'Número final del rango de gráficas (ej. "de la Gráfica 6 a la Gráfica N") -- cantidad variable' },
+    'anexo_4_memorias_de_calculo_de_datos_1': { source: 'STATIC', staticValue: '', description: 'Nombre del contaminante en referencia de anexo (memorias de cálculo)' },
+    '6_comparacion_promedios_1_hora_de_co_vs_norma_1_ho_1': { source: 'STATIC', staticValue: '', description: 'Nombre de estación(es) en pie de gráfica comparativa CO (tag repetido x2)' },
+    // --- CONDICIONES ATMOSFÉRICAS ---
+    'las_condiciones_atmosfericas_reportadas_fueron_reg_1': { source: 'STATIC', staticValue: 'propia instalada en el área de estudio', description: 'Origen de la estación meteorológica' },
+    'var_14': { source: 'STATIC', staticValue: '', description: 'Celda de fuente (Figura 9)' },
+    'var_15': { source: 'STATIC', staticValue: '', description: 'Descripción de Figura 9' },
+    'tabla_39_se_presenta_los_promedios_de_las_variable_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Nombre de la estación de calidad de aire (Tabla 39, variables meteorológicas)' },
+    'que_registro_los_datos_en_el_periodo_del_1': { source: 'AI', field: 'periodoMuestreo', description: 'Periodo de registro de datos meteorológicos' },
+    // --- CONCLUSIONES ---
+    'realizo_la_evaluacion_de_la_calidad_del_aire_en_el_1': { source: 'AI', field: 'cliente', description: 'Organización evaluada (conclusiones)' },
+    'realizo_la_evaluacion_de_la_calidad_del_aire_en_el_2': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización del proyecto (conclusiones)' },
+    'a_traves_del_monitoreo_realizado_del_1': { source: 'AI', field: 'periodoMuestreo', description: 'Periodo del monitoreo (conclusiones)' },
+};
 // CALIDAD DE AIRE (66-18)
 exports.CALIDAD_AIRE_CONFIG = {
     templateType: 'CALIDAD_AIRE',
     displayName: 'Informe de Calidad de Aire',
     filePattern: 'FO-PO-PSM-66-18',
-    fields: Object.assign({}, AGUA_FIELDS)
+    fields: Object.assign(Object.assign({}, AGUA_FIELDS), CALIDAD_AIRE_LEGACY_FIELDS)
 };
 // ================================================================
 // OLORES OFENSIVOS (66-19) — mapeo completo, plantilla legacy (templates/reports/)
