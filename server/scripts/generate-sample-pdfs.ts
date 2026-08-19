@@ -1,200 +1,379 @@
 // @ts-nocheck
+/**
+ * Sincroniza el sistema de pruebas/QA (TemplateTestsPage) con las plantillas
+ * REALES de produccion (server/templates/reports/), que fueron retageadas por
+ * completo el 2026-08-19 con nombres de tags nuevos (ver server/src/config/templateConfigs.ts).
+ *
+ * Reemplaza el flujo anterior (getDummyData con campos genericos tipo
+ * cliente_nombre/oit_codigo/matriz_tipo) que ya no coincide con NINGUN tag real
+ * de las plantillas actuales -- por eso TemplateTestsPage mostraba contenido
+ * de mayo/2026.
+ *
+ * Para cada plantilla de QA (templates/docxtemplater/PLANTILLA_XXX_DOCXTEMPLATER.docx):
+ *   1. Copia la plantilla de produccion actual (templates/reports/, localizada
+ *      por su filePattern FO-PO-PSM-XX-XX) sobre el archivo de QA, con backup
+ *      previo del archivo viejo.
+ *   2. Genera datos de ejemplo usando el diccionario REAL de tags de
+ *      templateConfigs.ts (TEMPLATE_CONFIGS[<tipo>].fields) en vez de nombres
+ *      de campo inventados.
+ *   3. Renderiza el .docx de muestra, lo convierte a PDF (soffice) y genera
+ *      las imagenes de preview por pagina (pdftoppm) en uploads/preview_images/,
+ *      que es lo que sirve /api/files/preview-images/:filename a TemplateTestsPage.tsx.
+ *
+ * NOTA: no se usa docxService.generateDocument aqui a proposito -- esa funcion
+ * resuelve rutas SIEMPRE contra templates/reports/ (TEMPLATES_DIR hardcodeado en
+ * docx.service.ts), no contra templates/docxtemplater/, asi que no sirve para
+ * renderizar los archivos de QA por su nombre PLANTILLA_XXX_DOCXTEMPLATER.docx.
+ * Se usa Docxtemplater/PizZip directamente con las mismas opciones que
+ * docx.service.ts (delimiters {}, paragraphLoop, linebreaks, nullGetter vacio)
+ * para mantener paridad exacta con el render de produccion.
+ */
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const Docxtemplater = require('docxtemplater');
+const PizZip = require('pizzip');
+const InspectModule = require('docxtemplater/js/inspect-module');
+const { TEMPLATE_CONFIGS } = require('../src/config/templateConfigs');
 
-const TEMPLATES_DIR = path.join(__dirname, '../templates/docxtemplater');
-const OUTPUT_DIR = path.join(__dirname, '../templates/docxtemplater/pdf_samples');
-const TEMP_DIR = path.join(__dirname, '../tmp_preview_gen');
+const REPORTS_DIR = path.join(__dirname, '../templates/reports');
+const TPL_DIR = path.join(__dirname, '../templates/docxtemplater');
+const PDF_DIR = path.join(TPL_DIR, 'pdf_samples');
+const PREVIEW_DIR = path.join(__dirname, '../uploads/preview_images');
+const TMP_DIR = path.join(__dirname, '../tmp_sample_gen');
+const BACKUP_DIR = path.join(TPL_DIR, `_backup_pre_sync_${new Date().toISOString().slice(0, 10)}`);
 
-if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
+for (const d of [PDF_DIR, PREVIEW_DIR, TMP_DIR]) {
+    if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+}
 
-const templates = [
-  'PLANTILLA_AGUA_MARINA_DOCXTEMPLATER.docx',
-  'PLANTILLA_BIOTA_DOCXTEMPLATER.docx',
-  'PLANTILLA_CA_AUTOMATICOS_DOCXTEMPLATER.docx',
-  'PLANTILLA_CA_CALIDAD_AIRE_DOCXTEMPLATER.docx',
-  'PLANTILLA_CA_OLORES_DOCXTEMPLATER.docx',
-  'PLANTILLA_EMISION_RUIDO_DOCXTEMPLATER.docx',
-  'PLANTILLA_ER_RA_UNIFICADO_DOCXTEMPLATER.docx',
-  'PLANTILLA_FF_DOCXTEMPLATER.docx',
-  'PLANTILLA_PARTICULAS_VIABLES_DOCXTEMPLATER.docx',
-  'PLANTILLA_PUNTO_SECO_DOCXTEMPLATER.docx',
-  'PLANTILLA_RESPEL_DOCXTEMPLATER.docx',
-  'PLANTILLA_RUIDO_AMBIENTAL_DOCXTEMPLATER.docx',
-  'PLANTILLA_SUELO_DOCXTEMPLATER.docx',
-];
+// ------------------------------------------------------------------
+// Mapeo: archivo de QA (docxtemplater) -> clave en TEMPLATE_CONFIGS
+// Cruzado a mano entre client/src/types/testing.ts (TEMPLATE_TEST_ITEMS) y
+// server/src/config/templateConfigs.ts (filePattern FO-PO-PSM-XX-XX).
+// ------------------------------------------------------------------
+const QA_TO_CONFIG = {
+    // "Agua Marina" no es una matriz de produccion separada: es una variante de
+    // OIT dentro de ASUB (ver templateDataMapper.ts: es_agua_marina = templateType
+    // === 'ASUB' && oit.description incluye "marina"). Se sincroniza contra ASUB.
+    'PLANTILLA_AGUA_MARINA_DOCXTEMPLATER.docx': 'ASUB', // FO-PO-PSM-64-08
+    'PLANTILLA_BIOTA_DOCXTEMPLATER.docx': 'BIOTA', // FO-PO-PSM-74-01
+    'PLANTILLA_CA_CALIDAD_AIRE_DOCXTEMPLATER.docx': 'CALIDAD_AIRE', // FO-PO-PSM-66-18
+    'PLANTILLA_CA_OLORES_DOCXTEMPLATER.docx': 'OLORES', // FO-PO-PSM-66-19
+    'PLANTILLA_EMISION_RUIDO_DOCXTEMPLATER.docx': 'EMISION_RUIDO', // FO-PO-PSM-65-06
+    'PLANTILLA_ER_RA_UNIFICADO_DOCXTEMPLATER.docx': 'EMISION_RUIDO_AMBIENTAL', // FO-PO-PSM-65-09
+    'PLANTILLA_FF_DOCXTEMPLATER.docx': 'FUENTES_FIJAS', // FO-PO-PSM-67-11 ("FF" = Fuentes Fijas, no "previo")
+    'PLANTILLA_PARTICULAS_VIABLES_DOCXTEMPLATER.docx': 'PARTICULAS_VIABLES', // FO-PO-PSM-66-20
+    'PLANTILLA_PUNTO_SECO_DOCXTEMPLATER.docx': 'PUNTO_SECO', // FO-PO-PSM-64-10
+    'PLANTILLA_RESPEL_DOCXTEMPLATER.docx': 'RESPEL', // FO-PO-PSM-64-09
+    'PLANTILLA_RUIDO_AMBIENTAL_DOCXTEMPLATER.docx': 'RUIDO_AMBIENTAL', // FO-PO-PSM-65-07
+    'PLANTILLA_SUELO_DOCXTEMPLATER.docx': 'SUELO', // FO-PO-PSM-64-11
+    // 'PLANTILLA_CA_AUTOMATICOS_DOCXTEMPLATER.docx' queda AFUERA a proposito:
+    // no existe ninguna TemplateConfig ni plantilla en templates/reports/ para
+    // una matriz de "CA Automaticos" (estaciones automaticas de calidad de aire)
+    // entre las 14 plantillas de produccion actuales. No hay con que sincronizarla.
+};
 
-// Dummy data that covers most common placeholders
-function getDummyData(matrix: string): any {
-  const base = {
-    cliente_nombre: 'ALS SERAMBIENTE S.A.S.',
-    cliente_nit: '900.XXX.XXX-1',
-    cliente_proyecto_sede: 'Planta Industrial Barranquilla',
-    cliente_razon_social: 'ALS SERAMBIENTE S.A.S.',
-    cliente_correo: 'ambiental@als.com.co',
-    cliente_direccion: 'Carrera 52 No. 79 - 367, Barranquilla, Atlántico',
-    cliente_telefono: '(5) 385 0000',
-    monitoreo_ciudad: 'Barranquilla',
-    monitoreo_departamento: 'Atlántico',
-    monitoreo_direccion: 'Km 4 Vía a Tubará, Barranquilla, Atlántico',
-    monitoreo_fecha: '15 de marzo de 2026',
-    monitoreo_fecha_corta: '15/03/2026',
-    monitoreo_dia: '15',
-    monitoreo_mes: 'marzo',
-    monitoreo_año: '2026',
-    monitoreo_hora_inicio: '07:30',
-    monitoreo_hora_fin: '15:30',
-    monitoreo_jornada: 'diurna',
-    matriz_tipo: matrix,
-    matriz_tipo_titulo: matrix.toUpperCase(),
-    informe_codigo: 'OT-12345-1-A-2026-V01',
-    informe_codigo_v01: 'OT-12345-1-A-2026-V01',
-    informe_fecha_emision: '20/03/2026',
-    informe_version: 'V01',
-    informe_nota_version: 'Informe inicial',
-    normativa_aplicable: 'Res. 631 de 2015, Decreto 1076 de 2015',
-    normativa_resolucion: 'Res. 631 de 2015',
-    oit_numero: 'OT-12345-1-A-2026',
-    oit_codigo: 'OT-12345',
-    oit_prefijo: 'OT-12345-1-A-2026-V01',
-    proyecto_nombre: 'Programa de Monitoreo Ambiental 2026',
-    proyecto_sector: 'Industrial',
-    servicio_tipo: 'Monitoreo Ambiental',
-    clima_temperatura: '32 °C',
-    clima_humedad: '78 %',
-    clima_direccion_viento: 'NE',
-    clima_velocidad_viento: '12 km/h',
-    clima_presion: '1013 hPa',
-    clima_condiciones: 'Cielo parcialmente nublado, viento moderado',
-    equipo_nombre: 'Equipo multiparamétrico Hach HQ40d',
-    equipo_codigo: 'INS-001',
-    equipo_marca: 'Hach',
-    equipo_modelo: 'HQ40d',
-    equipo_numero_serie: 'SN123456',
-    tecnico_nombre: 'Ing. Carlos Martínez',
-    tecnico_cargo: 'Ingeniero Ambiental',
-    tecnico_registro: 'RETH-12345',
-    responsable_nombre: 'Dra. María Elena Rojas',
-    responsable_cargo: 'Directora Técnica',
-    reviso_nombre: 'Ing. Pedro Gómez',
-    reviso_cargo: 'Jefe de Laboratorio',
-    aprobo_nombre: 'Dra. Ana Lucia Fernández',
-    aprobo_cargo: 'Gerente Técnica',
-    footer_pagina: '1',
-    header_fecha: '20/03/2026',
-    tiene_fotografias: true,
-    tiene_resultados_campo: true,
-    tiene_resultados_laboratorio: true,
-    tiene_anexos: true,
-    tiene_graficas: true,
-    es_agua_superficial: true,
-    es_agua_subterranea: false,
-    es_sedimento: false,
-    es_suelo: false,
-    tiene_icos: true,
-    nota_modificacion: false,
-    nota_responsabilidad_cliente: true,
-  };
+// Matrices de produccion sin item correspondiente en TEMPLATE_TEST_ITEMS
+// (quedan fuera del alcance de esta sincronizacion, se documentan igual):
+//   - RUIDO_INTRADOMICILIARIO (FO-PO-PSM-65-08)
+//   - FUENTES_FIJAS_PREVIO (FO-PO-PSM-67-10)
 
-  // Arrays for loops
-  base.laboratorios_parametros = [
-    { nombre: 'Laboratorio ALS Colombia S.A.S.', parametro: 'pH, Conductividad, TDS', resolucion: 'Res. 631 de 2015' },
-    { nombre: 'Laboratorio Ambiental del Caribe', parametro: 'DQO, DBO5, Grasas y Aceites', resolucion: 'Res. 631 de 2015' },
-    { nombre: 'LabCorp Barranquilla', parametro: 'Metales Pesados (As, Cd, Cr, Cu, Pb, Hg, Ni, Zn)', resolucion: 'Res. 631 de 2015' },
-  ];
+function findReportsFile(filePattern) {
+    const files = fs.readdirSync(REPORTS_DIR);
+    const match = files.find(
+        (f) => f.startsWith(filePattern) && f.endsWith('.docx') && !f.includes('.backup') && !f.includes('.pybak')
+    );
+    if (!match) throw new Error(`No se encontro plantilla de produccion para ${filePattern}`);
+    return match;
+}
 
-  base.puntos_monitoreo = [
-    { id: 'PM-01', nombre: 'Punto de Vertimiento PTAR', descripcion: 'Descarga final del tratamiento', coordenadas: '10.9876°N, 74.7890°W', latitud: '10.9876', longitud: '-74.7890', ubicacion: '10°59\'15"N, 74°47\'20"W' },
-    { id: 'PM-02', nombre: 'Pozo de Monitoreo PZ-01', descripcion: 'Pozo piezométrico agua subterránea', coordenadas: '10.9880°N, 74.7895°W', latitud: '10.9880', longitud: '-74.7895', ubicacion: '10°59\'17"N, 74°47\'22"W' },
-  ];
+// ------------------------------------------------------------------
+// Datos de ejemplo plausibles, derivados del diccionario REAL de tags
+// (TemplateConfig.fields) de cada matriz -- no de nombres inventados.
+// ------------------------------------------------------------------
+const CTX = {
+    day: '15',
+    month: 'marzo',
+    year: '2026',
+    fullDate: '15 de marzo de 2026',
+    headerDate: '15/03/2026',
+    oitNumber: 'OT-14265-1-A-9577-V01',
+    cliente: 'ALS SERAMBIENTE S.A.S.',
+    correo: 'ambiental@als.com.co',
+    nit: '900.123.456-7',
+    ciudad: 'Barranquilla',
+    departamento: 'Atlantico',
+    ciudadDepartamento: 'Barranquilla, Atlantico',
+    direccion: 'Km 4 Via a Tubara, Zona Industrial, Barranquilla',
+    puntoNombre: 'Punto de Monitoreo PM-01',
+    puntoId: 'PM-01',
+    idMuestra: 'M-2026-001',
+    descripcionPunto: 'Punto representativo del area de estudio, de facil acceso y libre de interferencias.',
+    latitud: '10 58\' 45.2" N',
+    longitud: '74 47\' 12.8" W',
+    hora: '08:30',
+    numeroPuntosTexto: 'tres (3) puntos',
+    metodologia: 'muestreo puntual aleatorio',
+    conclusionCorta: 'cumple con los parametros establecidos en la normativa vigente',
+    tipoMatriz: 'Caracterizacion Ambiental',
+    periodoMuestreo: 'del 10 al 15 de marzo de 2026',
+    version: 'V01',
+    narrObjetivo:
+        'El presente informe tecnico tiene como objetivo documentar los resultados obtenidos durante el monitoreo ambiental realizado por ALS Serambiente S.A.S., con el fin de evaluar el cumplimiento de la normativa ambiental colombiana vigente aplicable.',
+    narrMetodologia:
+        'La metodologia empleada se fundamento en los protocolos establecidos por el IDEAM y las resoluciones vigentes del Ministerio de Ambiente y Desarrollo Sostenible, utilizando equipos calibrados y trazables para la toma de muestras y mediciones in situ.',
+    narrResultados:
+        'Los resultados obtenidos indican que los parametros evaluados se encuentran dentro de los limites maximos permisibles establecidos en la normativa ambiental colombiana aplicable, sin registrarse valores anomalos.',
+    narrConclusiones:
+        'Con base en los resultados obtenidos, se concluye que las condiciones evaluadas cumplen con la normativa ambiental vigente, sin requerirse acciones correctivas inmediatas.',
+    narrRecomendaciones:
+        'Se recomienda mantener la frecuencia de monitoreo establecida, realizar mantenimiento preventivo de los equipos y documentar cualquier variacion en las condiciones operativas que pueda afectar los resultados.',
+};
 
-  base.equipos_in_situ = [
-    { nombre: 'Multiparamétrico Hach HQ40d', codigo: 'INS-001', serie: 'SN123456', calibracion: '15/02/2026', vigencia: '15/08/2026' },
-    { nombre: 'GPS Garmin GPSMAP 64s', codigo: 'INS-015', serie: 'SN789012', calibracion: '10/01/2026', vigencia: '10/07/2026' },
-  ];
+function genAIValue(mapping) {
+    const field = (mapping.field || '').toLowerCase();
+    const desc = (mapping.description || '').toLowerCase();
 
-  base.metodos_analiticos = [
-    { parametro: 'pH', metodo: 'SM 4500-H+ B', equipo: 'Potenciómetro', limite: '0.01 pH unidades' },
-    { parametro: 'Conductividad', metodo: 'SM 2510 B', equipo: 'Conductivímetro', limite: '1 μS/cm' },
-    { parametro: 'DQO', metodo: 'SM 5220 D', equipo: 'Reactor digestión', limite: '5 mg/L' },
-  ];
+    if (field.includes('correo')) return CTX.correo;
+    if (field.includes('nit')) return CTX.nit;
+    if (field.includes('cliente')) return CTX.cliente;
+    if (field.includes('ciudaddepartamento')) return CTX.ciudadDepartamento;
+    if (field.includes('ciudad')) return CTX.ciudad;
+    if (field.includes('departamento')) return CTX.departamento;
+    if (field.includes('direccion')) return CTX.direccion;
+    if (field.includes('idmuestra')) return CTX.idMuestra;
+    if (field.includes('.id') || field.endsWith('id')) return CTX.puntoId;
+    if (field.includes('nombre')) return CTX.puntoNombre;
+    if (field.includes('descripcion')) return CTX.descripcionPunto;
+    if (field.includes('latitud')) return CTX.latitud;
+    if (field.includes('longitud')) return CTX.longitud;
+    if (field.includes('hora')) return CTX.hora;
+    if (field.includes('numeropuntos')) return CTX.numeroPuntosTexto;
+    if (field.includes('metodologia')) return CTX.metodologia;
+    if (field.includes('conclusiones')) return CTX.conclusionCorta;
+    if (field.includes('tipomatriz') || field.includes('tipoestudio')) return CTX.tipoMatriz;
+    if (field.includes('periodomuestreo')) return CTX.periodoMuestreo;
+    if (field.includes('ubicacion')) return CTX.ciudadDepartamento;
 
-  base.resultados_campo = [
-    { parametro: 'pH', unidad: 'Unidades pH', valor_pm1: '7.2', norma: '6.5 - 9.0', conformidad: 'Conforme' },
-    { parametro: 'Temperatura', unidad: '°C', valor_pm1: '28.5', norma: '< 40', conformidad: 'Conforme' },
-    { parametro: 'Conductividad', unidad: 'μS/cm', valor_pm1: '450', norma: '< 1200', conformidad: 'Conforme' },
-  ];
+    if (desc.includes('objetivo')) return CTX.narrObjetivo;
+    if (desc.includes('metodolog')) return CTX.narrMetodologia;
+    if (desc.includes('resultado')) return CTX.narrResultados;
+    if (desc.includes('conclusion')) return CTX.narrConclusiones;
+    if (desc.includes('recomendacion')) return CTX.narrRecomendaciones;
+    if (desc.includes('titulo')) return 'Informe Tecnico Ambiental';
+    if (desc.includes('cliente')) return CTX.cliente;
+    if (desc.includes('cumpl')) return CTX.conclusionCorta;
 
-  base.resultados_laboratorio = [
-    { parametro: 'DQO', unidad: 'mg/L', valor_pm1: '85', norma: '< 120', conformidad: 'Conforme' },
-    { parametro: 'DBO5', unidad: 'mg/L', valor_pm1: '42', norma: '< 60', conformidad: 'Conforme' },
-    { parametro: 'Grasas y Aceites', unidad: 'mg/L', valor_pm1: '8.5', norma: '< 15', conformidad: 'Conforme' },
-    { parametro: 'Cromo Total', unidad: 'mg/L', valor_pm1: '0.05', norma: '< 0.5', conformidad: 'Conforme' },
-    { parametro: 'Plomo', unidad: 'mg/L', valor_pm1: '0.02', norma: '< 0.5', conformidad: 'Conforme' },
-  ];
+    return 'Dato de ejemplo';
+}
 
-  base.anexos = [
-    { nombre: 'Planilla de toma de muestras', archivo: 'Anexo_1_Planilla.pdf', laboratorio: 'N/A', paginas: '3' },
-    { nombre: 'Cadena de custodia', archivo: 'Anexo_2_Cadena.pdf', laboratorio: 'N/A', paginas: '2' },
-    { nombre: 'Certificado de calibración equipo multiparamétrico', archivo: 'Anexo_3_Cert_Calibracion.pdf', laboratorio: 'ALS Metrología', paginas: '2' },
-    { nombre: 'Resultados de laboratorio', archivo: 'Anexo_4_Resultados_Lab.pdf', laboratorio: 'ALS Colombia S.A.S.', paginas: '12' },
-    { nombre: 'Fotografías del monitoreo', archivo: 'Anexo_5_Fotos.zip', laboratorio: 'N/A', paginas: '8' },
-  ];
+function genDateValue(mapping) {
+    const field = (mapping.field || '').toLowerCase();
+    if (field.includes('day')) return CTX.day;
+    if (field.includes('month')) return CTX.month;
+    if (field.includes('year')) return CTX.year;
+    if (field.includes('headerdate')) return CTX.headerDate;
+    if (field.includes('fulldate')) return CTX.fullDate;
+    return CTX.fullDate;
+}
 
-  // Narrativas IA
-  base.narrativa_objetivos = 'El presente informe técnico tiene como objetivo documentar los resultados obtenidos durante el monitoreo ambiental realizado en la planta industrial de ALS Serambiente S.A.S., con el fin de evaluar el cumplimiento de la normativa ambiental colombiana aplicable al vertimiento de aguas residuales industriales.';
-  base.narrativa_metodologia = 'La metodología empleada para la ejecución del monitoreo ambiental se basó en los protocolos establecidos por el IDEAM y las resoluciones vigentes del Ministerio de Ambiente y Desarrollo Sostenible. Se utilizaron equipos multiparamétricos calibrados para la determinación in situ de pH, temperatura, conductividad y oxígeno disuelto.';
-  base.narrativa_resultados = 'Los resultados obtenidos durante el monitoreo indican que los parámetros evaluados se encuentran dentro de los límites máximos permisibles establecidos en la Resolución 631 de 2015 para vertimientos puntuales a cuerpos de agua dulce. No se detectaron valores anómalos que requieran acciones correctivas inmediatas.';
-  base.narrativa_conclusiones = 'Con base en los resultados del análisis, se concluye que el vertimiento evaluado cumple con la normativa ambiental colombiana vigente. Se recomienda continuar con el programa de monitoreo semestral y mantener los equipos de tratamiento en óptimas condiciones operativas.';
-  base.narrativa_recomendaciones = 'Se recomienda: (1) Mantener la frecuencia de monitoreo semestral, (2) Realizar mantenimiento preventivo de la PTAR, (3) Calibrar equipos de medición antes de cada campaña, (4) Documentar cualquier variación en las condiciones operativas que pueda afectar la calidad del vertimiento.';
+function buildData(config) {
+    const data = {};
+    for (const [tag, mapping] of Object.entries(config.fields)) {
+        switch (mapping.source) {
+            case 'STATIC':
+                data[tag] = mapping.staticValue !== undefined ? mapping.staticValue : 'Dato de ejemplo';
+                break;
+            case 'DATE':
+                data[tag] = genDateValue(mapping);
+                break;
+            case 'OIT':
+                data[tag] = CTX.oitNumber;
+                break;
+            case 'SYSTEM':
+                data[tag] = CTX.version;
+                break;
+            case 'SAMPLING':
+                data[tag] = CTX.puntoNombre;
+                break;
+            case 'AI':
+                data[tag] = genAIValue(mapping);
+                break;
+            default:
+                data[tag] = 'Dato de ejemplo';
+        }
+    }
 
-  return base;
+    // Array de loop que TemplateDataMapper.generateData() construye para TODAS
+    // las plantillas ({#puntos_monitoreo}{nombre}{/puntos_monitoreo}, usado hoy
+    // en CALIDAD_AIRE/SUELO/BIOTA -- ver comentario en templateConfigs.ts).
+    data.puntos_monitoreo = [
+        { nombre: 'Estacion PM-01', id: 'PM-01', idMuestra: 'M-2026-001', descripcion: CTX.descripcionPunto, latitud: CTX.latitud, longitud: CTX.longitud, hora: CTX.hora },
+        { nombre: 'Estacion PM-02', id: 'PM-02', idMuestra: 'M-2026-002', descripcion: CTX.descripcionPunto, latitud: CTX.latitud, longitud: CTX.longitud, hora: CTX.hora },
+        { nombre: 'Estacion PM-03', id: 'PM-03', idMuestra: 'M-2026-003', descripcion: CTX.descripcionPunto, latitud: CTX.latitud, longitud: CTX.longitud, hora: CTX.hora },
+    ];
+
+    return data;
+}
+
+function getTemplateTags(templatePath) {
+    const content = fs.readFileSync(templatePath, 'binary');
+    const zip = new PizZip(content);
+    const inspectModule = new InspectModule();
+    new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+        delimiters: { start: '{', end: '}' },
+        modules: [inspectModule],
+        nullGetter: () => '',
+    });
+    return Object.keys(inspectModule.getAllTags());
+}
+
+function base_safe(fileName) {
+    return fileName.replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+function renderDocx(templatePath, data) {
+    const content = fs.readFileSync(templatePath, 'binary');
+    const zip = new PizZip(content);
+    const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+        delimiters: { start: '{', end: '}' },
+        nullGetter: () => '',
+    });
+    doc.render(data);
+    return doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' });
 }
 
 async function main() {
-  const { docxService } = require('../src/services/docx.service');
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
-  for (const tpl of templates) {
-    const matrix = tpl.replace('PLANTILLA_', '').replace('_DOCXTEMPLATER.docx', '').replace(/_/g, ' ');
-    const data = getDummyData(matrix);
-    const outDocx = path.join(TEMP_DIR, tpl.replace('.docx', '_SAMPLE.docx'));
-    const outPdf = path.join(OUTPUT_DIR, tpl.replace('.docx', '.pdf'));
+    const results = [];
 
-    try {
-      console.log(`[GEN] ${tpl} ...`);
-      const buf = await docxService.generateDocument(tpl, data);
-      fs.writeFileSync(outDocx, buf);
+    const only = (process.env.ONLY || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const entries = only.length
+        ? Object.entries(QA_TO_CONFIG).filter(([f]) => only.includes(f))
+        : Object.entries(QA_TO_CONFIG);
 
-      console.log(`[PDF] Converting ${path.basename(outDocx)} ...`);
-      execSync(
-        `soffice --headless --convert-to pdf --outdir "${OUTPUT_DIR}" "${outDocx}"`,
-        { stdio: 'ignore', timeout: 30000 }
-      );
-
-      // LibreOffice names output same as input but with .pdf extension
-      const generatedPdf = path.join(OUTPUT_DIR, path.basename(outDocx).replace('.docx', '.pdf'));
-      if (fs.existsSync(generatedPdf)) {
-        // Rename to final name if needed
-        if (generatedPdf !== outPdf) {
-          fs.renameSync(generatedPdf, outPdf);
+    for (const [qaFileName, configKey] of entries) {
+        const config = TEMPLATE_CONFIGS[configKey];
+        if (!config) {
+            console.error(`[SKIP] ${qaFileName}: no existe TEMPLATE_CONFIGS['${configKey}']`);
+            results.push({ qaFileName, status: 'SKIP', reason: `TEMPLATE_CONFIGS['${configKey}'] no existe` });
+            continue;
         }
-        console.log(`[OK] ${path.basename(outPdf)}`);
-      } else {
-        console.error(`[FAIL] PDF not generated for ${tpl}`);
-      }
-    } catch (err: any) {
-      console.error(`[ERR] ${tpl}: ${err.message}`);
-    }
-  }
 
-  // Clean temp DOCX files
-  for (const f of fs.readdirSync(TEMP_DIR)) {
-    fs.unlinkSync(path.join(TEMP_DIR, f));
-  }
-  fs.rmdirSync(TEMP_DIR);
-  console.log('\nDone! PDFs in:', OUTPUT_DIR);
+        try {
+            // 1. localizar plantilla real de produccion por su filePattern
+            const reportsFile = findReportsFile(config.filePattern);
+            const reportsPath = path.join(REPORTS_DIR, reportsFile);
+
+            // 2. backup del archivo viejo de QA + copiar la version de produccion actual
+            const qaPath = path.join(TPL_DIR, qaFileName);
+            if (fs.existsSync(qaPath)) {
+                fs.copyFileSync(qaPath, path.join(BACKUP_DIR, qaFileName));
+            }
+            fs.copyFileSync(reportsPath, qaPath);
+            console.log(`[SYNC] ${qaFileName} <- ${reportsFile}`);
+
+            // 3. cobertura de tags (informativo): cuantos tags del .docx real
+            // no tienen valor en el diccionario de config (quedaran vacios)
+            const realTags = getTemplateTags(qaPath);
+            const configuredTags = new Set(Object.keys(config.fields));
+            const uncovered = realTags.filter((t) => !configuredTags.has(t) && t !== 'puntos_monitoreo' && !t.startsWith('#') && !t.startsWith('/'));
+
+            // 4. generar datos de ejemplo con los tags REALES del diccionario
+            const data = buildData(config);
+
+            // 5. renderizar .docx de muestra
+            const buf = renderDocx(qaPath, data);
+            const tmpDocx = path.join(TMP_DIR, qaFileName.replace('.docx', '_SAMPLE.docx'));
+            fs.writeFileSync(tmpDocx, buf);
+
+            // 6. convertir a PDF (perfil de usuario dedicado por corrida para evitar
+            // que una instancia headless de soffice todavia cerrando bloquee/no-opee
+            // la siguiente conversion -- causa confirmada de fallos silenciosos
+            // "PDF no generado" en la corrida inicial de este script con templates grandes)
+            const outPdf = path.join(PDF_DIR, qaFileName.replace('.docx', '.pdf'));
+            const userProfileDir = path.join(TMP_DIR, `sofficeprofile_${base_safe(qaFileName)}`);
+            let pdfOk = false;
+            for (let attempt = 1; attempt <= 3 && !pdfOk; attempt++) {
+                try {
+                    execSync(
+                        `soffice --headless -env:UserInstallation=file://${userProfileDir} --convert-to pdf --outdir "${PDF_DIR}" "${tmpDocx}"`,
+                        { stdio: 'ignore', timeout: 180000 }
+                    );
+                } catch (convErr) {
+                    console.error(`[soffice attempt ${attempt}] ${convErr.message}`);
+                }
+                const generatedPdf = path.join(PDF_DIR, path.basename(tmpDocx).replace('.docx', '.pdf'));
+                if (fs.existsSync(generatedPdf)) {
+                    if (generatedPdf !== outPdf) fs.renameSync(generatedPdf, outPdf);
+                    pdfOk = true;
+                }
+            }
+            if (fs.existsSync(userProfileDir)) fs.rmSync(userProfileDir, { recursive: true, force: true });
+            if (!pdfOk) {
+                throw new Error('PDF no generado por soffice (3 intentos)');
+            }
+
+            // 7. imagenes de preview (page-N.png) -- limpia las viejas primero
+            const base = qaFileName.replace('.docx', '');
+            const imgDir = path.join(PREVIEW_DIR, base);
+            if (fs.existsSync(imgDir)) {
+                fs.rmSync(imgDir, { recursive: true, force: true });
+            }
+            fs.mkdirSync(imgDir, { recursive: true });
+            execSync(`pdftoppm -png -r 150 -cropbox "${outPdf}" "${path.join(imgDir, 'page')}"`, {
+                stdio: 'ignore',
+                timeout: 120000,
+            });
+            const files = fs
+                .readdirSync(imgDir)
+                .filter((f) => f.startsWith('page-'))
+                .sort((a, b) => {
+                    const na = parseInt((a.match(/\d+/) || ['0'])[0], 10);
+                    const nb = parseInt((b.match(/\d+/) || ['0'])[0], 10);
+                    return na - nb;
+                });
+            let c = 1;
+            for (const f of files) {
+                const nn = `page-${c}.png`;
+                if (f !== nn) fs.renameSync(path.join(imgDir, f), path.join(imgDir, nn));
+                c++;
+            }
+
+            console.log(`[OK] ${qaFileName} -> ${c - 1} paginas de preview (${uncovered.length} tags sin cubrir en diccionario)`);
+            results.push({
+                qaFileName,
+                reportsFile,
+                configKey,
+                pages: c - 1,
+                uncoveredTagCount: uncovered.length,
+                uncoveredTags: uncovered.slice(0, 15),
+                status: 'OK',
+            });
+        } catch (err) {
+            console.error(`[ERR] ${qaFileName}: ${err.message}`);
+            results.push({ qaFileName, status: 'ERROR', error: err.message });
+        }
+    }
+
+    // limpiar temporales
+    for (const f of fs.readdirSync(TMP_DIR)) fs.unlinkSync(path.join(TMP_DIR, f));
+    fs.rmdirSync(TMP_DIR);
+
+    console.log('\n=== RESUMEN ===');
+    for (const r of results) console.log(JSON.stringify(r));
+    console.log(
+        '\nSIN SINCRONIZAR: PLANTILLA_CA_AUTOMATICOS_DOCXTEMPLATER.docx (sin TemplateConfig ni plantilla de produccion correspondiente entre las 14 actuales)'
+    );
+    console.log(
+        'SIN COBERTURA EN TESTING.TS (matrices de produccion validas, sin item en TEMPLATE_TEST_ITEMS): RUIDO_INTRADOMICILIARIO (65-08), FUENTES_FIJAS_PREVIO (67-10)'
+    );
 }
 
 main();
