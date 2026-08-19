@@ -898,23 +898,42 @@ exports.EMISION_RUIDO_AMBIENTAL_CONFIG = {
 // PARTICULAS_VIABLES) -- lo que faltaba era escribir el diccionario de
 // mapeo, no re-tagear el .docx.
 //
-// HALLAZGO IMPORTANTE (documentado para revision humana / trabajo futuro):
-// las tablas 1, 2, 3, 4 y 13 (resumen de muestreo, coordenadas de
-// estaciones, fichas tecnicas, identificacion de muestras/contaminantes,
-// limites normativos) usan el MISMO nombre de tag generico (var_16..var_20,
-// var_21..var_24, var_27/28/31, var_32/34/51, var_53..var_73) repetido
-// docenas de veces en celdas estructuralmente distintas (ej. var_22
-// aparece 24 veces: como "Georreferenciacion", luego como marca/modelo de
-// equipo PM10, PM2.5, parametros muestreados, altura de andamios,
-// distancia a fuentes de energia -- todas celdas DIFERENTES). Docxtemplater
-// unifica tags con el mismo nombre a un unico valor en todo el documento,
-// asi que estas tablas NO pueden poblarse correctamente con el esquema de
-// tags actual del .docx -- requieren retagueo real (renombrar cada
-// ocurrencia a un tag unico por celda) para ser dinamicas. Se dejan como
-// STATIC vacio (blanco) hasta que se justifique ese trabajo; no se inventa
-// contenido. Mismo criterio para fragmentos narrativos donde el texto
-// exacto original no se puede determinar con certeza (p.ej. listas de
-// contaminantes, resultados estadisticos especificos de laboratorio).
+// CIRUGIA DE TAGS DUPLICADOS (2026-08-19, resuelta): las tablas 1, 2, 3, 4,
+// 13, 15 y 16 usaban el MISMO nombre de tag generico (var_21..var_24,
+// var_27/28/31, var_32/34/51, var_53..var_73, y var_22 tambien en las
+// tablas 15/16 de resultados) repetido docenas de veces en celdas
+// estructuralmente distintas -- ej. var_22 aparecia 24 veces: como
+// "Georreferenciacion"/cota, marca/modelo equipo PM10, PM2.5, parametros
+// muestreados, altura de andamios, distancia a fuentes de energia, y
+// celdas de resultados por estacion en las tablas 15/16 -- todas celdas
+// DIFERENTES colapsadas por docxtemplater a un unico valor. Se hizo
+// cirugia real del .docx (PizZip + reemplazo posicional verificado nodo
+// por nodo contra el XML real, mismo metodo que analyze_template_precise.js
+// / apply_plan_by_index.js) renombrando las 147 ocurrencias duplicadas a
+// 147 tags unicos (ver git log "fix(reports): cirugia de tags duplicados
+// en Calidad de Aire (66-18)"). var_16..var_20 (Tabla 1) NO se tocaron: ya
+// eran unicos (una ocurrencia cada uno), el defecto real ahi es que la
+// celda de VALOR (columna 2) esta vacia y el tag esta en la celda de
+// ETIQUETA (columna 1, texto blanco/negrilla) -- ambiguo sin el informe de
+// referencia de Xiomara, se deja documentado para revision humana.
+//
+// La lista de estaciones de la portada (var_3, cantidad variable) se
+// convirtio a loop real de docxtemplater: {#puntos_monitoreo}{nombre}
+// {/puntos_monitoreo} -- mismo patron ya probado en produccion en 64-11
+// (Suelos) y 74-01 (Biota); el array 'puntos_monitoreo' ya lo construye
+// TemplateDataMapper.generateData() para TODAS las plantillas, sin cambios
+// adicionales en templateDataMapper.ts. var_4 (parrafo de portada NO
+// relacionado con la lista de estaciones -- ocurrencia unica) no se tocó.
+//
+// Con la colision de tags resuelta, el CONTENIDO de muchas celdas sigue
+// STATIC vacio: son datos que genuinamente no existen en el modelo de
+// datos actual (cota en msnm, marca/modelo de equipos, fechas y IDs de
+// cada una de las 18 filas de muestras, limites normativos exactos de la
+// Resolucion 2254 de 2017, resultados de laboratorio por estacion). No se
+// inventa contenido -- mismo criterio para fragmentos narrativos donde el
+// texto exacto original no se puede determinar con certeza (listas de
+// contaminantes, resultados estadisticos especificos). Pendiente del
+// informe de referencia real que compartira Xiomara (laboratorio).
 // ================================================================
 const CALIDAD_AIRE_LEGACY_FIELDS = {
     // --- PORTADA ---
@@ -923,10 +942,10 @@ const CALIDAD_AIRE_LEGACY_FIELDS = {
     'var_1': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (portada, primer fragmento "NOMBRE CLIENTE" partido en 2 runs)' },
     'var_2': { source: 'STATIC', staticValue: '', description: 'Vacío: completa la concatenación con var_1 (runs partidos del mismo placeholder "NOMBRE CLIENTE")' },
     'monitoreo_de_calidad_del_aire_ejecutado_entre_el_1': { source: 'AI', field: 'periodoMuestreo', description: 'Periodo de ejecución del monitoreo (portada)' },
-    'var_3': { source: 'STATIC', staticValue: '', description: 'Lista de nombres de estaciones (portada) -- cantidad variable, no representable con un solo campo' },
-    'var_4': { source: 'STATIC', staticValue: '', description: 'Continuación lista de estaciones (portada)' },
     'chart_indices': { source: 'STATIC', staticValue: '', description: 'Placeholder de gráfico (índice de tablas)' },
     'tag_fecha_monitoreo': { source: 'DATE', field: 'fullDate', description: 'Fecha de monitoreo (Tabla 4, índice de tablas)' },
+    // 'var_3' se reemplazo por el loop '{#puntos_monitoreo}{nombre}{/puntos_monitoreo}' -- no requiere entrada en el diccionario (igual que en 64-11/74-01).
+    'var_4': { source: 'STATIC', staticValue: '', description: 'Párrafo de portada, ocurrencia única, no relacionado con la lista de estaciones -- redacción exacta no determinable (comentario original de Word cercano habla del lugar de ejecución del monitoreo)' },
     // --- INTRODUCCIÓN ---
     'contrato_los_servicios_de_serambiente_s_a_s_para_r_1': { source: 'AI', field: 'cliente', description: 'Cliente que contrata el servicio' },
     'contrato_los_servicios_de_serambiente_s_a_s_para_r_2': { source: 'AI', field: 'cliente', description: 'Organización del área de estudio' },
@@ -958,12 +977,16 @@ const CALIDAD_AIRE_LEGACY_FIELDS = {
     'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM10 (Alto Volumen)' },
     'se_determino_pm10_mediante_el_metodo_u_s_epa_cfr_t_2': { source: 'STATIC', staticValue: '', description: 'Cierre de oración método PM10 (referencia manual)' },
     'se_determino_pm2_5_mediante_el_metodo_us_epa_cfr_t_1': { source: 'STATIC', staticValue: '', description: 'Cierre de oración métodos PM2.5/SO2/NO2/CO/O3 (tag repetido x5 en cada cierre)' },
-    // --- TABLA 1: RESUMEN DE DETALLES DEL MUESTREO (fila única, no repetible) ---
-    'var_16': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (columna 1)' },
-    'var_17': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (columna 2)' },
-    'var_18': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (columna 3)' },
-    'var_19': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (columna 4)' },
-    'var_20': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (columna 5)' },
+    // --- TABLA 1: RESUMEN DE DETALLES DEL MUESTREO (fila única, no repetible; NO son
+    // duplicados -- cada var_16..var_20 ocurre una sola vez. Quedan sin tocar: la celda
+    // de valor real (columna 2, junto a cada etiqueta) esta vacia y sin tag propio en
+    // el .docx -- requiere retagueo distinto (no es el defecto de colision) y el
+    // informe de referencia real para saber que 5 filas son. Ver comentario superior. ---
+    'var_16': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (fila 1, etiqueta -- celda de valor vacía y sin tag)' },
+    'var_17': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (fila 2, etiqueta -- celda de valor vacía y sin tag)' },
+    'var_18': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (fila 3, etiqueta -- celda de valor vacía y sin tag)' },
+    'var_19': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (fila 4, etiqueta -- celda de valor vacía y sin tag)' },
+    'var_20': { source: 'STATIC', staticValue: '', description: 'Tabla 1: resumen de detalles del muestreo (fila 5, etiqueta -- celda de valor vacía y sin tag)' },
     // --- PERIODO Y FRECUENCIA DE MUESTREO ---
     'las_evaluaciones_de_la_calidad_del_aire_se_efectua_1': { source: 'STATIC', staticValue: 'tres (3) estaciones', description: 'Número de estaciones evaluadas' },
     'las_evaluaciones_de_la_calidad_del_aire_se_efectua_2': { source: 'AI', field: 'periodoMuestreo', description: 'Periodo comprendido de evaluación' },
@@ -972,22 +995,122 @@ const CALIDAD_AIRE_LEGACY_FIELDS = {
     'el_presente_monitoreo_se_efectuo_1': { source: 'DATE', field: 'fullDate', description: 'Fecha del monitoreo (ubicación de estaciones)' },
     'en_el_area_de_estudio_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Área de estudio (ubicación de estaciones)' },
     'para_el_desarrollo_de_este_estudio_en_particular_f_1': { source: 'STATIC', staticValue: 'tres (3) estaciones', description: 'Número de estaciones seleccionadas (Resolución 2254 de 2017)' },
-    // --- TABLA 2: COORDENADAS DE ESTACIONES — tag reutilizado en TODAS las filas
-    // (var_21/22/23/24), no representable de forma dinámica con el esquema actual ---
-    'var_21': { source: 'STATIC', staticValue: '', description: 'Tabla 2: columna Estación (tag repetido en las 3 filas, no soporta valores distintos por fila)' },
-    'var_22': { source: 'STATIC', staticValue: '', description: 'Tabla 2/3: reutilizado en 24 celdas estructuralmente distintas (georreferenciación, marca/modelo equipos PM10/PM2.5, parámetros muestreados, altura andamios, distancia energía) -- imposible de poblar correctamente sin retagueo' },
-    'var_23': { source: 'STATIC', staticValue: '', description: 'Tabla 2: coordenadas WGS84 Norte/Oeste (tag repetido en 6 celdas)' },
-    'var_24': { source: 'STATIC', staticValue: '', description: 'Tabla 2/3: coordenadas origen Nacional Norte/Este, reutilizado también en Tabla 3 (8 celdas distintas)' },
-    // --- TABLA 3: FICHA TÉCNICA POR ESTACIÓN ---
+    // --- TABLA 2: COORDENADAS DE ESTACIONES DE MONITOREO (post-cirugia: cada
+    // estación/columna tiene su propio tag, ya no colisionan) ---
+    'estacion_nombre_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Tabla 2: nombre de la estación 1 (era {var_21})' },
+    'estacion_cota_msnm_1': { source: 'STATIC', staticValue: '', description: 'Tabla 2: cota en msnm de la estación 1 -- sin campo AI disponible (era {var_22})' },
+    'estacion_wgs84_norte_1': { source: 'AI', field: 'puntos[0].latitud', description: 'Tabla 2: coordenada WGS84 Norte de la estación 1 (era {var_23})' },
+    'estacion_wgs84_oeste_1': { source: 'AI', field: 'puntos[0].longitud', description: 'Tabla 2: coordenada WGS84 Oeste de la estación 1 (era {var_23})' },
+    'estacion_origen_nacional_norte_1': { source: 'AI', field: 'puntos[0].norte', description: 'Tabla 2: coordenada origen Nacional Norte (m) de la estación 1 (era {var_24})' },
+    'estacion_origen_nacional_este_1': { source: 'AI', field: 'puntos[0].este', description: 'Tabla 2: coordenada origen Nacional Este (m) de la estación 1 (era {var_24})' },
+    'estacion_nombre_2': { source: 'AI', field: 'puntos[1].nombre', description: 'Tabla 2: nombre de la estación 2 (era {var_21})' },
+    'estacion_cota_msnm_2': { source: 'STATIC', staticValue: '', description: 'Tabla 2: cota en msnm de la estación 2 -- sin campo AI disponible (era {var_22})' },
+    'estacion_wgs84_norte_2': { source: 'AI', field: 'puntos[1].latitud', description: 'Tabla 2: coordenada WGS84 Norte de la estación 2 (era {var_23})' },
+    'estacion_wgs84_oeste_2': { source: 'AI', field: 'puntos[1].longitud', description: 'Tabla 2: coordenada WGS84 Oeste de la estación 2 (era {var_23})' },
+    'estacion_origen_nacional_norte_2': { source: 'AI', field: 'puntos[1].norte', description: 'Tabla 2: coordenada origen Nacional Norte (m) de la estación 2 (era {var_24})' },
+    'estacion_origen_nacional_este_2': { source: 'AI', field: 'puntos[1].este', description: 'Tabla 2: coordenada origen Nacional Este (m) de la estación 2 (era {var_24})' },
+    'estacion_nombre_3': { source: 'AI', field: 'puntos[2].nombre', description: 'Tabla 2: nombre de la estación 3 (era {var_21})' },
+    'estacion_cota_msnm_3': { source: 'STATIC', staticValue: '', description: 'Tabla 2: cota en msnm de la estación 3 -- sin campo AI disponible (era {var_22})' },
+    'estacion_wgs84_norte_3': { source: 'AI', field: 'puntos[2].latitud', description: 'Tabla 2: coordenada WGS84 Norte de la estación 3 (era {var_23})' },
+    'estacion_wgs84_oeste_3': { source: 'AI', field: 'puntos[2].longitud', description: 'Tabla 2: coordenada WGS84 Oeste de la estación 3 (era {var_23})' },
+    'estacion_origen_nacional_norte_3': { source: 'AI', field: 'puntos[2].norte', description: 'Tabla 2: coordenada origen Nacional Norte (m) de la estación 3 (era {var_24})' },
+    'estacion_origen_nacional_este_3': { source: 'AI', field: 'puntos[2].este', description: 'Tabla 2: coordenada origen Nacional Este (m) de la estación 3 (era {var_24})' },
+    // --- TABLA 3: FICHA TÉCNICA (estación representativa, misma convención puntos[0]
+    // ya usada por '3_ficha_tecnica_1'; post-cirugia cada celda tiene su propio tag) ---
     '3_ficha_tecnica_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Tabla 3: nombre de la estación (título de la ficha técnica)' },
-    'var_27': { source: 'STATIC', staticValue: '', description: 'Tabla 3: información general de la estación' },
-    'var_28': { source: 'STATIC', staticValue: '', description: 'Tabla 3: observaciones de equipos' },
-    'var_31': { source: 'STATIC', staticValue: '', description: 'Tabla 3: observaciones adicionales' },
-    // --- TABLA 4: IDENTIFICACIÓN DE MUESTRAS Y CONTAMINANTES (tabla dinámica por estación/contaminante, no representable) ---
+    'ficha_tecnica_encabezado': { source: 'STATIC', staticValue: '', description: 'Tabla 3: fila de encabezado antes de "Información general" -- redacción exacta no determinable (era {var_27})' },
+    'ficha_tecnica_coordenada_origen_nacional_norte': { source: 'AI', field: 'puntos[0].norte', description: 'Tabla 3: coordenada origen Nacional Norte, Sistema Magna Sirgas (era {var_24})' },
+    'ficha_tecnica_coordenada_origen_nacional_este': { source: 'AI', field: 'puntos[0].este', description: 'Tabla 3: coordenada origen Nacional Este, Sistema Magna Sirgas (era {var_24})' },
+    'ficha_tecnica_equipo_marca_modelo_pm10': { source: 'STATIC', staticValue: '', description: 'Tabla 3: marca/modelo del equipo PM10 -- sin campo AI disponible (era {var_22})' },
+    'ficha_tecnica_equipo_marca_modelo_pm25': { source: 'STATIC', staticValue: '', description: 'Tabla 3: marca/modelo del equipo PM2.5 -- sin campo AI disponible (era {var_22})' },
+    'ficha_tecnica_parametros_muestreados': { source: 'STATIC', staticValue: '', description: 'Tabla 3: parámetros muestreados en la estación -- sin campo AI disponible (era {var_22})' },
+    'ficha_tecnica_altura_andamios': { source: 'STATIC', staticValue: '', description: 'Tabla 3: altura de andamios -- sin campo AI disponible (era {var_22})' },
+    'ficha_tecnica_distancia_fuentes_energia': { source: 'STATIC', staticValue: '', description: 'Tabla 3: distancia a fuentes de energía -- sin campo AI disponible (era {var_22})' },
+    'ficha_tecnica_registro_fotografico_nota': { source: 'STATIC', staticValue: '', description: 'Tabla 3: nota en columna de registro fotográfico -- redacción exacta no determinable (era {var_28})' },
+    'ficha_tecnica_observaciones': { source: 'STATIC', staticValue: '', description: 'Tabla 3: observaciones de la ficha técnica -- específico del sitio, no determinable (era {var_31})' },
+    // --- TABLA 4: IDENTIFICACIÓN DE MUESTRAS Y CONTAMINANTES (18 filas x 3 estaciones,
+    // post-cirugia con tag único por celda. Los nombres de estación (fila 1, columnas
+    // 1/3/5, con vMerge hacia abajo) sí tienen fuente AI real. Fecha e ID por fila NO
+    // tienen fuente AI (serían 18 fechas y hasta 54 IDs distintos, dato genuinamente
+    // variable por informe que no existe en el modelo actual) salvo la fila 1, donde
+    // 'puntos[N].idMuestra' sí aplica -- no se convirtió a loop (la columna de nombre
+    // de estación usa vMerge de 18 filas, retagueo posicional es más seguro) ---
     'tabla_4_contiene_los_numeros_de_identificacion_asi_1': { source: 'STATIC', staticValue: '', description: 'Continuación de la nota introductoria de la Tabla 4' },
-    'var_32': { source: 'STATIC', staticValue: '', description: 'Tabla 4: columna ID (tag repetido 18 veces, celdas de distintas estaciones/contaminantes)' },
-    'var_34': { source: 'STATIC', staticValue: '', description: 'Tabla 4: columna Fecha/Estación/ID (tag repetido 54 veces)' },
-    'var_51': { source: 'STATIC', staticValue: '', description: 'Tabla 4: columna Fecha (tag repetido 3 veces)' },
+    'muestras_estacion_nombre_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Tabla 4: nombre de la estación 1 (columna con vMerge, 18 filas)' },
+    'muestras_estacion_nombre_2': { source: 'AI', field: 'puntos[1].nombre', description: 'Tabla 4: nombre de la estación 2 (columna con vMerge, 18 filas)' },
+    'muestras_estacion_nombre_3': { source: 'AI', field: 'puntos[2].nombre', description: 'Tabla 4: nombre de la estación 3 (columna con vMerge, 18 filas)' },
+    'muestras_estacion_1_id_fila_1': { source: 'AI', field: 'puntos[0].idMuestra', description: 'Tabla 4: ID de muestra, estación 1, fila 1' },
+    'muestras_estacion_2_id_fila_1': { source: 'AI', field: 'puntos[1].idMuestra', description: 'Tabla 4: ID de muestra, estación 2, fila 1' },
+    'muestras_estacion_3_id_fila_1': { source: 'AI', field: 'puntos[2].idMuestra', description: 'Tabla 4: ID de muestra, estación 3, fila 1' },
+    'muestras_fecha_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 1 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 2 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_3': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 3 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_4': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 4 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_5': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 5 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_6': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 6 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_7': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 7 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_8': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 8 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_9': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 9 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_10': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 10 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_11': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 11 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_12': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 12 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_13': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 13 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_14': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 14 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_15': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 15 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_16': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 16 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_17': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 17 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_fecha_fila_18': { source: 'STATIC', staticValue: '', description: 'Tabla 4: fecha de la fila 18 de identificación de muestras -- sin fuente de 18 fechas distintas por informe' },
+    'muestras_estacion_1_id_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 2 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 2 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 2 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_3': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 3 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_3': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 3 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_3': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 3 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_4': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 4 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_4': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 4 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_4': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 4 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_5': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 5 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_5': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 5 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_5': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 5 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_6': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 6 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_6': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 6 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_6': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 6 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_7': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 7 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_7': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 7 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_7': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 7 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_8': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 8 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_8': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 8 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_8': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 8 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_9': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 9 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_9': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 9 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_9': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 9 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_10': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 10 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_10': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 10 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_10': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 10 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_11': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 11 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_11': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 11 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_11': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 11 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_12': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 12 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_12': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 12 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_12': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 12 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_13': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 13 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_13': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 13 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_13': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 13 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_14': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 14 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_14': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 14 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_14': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 14 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_15': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 15 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_15': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 15 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_15': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 15 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_16': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 16 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_16': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 16 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_16': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 16 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_17': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 17 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_17': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 17 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_17': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 17 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_1_id_fila_18': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 1, fila 18 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_2_id_fila_18': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 2, fila 18 -- sin fuente de múltiples IDs por estación por informe' },
+    'muestras_estacion_3_id_fila_18': { source: 'STATIC', staticValue: '', description: 'Tabla 4: ID de muestra, estación 3, fila 18 -- sin fuente de múltiples IDs por estación por informe' },
     // --- DETERMINANTES AMBIENTALES / FUENTES DE EMISIÓN ---
     'tag_year': { source: 'DATE', field: 'year', description: 'Año de la fuente normativa (Resolución 2254 de 2017, citas repetidas x6)' },
     'en_el_area_de_estudio_del_1': { source: 'AI', field: 'cliente', description: 'Organización del área de estudio (determinantes ambientales)' },
@@ -995,25 +1118,39 @@ const CALIDAD_AIRE_LEGACY_FIELDS = {
     'var_6': { source: 'STATIC', staticValue: '', description: 'Tabla 10: descripción de fuente de emisión 2' },
     'var_7': { source: 'STATIC', staticValue: '', description: 'Tabla 10: descripción de fuente de emisión 3' },
     'var_8': { source: 'STATIC', staticValue: '', description: 'Tabla 10: descripción de fuente de emisión 4' },
-    // --- NORMAS DE CALIDAD DEL AIRE / TABLA 13 (límites normativos, tag reutilizado) ---
+    // --- NORMAS DE CALIDAD DEL AIRE / TABLA 13 (post-cirugia: tag único por celda,
+    // usando patrón _fila_N -- no se determina con certeza a qué contaminante
+    // corresponde cada fila sin el informe de referencia, y los límites de la
+    // Resolución 2254 de 2017 son valores normativos exactos que no se inventan) ---
     'las_normas_de_calidad_del_aire_para_todo_el_territ_1': { source: 'STATIC', staticValue: '', description: 'Continuación introducción normativa (Resolución 2254 de 2017)' },
-    'var_53': { source: 'STATIC', staticValue: '', description: 'Tabla 13: límites normativos por contaminante (tag repetido 3 veces)' },
-    'var_54': { source: 'STATIC', staticValue: '', description: 'Tabla 13: límites normativos (tag repetido 3 veces)' },
-    'var_55': { source: 'STATIC', staticValue: '', description: 'Tabla 13: encabezado de fila' },
-    'var_56': { source: 'STATIC', staticValue: '', description: 'Tabla 13: límites normativos (tag repetido 3 veces)' },
-    'var_57': { source: 'STATIC', staticValue: '', description: 'Tabla 13: límites normativos (tag repetido 3 veces)' },
-    'var_59': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
-    'var_60': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
-    'var_62': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
-    'var_63': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional (tag repetido 3 veces)' },
-    'var_65': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
-    'var_66': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
-    'var_67': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
-    'var_68': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
-    'var_69': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional (tag repetido x2)' },
-    'var_71': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
-    'var_72': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
-    'var_73': { source: 'STATIC', staticValue: '', description: 'Tabla 13: celda adicional' },
+    'normas_contaminante_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 1 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_55})' },
+    'normas_limite_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 1 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_53})' },
+    'normas_tiempo_exposicion_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 1 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_54})' },
+    'normas_limite_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 2 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_56})' },
+    'normas_tiempo_exposicion_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 2 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_57})' },
+    'normas_contaminante_fila_3': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 3 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_60})' },
+    'normas_limite_fila_3': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 3 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_59})' },
+    'normas_tiempo_exposicion_fila_3': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 3 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_54})' },
+    'normas_limite_fila_4': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 4 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_53})' },
+    'normas_tiempo_exposicion_fila_4': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 4 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_57})' },
+    'normas_contaminante_fila_5': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 5 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_62})' },
+    'normas_limite_fila_5': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 5 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_53})' },
+    'normas_tiempo_exposicion_fila_5': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 5 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_57})' },
+    'normas_limite_fila_6': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 6 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_56})' },
+    'normas_tiempo_exposicion_fila_6': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 6 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_63})' },
+    'normas_contaminante_fila_7': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 7 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_66})' },
+    'normas_limite_fila_7': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 7 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_65})' },
+    'normas_tiempo_exposicion_fila_7': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 7 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_54})' },
+    'normas_limite_fila_8': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 8 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_67})' },
+    'normas_tiempo_exposicion_fila_8': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 8 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_63})' },
+    'normas_contaminante_fila_9': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 9 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_68})' },
+    'normas_limite_fila_9': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 9 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_56})' },
+    'normas_tiempo_exposicion_fila_9': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 9 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_69})' },
+    'normas_contaminante_fila_10': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nombre del contaminante, fila 10 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_72})' },
+    'normas_limite_fila_10': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 10 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_71})' },
+    'normas_tiempo_exposicion_fila_10': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 10 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_69})' },
+    'normas_limite_fila_11': { source: 'STATIC', staticValue: '', description: 'Tabla 13: nivel máximo permisible (µg/m3), fila 11 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_73})' },
+    'normas_tiempo_exposicion_fila_11': { source: 'STATIC', staticValue: '', description: 'Tabla 13: tiempo de exposición, fila 11 -- valor normativo exacto (Res. 2254/2017), no se inventa sin verificar (era {var_63})' },
     'var_9': { source: 'STATIC', staticValue: '', description: 'Artefacto de salto de párrafo antes de "METODOLOGÍAS DE MUESTREO"' },
     // --- DATOS Y RESULTADOS CALIDAD DEL AIRE ---
     'se_presentan_las_incertidumbres_de_los_resultados__1': { source: 'STATIC', staticValue: 'de acuerdo con la metodología de estimación de incertidumbre del laboratorio', description: 'Metodología de incertidumbre' },
@@ -1025,7 +1162,27 @@ const CALIDAD_AIRE_LEGACY_FIELDS = {
     'fuente_serambiente_s_a_s_1': { source: 'DATE', field: 'year', description: 'Año de la fuente SERAMBIENTE (Tabla 14, tag repetido x3)' },
     '16_la_realizada_con_el_limite_permisible_para_tiem_1': { source: 'STATIC', staticValue: '', description: 'Número de días de monitoreo (comparación indicativa) -- no determinable con certeza' },
     'var_10': { source: 'STATIC', staticValue: '', description: 'Celda adicional antes de Tabla 15' },
+    // --- TABLA 15: RESULTADOS 24 HORAS POR ESTACIÓN (post-cirugia: era var_22
+    // compartido con las tablas 2/3; ahora tag único por celda. Resultados de
+    // laboratorio reales por estación -- dato específico del informe, no se inventa) ---
+    'resultados_24h_estacion_nombre_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 15: nombre de estación, fila 1 -- resultado de laboratorio específico, no se inventa' },
+    'resultados_24h_valor_maximo_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 15: resultado máximo (µg/m3), fila 1' },
+    'resultados_24h_norma_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 15: norma 24 horas (µg/m3), fila 1' },
+    'resultados_24h_declaracion_conformidad_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 15: declaración de conformidad, fila 1' },
+    'resultados_24h_estacion_nombre_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 15: nombre de estación, fila 2 -- resultado de laboratorio específico, no se inventa' },
+    'resultados_24h_valor_maximo_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 15: resultado máximo (µg/m3), fila 2' },
+    'resultados_24h_norma_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 15: norma 24 horas (µg/m3), fila 2' },
+    'resultados_24h_declaracion_conformidad_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 15: declaración de conformidad, fila 2' },
     'fuente_serambiente_s_a_s_2': { source: 'DATE', field: 'year', description: 'Año de la fuente SERAMBIENTE (citas recurrentes en tablas/gráficas, tag repetido x21)' },
+    // --- TABLA 16: RESULTADOS ANUALES POR ESTACIÓN (mismo caso que Tabla 15) ---
+    'resultados_anual_estacion_nombre_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 16: nombre de estación, fila 1 -- resultado de laboratorio específico, no se inventa' },
+    'resultados_anual_valor_promedio_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 16: resultado promedio (µg/m3), fila 1' },
+    'resultados_anual_norma_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 16: norma anual (µg/m3), fila 1' },
+    'resultados_anual_declaracion_conformidad_fila_1': { source: 'STATIC', staticValue: '', description: 'Tabla 16: declaración de conformidad resultado promedio, fila 1' },
+    'resultados_anual_estacion_nombre_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 16: nombre de estación, fila 2 -- resultado de laboratorio específico, no se inventa' },
+    'resultados_anual_valor_promedio_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 16: resultado promedio (µg/m3), fila 2' },
+    'resultados_anual_norma_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 16: norma anual (µg/m3), fila 2' },
+    'resultados_anual_declaracion_conformidad_fila_2': { source: 'STATIC', staticValue: '', description: 'Tabla 16: declaración de conformidad resultado promedio, fila 2' },
     'fuente_serambiente_s_a_s_3': { source: 'DATE', field: 'year', description: 'Año de la fuente SERAMBIENTE (citas recurrentes en gráficas, tag repetido x6)' },
     'realizando_un_analisis_estadistico_el_promedio_glo_1': { source: 'STATIC', staticValue: '', description: 'Resultados estadísticos específicos de laboratorio (promedio/máximo/mínimo/porcentaje) -- datos numéricos de resultados reales, no se pueden generar (tag repetido x5)' },
     'con_valor_maximo_de_g_m3_reportado_1': { source: 'STATIC', staticValue: '', description: 'Estación con valor máximo reportado -- dato de resultado específico' },
