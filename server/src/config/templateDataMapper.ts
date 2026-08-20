@@ -216,7 +216,7 @@ export class TemplateDataMapper {
                 return '';
 
             case 'SYSTEM':
-                return 'SERAMBIENTE S.A.S.';
+                return 'ALS ENVIRONMENTAL S.A.S.';
 
             case 'SAMPLING':
                 return '';
@@ -266,8 +266,8 @@ export class TemplateDataMapper {
         if (lower.includes('departamento')) return this.getDepartment();
         if (lower.includes('ubicacion') || lower.includes('localizado')) return this.getCityDept();
         if (lower.includes('fecha') || lower.includes('realizada_el_dia')) return this.fullDate;
-        if (lower.includes('fuente_serambiente')) return 'SERAMBIENTE S.A.S.';
-        if (lower.includes('fuente_1') || lower.includes('fuente_2')) return 'SERAMBIENTE S.A.S.';
+        if (lower.includes('fuente_serambiente')) return 'ALS ENVIRONMENTAL S.A.S.';
+        if (lower.includes('fuente_1') || lower.includes('fuente_2')) return 'ALS ENVIRONMENTAL S.A.S.';
         if (lower.includes('clima_tropical') || lower.includes('koppen')) return this.getCity();
         if (lower.includes('standard_methods')) return 'Standard Methods 24th Ed.';
         if (lower.includes('american_public')) return 'Standard Methods 24th Ed.';
@@ -360,7 +360,7 @@ export class TemplateDataMapper {
         // Lab info
         data['laboratorios'] = [
             {
-                nombre: 'SERAMBIENTE S.A.S.',
+                nombre: 'ALS ENVIRONMENTAL S.A.S.',
                 parametro: this.parsedAI.parametrosAnalizados || 'Según OIT',
                 resolucion: 'Resolución 1262 del 18 de junio de 2021'
             }
@@ -395,11 +395,11 @@ export class TemplateDataMapper {
 
         data['laboratorios_parametros'] = rawResultadosForLabs.length > 0
             ? rawResultadosForLabs.map((r: any) => ({
-                laboratorio_nombre: 'SERAMBIENTE S.A.S.',
+                laboratorio_nombre: 'ALS ENVIRONMENTAL S.A.S.',
                 parametro_nombre: r.parametro || '',
                 resolucion_numero_fecha: 'Resolución 1262 del 18 de junio de 2021'
             }))
-            : [{ laboratorio_nombre: 'SERAMBIENTE S.A.S.', parametro_nombre: this.parsedAI.parametrosAnalizados || 'Según OIT', resolucion_numero_fecha: 'Resolución 1262 del 18 de junio de 2021' }];
+            : [{ laboratorio_nombre: 'ALS ENVIRONMENTAL S.A.S.', parametro_nombre: this.parsedAI.parametrosAnalizados || 'Según OIT', resolucion_numero_fecha: 'Resolución 1262 del 18 de junio de 2021' }];
         data['tiene_laboratorios_parametros'] = data['laboratorios_parametros'].length > 0;
 
         data['metodos_analiticos'] = rawResultadosForLabs.map((r: any) => ({
@@ -429,8 +429,8 @@ export class TemplateDataMapper {
         data['tiene_esfuerzo_muestreo'] = false;
 
         const anexosList: any[] = [];
-        if (this.oit.oitFileUrl) anexosList.push({ anexo_nombre: 'OIT', anexo_laboratorio: 'SERAMBIENTE S.A.S.', anexo_archivo: 'Ver sistema ALS', anexo_paginas: 'N.A.' });
-        if ((this.oit as any).labResultsUrl) anexosList.push({ anexo_nombre: 'Resultados de laboratorio', anexo_laboratorio: 'SERAMBIENTE S.A.S.', anexo_archivo: 'Ver sistema ALS', anexo_paginas: 'N.A.' });
+        if (this.oit.oitFileUrl) anexosList.push({ anexo_nombre: 'OIT', anexo_laboratorio: 'ALS ENVIRONMENTAL S.A.S.', anexo_archivo: 'Ver sistema ALS', anexo_paginas: 'N.A.' });
+        if ((this.oit as any).labResultsUrl) anexosList.push({ anexo_nombre: 'Resultados de laboratorio', anexo_laboratorio: 'ALS ENVIRONMENTAL S.A.S.', anexo_archivo: 'Ver sistema ALS', anexo_paginas: 'N.A.' });
         data['anexos'] = anexosList;
         data['tiene_anexos'] = anexosList.length > 0;
 
