@@ -315,7 +315,7 @@ REGLAS ESTRICTAS E INQUEBRANTABLES:
             var _a;
             try {
                 const safeText = documentText.substring(0, 20000);
-                const prompt = `Eres Analista Técnico Ambiental de Serambiente. Analiza el siguiente resultado de laboratorio y extrae la información en el formato exacto solicitado.
+                const prompt = `Eres Analista Técnico Ambiental de ALS Environmental. Analiza el siguiente resultado de laboratorio y extrae la información en el formato exacto solicitado.
 
 CONTEXTO DE LA OIT: ${oitContext || 'No especificado'}
 

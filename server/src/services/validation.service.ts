@@ -172,7 +172,7 @@ IMPORTANTE: Responde en español, de forma profesional y técnica.`;
             const serviceTypeName = serviceContext.split('(')[0].trim() || serviceContext;
 
             const prompt = `
-            ACTÚA COMO: Juan Bustamante R., Coordinador I+D del Laboratorio Serambiente S.A.S, escribiendo un comunicado técnico para el cliente.
+            ACTÚA COMO: Juan Bustamante R., Coordinador I+D del Laboratorio ALS Environmental S.A.S, escribiendo un comunicado técnico para el cliente.
             
             ⚠️ SERVICIO A COMUNICAR: ${serviceTypeName}
             ⚠️ REGLA CRÍTICA: Este comunicado es EXCLUSIVAMENTE sobre ${serviceTypeName}. NO menciones ni analices datos de otros servicios (si el análisis contiene datos de aire, ruido, biota u otros servicios que no sean ${serviceTypeName}, IGNÓRALOS POR COMPLETO).

@@ -23,7 +23,7 @@ const prisma = new client_1.PrismaClient();
 // Configure VAPID
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@serambiente.com';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@alsglobal.com';
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
     web_push_1.default.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
     console.log('✅ Web Push VAPID configured');

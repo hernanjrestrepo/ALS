@@ -229,7 +229,7 @@ export const comunicadoService = {
         }));
 
         children.push(new Paragraph({
-            children: [new TextRun({ text: 'Servicios de Ingeniería y Ambiente S.A.S. – SERAMBIENTE S.A.S', bold: true, size: 22, font: 'Calibri' })],
+            children: [new TextRun({ text: 'ALS ENVIRONMENTAL S.A.S.', bold: true, size: 22, font: 'Calibri' })],
             spacing: { after: 100 }
         }));
 
@@ -239,7 +239,7 @@ export const comunicadoService = {
             headerChildren.push(new Paragraph({ children: [headerImage] }));
         }
         headerChildren.push(new Paragraph({
-            children: [new TextRun({ text: 'Serambiente SAS', size: 16, font: 'Calibri', color: '666666' })],
+            children: [new TextRun({ text: 'ALS Environmental S.A.S.', size: 16, font: 'Calibri', color: '666666' })],
             spacing: { after: 20 }
         }));
         headerChildren.push(new Paragraph({
