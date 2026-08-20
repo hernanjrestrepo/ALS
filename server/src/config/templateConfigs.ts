@@ -107,7 +107,7 @@ const AGUA_FIELDS: Record<string, FieldMapping> = {
 
     // --- TABLA 1: LABORATORIOS ---
     'tag_lab_nombre': {
-        source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.',
+        source: 'STATIC', staticValue: 'ALS ENVIRONMENTAL S.A.S.',
         description: 'Nombre del laboratorio responsable'
     },
     'tag_lab_parametro': {
@@ -387,7 +387,7 @@ const ERRA_LEGACY_FIELDS: Record<string, FieldMapping> = {
     'i_la_velocidad_del_viento_se_debe_medir_utilizando_1': { source: 'STATIC', staticValue: 'anemómetro).', description: 'Instrumento medición viento' },
     'las_condiciones_atmosfericas_reportadas_fueron_reg_1': { source: 'STATIC', staticValue: 'una estación meteorológica propia', description: 'Origen estación meteorológica' },
     'las_condiciones_atmosfericas_reportadas_fueron_reg_2': { source: 'AI', field: 'ubicacion.direccion', description: 'Ubicación de la estación' },
-    'fuente_1': { source: 'STATIC', staticValue: 'SERAMBIENTE S.A.S.', description: 'Fuente tabla meteorológica' },
+    'fuente_1': { source: 'STATIC', staticValue: 'ALS ENVIRONMENTAL S.A.S.', description: 'Fuente tabla meteorológica' },
     'rosa_de_viento_1': { source: 'STATIC', staticValue: 'consolidada', description: 'Tipo de rosa de vientos' },
     'se_muestra_la_rosa_de_los_vientos_presentando_expl_1': { source: 'STATIC', staticValue: 'predominante durante el periodo de monitoreo.', description: 'Descripción rosa de vientos' },
     'ealizo_la_descarga_de_los_registros_de_la_estacion_1': { source: 'STATIC', staticValue: 'Se realizó la descarga de los registros de la estación meteorológica.', description: 'Descarga de registros' },
@@ -546,9 +546,9 @@ const AGUA_GENERICA_FIELDS: Record<string, FieldMapping> = {
     'firma_elaborado': { source: 'STATIC', staticValue: '', description: 'Firma de quien elabora (versión 00)' },
     'firma_revisado': { source: 'STATIC', staticValue: '', description: 'Firma de quien revisa (versión 00)' },
     'firma_autorizado': { source: 'STATIC', staticValue: '', description: 'Firma de quien autoriza (versión 00)' },
-    'nombre_elaborado': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Nombre de quien elabora (versión 00)' },
-    'nombre_revisado': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien revisa (versión 00)' },
-    'nombre_autorizado': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien autoriza (versión 00)' },
+    'nombre_elaborado': { source: 'STATIC', staticValue: 'Equipo Técnico ALS', description: 'Nombre de quien elabora (versión 00)' },
+    'nombre_revisado': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien revisa (versión 00)' },
+    'nombre_autorizado': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien autoriza (versión 00)' },
 
     // --- HISTORIAL DE CAMBIOS (versión 01) ---
     'version_num': { source: 'STATIC', staticValue: '01', description: 'Número de versión (fila de ejemplo de revisión futura)' },
@@ -557,9 +557,9 @@ const AGUA_GENERICA_FIELDS: Record<string, FieldMapping> = {
     'firma_elaborado_rev': { source: 'STATIC', staticValue: '', description: 'Firma de quien elabora (versión 01)' },
     'firma_revisado_rev': { source: 'STATIC', staticValue: '', description: 'Firma de quien revisa (versión 01)' },
     'firma_autorizado_rev': { source: 'STATIC', staticValue: '', description: 'Firma de quien autoriza (versión 01)' },
-    'nombre_elaborado_rev': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Nombre de quien elabora (versión 01)' },
-    'nombre_revisado_rev': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien revisa (versión 01)' },
-    'nombre_autorizado_rev': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien autoriza (versión 01)' },
+    'nombre_elaborado_rev': { source: 'STATIC', staticValue: 'Equipo Técnico ALS', description: 'Nombre de quien elabora (versión 01)' },
+    'nombre_revisado_rev': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien revisa (versión 01)' },
+    'nombre_autorizado_rev': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien autoriza (versión 01)' },
 
     // --- NOTA FINAL (identificación de anulación, aplica solo si el informe reemplaza uno anterior) ---
     'matriz_tipo_note': { source: 'AI', field: 'tipoMatriz', description: 'Tipo de matriz del informe anulado (nota de reemplazo, boilerplate del template)' },
@@ -659,9 +659,9 @@ const RESIDUOS_SOLIDOS_FIELDS: Record<string, FieldMapping> = {
     'firma_elaborado': { source: 'STATIC', staticValue: '', description: 'Firma de quien elabora (versión 00)' },
     'firma_revisado': { source: 'STATIC', staticValue: '', description: 'Firma de quien revisa (versión 00)' },
     'firma_autorizado': { source: 'STATIC', staticValue: '', description: 'Firma de quien autoriza (versión 00)' },
-    'nombre_apellido_elaborado': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Nombre de quien elabora (versión 00)' },
-    'nombre_apellido_revisado': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien revisa (versión 00)' },
-    'nombre_apellido_autorizado': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien autoriza (versión 00)' },
+    'nombre_apellido_elaborado': { source: 'STATIC', staticValue: 'Equipo Técnico ALS', description: 'Nombre de quien elabora (versión 00)' },
+    'nombre_apellido_revisado': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien revisa (versión 00)' },
+    'nombre_apellido_autorizado': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien autoriza (versión 00)' },
 
     // --- HISTORIAL DE CAMBIOS (versión 01) ---
     'version_numero': { source: 'STATIC', staticValue: '01', description: 'Número de versión (fila de ejemplo de revisión futura)' },
@@ -670,9 +670,9 @@ const RESIDUOS_SOLIDOS_FIELDS: Record<string, FieldMapping> = {
     'firma_elaborado_v01': { source: 'STATIC', staticValue: '', description: 'Firma de quien elabora (versión 01)' },
     'firma_revisado_v01': { source: 'STATIC', staticValue: '', description: 'Firma de quien revisa (versión 01)' },
     'firma_autorizado_v01': { source: 'STATIC', staticValue: '', description: 'Firma de quien autoriza (versión 01)' },
-    'nombre_apellido_elaborado_v01': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Nombre de quien elabora (versión 01)' },
-    'nombre_apellido_revisado_v01': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien revisa (versión 01)' },
-    'nombre_apellido_autorizado_v01': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Nombre de quien autoriza (versión 01)' },
+    'nombre_apellido_elaborado_v01': { source: 'STATIC', staticValue: 'Equipo Técnico ALS', description: 'Nombre de quien elabora (versión 01)' },
+    'nombre_apellido_revisado_v01': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien revisa (versión 01)' },
+    'nombre_apellido_autorizado_v01': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien autoriza (versión 01)' },
     'fuente_historial': { source: 'DATE', field: 'year', description: 'Año fuente (cita ALS ENVIRONMENTAL, tabla historial de cambios)' },
 
     // --- NOTA FINAL (identificación de anulación, aplica solo si el informe reemplaza uno anterior) ---
@@ -1822,9 +1822,9 @@ const V2_COMMON_FIELDS: Record<string, FieldMapping> = {
     'informe_version': { source: 'STATIC', staticValue: 'V00', description: 'Versión del informe' },
     'informe_codigo_v01': { source: 'OIT', field: 'oitNumber', description: 'Código del informe' },
     'informe_fecha_emision': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión' },
-    'elaborado_nombre': { source: 'STATIC', staticValue: 'Equipo Técnico Serambiente', description: 'Elaborado por' },
-    'revisado_nombre': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Revisado por' },
-    'autorizado_nombre': { source: 'STATIC', staticValue: 'Dirección Técnica Serambiente', description: 'Autorizado por' },
+    'elaborado_nombre': { source: 'STATIC', staticValue: 'Equipo Técnico ALS', description: 'Elaborado por' },
+    'revisado_nombre': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Revisado por' },
+    'autorizado_nombre': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Autorizado por' },
 };
 
 // BIOTA (74-01) — sin veredicto de conformidad (índices/BMW dejados como sección
