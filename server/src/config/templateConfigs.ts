@@ -835,6 +835,9 @@ export const RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
 // ================================================================
 const RUIDO_INTRADOMICILIARIO_DELTA_FIELDS: Record<string, FieldMapping> = {
     'monitoreo_de_ruido_intradomiciliario_realizado_el__1': { source: 'DATE', field: 'day', description: 'Día de monitoreo (portada)' },
+    'id_serial_sonometro_65_08': { source: 'OIT', field: 'oitNumber', description: 'ID Sonometro / Serial sonometro -- des-colisionado de monitoreo_de_ruido_intradomiciliario_realizado_el__1 (colisionaba con dia de monitoreo de portada, mostraba un numero 1-31 como si fuera serial de equipo), auditoria 2026-08-21' },
+    'serial_sonometro_65_08': { source: 'OIT', field: 'oitNumber', description: 'Serial sonometro -- mismo des-colisionado que id_serial_sonometro_65_08, ver nota arriba, auditoria 2026-08-21' },
+    'serial_pistofono_65_08': { source: 'OIT', field: 'oitNumber', description: 'Serial pistofono -- fila nueva insertada 2026-08-21 (faltaba por completo en la plantilla desplegada); mismo patron que su fila hermana Serial sonometro' },
     'monitoreo_de_ruido_intradomiciliario_realizado_el__2': { source: 'DATE', field: 'month', description: 'Mes de monitoreo (portada)' },
     'de_de_1': { source: 'DATE', field: 'year', description: 'Año de monitoreo (portada)' },
     'de_de_2': { source: 'AI', field: 'cliente', description: 'Cliente (portada)' },
