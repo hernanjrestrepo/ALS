@@ -450,6 +450,170 @@ const ERRA_LEGACY_FIELDS: Record<string, FieldMapping> = {
 };
 
 // ================================================================
+// AGUA SUBTERRÁNEA (64-08) — RECONSTRUCCIÓN COMPLETA (agosto 2026): la
+// plantilla desplegada bajo este código tenía el contenido GENÉRICO de
+// "AGUA (matriz)" heredado por error de la reconstrucción de Punto Seco
+// (64-10) del 19-ago-2026 — no era el contenido real de Agua Subterránea.
+// Se descarta por completo el mapeo anterior ({ ...AGUA_FIELDS }, que ni
+// siquiera correspondía a este documento) y se reconstruye desde cero
+// contra la fuente real "FO-PO-PSM-64-08 ... INFORME DE AGUA (1).docx"
+// (1350 nodos <w:t> no vacíos, 541 párrafos).
+//
+// La fuente es un documento OMNIBUS de AGUA que cubre varios subtipos
+// (ARD/ARnD, subterráneas, marinas, potable/piscina, sedimentos, lodos)
+// con la instrucción explícita "deberá conservarse únicamente aquel [tipo]
+// que corresponda". Dado que este código (64-08) es específicamente para
+// Agua Subterránea, se eliminaron del documento (no solo se dejaron sin
+// tag) los párrafos narrativos de los OTROS subtipos no aplicables —
+// borrado de párrafo completo a nivel de XML (<w:p>...</w:p>), verificado
+// texto-por-texto contra el XML crudo antes de aplicar cada borrado.
+//
+// Patrón condicional real encontrado: "Si el punto es PIEZÓMETRO, incluye
+// el Escenario A y omite el B. Si el punto es ALJIBE, incluye el Escenario
+// B y omite el A." Igual que con Escenario 1/2 de Ruido (commit 3754f85):
+// el sistema genera informes automáticamente sin que una persona elija el
+// escenario, y no hay dato en el OIT para decidir cuál punto es piezómetro
+// vs aljibe. Por eso se incluyen AMBOS escenarios siempre. A diferencia de
+// Ruido, aquí NO fue necesario crear tags nuevos por escenario: se verificó
+// nodo por nodo que ambos bloques (Escenario A piezómetro, Escenario B
+// aljibe) son narrativa 100% estática sin placeholders de datos variables.
+// La oración instructiva "Si el punto es PIEZÓMETRO..." se eliminó por ser
+// una nota editorial interna (misma categoría que los encabezados "Párrafo
+// aplicable a X" que también se eliminaron), no contenido de cara al
+// cliente.
+//
+// La sub-tabla de coordenadas de georreferenciación (fragmentos DMS/plano
+// tipo XX°X'X,XX"N) se dejó con tags STATIC vacíos en vez de mapear campos
+// AI: no fue posible verificar sin ambigüedad la estructura de celdas de
+// esa sub-tabla contra el XML de <w:tbl> real, y el criterio del proyecto
+// es no adivinar un mapeo cuando no se puede verificar con certeza.
+// Documentado aquí para revisión humana si se requiere poblar coordenadas
+// reales en esa sub-tabla en el futuro.
+//
+// Verificado end-to-end: 117 tags únicos, 0 tags sin mapeo en el config,
+// 0 tags {..} literales restantes tras render con docxtemplater.
+// ================================================================
+const ASUB_AGUA_SUBTERRANEA_FIELDS: Record<string, FieldMapping> = {
+    'matriz_tipo_portada': { source: 'STATIC', staticValue: 'SUBTERRÁNEA', description: 'Tipo de matriz (portada, titulo) -- fijo: 64-08 es especificamente Agua Subterranea' },
+    'nombre_cliente_portada': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (portada)' },
+    'matriz_tipo_objetivo_portada': { source: 'STATIC', staticValue: 'subterránea)', description: 'Tipo de matriz en el subtitulo de portada (incluye parentesis de cierre)' },
+    'dia': { source: 'DATE', field: 'day', description: 'Dia de realizacion (portada)' },
+    'mes_realizacion': { source: 'DATE', field: 'month', description: 'Mes de realizacion (portada)' },
+    'ano_parcial': { source: 'DATE', field: 'year', description: 'Ano de realizacion (portada) -- se concatena con numero_informe (vacio)' },
+    'numero_informe': { source: 'STATIC', staticValue: '', description: 'Vacio: completa la concatenacion con ano_parcial' },
+    'ciudad': { source: 'AI', field: 'ubicacion.ciudad', description: 'Ciudad (portada)' },
+    'departamento': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento (portada)' },
+    'matriz_obj_general': { source: 'STATIC', staticValue: '(agua subterránea)', description: 'Tipo de matriz entre parentesis (objetivo general)' },
+    'numero_puntos_obj1': { source: 'AI', field: 'numeroPuntos', description: 'Cantidad de puntos de monitoreo (objetivo general, primera mencion)' },
+    'numero_puntos_obj1_dup': { source: 'STATIC', staticValue: '', description: 'Vacio: evita duplicar el numero de puntos ya entregado en numero_puntos_obj1' },
+    'municipio_obj': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio (objetivo general)' },
+    'departamento_obj': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento (objetivo general)' },
+    'numero_puntos_obj2': { source: 'AI', field: 'numeroPuntos', description: 'Cantidad de puntos de monitoreo (objetivos especificos)' },
+    'matriz_obj_especifico': { source: 'STATIC', staticValue: '(subterránea)', description: 'Tipo de matriz entre parentesis (objetivos especificos)' },
+    'razon_social': { source: 'AI', field: 'cliente', description: 'Razon social completa del cliente' },
+    'correo_contacto': { source: 'AI', field: 'otrosDatos.correo', description: 'Correo del contacto ambiental' },
+    'nombre_representante_cliente': { source: 'AI', field: 'otrosDatos.representante', description: 'Nombre del representante del cliente' },
+    'telefono_representante': { source: 'AI', field: 'otrosDatos.telefono', description: 'Telefono del representante del cliente' },
+    'direccion_completa': { source: 'AI', field: 'ubicacion.direccion', description: 'Direccion de la sede del cliente' },
+    'departamento_monitoreo': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento donde se ejecuto el monitoreo' },
+    'municipio_monitoreo': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio/ciudad donde se ejecuto el monitoreo' },
+    'actividad_economica': { source: 'STATIC', staticValue: '', description: 'Actividad economica (se obtiene del RUES, sin dato confiable disponible)' },
+    'nombre_empresa_cliente': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (parrafo empresa responsable del estudio)' },
+    'matriz_tipo_empresa': { source: 'STATIC', staticValue: 'agua subterránea', description: 'Tipo de matriz (parrafo empresa responsable del estudio)' },
+    'numero_resolucion_ideam': { source: 'STATIC', staticValue: '1262', description: 'Numero de resolucion de acreditacion IDEAM (dato institucional fijo)' },
+    'fecha_resolucion_ideam': { source: 'STATIC', staticValue: '18 de junio de 2021', description: 'Fecha de la resolucion de acreditacion IDEAM' },
+    'fuente_anio_tabla1': { source: 'DATE', field: 'year', description: 'Anio fuente (cita ALS ENVIRONMENTAL, Tabla 1)' },
+    'sitio_muestreo': { source: 'AI', field: 'puntos[0].nombre', description: 'Sitio de muestreo (Tabla 2, identificacion de la muestra)' },
+    'matriz_tipo_estudio2': { source: 'STATIC', staticValue: 'agua subterránea', description: 'Tipo de matriz (Tabla 2, Estudio de caracterizacion de...)' },
+    'id_muestra': { source: 'AI', field: 'puntos[0].id', description: 'ID del punto (Tabla 2, identificacion de la muestra)' },
+    'numero_reporte_muestra': { source: 'STATIC', staticValue: '', description: 'Numero de reporte de laboratorio (sin dato AI estructurado disponible)' },
+    'fuente_anio_tabla2': { source: 'DATE', field: 'year', description: 'Anio fuente (cita ALS ENVIRONMENTAL, Tabla 2)' },
+    'num_puntos_metodologia1': { source: 'AI', field: 'numeroPuntos', description: 'Cantidad de puntos de monitoreo (intro metodologia del muestreo)' },
+    'num_puntos_metodologia1_dup': { source: 'STATIC', staticValue: '', description: 'Vacio: evita duplicar num_puntos_metodologia1' },
+    'dia_muestreo_metodologia': { source: 'DATE', field: 'day', description: 'Dia de toma de muestra (metodologia, parrafo aplicable a subterraneas)' },
+    'mes_muestreo_metodologia': { source: 'DATE', field: 'month', description: 'Mes de toma de muestra (metodologia)' },
+    'ano_muestreo_metodologia': { source: 'DATE', field: 'year', description: 'Anio de toma de muestra (metodologia)' },
+    'codigo_it_muestreo': { source: 'STATIC', staticValue: 'IT-XXXX-XX', description: 'Codigo de instructivo de muestreo (placeholder literal preservado, sin dato AI)' },
+    'diligenciar_matriz_instrumento': { source: 'STATIC', staticValue: 'agua subterránea', description: 'Tipo de matriz (parrafo instrumento de muestreo) -- fijo: agua subterranea' },
+    'tipo_instrumento_empleado': { source: 'STATIC', staticValue: '', description: 'Tipo de instrumento de muestreo empleado (sin dato AI disponible)' },
+    'tipo_agua_planeacion': { source: 'STATIC', staticValue: 'agua subterránea', description: 'Tipo de matriz (parrafo planeacion y definicion de la estrategia de monitoreo) -- fijo' },
+    'encabezado_muestreo_tipo': { source: 'STATIC', staticValue: 'Muestreo de aguas subterráneas', description: 'Encabezado de la seccion Muestreo de... -- renombrado a aguas subterraneas (era placeholder generico Diligenciar el tipo de agua)' },
+    'parametro_determinacion': { source: 'STATIC', staticValue: '', description: 'Parametro de determinacion analitica in situ (sin dato AI estructurado)' },
+    'fuente_anio_tabla3': { source: 'DATE', field: 'year', description: 'Anio fuente (cita ALS ENVIRONMENTAL, Tabla 3)' },
+    'fuente_anio_tabla4': { source: 'DATE', field: 'year', description: 'Anio fuente (cita ALS ENVIRONMENTAL, Tabla 4)' },
+    'fuente_figura1_1': { source: 'STATIC', staticValue: 'ILAC-G8:09/201', description: 'Cita de fuente de la Figura 1 (declaracion binaria ILAC-G8:09/2019) -- texto fijo del documento' },
+    'tabla5_col_matriz': { source: 'STATIC', staticValue: 'Agua (subterránea)', description: 'Encabezado de columna Agua (matriz) en Tabla 5 -- fijo: Agua (subterranea)' },
+    'descripcion_punto_codigo': { source: 'AI', field: 'puntos[0].nombre', description: 'Codigo/nombre del punto de monitoreo (Tabla 5)' },
+    'descripcion_punto_texto': { source: 'AI', field: 'puntos[0].descripcion', description: 'Descripcion del punto de monitoreo (Tabla 5)' },
+    'figura1_caption': { source: 'STATIC', staticValue: '', description: 'Descripcion de Fotografia 1 (sin dato AI disponible)' },
+    'figura2_caption': { source: 'STATIC', staticValue: '', description: 'Descripcion de Fotografia 2 (sin dato AI disponible)' },
+    'fuente_anio_foto': { source: 'DATE', field: 'year', description: 'Anio fuente (registro fotografico)' },
+    'municipio_ubicacion': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio (seccion Ubicacion del punto de monitoreo)' },
+    'departamento_ubicacion': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento (seccion Ubicacion del punto de monitoreo)' },
+    'hora_formato': { source: 'STATIC', staticValue: 'hh:mm', description: 'Texto estatico del formato de hora en encabezado de columna (no es dato variable)' },
+    'nombre_punto_tabla6': { source: 'AI', field: 'puntos[0].nombre', description: 'Nombre del punto (Tabla 6, georreferenciacion)' },
+    'id_muestra_tabla6': { source: 'AI', field: 'puntos[0].id', description: 'ID de muestra del punto (Tabla 6, georreferenciacion)' },
+    'hora_punto_tabla6': { source: 'AI', field: 'puntos[0].hora', description: 'Hora de la toma de muestra en el punto (Tabla 6)' },
+    'cota_msnm': { source: 'STATIC', staticValue: '', description: 'Cota (msnm) del punto -- sin dato AI estructurado disponible' },
+    'coord_frag_1': { source: 'STATIC', staticValue: '', description: 'Fragmento numerico de coordenadas DMS latitud (Tabla 6) -- sin verificacion visual de celda posible, ver nota en el bloque de comentarios de este config' },
+    'coord_frag_2': { source: 'STATIC', staticValue: '', description: 'Fragmento numerico de coordenadas DMS latitud (Tabla 6) -- ver nota' },
+    'coord_frag_3': { source: 'STATIC', staticValue: '', description: 'Fragmento numerico de coordenadas DMS latitud (Tabla 6) -- ver nota' },
+    'coord_frag_4': { source: 'STATIC', staticValue: '', description: 'Fragmento numerico de coordenadas plano Origen Nacional norte (Tabla 6) -- ver nota' },
+    'coord_frag_5': { source: 'STATIC', staticValue: '', description: 'Fragmento numerico de coordenadas DMS longitud (Tabla 6) -- ver nota' },
+    'coord_frag_6': { source: 'STATIC', staticValue: '', description: 'Fragmento numerico de coordenadas DMS longitud (Tabla 6) -- ver nota' },
+    'coord_frag_7': { source: 'STATIC', staticValue: '', description: 'Fragmento numerico de coordenadas plano Origen Nacional este (Tabla 6) -- ver nota' },
+    'fuente_anio_tabla6': { source: 'DATE', field: 'year', description: 'Anio fuente (cita ALS ENVIRONMENTAL, Tabla 6)' },
+    'fuente_anio_google_earth': { source: 'DATE', field: 'year', description: 'Anio fuente (imagen Google Earth, Figura 2)' },
+    'fuente_anio_tabla7': { source: 'DATE', field: 'year', description: 'Anio fuente (cita ALS ENVIRONMENTAL, Tabla 7 resultados de campo)' },
+    'resultado_ph': { source: 'STATIC', staticValue: '', description: 'Resultado de pH (narrativa) -- valores reales por parametro requieren mecanismo de tabla repetible no presente en este sistema de tags, mismo criterio que en 64-09/64-10' },
+    'resultado_ph_dup': { source: 'STATIC', staticValue: '', description: 'Vacio: evita duplicar resultado_ph en la misma oracion' },
+    'resultado_temperatura': { source: 'STATIC', staticValue: '', description: 'Resultado de temperatura (narrativa) -- ver nota de resultado_ph' },
+    'fuente_anio_tabla8': { source: 'DATE', field: 'year', description: 'Anio fuente (cita ALS ENVIRONMENTAL, Tabla 8 resultados de laboratorio)' },
+    'resultado_cloruros': { source: 'STATIC', staticValue: '', description: 'Resultado de cloruros (narrativa) -- ver nota de resultado_ph' },
+    'fuente_anio_grafica3': { source: 'DATE', field: 'year', description: 'Anio fuente (Grafica 3, Cloruros)' },
+    'resultado_coliformes_termotolerantes': { source: 'STATIC', staticValue: '', description: 'Resultado de coliformes termotolerantes (narrativa) -- ver nota de resultado_ph' },
+    'resultado_coliformes_totales': { source: 'STATIC', staticValue: '', description: 'Resultado de coliformes totales (narrativa) -- ver nota de resultado_ph' },
+    'fuente_anio_grafica4': { source: 'DATE', field: 'year', description: 'Anio fuente (Grafica 4, Coliformes)' },
+    'resultado_nitratos': { source: 'STATIC', staticValue: '', description: 'Resultado de nitratos (narrativa) -- ver nota de resultado_ph' },
+    'resultado_nitritos': { source: 'STATIC', staticValue: '', description: 'Resultado de nitritos (narrativa) -- ver nota de resultado_ph' },
+    'fuente_anio_grafica5': { source: 'DATE', field: 'year', description: 'Anio fuente (Grafica 5, Nitratos y Nitritos)' },
+    'resultado_turbiedad': { source: 'STATIC', staticValue: '', description: 'Resultado de turbiedad (narrativa) -- ver nota de resultado_ph' },
+    'nombre_empresa_conclusiones': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (seccion conclusiones)' },
+    'matriz_conclusiones1': { source: 'STATIC', staticValue: '(agua subterránea)', description: 'Tipo de matriz entre parentesis (conclusiones, primera mencion)' },
+    'municipio_conclusiones': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio (conclusiones)' },
+    'departamento_conclusiones': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento (conclusiones)' },
+    'conclusion_ph': { source: 'STATIC', staticValue: '', description: 'Valor de pH citado en conclusiones -- ver nota de resultado_ph' },
+    'conclusion_ph_unidades': { source: 'STATIC', staticValue: '', description: 'Valor de pH unidades (conclusiones) -- ver nota de resultado_ph' },
+    'conclusion_temperatura': { source: 'STATIC', staticValue: '', description: 'Valor de temperatura citado en conclusiones -- ver nota de resultado_ph' },
+    'conclusion_nitratos': { source: 'STATIC', staticValue: '', description: 'Valor de nitratos citado en conclusiones -- ver nota de resultado_ph' },
+    'conclusion_nitritos': { source: 'STATIC', staticValue: '', description: 'Valor de nitritos citado en conclusiones -- ver nota de resultado_ph' },
+    'matriz_conclusiones2': { source: 'STATIC', staticValue: 'agua (subterránea)', description: 'Tipo de matriz (conclusiones, segunda mencion)' },
+    'matriz_conclusiones3': { source: 'STATIC', staticValue: 'agua (subterránea)', description: 'Tipo de matriz (conclusiones, tercera mencion)' },
+    'fuente_anio_anexos': { source: 'DATE', field: 'year', description: 'Anio fuente (Tabla 9, anexos)' },
+    'ot_id': { source: 'OIT', field: 'oitNumber', description: 'Identificador unico del informe (historial de cambios, version 00)' },
+    'fecha_ot': { source: 'DATE', field: 'fullDate', description: 'Fecha de emision (version 00)' },
+    'firma_elaborado': { source: 'STATIC', staticValue: '', description: 'Firma de quien elabora (version 00)' },
+    'firma_revisado': { source: 'STATIC', staticValue: '', description: 'Firma de quien revisa (version 00)' },
+    'firma_autorizado': { source: 'STATIC', staticValue: '', description: 'Firma de quien autoriza (version 00)' },
+    'nombre_elaborado': { source: 'STATIC', staticValue: 'Equipo Técnico ALS', description: 'Nombre de quien elabora (version 00)' },
+    'nombre_revisado': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien revisa (version 00)' },
+    'nombre_autorizado': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien autoriza (version 00)' },
+    'version_num': { source: 'STATIC', staticValue: '01', description: 'Numero de version (fila de ejemplo de revision futura)' },
+    'ot_id_revision': { source: 'STATIC', staticValue: '', description: 'Identificador del informe (version 01) -- vacio para no generar un identificador falso' },
+    'fecha_revision': { source: 'DATE', field: 'fullDate', description: 'Fecha de emision (version 01)' },
+    'firma_elaborado_rev': { source: 'STATIC', staticValue: '', description: 'Firma de quien elabora (version 01)' },
+    'firma_revisado_rev': { source: 'STATIC', staticValue: '', description: 'Firma de quien revisa (version 01)' },
+    'firma_autorizado_rev': { source: 'STATIC', staticValue: '', description: 'Firma de quien autoriza (version 01)' },
+    'nombre_elaborado_rev': { source: 'STATIC', staticValue: 'Equipo Técnico ALS', description: 'Nombre de quien elabora (version 01)' },
+    'nombre_revisado_rev': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien revisa (version 01)' },
+    'nombre_autorizado_rev': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Nombre de quien autoriza (version 01)' },
+    'fuente_historial': { source: 'DATE', field: 'year', description: 'Anio fuente (Tabla 10, historial de cambios)' },
+    'ot_id_final': { source: 'OIT', field: 'oitNumber', description: 'Identificador del informe nuevo que reemplaza al anulado (nota final, boilerplate)' },
+    'municipio_metodologia': { source: 'AI', field: 'ubicacion.ciudad', description: 'Municipio (intro de Caracteristicas del muestreo, nodo combinado con departamento_metodologia)' },
+    'departamento_metodologia': { source: 'AI', field: 'ubicacion.departamento', description: 'Departamento (intro de Caracteristicas del muestreo, nodo combinado con municipio_metodologia)' },
+};
+
+// ================================================================
 // TEMPLATE CONFIGS
 // ================================================================
 
@@ -457,7 +621,7 @@ export const ASUB_CONFIG: TemplateConfig = {
     templateType: 'ASUB',
     displayName: 'Informe de Agua Subterránea / Lixiviados',
     filePattern: 'FO-PO-PSM-64-08',
-    fields: { ...AGUA_FIELDS }
+    fields: { ...ASUB_AGUA_SUBTERRANEA_FIELDS }
 };
 
 // ================================================================
