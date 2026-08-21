@@ -789,17 +789,14 @@ const RUIDO_AMBIENTAL_DELTA_FIELDS: Record<string, FieldMapping> = {
     'var_39': { source: 'STATIC', staticValue: '', description: 'Anexo 1 (celda tabla anexos)' },
     'isofonas_1': { source: 'STATIC', staticValue: 'Ver Anexo 8', description: 'Referencia archivos de isófonas' },
     'var_40': { source: 'STATIC', staticValue: '', description: 'Continuación título portada' },
-    '10_mediciones_en_el_1': { source: 'AI', field: 'puntos[2].nombre', description: 'Fotografia 10: nombre del punto (jornada nocturna dia habil) -- corregido de puntos[0] a puntos[2] (grupo Punto 3), auditoria 2026-08-21' },
+    '10_mediciones_en_el_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 10: nombre del punto (jornada nocturna dia habil)' },
     '2_mediciones_en_el_punto_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 2: nombre del punto (jornada nocturna dia habil)' },
     '5_2_1_ruido_ambiental_diurno_habil_1': { source: 'STATIC', staticValue: '', description: 'Encabezado 5.2.1: continuacion Ruido ambiental diurno habil - [sector]' },
     '5_2_2_ruido_ambiental_nocturno_habil_1': { source: 'STATIC', staticValue: '', description: 'Encabezado 5.2.2: continuacion Ruido ambiental nocturno habil - [sector]' },
     '5_descripcion_y_ubicacion_1': { source: 'STATIC', staticValue: '', description: 'Tabla 5: continuacion del titulo Descripcion y ubicacion...' },
-    '5_mediciones_en_el_punto_1': { source: 'AI', field: 'puntos[1].nombre', description: 'Fotografia 6: nombre del punto (jornada nocturna dia habil) -- corregido de puntos[0] a puntos[1] (grupo Punto 2), auditoria 2026-08-21' },
+    '5_mediciones_en_el_punto_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 6: nombre del punto (jornada nocturna dia habil)' },
     '5_se_muestra_la_rosa_de_los_vientos_presentando_ex_1': { source: 'STATIC', staticValue: '', description: 'Direccion predominante del viento (dato especifico, no determinable)' },
-    '9_mediciones_en_el_1': { source: 'AI', field: 'puntos[2].nombre', description: 'Fotografia 9: nombre del punto (jornada diurna dia habil) -- corregido de puntos[0] a puntos[2] (grupo Punto 3), auditoria 2026-08-21' },
-    'var_9': { source: 'STATIC', staticValue: 'Punto 2: ', description: 'Encabezado seccion fotografias Punto 2 -- override local: var_9 colisionaba con ERRA_LEGACY_FIELDS (Tabla equipos fila 4, vacio); en 65-07 su unico uso real es este encabezado, verificado 2026-08-21' },
-    'var_10': { source: 'STATIC', staticValue: 'Punto 3: ', description: 'Encabezado seccion fotografias Punto 3 -- override local: var_10 colisionaba con AGUA_FIELDS (puntos[0].descripcion); en 65-07 su unico uso real es este encabezado, verificado 2026-08-21' },
-    'serial_pistofono_1': { source: 'OIT', field: 'oitNumber', description: 'Serial pistofono -- fila nueva insertada 2026-08-21 (faltaba por completo en la plantilla desplegada); mismo patron de datos que la fila hermana Serial sonometro (y_para_los_puntos_punto_1)' },
+    '9_mediciones_en_el_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 9: nombre del punto (jornada diurna dia habil)' },
     'anexo_6_hoja_de_calculo_incertidumbre_ruido_se_pre_1': { source: 'STATIC', staticValue: 'de acuerdo con la metodologia de estimacion de incertidumbre del laboratorio', description: 'Metodologia de incertidumbre (Anexo 6)' },
     'certificado_pistofono_1': { source: 'STATIC', staticValue: 'Ver Anexo 3', description: 'Certificado pistofono' },
     'certificado_sonometro_1': { source: 'STATIC', staticValue: 'Ver Anexo 3', description: 'Certificado sonometro' },
@@ -1623,51 +1620,93 @@ const FUENTES_FIJAS_PREVIO_DELTA_FIELDS: Record<string, FieldMapping> = {
     'fisica_y_quimica_para_los_estudios_o_analisis_ambi_1': { source: 'STATIC', staticValue: '', description: 'Continuación acreditación (2)' },
     'la_fecha_programada_para_llevar_a_cabo_la_evaluaci_1': { source: 'DATE', field: 'fullDate', description: 'Fecha programada de evaluación' },
     'a_evaluar_por_medicion_directa_de_material_1': { source: 'STATIC', staticValue: 'Particulado (PM) y gases de combustión', description: 'Contaminantes a evaluar' },
-    'var_6': { source: 'STATIC', staticValue: '', description: 'Objetivo específico (1)' },
+
+    // --- PORTADA: var_1 (AGUA_FIELDS, correcto=cliente) precede a var_2/var_3, que en
+    // AGUA_FIELDS colisionan con campos de agua (año/cliente). En 67-10 son "PROYECTO"
+    // y "MUNICIPIO, CIUDAD" (verificado posicionalmente, 2026-08-21) ---
+    'var_2': { source: 'AI', field: 'tipoEstudio', description: 'PROYECTO (portada) — verificado posicionalmente, 2026-08-21' },
+    'var_3': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'MUNICIPIO, CIUDAD (portada) — verificado posicionalmente, 2026-08-21' },
+
+    // --- OBJETIVOS ESPECÍFICOS: texto fijo (redacción estándar EPA), no varía por informe.
+    // Colisionaban con AGUA_FIELDS (tipoMatriz/nombre de punto). Verificado 2026-08-21. ---
+    'var_4': { source: 'STATIC', staticValue: 'Realizar la toma representativa de velocidad determinando el número de puntos de medición de presión, y temperatura.', description: 'Objetivo específico — velocidad y puntos de medición' },
+    'var_5': { source: 'STATIC', staticValue: 'Cuantificar la velocidad de salida de los gases de combustión.', description: 'Objetivo específico — velocidad de salida de gases' },
+    'var_6': { source: 'STATIC', staticValue: 'Determinar el gasto volumétrico en metros cúbicos por minuto, la composición porcentual de CO2, O2 en el gas de efluente, el porcentaje de humedad, la velocidad y temperatura de salida de gases y el porcentaje de isocinetismo.', description: 'Objetivo específico (1)' },
     'var_7': { source: 'STATIC', staticValue: '', description: 'Objetivo específico (2)' },
-    'var_9': { source: 'STATIC', staticValue: '', description: 'Operación de instalaciones (1)' },
-    'var_11': { source: 'STATIC', staticValue: '', description: 'Operación de instalaciones (2)' },
-    'var_12': { source: 'STATIC', staticValue: '', description: 'Operación de instalaciones (3)' },
-    'var_24': { source: 'STATIC', staticValue: '', description: 'Operación de instalaciones (4)' },
-    'var_25': { source: 'STATIC', staticValue: '', description: 'Operación de instalaciones (5)' },
+
+    // --- SECCIÓN "DESCRIPCIÓN DE LOS PROCESOS/FUENTE A EVALUAR": encabezados fijos.
+    // var_8 y var_10 colisionaban con AGUA_FIELDS (nombre/descripción de punto de agua).
+    // Verificado 2026-08-21. ---
+    'var_8': { source: 'STATIC', staticValue: 'Descripción de los procesos a evaluar', description: 'Encabezado — descripción de los procesos' },
+    'var_9': { source: 'STATIC', staticValue: 'Descripción de la fuente a evaluar', description: 'Encabezado — descripción de la fuente' },
+    'var_10': { source: 'STATIC', staticValue: '', description: 'Continuación encabezado descripción de la fuente (texto completo va en var_9)' },
+    'var_11': { source: 'STATIC', staticValue: 'Registro fotográfico de la fuente a evaluar', description: 'Encabezado — registro fotográfico de la fuente' },
+    'var_12': { source: 'STATIC', staticValue: 'Tabla 1. Registro fotográfico de la fuente', description: 'Título tabla — registro fotográfico' },
+    'var_24': { source: 'STATIC', staticValue: 'Registro fotográfico', description: 'Subtítulo — registro fotográfico' },
+    'var_25': { source: 'STATIC', staticValue: 'Fotografía 1. Nombre de la fuente', description: 'Pie de foto placeholder (sin campo de nombre de fuente en el modelo de datos — texto literal de la fuente, revisar si se agrega ese campo)' },
+
     'para_la_planeacion_previa_a_la_evaluacion_de_las_m_1': { source: 'STATIC', staticValue: 'de campo correspondientes,', description: 'Formatos de planeación previa' },
-    'var_47': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (1)' },
-    'var_27': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (2)' },
-    'var_28': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (3)' },
-    'var_30': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (4)' },
-    'var_31': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (5)' },
-    'var_33': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (6)' },
-    'var_34': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (7)' },
-    'var_36': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (8)' },
-    'var_37': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (9)' },
-    'var_39': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (10)' },
-    'var_40': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (11)' },
-    'var_42': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (12)' },
-    'var_43': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (13)' },
-    'var_45': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (14)' },
-    'var_46': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (15)' },
-    'var_48': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (16)' },
-    'var_49': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (17)' },
-    'var_50': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes/contaminantes/métodos (18)' },
+
+    // --- TABLA 2: fuente/contaminantes/métodos EPA — panel estándar de contaminantes y
+    // métodos de referencia, texto fijo (no varía por informe). var_47 (nombre de la fuente)
+    // se deja vacío: no hay campo de "nombre de fuente/chimenea" en el modelo de datos,
+    // requiere revisión humana. Verificado 2026-08-21. ---
+    'var_47': { source: 'STATIC', staticValue: '', description: 'Tabla 2 — Nombre de la fuente (SIN CAMPO EN MODELO DE DATOS, revisar con negocio)' },
+    'var_27': { source: 'STATIC', staticValue: 'Material particulado (MP)', description: 'Tabla 2 — contaminante MP' },
+    'var_28': { source: 'STATIC', staticValue: 'U.S. EPA CFR Título 40, Parte 60, Apéndice A-3: Método 5.', description: 'Tabla 2 — método MP' },
+    'var_30': { source: 'STATIC', staticValue: 'Dióxido de azufre (SO2)', description: 'Tabla 2 — contaminante SO2' },
+    'var_31': { source: 'STATIC', staticValue: 'U.S. EPA CFR Título 40, Parte 60, Apéndice A-4: Método 6.', description: 'Tabla 2 — método SO2' },
+    'var_33': { source: 'STATIC', staticValue: 'Óxidos de Nitrógeno (NOx)', description: 'Tabla 2 — contaminante NOx' },
+    'var_34': { source: 'STATIC', staticValue: 'U.S. EPA CFR Título 40, Parte 60, Apéndice A-4: Método 7.', description: 'Tabla 2 — método NOx' },
+    'var_36': { source: 'STATIC', staticValue: 'Monóxido de carbono (CO)', description: 'Tabla 2 — contaminante CO' },
+    'var_37': { source: 'STATIC', staticValue: 'U.S. EPA CFR, Título 40, Parte 60, Apéndice A-4. Método 10.', description: 'Tabla 2 — método CO' },
+    'var_39': { source: 'STATIC', staticValue: 'Hidrocarburos totales', description: 'Tabla 2 — contaminante hidrocarburos' },
+    'var_40': { source: 'STATIC', staticValue: 'U.S.-EPA e-CFR Título 40, Parte 60, Apéndice A-7; Método 25A.', description: 'Tabla 2 — método hidrocarburos' },
+    'var_42': { source: 'STATIC', staticValue: 'Halogenuros de hidrógeno', description: 'Tabla 2 — contaminante halogenuros' },
+    'var_43': { source: 'STATIC', staticValue: 'U.S.-EPA e-CFR Título 40, Parte 60, Apéndice A, Método 26A.', description: 'Tabla 2 — método halogenuros' },
+    'var_45': { source: 'STATIC', staticValue: 'Dioxinas y Furanos', description: 'Tabla 2 — contaminante dioxinas/furanos' },
+    'var_46': { source: 'STATIC', staticValue: 'U.S.-EPA e-CFR Título 40, Parte 60, Apéndice A-7. Método 23', description: 'Tabla 2 — método dioxinas/furanos' },
+    'var_48': { source: 'STATIC', staticValue: 'Metales (Antimonio, Arsénico, Cadmio, Cobalto, Cobre, Cromo, Estaño, Manganeso, Mercurio, Níquel, Plomo, Talio y Vanadio)', description: 'Tabla 2 — contaminante metales' },
+    'var_49': { source: 'STATIC', staticValue: 'EPA Met. 29 Modif/EPA', description: 'Tabla 2 — método metales (1)' },
+    'var_50': { source: 'STATIC', staticValue: '200.7', description: 'Tabla 2 — método metales (2)' },
+
     'fuente_serambiente_s_a_s_1': { source: 'DATE', field: 'year', description: 'Año fuente SERAMBIENTE (tabla)' },
-    'muestreo_preliminar_1': { source: 'STATIC', staticValue: '', description: 'Encabezado muestreo preliminar' },
-    'metodos_preliminares_1': { source: 'STATIC', staticValue: '', description: 'Encabezado métodos preliminares' },
-    'var_51': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (1)' },
-    'var_52': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (2)' },
-    'var_53': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (3)' },
-    'var_54': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (4)' },
-    'var_55': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (5)' },
-    'var_56': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (6)' },
-    'var_57': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (7)' },
-    'var_58': { source: 'STATIC', staticValue: '', description: 'Tabla métodos preliminares (8)' },
+
+    // --- TABLA 3: métodos preliminares EPA 1-4 — texto normativo fijo, idéntico al que
+    // ya existe hardcodeado (sin tags) en 67-11 para la misma sección. Verificado 2026-08-21. ---
+    'muestreo_preliminar_1': { source: 'STATIC', staticValue: '(EPA 1, 2, 3 y 4)', description: 'Encabezado muestreo preliminar' },
+    'metodos_preliminares_1': { source: 'STATIC', staticValue: '(EPA 1, 2, 3 y 4).', description: 'Encabezado métodos preliminares' },
+    'var_51': { source: 'STATIC', staticValue: 'Método 1. Localización de puntos de muestreo para fuentes estacionarias.', description: 'Tabla métodos preliminares — Método 1 (título)' },
+    'var_52': { source: 'STATIC', staticValue: 'Está diseñado para determinar representativamente las emisiones de los contaminantes del aire y la rata de flujo volumétrica total en un ducto o chimenea. Se deberá seleccionar un sitio de medición donde la dirección de flujo de corriente de gas es conocido, y la sección transversal de la chimenea es dividida en áreas iguales. Los puntos transversales son localizados dentro de cada una de esas áreas iguales.', description: 'Tabla métodos preliminares — Método 1 (descripción)' },
+    'var_53': { source: 'STATIC', staticValue: 'Método 2. Determinación de la velocidad de los gases de escape y relación de flujo volumétrico (Tubo Pitot tipo S).', description: 'Tabla métodos preliminares — Método 2 (título)' },
+    'var_54': { source: 'STATIC', staticValue: 'Consiste en que la velocidad promedio del gas en una tubería se determina por la densidad de este y por la medición de la carga de velocidad promedio con un tubo Pitot tipo S.', description: 'Tabla métodos preliminares — Método 2 (descripción)' },
+    'var_55': { source: 'STATIC', staticValue: 'Método 3. Análisis de gas para la determinación del peso molecular seco.', description: 'Tabla métodos preliminares — Método 3 (título)' },
+    'var_56': { source: 'STATIC', staticValue: 'Consiste en la extracción de una muestra de gas a través de un tubo de escape. La muestra es analizada por porcentaje de CO2 y O2. Para la determinación del peso molecular seco, se emplea un analizador Orsat.', description: 'Tabla métodos preliminares — Método 3 (descripción)' },
+    'var_57': { source: 'STATIC', staticValue: 'Método 4. Determinación de contenido de humedad en gases de escape.', description: 'Tabla métodos preliminares — Método 4 (título)' },
+    'var_58': { source: 'STATIC', staticValue: 'Consiste en extraer una muestra de gas de la fuente a una relación constante; la humedad extraída de la corriente de las muestras se determina ya sea volumétrica o gravimétricamente.', description: 'Tabla métodos preliminares — Método 4 (descripción)' },
     'fuente_1': { source: 'STATIC', staticValue: 'EPA (Environmental Protection Agency)', description: 'Fuente normativa métodos preliminares' },
     'para_determinar_parametros_que_son_fundamentales_p_1': { source: 'STATIC', staticValue: 'para el diseño del muestreo isocinético.', description: 'Propósito del muestreo preliminar' },
-    'var_21': { source: 'STATIC', staticValue: '', description: 'Métodos de toma de muestra (final)' },
-    'var_59': { source: 'STATIC', staticValue: '', description: 'Esquema del sistema de muestreo (1)' },
-    'var_60': { source: 'STATIC', staticValue: '', description: 'Esquema del sistema de muestreo (2)' },
-    'var_61': { source: 'STATIC', staticValue: '', description: 'Esquema del sistema de muestreo (3)' },
-    'var_22': { source: 'STATIC', staticValue: '', description: 'Nota final del informe (1)' },
-    'var_23': { source: 'STATIC', staticValue: '', description: 'Nota final del informe (2)' },
+
+    // --- TABLA de parámetros de muestreo isocinético: etiquetas fijas de fila.
+    // var_13 a var_19 colisionaban con AGUA_FIELDS (coordenadas/ID de punto de agua).
+    // var_20 estaba marcado "no usado" en AGUA_FIELDS pero SÍ se usa aquí. Verificado 2026-08-21. ---
+    'var_13': { source: 'AI', field: 'clienteAno', description: 'Pie de foto "Fuente: {cliente}, {año}." — verificado posicionalmente, 2026-08-21' },
+    'var_14': { source: 'STATIC', staticValue: 'Presión de velocidad (Pv)', description: 'Tabla parámetros — Presión de velocidad' },
+    'var_15': { source: 'STATIC', staticValue: 'Presión estática (Pe)', description: 'Tabla parámetros — Presión estática' },
+    'var_16': { source: 'STATIC', staticValue: 'Temperatura de los gases en chimenea (Ts)', description: 'Tabla parámetros — Temperatura gases chimenea' },
+    'var_17': { source: 'STATIC', staticValue: 'Temperatura del medidor de gases', description: 'Tabla parámetros — Temperatura medidor de gases' },
+    'var_18': { source: 'STATIC', staticValue: 'Diámetro de la boquilla (f)', description: 'Tabla parámetros — Diámetro de la boquilla' },
+    'var_19': { source: 'STATIC', staticValue: 'Factor K (Para mantener el isocinetismo)', description: 'Tabla parámetros — Factor K' },
+    'var_20': { source: 'STATIC', staticValue: 'Humedad', description: 'Tabla parámetros — Humedad (SÍ se usa en 67-10, pese a comentario "no usado" en AGUA_FIELDS)' },
+    'var_21': { source: 'STATIC', staticValue: 'Peso molecular del gas seco', description: 'Tabla parámetros — Peso molecular del gas seco' },
+
+    // --- BLOQUE DE FIRMAS (verificado 2026-08-21) ---
+    'var_59': { source: 'STATIC', staticValue: 'REPRESENTANTE LEGAL CLIENTE', description: 'Bloque de firmas — etiqueta representante cliente' },
+    'var_60': { source: 'STATIC', staticValue: 'ALS ENVIRONMENTAL S.A.S.', description: 'Bloque de firmas — nombre de la empresa (brand-fix)' },
+    'var_61': { source: 'STATIC', staticValue: 'REPRESENTANTE LEGAL ALS ENVIRONMENTAL S.A.S.', description: 'Bloque de firmas — etiqueta representante ALS (brand-fix)' },
+
+    'var_22': { source: 'STATIC', staticValue: 'Nota: ALS ENVIRONMENTAL S.A.S., no se hace responsable por la información suministrada por el cliente (Caudal, procesos de la organización, datos históricos y otros datos asociados especificados a lo largo del informe)', description: 'Nota final del informe — descargo de responsabilidad (verificado 2026-08-21, brand-fix)' },
+    'var_23': { source: 'STATIC', staticValue: '', description: 'Nota final del informe (2) — "anula y reemplaza OT anterior", condicional/situacional, no aplica a todos los informes: dejar en blanco, revisión humana' },
     'var_62': { source: 'STATIC', staticValue: '', description: 'Continuación título portada' },
 };
 
@@ -1752,17 +1791,17 @@ const FUENTES_FIJAS_DELTA_FIELDS: Record<string, FieldMapping> = {
     'para_producir_informacion_cuantitativa_fisica_y_qu_2': { source: 'STATIC', staticValue: 'el equipo técnico de campo,', description: 'Supervisión técnica de campo' },
     'bajo_supervision_del_1': { source: 'STATIC', staticValue: 'coordinador técnico', description: 'Cargo del supervisor' },
     'el_cual_puede_ser_contactado_al_numero_de_celular_1': { source: 'STATIC', staticValue: 'registrado en la Orden de Trabajo.', description: 'Contacto del supervisor' },
-    '14_metodos_preliminares_1': { source: 'STATIC', staticValue: '', description: 'Encabezado tabla métodos preliminares' },
+    '14_metodos_preliminares_1': { source: 'STATIC', staticValue: '(EPA 1, 2,3 y 4)', description: 'Encabezado tabla métodos preliminares — verificado posicionalmente, 2026-08-21' },
     'y_el_protocolo_para_el_control_de_la_contaminacion_1': { source: 'STATIC', staticValue: 'Resolución 909 de 2008', description: 'Referencia protocolo de contaminación atmosférica' },
-    'var_26': { source: 'STATIC', staticValue: '', description: 'Métodos de muestreo preliminar (1)' },
-    'var_29': { source: 'STATIC', staticValue: '', description: 'Métodos de muestreo preliminar (2)' },
-    'var_102': { source: 'STATIC', staticValue: '', description: 'Tabla parámetros de medición (1)' },
-    'var_103': { source: 'STATIC', staticValue: '', description: 'Tabla parámetros de medición (2)' },
-    'var_104': { source: 'STATIC', staticValue: '', description: 'Tabla parámetros de medición (3)' },
-    'var_105': { source: 'STATIC', staticValue: '', description: 'Tabla parámetros de medición (4)' },
-    'var_106': { source: 'STATIC', staticValue: '', description: 'Tabla parámetros de medición (5)' },
-    'var_107': { source: 'STATIC', staticValue: '', description: 'Tabla parámetros de medición (6)' },
-    'var_108': { source: 'STATIC', staticValue: '', description: 'Tabla parámetros de medición (7)' },
+    'var_26': { source: 'STATIC', staticValue: 'Temperatura del medidor de gases', description: 'Métodos de muestreo preliminar (1) — verificado posicionalmente, 2026-08-21' },
+    'var_29': { source: 'STATIC', staticValue: 'Humedad', description: 'Métodos de muestreo preliminar (2) — verificado posicionalmente, 2026-08-21' },
+    'var_102': { source: 'STATIC', staticValue: 'Material particulado', description: 'Tabla parámetros de medición (1) — verificado posicionalmente, 2026-08-21' },
+    'var_103': { source: 'STATIC', staticValue: '60', description: 'Tabla parámetros de medición (2) — verificado posicionalmente, 2026-08-21' },
+    'var_104': { source: 'STATIC', staticValue: '3', description: 'Tabla parámetros de medición (3) — verificado posicionalmente, 2026-08-21' },
+    'var_105': { source: 'STATIC', staticValue: 'Dióxido de azufre', description: 'Tabla parámetros de medición (4) — verificado posicionalmente, 2026-08-21' },
+    'var_106': { source: 'STATIC', staticValue: 'Óxido de Nitrógeno', description: 'Tabla parámetros de medición (5) — verificado posicionalmente, 2026-08-21' },
+    'var_107': { source: 'STATIC', staticValue: '15', description: 'Tabla parámetros de medición (6) — verificado posicionalmente, 2026-08-21' },
+    'var_108': { source: 'STATIC', staticValue: '4', description: 'Tabla parámetros de medición (7) — verificado posicionalmente, 2026-08-21' },
     'var_109': { source: 'STATIC', staticValue: 'Determinación gravimétrica de material particulado', description: 'Procedimiento de laboratorio (1)' },
     'var_110': { source: 'STATIC', staticValue: 'Determinación de gases por celda electroquímica', description: 'Procedimiento de laboratorio (2)' },
     'var_111': { source: 'STATIC', staticValue: 'Calibración y verificación de equipos', description: 'Procedimiento de laboratorio (3)' },
@@ -1770,11 +1809,11 @@ const FUENTES_FIJAS_DELTA_FIELDS: Record<string, FieldMapping> = {
     'se_presenta_las_incertidumbres_de_los_resultados_a_1': { source: 'STATIC', staticValue: 'de acuerdo con la metodología de estimación de incertidumbre del laboratorio.', description: 'Metodología de incertidumbre' },
     'var_114': { source: 'STATIC', staticValue: '', description: 'Ángulo de muestreo obtenido' },
     'var_120': { source: 'STATIC', staticValue: '', description: 'Tabla condiciones de muestreo (fugas)' },
-    'var_32': { source: 'STATIC', staticValue: '', description: 'Soportes de control de información (1)' },
-    'var_33': { source: 'STATIC', staticValue: '', description: 'Soportes de control de información (2)' },
-    'var_34': { source: 'STATIC', staticValue: '', description: 'Soportes de control de información (3)' },
-    'var_35': { source: 'STATIC', staticValue: '', description: 'Soportes de control de información (4)' },
-    'var_36': { source: 'STATIC', staticValue: '', description: 'Soportes de control de información (5)' },
+    'var_32': { source: 'STATIC', staticValue: 'Plan de monitoreo FO-PO-PSM-72-06', description: 'Soportes de control de información (1) — verificado posicionalmente, 2026-08-21' },
+    'var_33': { source: 'STATIC', staticValue: 'Planilla de campo monitoreo isocinético FO-PO-PSM-07-01', description: 'Soportes de control de información (2) — verificado posicionalmente, 2026-08-21' },
+    'var_34': { source: 'STATIC', staticValue: 'Cadena custodia FO-PO-PSM-13-03', description: 'Soportes de control de información (3) — verificado posicionalmente, 2026-08-21' },
+    'var_35': { source: 'STATIC', staticValue: 'Acta de servicio en campo FO-PO-PSM-72-07', description: 'Soportes de control de información (4) — verificado posicionalmente, 2026-08-21' },
+    'var_36': { source: 'STATIC', staticValue: 'Reporte de laboratorio FO-PO-PSM-26-02', description: 'Soportes de control de información (5) — verificado posicionalmente, 2026-08-21' },
     'se_realizo_correccion_a_oxigeno_de_referencia_del_1': { source: 'STATIC', staticValue: '7% de O2 para procesos de combustión,', description: 'Corrección a oxígeno de referencia (MP)' },
     'se_realizo_correccion_a_oxigeno_de_referencia_del__1': { source: 'STATIC', staticValue: 'según lo aplicable a la fuente evaluada.', description: 'Continuación corrección oxígeno (MP)' },
     'las_concentraciones_obtenidas_de_material_particul_1': { source: 'STATIC', staticValue: 'presentan cumplimiento', description: 'Resultado cumplimiento MP' },
@@ -1789,7 +1828,7 @@ const FUENTES_FIJAS_DELTA_FIELDS: Record<string, FieldMapping> = {
     'las_emisiones_de_oxido_de_nitrogeno_nox_para_las_f_1': { source: 'STATIC', staticValue: 'presentan cumplimiento', description: 'Resultado cumplimiento NOx' },
     'de_la_resolucion_909_de_2008_al_reportar_una_conce_1': { source: 'STATIC', staticValue: 'dentro del límite normativo aplicable.', description: 'Continuación conclusión NOx' },
     'segun_el_calculo_uca_se_establece_una_periodicidad_3': { source: 'STATIC', staticValue: 'significancia bajo', description: 'Grado de significancia (cálculo UCA, NOx)' },
-    'var_157': { source: 'STATIC', staticValue: 'Ver Anexo 1', description: 'Referencia anexo formatos de campo' },
+    'var_157': { source: 'STATIC', staticValue: 'ALS ENVIRONMENTAL S.A.S.', description: 'Tabla 31 Anexos — columna Laboratorio, fila "Anexo 1. Formatos de campo" (corregido, verificado posicionalmente 2026-08-21: el valor anterior "Ver Anexo 1" no correspondía a esta celda)' },
     'var_126': { source: 'STATIC', staticValue: '', description: 'Anexo datos y resultados (1)' },
     'var_128': { source: 'STATIC', staticValue: '', description: 'Anexo datos y resultados (2)' },
     'var_130': { source: 'STATIC', staticValue: '', description: 'Anexo calibraciones (1)' },
@@ -1809,6 +1848,78 @@ const FUENTES_FIJAS_DELTA_FIELDS: Record<string, FieldMapping> = {
     'var_158': { source: 'STATIC', staticValue: 'Ver Anexo 5', description: 'Referencia anexo resultados de laboratorio' },
     'var_38': { source: 'STATIC', staticValue: '', description: 'Nota final del informe' },
     'var_159': { source: 'STATIC', staticValue: '', description: 'Continuación título portada' },
+
+    // --- CONTENCIÓN DE COLISIÓN CON FUENTES_FIJAS_PREVIO_DELTA_FIELDS (2026-08-21) ---
+    // 67-11 reutiliza var_2..var_61 en posiciones COMPLETAMENTE DISTINTAS a 67-10
+    // (confirmado por conteo de ocurrencias en el XML: p.ej. var_40 aparece 98 veces en
+    // 67-11 dentro de tablas de resultados/ficha técnica repetidas para múltiples fuentes,
+    // var_11 6 veces, var_59/60/61 2-3 veces cada uno en tablas "Ficha técnica" NOX-I/NOX-II/MP
+    // con etiquetas de fila DIFERENTES en cada tabla pese a compartir el mismo nombre de tag).
+    // El contenido real que se restauró para 67-10 en FUENTES_FIJAS_PREVIO_DELTA_FIELDS
+    // NO aplica aquí y corrompería el documento si se dejara heredar. Se neutraliza
+    // explícitamente a vacío para preservar el comportamiento actual de 67-11 (que ya
+    // era en blanco o con datos de IA no relacionados antes de esta auditoría) sin
+    // introducir texto de 67-10 en posiciones equivocadas. PENDIENTE (fuera de alcance de
+    // esta auditoría, requiere cirugía de XML para renombrar tags duplicados por tabla):
+    // las 3 tablas "Ficha técnica de la fuente" (NOX-I/NOX-II/MP, ~idx 280-372 del
+    // documento fuente) reutilizan var_58-var_70 con etiquetas de fila distintas por
+    // tabla — no se puede resolver solo con configuración.
+    'var_2': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_2 de 67-10, ver nota arriba)' },
+    'var_3': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_3 de 67-10, ver nota arriba)' },
+    'var_4': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_4 de 67-10, ver nota arriba)' },
+    'var_5': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_5 de 67-10, ver nota arriba)' },
+    'var_6': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión: aquí es pie de figura "Fuente: Google Earth, XXXX", sin campo de año disponible en el modelo — revisión humana)' },
+    'var_7': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión: aquí es un párrafo largo de metodología distinto al objetivo de 67-10 — revisión humana)' },
+    'var_8': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_8 de 67-10, ver nota arriba)' },
+    'var_9': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_9 de 67-10, ver nota arriba)' },
+    'var_10': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_10 de 67-10, ver nota arriba)' },
+    'var_11': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 6 veces en tablas "Ficha técnica" con significados distintos, ver nota arriba)' },
+    'var_12': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_12 de 67-10, ver nota arriba)' },
+    'var_13': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_13 de 67-10, ver nota arriba)' },
+    'var_14': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aquí es "Tabla 8. Descripción de las Fuentes fijas – NOX-I", ver nota arriba — pendiente XML surgery)' },
+    'var_15': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_15 de 67-10, ver nota arriba)' },
+    'var_16': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 2 veces con significados distintos, ver nota arriba)' },
+    'var_17': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_17 de 67-10, ver nota arriba)' },
+    'var_18': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_18 de 67-10, ver nota arriba)' },
+    'var_19': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_19 de 67-10, ver nota arriba)' },
+    'var_20': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_20 de 67-10, ver nota arriba)' },
+    'var_24': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_24 de 67-10, ver nota arriba)' },
+    'var_25': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_25 de 67-10, ver nota arriba)' },
+    'var_27': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_27 de 67-10, ver nota arriba)' },
+    'var_28': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_28 de 67-10, ver nota arriba)' },
+    'var_30': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 2 veces con significados distintos, ver nota arriba)' },
+    'var_31': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_31 de 67-10, ver nota arriba)' },
+    // NOTA: var_33/var_34/var_36 NO se neutralizan aquí -- ya tienen valor real propio
+    // para 67-11 más arriba en este mismo objeto ("Soportes de control de información"),
+    // que gana sobre FUENTES_FIJAS_PREVIO_DELTA_FIELDS por orden de spread. Repetir la
+    // clave aquí produciría un error de compilación TS (propiedad duplicada).
+    'var_37': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_37 de 67-10, ver nota arriba)' },
+    'var_39': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 13 veces en tablas de datos, ver nota arriba)' },
+    'var_40': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 98 veces en tablas de datos — CRÍTICO, ver nota arriba)' },
+    'var_42': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 6 veces, ver nota arriba)' },
+    'var_43': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 6 veces, ver nota arriba)' },
+    // NOTA: var_45 NO se neutraliza aquí -- ya existe como 'Georreferenciación (2)' más
+    // arriba en este mismo objeto (STATIC ''), que gana por orden de spread. Repetir la
+    // clave produciría un error de compilación TS (propiedad duplicada).
+    'var_46': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 6 veces, ver nota arriba)' },
+    'var_47': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 6 veces, ver nota arriba)' },
+    'var_48': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_48 de 67-10, ver nota arriba)' },
+    'var_49': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_49 de 67-10, ver nota arriba)' },
+    'var_50': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_50 de 67-10, ver nota arriba)' },
+    'var_51': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_51 de 67-10 — la Tabla 14 de métodos preliminares en 67-11 YA tiene el texto Método 1-4 hardcodeado sin tags, no necesita este tag)' },
+    'var_52': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (ver nota var_51)' },
+    'var_53': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (ver nota var_51)' },
+    'var_54': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (ver nota var_51)' },
+    'var_55': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (ver nota var_51)' },
+    'var_56': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (ver nota var_51)' },
+    'var_57': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (ver nota var_51)' },
+    'var_58': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 3 veces en tablas "Ficha técnica", ver nota arriba)' },
+    'var_59': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 2 veces en tablas "Ficha técnica" con etiquetas de fila distintas — "Tipo de combustible"/"Altura" — pendiente XML surgery)' },
+    'var_60': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 3 veces con etiquetas de fila distintas — "Consumo de combustible"/"Tipo de combustible" — pendiente XML surgery)' },
+    'var_61': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (aparece 3 veces con etiquetas de fila distintas — "Serie"/"Marca" — pendiente XML surgery)' },
+    'var_22': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_22 de 67-10; 67-11 puede tener su propia nota de descargo en otro tag — no verificado en esta auditoría)' },
+    'var_23': { source: 'STATIC', staticValue: '', description: 'Neutralizado para 67-11 (colisión con var_23 de 67-10, condicional/situacional)' },
+    'muestreo_preliminar_1': { source: 'STATIC', staticValue: '(EPA 1, 2, 3 y 4)', description: 'Encabezado muestreo preliminar (67-11 SÍ usa este tag solo, sin colisión de posición múltiple — verificado 2026-08-21)' },
 };
 
 // FUENTES FIJAS (67-11)

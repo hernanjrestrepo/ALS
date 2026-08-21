@@ -202,6 +202,7 @@ export class TemplateDataMapper {
                 if (mapping.field === 'ubicacion.ciudad') return this.getCity();
                 if (mapping.field === 'ubicacion.departamento') return this.getDepartment();
                 if (mapping.field === 'ubicacion.ciudadDepartamento') return this.getCityDept();
+                if (mapping.field === 'clienteAno') return `${this.getClient()}, ${this.year}`;
                 if (mapping.field === 'tipoEstudio') return this.parsedAI.tipoEstudio || this.oit.description || 'Monitoreo Ambiental';
                 if (mapping.field === 'tipoMatriz') return this.parsedAI.tipoMatriz || 'Agua';
                 if (mapping.field === 'duracionMuestreo') return this.parsedAI.duracionMuestreo || '8 horas';

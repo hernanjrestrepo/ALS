@@ -168,6 +168,8 @@ class TemplateDataMapper {
                     return this.getDepartment();
                 if (mapping.field === 'ubicacion.ciudadDepartamento')
                     return this.getCityDept();
+                if (mapping.field === 'clienteAno')
+                    return `${this.getClient()}, ${this.year}`;
                 if (mapping.field === 'tipoEstudio')
                     return this.parsedAI.tipoEstudio || this.oit.description || 'Monitoreo Ambiental';
                 if (mapping.field === 'tipoMatriz')
