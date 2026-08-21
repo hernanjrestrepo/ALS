@@ -1,3 +1,4 @@
+require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const { pdfService } = require('./dist/services/pdf.service');
