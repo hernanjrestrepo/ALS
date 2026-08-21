@@ -389,7 +389,8 @@ REGLAS ESTRICTAS:
                 prompt,
                 stream: false,
                 format: 'json',
-            });
+                options: { num_ctx: 16384 },
+            }, { timeout: 180000 });
 
             let responseText = (response.data.response || '').trim();
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
