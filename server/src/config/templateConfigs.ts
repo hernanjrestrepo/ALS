@@ -737,6 +737,7 @@ const EMISION_RUIDO_DELTA_FIELDS: Record<string, FieldMapping> = {
     '5_2_1_emision_de_ruido_1': { source: 'STATIC', staticValue: '', description: 'Encabezado 5.2.1: continuacion Emision de ruido - [sector]' },
     '5_mediciones_en_el_1': { source: 'AI', field: 'puntos[0].nombre', description: 'Fotografia 6: nombre del punto (jornada nocturna)' },
     'var_42': { source: 'STATIC', staticValue: '', description: 'Header de pagina (header1.xml): fragmento final tras los campos de numero de pagina' },
+    'escenario2_causa_no_medicion_directa_65_06': { source: 'STATIC', staticValue: '', description: 'Escenario 2 (L90 corregido): razon por la que no fue posible detener/medir directamente la fuente -- sin dato de origen en el OIT, requiere revision humana antes de emitir' },
 };
 
 // ================================================================
@@ -944,6 +945,7 @@ const EMISION_RUIDO_AMBIENTAL_DELTA_FIELDS: Record<string, FieldMapping> = {
     '6_rosa_de_viento_1': { source: 'STATIC', staticValue: 'consolidada', description: 'Tipo de rosa de vientos (Figura 6)' },
     '6_se_muestra_la_rosa_de_los_vientos_presentando_ex_1': { source: 'STATIC', staticValue: '', description: 'Direccion predominante del viento (dato especifico, no determinable)' },
     'var_62': { source: 'STATIC', staticValue: '', description: 'Header de pagina (header1.xml): fragmento final tras los campos de numero de pagina' },
+    'escenario2_causa_no_medicion_directa_65_09': { source: 'STATIC', staticValue: '', description: 'Escenario 2 (L90 corregido): razon por la que no fue posible detener/medir directamente la fuente -- sin dato de origen en el OIT, requiere revision humana antes de emitir' },
 };
 
 export const EMISION_RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
