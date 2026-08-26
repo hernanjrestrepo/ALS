@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
 
 const verify = vi.fn();
@@ -39,9 +39,16 @@ function mockRes() {
     return res as unknown as Response & { statusCode: number; payload: any };
 }
 
+const TEST_SECRET = 'x'.repeat(48);
+
 beforeEach(() => {
     verify.mockReset();
     findUnique.mockReset();
+    vi.stubEnv('JWT_SECRET', TEST_SECRET);
+});
+
+afterEach(() => {
+    vi.unstubAllEnvs();
 });
 
 describe('authMiddleware', () => {
@@ -55,20 +62,32 @@ describe('authMiddleware', () => {
 
         await authMiddleware(req, res, next);
 
-        expect(verify).toHaveBeenCalledWith('good-token', 'secret');
+        expect(verify).toHaveBeenCalledWith('good-token', TEST_SECRET);
         expect((req as AuthenticatedRequest).user).toEqual({ userId: 'u1', role: 'ADMIN' });
         expect(next).toHaveBeenCalledOnce();
     });
 
-    it('uses the configured JWT secret when present', async () => {
-        vi.stubEnv('JWT_SECRET', 'from-env');
+    it('uses the configured JWT secret', async () => {
+        const otherSecret = 'y'.repeat(48);
+        vi.stubEnv('JWT_SECRET', otherSecret);
         verify.mockReturnValue({ userId: 'u1' });
         findUnique.mockResolvedValue({ id: 'u1', role: 'ADMIN' });
 
         await authMiddleware({ headers: { authorization: 'Bearer t' } } as Request, mockRes(), vi.fn());
 
-        expect(verify).toHaveBeenCalledWith('t', 'from-env');
-        vi.unstubAllEnvs();
+        expect(verify).toHaveBeenCalledWith('t', otherSecret);
+    });
+
+    it('rejects the request when JWT_SECRET is missing or weak', async () => {
+        vi.stubEnv('JWT_SECRET', 'secret');
+        const res = mockRes();
+        const next = vi.fn();
+
+        await authMiddleware({ headers: { authorization: 'Bearer t' } } as Request, res, next as unknown as NextFunction);
+
+        expect(res.statusCode).toBe(401);
+        expect(next).not.toHaveBeenCalled();
+        expect(verify).not.toHaveBeenCalled();
     });
 
     it('rejects a request without an authorization header', async () => {
