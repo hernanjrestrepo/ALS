@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { aiService } from './ai.service';
 import { pdfService } from './pdf.service';
 import fs from 'fs';
+import { errorMessage, logError, logWarning, parseJsonOrDefault } from '../utils/errors';
 
 const prisma = new PrismaClient();
 
@@ -22,7 +23,7 @@ class VerificationService {
             clientName: '',
             dates: {
                 scheduled: oit.scheduledDate,
-                serviceDates: oit.serviceDates ? JSON.parse(oit.serviceDates) : null
+                serviceDates: parseJsonOrDefault<any>(oit.serviceDates, null, `OIT ${oitId} serviceDates`)
             }
         };
 
@@ -33,7 +34,9 @@ class VerificationService {
                 sources.clientName = ai.data?.clientName || ai.clientName;
                 sources.aiResources = ai.data?.assignedResources;
             }
-        } catch (e) { }
+        } catch (e) {
+            logWarning(`OIT ${oitId}: no se pudo leer aiData para la verificacion`, e);
+        }
 
         // Sampling Data (What was actually done in app)
         let samplingSummary = '';
@@ -43,7 +46,9 @@ class VerificationService {
                 const stepValues = Object.values(steps).map((s: any) => s.data?.value || s.data?.result).filter(Boolean);
                 samplingSummary = stepValues.join(', ');
             }
-        } catch (e) { }
+        } catch (e) {
+            logWarning(`OIT ${oitId}: no se pudo leer stepValidations para la verificacion`, e);
+        }
 
         // Lab Results Text
         let labText = '';
@@ -61,7 +66,7 @@ class VerificationService {
                 if (fs.existsSync(path)) {
                     labText = await pdfService.extractText(path);
                 }
-            } catch (e) { console.error('Error reading lab summary', e); }
+            } catch (e) { logError(`OIT ${oitId}: error leyendo resultados de laboratorio (${oit.labResultsUrl})`, e); }
         }
 
         // Field Form Text
@@ -75,7 +80,7 @@ class VerificationService {
                 if (fs.existsSync(path)) {
                     fieldFormText = await pdfService.extractText(path);
                 }
-            } catch (e) { console.error('Error reading field form', e); }
+            } catch (e) { logError(`OIT ${oitId}: error leyendo planilla de campo (${oit.fieldFormUrl})`, e); }
         }
 
         // 2. AI Prompt
@@ -125,8 +130,8 @@ Responde en JSON:
 
             return result;
         } catch (error) {
-            console.error('AI Verification failed', error);
-            throw new Error('Falló la verificación por IA');
+            logError(`OIT ${oitId}: verificacion por IA fallida`, error);
+            throw new Error(`Falló la verificación por IA: ${errorMessage(error)}`);
         }
     }
 }

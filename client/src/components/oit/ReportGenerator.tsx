@@ -369,6 +369,7 @@ export function ReportGenerator({
 
                 // Poll for completion
                 const startTime = Date.now();
+                let consecutivePollErrors = 0;
                 const pollInterval = setInterval(async () => {
                     try {
                         // Timeout protection (5 minutes)
@@ -401,11 +402,18 @@ export function ReportGenerator({
                                     }
                                 }
                             } catch (e) {
-                                // invalid json, keep polling or ignore
+                                console.warn(`[ReportGenerator] finalReportUrl no es JSON valido para la OIT ${oitId}, se sigue esperando`, e);
                             }
                         }
+                        consecutivePollErrors = 0;
                     } catch (pollErr) {
-                        console.error('Polling error:', pollErr);
+                        consecutivePollErrors++;
+                        console.error(`[ReportGenerator] Error consultando el estado del informe (intento ${consecutivePollErrors})`, pollErr);
+                        if (consecutivePollErrors >= 5) {
+                            clearInterval(pollInterval);
+                            setIsGenerating(false);
+                            notify.error('No se pudo consultar el estado del informe. Revisa tu conexión y recarga la página.');
+                        }
                     }
                 }, 3000); // Check every 3 seconds
 
