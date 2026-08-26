@@ -88,7 +88,7 @@ export const getDashboardMetrics = async (req: Request, res: Response) => {
             topClients,
             recentReports,
         });
-    } catch (error: any) {
-        handleError(res, error, 'Error al obtener metricas del dashboard', { status: 500, response: { error: 'Error al obtener metricas del dashboard' }, log: () => console.error('Error fetching dashboard metrics:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al obtener metricas del dashboard', { logLabel: 'Error fetching dashboard metrics:' });
     }
 };

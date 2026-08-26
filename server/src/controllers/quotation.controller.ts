@@ -17,8 +17,8 @@ export const getQuotations = async (req: Request, res: Response) => {
             }
         });
         res.json(quotations);
-    } catch (error: any) {
-        handleError(res, error, 'Error al obtener cotizaciones', { status: 500, response: { error: 'Error al obtener cotizaciones' }, log: () => console.error('Error fetching quotations:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al obtener cotizaciones', { logLabel: 'Error fetching quotations:' });
     }
 };
 
@@ -40,8 +40,8 @@ export const getQuotation = async (req: Request, res: Response) => {
         }
 
         res.json(quotation);
-    } catch (error: any) {
-        handleError(res, error, 'Error al obtener cotización', { status: 500, response: { error: 'Error al obtener cotización' }, log: () => console.error('Error fetching quotation:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al obtener cotización', { logLabel: 'Error fetching quotation:' });
     }
 };
 
@@ -75,8 +75,8 @@ export const createQuotation = async (req: Request, res: Response) => {
                 console.error('Error in background quotation analysis:', err);
             });
         }
-    } catch (error: any) {
-        handleError(res, error, 'Error al crear cotización', { status: 500, response: { error: 'Error al crear cotización' }, log: () => console.error('Error creating quotation:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al crear cotización', { logLabel: 'Error creating quotation:' });
     }
 };
 
@@ -113,8 +113,8 @@ export const updateQuotation = async (req: Request, res: Response) => {
                 console.error('Error in background quotation re-analysis:', err);
             });
         }
-    } catch (error: any) {
-        handleError(res, error, 'Error al actualizar cotización', { status: 500, response: { error: 'Error al actualizar cotización' }, log: () => console.error('Error updating quotation:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al actualizar cotización', { logLabel: 'Error updating quotation:' });
     }
 };
 
@@ -147,8 +147,8 @@ export const deleteQuotation = async (req: Request, res: Response) => {
 
         await prisma.quotation.delete({ where: { id } });
         res.json({ message: 'Cotización eliminada' });
-    } catch (error: any) {
-        handleError(res, error, 'Error al eliminar cotización', { status: 500, response: { error: 'Error al eliminar cotización' }, log: () => console.error('Error deleting quotation:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al eliminar cotización', { logLabel: 'Error deleting quotation:' });
     }
 };
 
@@ -184,8 +184,8 @@ export const analyzeQuotation = async (req: Request, res: Response) => {
             console.error('Error in background quotation analysis:', err);
         });
 
-    } catch (error: any) {
-        handleError(res, error, 'Error al analizar cotización', { status: 500, response: { error: 'Error al analizar cotización' }, log: () => console.error('Error analyzing quotation:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al analizar cotización', { logLabel: 'Error analyzing quotation:' });
     }
 };
 

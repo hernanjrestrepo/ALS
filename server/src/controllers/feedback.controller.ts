@@ -41,8 +41,8 @@ router.post('/', async (req: Request, res: Response) => {
 
         console.log(`[Feedback] New ${feedbackType} feedback for ${category}`);
         res.status(201).json(feedback);
-    } catch (error: any) {
-        handleError(res, error, 'Failed to save feedback', { status: 500, response: { error: 'Failed to save feedback' }, log: () => console.error('[Feedback] Error saving feedback:', error) });
+    } catch (error) {
+        handleError(res, error, 'Failed to save feedback', { logLabel: '[Feedback] Error saving feedback:' });
     }
 });
 
@@ -65,8 +65,8 @@ router.get('/', async (req: Request, res: Response) => {
         });
 
         res.json(feedback);
-    } catch (error: any) {
-        handleError(res, error, 'Failed to fetch feedback', { status: 500, response: { error: 'Failed to fetch feedback' }, log: () => console.error('[Feedback] Error fetching feedback:', error) });
+    } catch (error) {
+        handleError(res, error, 'Failed to fetch feedback', { logLabel: '[Feedback] Error fetching feedback:' });
     }
 });
 
@@ -95,8 +95,8 @@ router.get('/corrections/:category', async (req: Request, res: Response) => {
         });
 
         res.json(corrections);
-    } catch (error: any) {
-        handleError(res, error, 'Failed to fetch corrections', { status: 500, response: { error: 'Failed to fetch corrections' }, log: () => console.error('[Feedback] Error fetching corrections:', error) });
+    } catch (error) {
+        handleError(res, error, 'Failed to fetch corrections', { logLabel: '[Feedback] Error fetching corrections:' });
     }
 });
 
@@ -127,8 +127,8 @@ router.get('/stats', async (req: Request, res: Response) => {
             byType: byType.reduce((acc: Record<string, number>, t: any) => ({ ...acc, [t.feedbackType]: t._count }), {}),
             averageRating: avgRating._avg.rating || 0
         });
-    } catch (error: any) {
-        handleError(res, error, 'Failed to fetch stats', { status: 500, response: { error: 'Failed to fetch stats' }, log: () => console.error('[Feedback] Error fetching stats:', error) });
+    } catch (error) {
+        handleError(res, error, 'Failed to fetch stats', { logLabel: '[Feedback] Error fetching stats:' });
     }
 });
 

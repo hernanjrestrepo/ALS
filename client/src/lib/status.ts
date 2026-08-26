@@ -68,5 +68,3 @@ export function getStatusLabel(status: string, labels: Record<string, string>): 
 export function getStatusColor(status: string, colors: Record<string, string>): string {
     return colors[status] || 'bg-slate-50 text-slate-700 border-slate-200';
 }
-
-export { StatusBadge } from '@/components/status/StatusBadge';

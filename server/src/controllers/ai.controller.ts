@@ -80,8 +80,8 @@ Responde de manera clara, profesional y basándote en los datos reales del siste
 
         const response = await aiService.chat(contextPrompt, model);
         res.json({ response });
-    } catch (error: any) {
-        handleError(res, error, 'Failed to process request', { status: 500, response: { error: 'Failed to process request' }, log: () => console.error('Error in chat:', error) });
+    } catch (error) {
+        handleError(res, error, 'Failed to process request', { logLabel: 'Error in chat:' });
     }
 };
 
@@ -243,14 +243,11 @@ ${quotationText}
         console.log('✅ [VALIDATE] Respuesta de IA recibida:', result);
         return res.status(200).json(result);
     } catch (error: any) {
-        handleError(res, error, 'Error al validar documentos', {
-            status: 500,
-            response: {
-                valid: false,
-                message: 'Error al validar documentos',
-                errors: [error.message || 'Error interno del servidor']
-            },
-            log: () => console.error('Error validating OIT documents:', error)
+        console.error('Error validating OIT documents:', error);
+        res.status(500).json({
+            valid: false,
+            message: 'Error al validar documentos',
+            errors: [error.message || 'Error interno del servidor']
         });
     }
 };

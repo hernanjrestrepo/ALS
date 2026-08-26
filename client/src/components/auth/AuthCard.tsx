@@ -10,7 +10,13 @@ interface AuthCardProps {
     wrapperClassName?: string;
 }
 
-export function AuthCard({ title, description, children, footer, wrapperClassName = 'flex flex-col min-h-screen items-center justify-center p-4 bg-slate-50 gap-4' }: AuthCardProps) {
+export function AuthCard({
+    title,
+    description,
+    children,
+    footer,
+    wrapperClassName = 'flex flex-col min-h-screen items-center justify-center p-4 bg-slate-50 gap-4'
+}: AuthCardProps) {
     return (
         <div className={wrapperClassName}>
             <Card className="w-full max-w-[400px] shadow-none border-slate-200">
@@ -20,21 +26,11 @@ export function AuthCard({ title, description, children, footer, wrapperClassNam
                             <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
                         </div>
                     </div>
-                    <CardTitle className="text-xl font-semibold text-slate-900">
-                        {title}
-                    </CardTitle>
-                    <CardDescription className="text-slate-500">
-                        {description}
-                    </CardDescription>
+                    <CardTitle className="text-xl font-semibold text-slate-900">{title}</CardTitle>
+                    <CardDescription className="text-slate-500">{description}</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    {children}
-                </CardContent>
-                {footer && (
-                    <CardFooter className="justify-center border-t border-slate-100 pt-6">
-                        {footer}
-                    </CardFooter>
-                )}
+                <CardContent>{children}</CardContent>
+                {footer && <CardFooter className="justify-center border-t border-slate-100 pt-6">{footer}</CardFooter>}
             </Card>
             <ParadixeFooter />
         </div>

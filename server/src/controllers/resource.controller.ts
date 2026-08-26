@@ -144,8 +144,8 @@ export const bulkUpload = async (req: Request, res: Response) => {
                     errorCount: errors.length,
                     errors: errors.length > 0 ? errors : undefined
                 });
-            } catch (dbError: any) {
-                handleError(res, dbError, 'Error saving resources to database', { status: 500, response: { message: 'Error saving resources to database' }, log: () => console.error('Database Error:', dbError) });
+            } catch (dbError) {
+                handleError(res, dbError, 'Error saving resources to database', { key: 'message', logLabel: 'Database Error:' });
             }
         });
 
@@ -153,7 +153,7 @@ export const bulkUpload = async (req: Request, res: Response) => {
         parser.write(fileContent);
         parser.end();
 
-    } catch (error: any) {
-        handleError(res, error, 'Internal server error during bulk upload', { status: 500, response: { message: 'Internal server error during bulk upload' }, log: () => console.error('Bulk upload error:', error) });
+    } catch (error) {
+        handleError(res, error, 'Internal server error during bulk upload', { key: 'message', logLabel: 'Bulk upload error:' });
     }
 };

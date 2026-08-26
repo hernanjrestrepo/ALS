@@ -1,21 +1,19 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
-export function getAuthUser(req: AuthenticatedRequest) {
-    return req.user;
+export function getAuthUser(req: Request) {
+    return (req as AuthenticatedRequest).user;
 }
 
-export function getUserId(req: AuthenticatedRequest): string {
-    return req.user!.userId;
+export function getUserId(req: Request): string {
+    return (req as AuthenticatedRequest).user!.userId;
 }
 
 interface ErrorOptions {
     status?: number;
     key?: 'error' | 'message';
     logLabel?: string;
-    includeError?: boolean;
-    response?: Record<string, unknown>;
-    log?: () => void;
+    extra?: Record<string, unknown>;
 }
 
 export function handleError(
@@ -24,17 +22,15 @@ export function handleError(
     message: string,
     opts: ErrorOptions = {}
 ) {
-    if (opts.log) {
-        opts.log();
-    } else if (opts.logLabel !== undefined) {
+    if (opts.logLabel !== undefined) {
         console.error(opts.logLabel, err);
     } else {
         console.error(err);
     }
 
-    const body = opts.response || {
+    const body = {
         [opts.key || 'error']: message,
-        ...(opts.includeError ? { error: String(err) } : {})
+        ...opts.extra
     };
     return res.status(opts.status || 500).json(body);
 }

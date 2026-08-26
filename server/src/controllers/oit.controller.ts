@@ -83,10 +83,10 @@ export const acceptPlanning = async (req: Request, res: Response) => {
         }
 
         // Create notification
-        if (getAuthUser(req as any)?.userId) {
+        if (getAuthUser(req)?.userId) {
             await prisma.notification.create({
                 data: {
-                    userId: getUserId(req as any),
+                    userId: getUserId(req),
                     oitId: id,
                     title: 'Planeación Aceptada',
                     message: `La propuesta de planeación para OIT ${oit.oitNumber} ha sido aceptada. Recursos asignados y programados.`,
@@ -96,8 +96,8 @@ export const acceptPlanning = async (req: Request, res: Response) => {
         }
 
         res.json(oit);
-    } catch (error: any) {
-        handleError(res, error, 'Error al aceptar planeación', { status: 500, response: { error: 'Error al aceptar planeación' }, log: () => console.error('Error accepting planning:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al aceptar planeación', { logLabel: 'Error accepting planning:' });
     }
 };
 
@@ -115,8 +115,8 @@ export const rejectPlanning = async (req: Request, res: Response) => {
         });
 
         res.json({ message: 'Propuesta rechazada, puede crear una planeación manual', oit });
-    } catch (error: any) {
-        handleError(res, error, 'Error al rechazar planeación', { status: 500, response: { error: 'Error al rechazar planeación' }, log: () => console.error('Error rejecting planning:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al rechazar planeación', { logLabel: 'Error rejecting planning:' });
     }
 };
 
@@ -138,10 +138,10 @@ export const saveSamplingData = async (req: Request, res: Response) => {
         });
 
         // Create notification if completed
-        if (isComplete && getAuthUser(req as any)?.userId) {
+        if (isComplete && getAuthUser(req)?.userId) {
             await prisma.notification.create({
                 data: {
-                    userId: getUserId(req as any),
+                    userId: getUserId(req),
                     oitId: id,
                     title: 'Muestreo Completado',
                     message: `El muestreo para OIT ${oit.oitNumber} ha sido completado`,
@@ -151,8 +151,8 @@ export const saveSamplingData = async (req: Request, res: Response) => {
         }
 
         res.json({ success: true, oit });
-    } catch (error: any) {
-        handleError(res, error, 'Error al guardar datos de muestreo', { status: 500, response: { error: 'Error al guardar datos de muestreo' }, log: () => console.error('Error saving sampling data:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al guardar datos de muestreo', { logLabel: 'Error saving sampling data:' });
     }
 };
 
@@ -198,8 +198,8 @@ export const submitSampling = async (req: Request, res: Response) => {
             }
         })();
 
-    } catch (error: any) {
-        handleError(res, error, 'Error al enviar muestreo', { status: 500, response: { error: 'Error al enviar muestreo' }, log: () => console.error('Error submitting sampling:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al enviar muestreo', { logLabel: 'Error submitting sampling:' });
     }
 };
 
@@ -214,8 +214,8 @@ export const getSamplingData = async (req: Request, res: Response) => {
         }
 
         res.json(JSON.parse(oit.samplingData));
-    } catch (error: any) {
-        handleError(res, error, 'Error al obtener datos de muestreo', { status: 500, response: { error: 'Error al obtener datos de muestreo' }, log: () => console.error('Error getting sampling data:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al obtener datos de muestreo', { logLabel: 'Error getting sampling data:' });
     }
 };
 
@@ -279,8 +279,8 @@ export const uploadLabResults = async (req: Request, res: Response) => {
             console.error('Error in background lab processing:', err);
         });
 
-    } catch (error: any) {
-        handleError(res, error, 'Error al subir resultados de laboratorio', { status: 500, response: { error: 'Error al subir resultados de laboratorio' }, log: () => console.error('Error uploading lab results:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al subir resultados de laboratorio', { logLabel: 'Error uploading lab results:' });
     }
 };
 
@@ -709,8 +709,8 @@ export const assignEngineers = async (req: Request, res: Response) => {
             success: true,
             assignedEngineers: updatedOit?.assignedEngineers.map((a: any) => a.user) || []
         });
-    } catch (error: any) {
-        handleError(res, error, 'Error al asignar ingenieros', { status: 500, response: { error: 'Error al asignar ingenieros' }, log: () => console.error('Error assigning engineers:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al asignar ingenieros', { logLabel: 'Error assigning engineers:' });
     }
 };
 
@@ -729,15 +729,15 @@ export const getAssignedEngineers = async (req: Request, res: Response) => {
         });
 
         res.json(assignments.map((a: any) => a.user));
-    } catch (error: any) {
-        handleError(res, error, 'Error al obtener ingenieros asignados', { status: 500, response: { error: 'Error al obtener ingenieros asignados' }, log: () => console.error('Error getting assigned engineers:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al obtener ingenieros asignados', { logLabel: 'Error getting assigned engineers:' });
     }
 };
 
 // Get all OIT records (filtered by role)
 export const getAllOITs = async (req: Request, res: Response) => {
     try {
-        const user = getAuthUser(req as any);
+        const user = getAuthUser(req);
         const userRole = user?.role;
         const userId = user?.userId;
 
@@ -780,8 +780,8 @@ export const getAllOITs = async (req: Request, res: Response) => {
         }));
 
         res.status(200).json(result);
-    } catch (error: any) {
-        handleError(res, error, 'Something went wrong', { status: 500, response: { message: 'Something went wrong', error: String(error) }, log: () => console.error('Error in getAllOITs:', error) });
+    } catch (error) {
+        handleError(res, error, 'Something went wrong', { key: 'message', extra: { error: String(error) }, logLabel: 'Error in getAllOITs:' });
     }
 };
 
@@ -789,7 +789,7 @@ export const getAllOITs = async (req: Request, res: Response) => {
 export const getOITById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const user = getAuthUser(req as any);
+        const user = getAuthUser(req);
 
         const oit = await prisma.oIT.findUnique({
             where: { id },
@@ -820,8 +820,8 @@ export const getOITById = async (req: Request, res: Response) => {
             ...oit,
             engineers: oit.assignedEngineers.map((a: any) => a.user)
         });
-    } catch (error: any) {
-        handleError(res, error, 'Something went wrong', { status: 500, response: { message: 'Something went wrong', error: String(error) }, log: () => console.error('Error in getOITById:', error) });
+    } catch (error) {
+        handleError(res, error, 'Something went wrong', { key: 'message', extra: { error: String(error) }, logLabel: 'Error in getOITById:' });
     }
 };
 
@@ -854,7 +854,7 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
 
         const oitNumber = OT || `OIT-${Date.now()}`;
         // Auth is optional for this endpoint as per requirement, but if token is sent, we can use it
-        const userId = getAuthUser(req as any)?.userId!;
+        const userId = getAuthUser(req)?.userId!;
 
         console.log(`[Legacy API] Processing OIT from URL: ${DOCUMENTO}`);
 
@@ -881,7 +881,7 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
                 writer.on('error', reject);
             });
         } catch (downloadError) {
-            return handleError(res, downloadError, 'Error al descargar el archivo desde la URL proporcionada', { status: 400, response: { error: 'Error al descargar el archivo desde la URL proporcionada' }, log: () => console.error('Error downloading file:', downloadError) });
+            return handleError(res, downloadError, 'Error al descargar el archivo desde la URL proporcionada', { status: 400, logLabel: 'Error downloading file:' });
         }
 
         const fileUrl = `/uploads/${filename}`;
@@ -951,15 +951,15 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
             }
         })();
 
-    } catch (error: any) {
-        handleError(res, error, 'Error interno al procesar solicitud', { status: 500, response: { error: 'Error interno al procesar solicitud' }, log: () => console.error('Error creating OIT from URL:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error interno al procesar solicitud', { logLabel: 'Error creating OIT from URL:' });
     }
 };
 
 export const createOITAsync = async (req: Request, res: Response) => {
     try {
         const { oitNumber, description } = req.body;
-        const userId = getAuthUser(req as any)?.userId; // Cast req to any to access user property
+        const userId = getAuthUser(req)?.userId; // Cast req to any to access user property
 
         if (!userId) {
             return res.status(401).json({ error: 'Usuario no autenticado' });
@@ -990,8 +990,8 @@ export const createOITAsync = async (req: Request, res: Response) => {
             console.error('Error processing OIT files:', err);
         });
 
-    } catch (error: any) {
-        handleError(res, error, 'Error al crear OIT', { status: 500, response: { error: 'Error al crear OIT' }, log: () => console.error('Error creating OIT:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al crear OIT', { logLabel: 'Error creating OIT:' });
     }
 };
 
@@ -1133,7 +1133,7 @@ async function processOITFilesAsync(
 export const reanalyzeOIT = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const userId = getAuthUser(req as any)?.userId!;
+        const userId = getAuthUser(req)?.userId!;
 
         const oit = await prisma.oIT.findUnique({ where: { id } });
         if (!oit) return res.status(404).json({ error: 'OIT not found' });
@@ -1166,8 +1166,8 @@ export const reanalyzeOIT = async (req: Request, res: Response) => {
 
         res.json({ message: 'Re-análisis iniciado correctamente.' });
 
-    } catch (error: any) {
-        handleError(res, error, 'Error al iniciar re-análisis', { status: 500, response: { error: 'Error al iniciar re-análisis' }, log: () => console.error('Error re-analyzing:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al iniciar re-análisis', { logLabel: 'Error re-analyzing:' });
     }
 };
 
@@ -1176,7 +1176,7 @@ export const updateOIT = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { oitNumber, description, status, oitFileUrl, quotationFileUrl, aiData, resources, engineerIds } = req.body;
-        const userId = getAuthUser(req as any)?.userId;
+        const userId = getAuthUser(req)?.userId;
         const data: any = {};
 
         // Handle uploaded files from multer
@@ -1276,7 +1276,7 @@ export const updateOIT = async (req: Request, res: Response) => {
 
         // Create notification on status change (reuse existing logic)
         if (status && existing.status !== status) {
-            const userId = getAuthUser(req as any)?.userId;
+            const userId = getAuthUser(req)?.userId;
             if (userId) {
                 const statusMessages: Record<string, { title: string; message: string; type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' }> = {
                     'REVIEW_REQUIRED': {
@@ -1349,8 +1349,8 @@ export const updateOIT = async (req: Request, res: Response) => {
             );
         }
 
-    } catch (error: any) {
-        handleError(res, error, 'Error interno del servidor', { status: 500, response: { message: 'Error interno del servidor' }, log: () => console.error('Error updating OIT:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error interno del servidor', { key: 'message', logLabel: 'Error updating OIT:' });
     }
 };
 
@@ -1367,7 +1367,7 @@ export const deleteOIT = async (req: Request, res: Response) => {
 export const checkCompliance = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const userId = getAuthUser(req as any)?.userId;
+        const userId = getAuthUser(req)?.userId;
 
         if (!userId) {
             return res.status(401).json({ error: 'Usuario no autenticado' });
@@ -1378,8 +1378,8 @@ export const checkCompliance = async (req: Request, res: Response) => {
 
         const result = await complianceService.checkCompliance(id, userId);
         res.json(result);
-    } catch (error: any) {
-        handleError(res, error, 'Error al verificar cumplimiento', { status: 500, response: { error: 'Error al verificar cumplimiento' }, log: () => console.error('Error checking compliance:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al verificar cumplimiento', { logLabel: 'Error checking compliance:' });
     }
 };
 
@@ -1444,8 +1444,8 @@ export const validateStepData = async (req: Request, res: Response) => {
         });
 
         res.json(validationResult);
-    } catch (error: any) {
-        handleError(res, error, 'Error al validar el paso', { status: 500, response: { error: 'Error al validar el paso' }, log: () => console.error('Error validating step:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al validar el paso', { logLabel: 'Error validating step:' });
     }
 };
 
@@ -1529,8 +1529,8 @@ export const finalizeSampling = async (req: Request, res: Response) => {
             success: true,
             analysis: finalAnalysis
         });
-    } catch (error: any) {
-        handleError(res, error, 'Error al finalizar el muestreo', { status: 500, response: { error: 'Error al finalizar el muestreo' }, log: () => console.error('Error finalizing sampling:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al finalizar el muestreo', { logLabel: 'Error finalizing sampling:' });
     }
 };
 
@@ -1564,8 +1564,8 @@ export const generateSamplingReport = async (req: Request, res: Response) => {
 
         // Send PDF file
         res.download(pdfPath, `Informe_Muestreo_${oit.oitNumber}.pdf`);
-    } catch (error: any) {
-        handleError(res, error, 'Error al generar el informe PDF', { status: 500, response: { error: 'Error al generar el informe PDF' }, log: () => console.error('Error generating report:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al generar el informe PDF', { logLabel: 'Error generating report:' });
     }
 };
 
@@ -1622,8 +1622,8 @@ export const uploadSamplingSheets = async (req: Request, res: Response) => {
             console.error('Error in background sampling sheets processing:', err);
         });
 
-    } catch (error: any) {
-        handleError(res, error, 'Error al subir planillas de muestreo', { status: 500, response: { error: 'Error al subir planillas de muestreo' }, log: () => console.error('Error uploading sampling sheets:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al subir planillas de muestreo', { logLabel: 'Error uploading sampling sheets:' });
     }
 };
 
@@ -1670,8 +1670,8 @@ export const deleteSamplingSheet = async (req: Request, res: Response) => {
         });
 
         res.json({ success: true, samplingSheetUrl: JSON.stringify(groupedFiles), message: 'Archivo eliminado' });
-    } catch (error: any) {
-        handleError(res, error, 'Error al eliminar planilla', { status: 500, response: { error: 'Error al eliminar planilla' }, log: () => console.error('Error deleting sampling sheet:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al eliminar planilla', { logLabel: 'Error deleting sampling sheet:' });
     }
 };
 
@@ -1892,8 +1892,8 @@ export const reportChatPreview = async (req: Request, res: Response) => {
         const proposedMarkdown = await aiService.reviseReportNarrative(baselineMarkdown, message);
 
         res.json({ currentMarkdown: baselineMarkdown, proposedMarkdown });
-    } catch (error: any) {
-        handleError(res, error, 'Error al generar la propuesta de cambio', { status: 500, response: { error: 'Error al generar la propuesta de cambio' }, log: () => console.error('Error in report chat preview:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al generar la propuesta de cambio', { logLabel: 'Error in report chat preview:' });
     }
 };
 
@@ -1933,8 +1933,8 @@ export const reportChatApprove = async (req: Request, res: Response) => {
         await recordReportVersions(id, [newReport]);
 
         res.json({ message: 'Informe actualizado y nueva version creada', report: newReport });
-    } catch (error: any) {
-        handleError(res, error, 'Error al aplicar el cambio aprobado', { status: 500, response: { error: 'Error al aplicar el cambio aprobado' }, log: () => console.error('Error approving report chat edit:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al aplicar el cambio aprobado', { logLabel: 'Error approving report chat edit:' });
     }
 };
 
@@ -1946,8 +1946,8 @@ export const getReportVersions = async (req: Request, res: Response) => {
             orderBy: [{ name: 'asc' }, { versionNumber: 'desc' }],
         });
         res.json(versions);
-    } catch (error: any) {
-        handleError(res, error, 'Error al obtener el historial de versiones del informe', { status: 500, response: { error: 'Error al obtener el historial de versiones del informe' }, log: () => console.error('Error fetching report versions:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al obtener el historial de versiones del informe', { logLabel: 'Error fetching report versions:' });
     }
 };
 
@@ -1990,8 +1990,8 @@ export const activateReportVersion = async (req: Request, res: Response) => {
         });
 
         res.json({ message: 'Version reactivada', activeVersion: version });
-    } catch (error: any) {
-        handleError(res, error, 'Error al reactivar la version', { status: 500, response: { error: 'Error al reactivar la version' }, log: () => console.error('Error activating report version:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al reactivar la version', { logLabel: 'Error activating report version:' });
     }
 };
 
@@ -2055,8 +2055,8 @@ export const generateFinalReport = async (req: Request, res: Response) => {
             reports: []
         });
 
-    } catch (error: any) {
-        handleError(res, error, 'Error iniciando generación de informe final', { status: 500, response: { error: 'Error iniciando generación de informe final' }, log: () => console.error('Final Report Error:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error iniciando generación de informe final', { logLabel: 'Final Report Error:' });
     }
 };
 
@@ -2120,8 +2120,8 @@ export const updatePlanningResources = async (req: Request, res: Response) => {
         });
 
         res.json({ success: true, resources: mappedResources });
-    } catch (error: any) {
-        handleError(res, error, 'Error al actualizar recursos', { status: 500, response: { error: 'Error al actualizar recursos' }, log: () => console.error('Error updating planning resources:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al actualizar recursos', { logLabel: 'Error updating planning resources:' });
     }
 };
 
@@ -2222,8 +2222,8 @@ export const requestRedoSteps = async (req: Request, res: Response) => {
             message: redoAll ? 'Todos los pasos marcados para rehacer' : `${stepIndices?.length} paso(s) marcado(s) para rehacer`,
             samplingProgress
         });
-    } catch (error: any) {
-        handleError(res, error, 'Error al solicitar corrección', { status: 500, response: { error: 'Error al solicitar corrección' }, log: () => console.error('Error requesting redo:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al solicitar corrección', { logLabel: 'Error requesting redo:' });
     }
 };
 
@@ -2282,8 +2282,8 @@ export const updateServiceDates = async (req: Request, res: Response) => {
             message: 'Programación actualizada correctamente',
             assignedEngineersCount: uniqueEngineerIds.length
         });
-    } catch (error: any) {
-        handleError(res, error, 'Error al actualizar fechas de servicio', { status: 500, response: { error: 'Error al actualizar fechas de servicio' }, log: () => console.error('Error updating service dates:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al actualizar fechas de servicio', { logLabel: 'Error updating service dates:' });
     }
 };
 
@@ -2295,7 +2295,7 @@ export const verifyConsistency = async (req: Request, res: Response) => {
 
         const result = await verificationService.verifyConsistency(id);
         res.json(result);
-    } catch (error: any) {
-        handleError(res, error, 'Error en verificación de consistencia', { status: 500, response: { error: 'Error en verificación de consistencia' }, log: () => console.error('Error verifying consistency:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error en verificación de consistencia', { logLabel: 'Error verifying consistency:' });
     }
 };

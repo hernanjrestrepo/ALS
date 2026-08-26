@@ -74,7 +74,8 @@ export const analyzeTemplateTags = async (req: Request, res: Response) => {
             candidates,
         });
     } catch (error: any) {
-        handleError(res, error, 'Error al analizar la plantilla', { status: 500, response: { error: 'Error al analizar la plantilla', details: error.message }, log: () => console.error('[TemplateDetection] analyzeTemplateTags error:', error.message) });
+        console.error('[TemplateDetection] analyzeTemplateTags error:', error.message);
+        res.status(500).json({ error: 'Error al analizar la plantilla', details: error.message });
     }
 };
 
@@ -217,6 +218,7 @@ export const applyTemplateTags = async (req: Request, res: Response) => {
             totalInsertFailed: insertionReport.filter(r => !r.inserted).length,
         });
     } catch (error: any) {
-        handleError(res, error, 'Error al aplicar los tags', { status: 500, response: { error: 'Error al aplicar los tags', details: error.message }, log: () => console.error('[TemplateDetection] applyTemplateTags error:', error.message) });
+        console.error('[TemplateDetection] applyTemplateTags error:', error.message);
+        res.status(500).json({ error: 'Error al aplicar los tags', details: error.message });
     }
 };

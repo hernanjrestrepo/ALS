@@ -39,8 +39,8 @@ export const register = async (req: Request, res: Response) => {
             token,
             user: { id: user.id, email: user.email, name: user.name, role: user.role }
         });
-    } catch (error: any) {
-        handleError(res, error, 'Error del servidor', { status: 500, response: { message: 'Error del servidor' }, log: () => console.error('Register error:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error del servidor', { key: 'message', logLabel: 'Register error:' });
     }
 };
 
@@ -70,8 +70,8 @@ export const login = async (req: Request, res: Response) => {
             token,
             user: { id: user.id, email: user.email, name: user.name, role: user.role }
         });
-    } catch (error: any) {
-        handleError(res, error, 'Error del servidor', { status: 500, response: { message: 'Error del servidor' }, log: () => console.error('Login error:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error del servidor', { key: 'message', logLabel: 'Login error:' });
     }
 };
 
@@ -113,8 +113,8 @@ export const forgotPassword = async (req: Request, res: Response) => {
         }
 
         res.status(200).json(genericResponse);
-    } catch (error: any) {
-        handleError(res, error, 'Error del servidor', { status: 500, response: { message: 'Error del servidor' }, log: () => console.error('Forgot password error:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error del servidor', { key: 'message', logLabel: 'Forgot password error:' });
     }
 };
 
@@ -146,7 +146,7 @@ export const resetPassword = async (req: Request, res: Response) => {
         });
 
         res.status(200).json({ message: 'Contraseña actualizada correctamente' });
-    } catch (error: any) {
-        handleError(res, error, 'Error del servidor', { status: 500, response: { message: 'Error del servidor' }, log: () => console.error('Reset password error:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error del servidor', { key: 'message', logLabel: 'Reset password error:' });
     }
 };

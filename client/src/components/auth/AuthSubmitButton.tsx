@@ -8,11 +8,7 @@ interface AuthSubmitButtonProps {
 
 export function AuthSubmitButton({ isLoading, label }: AuthSubmitButtonProps) {
     return (
-        <Button
-            type="submit"
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white"
-            disabled={isLoading}
-        >
+        <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white" disabled={isLoading}>
             {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
             ) : (

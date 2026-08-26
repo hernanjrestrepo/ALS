@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search, Plus, FileText, Loader2, Receipt, Building2, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 import { quotationStatusLabels, quotationStatusStyles } from '@/lib/status';
-import { StatusBadge } from '@/lib/status';
+import { StatusBadge } from '@/components/status/StatusBadge';
 import { formatDate } from '@/lib/date';
 
 interface Quotation {

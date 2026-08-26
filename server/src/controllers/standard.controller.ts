@@ -9,8 +9,8 @@ export const getStandards = async (req: Request, res: Response) => {
             orderBy: { createdAt: 'desc' }
         });
         res.json(standards);
-    } catch (error: any) {
-        handleError(res, error, 'Error al obtener normas', { status: 500, response: { error: 'Error al obtener normas' }, log: () => console.error('Error fetching standards:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al obtener normas', { logLabel: 'Error fetching standards:' });
     }
 };
 
@@ -26,8 +26,8 @@ export const getStandard = async (req: Request, res: Response) => {
         }
 
         res.json(standard);
-    } catch (error: any) {
-        handleError(res, error, 'Error al obtener norma', { status: 500, response: { error: 'Error al obtener norma' }, log: () => console.error('Error fetching standard:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al obtener norma', { logLabel: 'Error fetching standard:' });
     }
 };
 
@@ -45,8 +45,8 @@ export const createStandard = async (req: Request, res: Response) => {
             }
         });
         res.status(201).json(standard);
-    } catch (error: any) {
-        handleError(res, error, 'Error al crear norma', { status: 500, response: { error: 'Error al crear norma' }, log: () => console.error('Error creating standard:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al crear norma', { logLabel: 'Error creating standard:' });
     }
 };
 
@@ -71,8 +71,8 @@ export const updateStandard = async (req: Request, res: Response) => {
             data
         });
         res.json(standard);
-    } catch (error: any) {
-        handleError(res, error, 'Error al actualizar norma', { status: 500, response: { error: 'Error al actualizar norma' }, log: () => console.error('Error updating standard:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al actualizar norma', { logLabel: 'Error updating standard:' });
     }
 };
 
@@ -83,7 +83,7 @@ export const deleteStandard = async (req: Request, res: Response) => {
             where: { id }
         });
         res.json({ message: 'Norma eliminada' });
-    } catch (error: any) {
-        handleError(res, error, 'Error al eliminar norma', { status: 500, response: { error: 'Error al eliminar norma' }, log: () => console.error('Error deleting standard:', error) });
+    } catch (error) {
+        handleError(res, error, 'Error al eliminar norma', { logLabel: 'Error deleting standard:' });
     }
 };
