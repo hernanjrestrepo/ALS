@@ -12,6 +12,7 @@ import TEMPLATE_CONFIGS, { getTemplateType, FieldMapping, TemplateConfig } from 
 import { docxService } from '../services/docx.service';
 import { WaterIndicesService } from '../services/water-indices';
 import { ChartService } from '../services/chart.service';
+import { logWarning } from '../utils/errors';
 
 interface OITData {
     oitNumber: string;
@@ -124,12 +125,18 @@ export class TemplateDataMapper {
                 data.ubicacion.ciudadDepartamento = `${data.ubicacion.ciudad || 'Barranquilla'}, ${data.ubicacion.departamento || 'Atlántico'}`;
             }
             return data;
-        } catch { return {}; }
+        } catch (error) {
+            logWarning(`[TemplateMapper] aiData invalido para OIT ${this.oit.oitNumber}, se usa objeto vacio`, error);
+            return {};
+        }
     }
 
     private getTemplateFieldsList(fileName: string): string[] {
         try { return docxService.getTemplateFields(fileName); }
-        catch { return []; }
+        catch (error) {
+            logWarning(`[TemplateMapper] no se pudieron leer los campos de la plantilla ${fileName}`, error);
+            return [];
+        }
     }
 
     // ==================== DATA ACCESSORS ====================
