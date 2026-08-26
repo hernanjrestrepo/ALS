@@ -11,8 +11,12 @@ async function seed() {
     console.log('🌱 Ejecutando seed...');
 
     // Crear usuario admin
-    const adminEmail = 'admin@serambiente.com';
-    const adminPassword = 'admin123';
+    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@serambiente.com';
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+    if (!adminPassword || adminPassword.length < 12) {
+        throw new Error('SEED_ADMIN_PASSWORD debe estar definido con al menos 12 caracteres para ejecutar el seed');
+    }
 
     const existingAdmin = await prisma.user.findUnique({
         where: { email: adminEmail }

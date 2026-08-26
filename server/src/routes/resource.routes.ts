@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { getAllResources, getResourceById, createResource, updateResource, deleteResource, bulkUpload } from '../controllers/resource.controller';
+import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+router.use(authMiddleware);
 
 router.get('/', getAllResources);
 router.get('/:id', getResourceById);

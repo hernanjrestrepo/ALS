@@ -4,12 +4,25 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { sendPasswordResetEmail } from '../services/email.service';
+import { getJwtSecret } from '../config/env';
 
 const prisma = new PrismaClient();
 
 export const register = async (req: Request, res: Response) => {
     try {
         const { email, password, name } = req.body;
+
+        if (typeof email !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+            return res.status(400).json({ message: 'Correo electrónico inválido' });
+        }
+
+        if (typeof password !== 'string' || password.length < 8) {
+            return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres' });
+        }
+
+        if (name !== undefined && typeof name !== 'string') {
+            return res.status(400).json({ message: 'Nombre inválido' });
+        }
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
@@ -31,7 +44,7 @@ export const register = async (req: Request, res: Response) => {
             },
         });
 
-        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, {
+        const token = jwt.sign({ userId: user.id }, getJwtSecret(), {
             expiresIn: '24h',
         });
 
@@ -49,6 +62,10 @@ export const login = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
 
+        if (typeof email !== 'string' || typeof password !== 'string') {
+            return res.status(400).json({ message: 'Credenciales inválidas' });
+        }
+
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
             return res.status(400).json({ message: 'Credenciales inválidas' });
@@ -63,7 +80,7 @@ export const login = async (req: Request, res: Response) => {
             return res.status(403).json({ message: 'Cuenta inactiva. Contacte al administrador.' });
         }
 
-        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, {
+        const token = jwt.sign({ userId: user.id }, getJwtSecret(), {
             expiresIn: '24h',
         });
 
@@ -86,6 +103,11 @@ export const login = async (req: Request, res: Response) => {
 export const forgotPassword = async (req: Request, res: Response) => {
     try {
         const { email } = req.body;
+
+        if (typeof email !== 'string' || !email) {
+            return res.status(400).json({ message: 'Correo electrónico inválido' });
+        }
+
         const user = await prisma.user.findUnique({ where: { email } });
 
         // Respuesta genérica siempre, para no revelar si el correo existe o no
@@ -124,8 +146,11 @@ export const forgotPassword = async (req: Request, res: Response) => {
 export const resetPassword = async (req: Request, res: Response) => {
     try {
         const { email, token, password } = req.body;
-        if (!password || password.length < 6) {
-            return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+        if (typeof email !== 'string' || typeof token !== 'string') {
+            return res.status(400).json({ message: 'Link de recuperación inválido o expirado' });
+        }
+        if (typeof password !== 'string' || password.length < 8) {
+            return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres' });
         }
 
         const user = await prisma.user.findUnique({ where: { email } });

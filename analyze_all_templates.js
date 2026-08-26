@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const PizZip = require('pizzip');
-const { DOMParser } = require('xmldom');
+const { DOMParser } = require('@xmldom/xmldom');
 
 const templatesDir = './server/templates/reports';
 const outputFile = './server/src/config/templateMappings.json';

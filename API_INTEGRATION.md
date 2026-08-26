@@ -18,10 +18,13 @@ Para interactuar con la API, primero debes obtener un **Token JWT**.
 **Cuerpo (JSON):**
 ```json
 {
-  "email": "admin@serambiente.com",
-  "password": "admin123"
+  "email": "<TU_USUARIO>",
+  "password": "<TU_PASSWORD>"
 }
 ```
+
+> ⚠️ Nunca publiques credenciales reales en este documento ni en el repositorio.
+> Solicítalas al administrador del sistema y guárdalas en un gestor de secretos.
 
 **Respuesta Exitosa (200 OK):**
 ```json
@@ -179,3 +182,24 @@ updateOITFiles('uuid-de-la-oit');
 
 > 💡 **Nota:** Si `reanalyzing: true`, significa que la IA está procesando el nuevo documento en segundo plano. Esto no afecta a las cotizaciones vinculadas manualmente.
 
+---
+
+## 🔗 4. Creación de OIT desde una URL (integración legada)
+
+**Endpoint:** `POST /api/oits/from-url`
+**Content-Type:** `application/json`
+
+Este endpoint requiere autenticación: envía un `Authorization: Bearer <TU_TOKEN>`
+o la clave compartida de integración en el header `x-api-key` (configurada en el
+servidor con la variable de entorno `INTEGRATION_API_KEY`).
+
+```bash
+curl -X POST http://<SERVIDOR>/api/oits/from-url \
+  -H "x-api-key: <INTEGRATION_API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"OT":"OIT-EXT-2024-001","DOCUMENTO":"https://cliente.example.com/oit.pdf"}'
+```
+
+La URL enviada en `DOCUMENTO` debe ser `http`/`https` y pública: el servidor
+rechaza direcciones internas (loopback, rangos privados, link-local y metadata
+de la nube) y limita la descarga a 25 MB.

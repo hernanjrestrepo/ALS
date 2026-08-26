@@ -4,17 +4,18 @@ const express_1 = require("express");
 const oit_controller_1 = require("../controllers/oit.controller");
 const multer_1 = require("../config/multer");
 const auth_middleware_1 = require("../middleware/auth.middleware");
+const integration_middleware_1 = require("../middleware/integration.middleware");
 const router = (0, express_1.Router)();
 router.get('/', auth_middleware_1.authMiddleware, oit_controller_1.getAllOITs);
 router.get('/:id', auth_middleware_1.authMiddleware, oit_controller_1.getOITById);
-router.post('/', oit_controller_1.createOIT);
+router.post('/', auth_middleware_1.authMiddleware, oit_controller_1.createOIT);
 // Async creation endpoint with file uploads (oitFile and quotationFile)
 router.post('/async', auth_middleware_1.authMiddleware, multer_1.upload.fields([
     { name: 'oitFile', maxCount: 1 },
     { name: 'quotationFile', maxCount: 1 },
 ]), oit_controller_1.createOITAsync);
-router.post('/from-url', oit_controller_1.createOITFromUrl);
-router.put('/:id', oit_controller_1.updateOIT);
+router.post('/from-url', integration_middleware_1.integrationAuthMiddleware, oit_controller_1.createOITFromUrl);
+router.put('/:id', auth_middleware_1.authMiddleware, oit_controller_1.updateOIT);
 router.patch('/:id', auth_middleware_1.authMiddleware, multer_1.upload.fields([
     { name: 'oitFile', maxCount: 1 },
     { name: 'quotationFile', maxCount: 1 },
@@ -46,7 +47,7 @@ router.get('/:id/sampling-report', auth_middleware_1.authMiddleware, oit_control
 router.post('/:id/verify', auth_middleware_1.authMiddleware, oit_controller_1.verifyConsistency);
 // Request redo of sampling steps (Admin only)
 router.post('/:id/request-redo', auth_middleware_1.authMiddleware, auth_middleware_1.requireAdmin, oit_controller_1.requestRedoSteps);
-router.delete('/:id', oit_controller_1.deleteOIT);
+router.delete('/:id', auth_middleware_1.authMiddleware, auth_middleware_1.requireAdmin, oit_controller_1.deleteOIT);
 // Engineer assignment endpoints
 router.post('/:id/assign-engineers', auth_middleware_1.authMiddleware, auth_middleware_1.requireAdmin, oit_controller_1.assignEngineers);
 router.get('/:id/engineers', auth_middleware_1.authMiddleware, oit_controller_1.getAssignedEngineers);

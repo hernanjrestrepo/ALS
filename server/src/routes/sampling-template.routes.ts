@@ -12,6 +12,7 @@ import {
     restoreTemplateVersion
 } from '../controllers/sampling-template.controller';
 import { docxService } from '../services/docx.service';
+import path from 'path';
 
 const router = Router();
 
@@ -30,7 +31,7 @@ router.post('/:id/versions/:versionId/restore', restoreTemplateVersion);
 // Get template fields (docxtemplater tags)
 router.get('/fields/:fileName', (req: Request, res: Response) => {
     try {
-        const { fileName } = req.params;
+        const fileName = path.basename(req.params.fileName);
         const fields = docxService.getTemplateFields(fileName);
         res.json({ fileName, fields, count: fields.length });
     } catch (error: any) {
