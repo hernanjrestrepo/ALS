@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import bcrypt from 'bcryptjs';
+import { getAuthUser, getUserId, handleError } from '../utils/http';
 
-const prisma = new PrismaClient();
 
 // Valid roles in the system
 export const ROLES = {
@@ -29,9 +29,8 @@ export const getAllUsers = async (req: Request, res: Response) => {
             orderBy: { createdAt: 'desc' }
         });
         res.json(users);
-    } catch (error) {
-        console.error('Error fetching users:', error);
-        res.status(500).json({ error: 'Error al obtener usuarios' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener usuarios', { status: 500, response: { error: 'Error al obtener usuarios' }, log: () => console.error('Error fetching users:', error) });
     }
 };
 
@@ -56,9 +55,8 @@ export const getUserById = async (req: Request, res: Response) => {
         }
 
         res.json(user);
-    } catch (error) {
-        console.error('Error fetching user:', error);
-        res.status(500).json({ error: 'Error al obtener usuario' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener usuario', { status: 500, response: { error: 'Error al obtener usuario' }, log: () => console.error('Error fetching user:', error) });
     }
 };
 
@@ -77,7 +75,7 @@ export const updateUserRole = async (req: Request, res: Response) => {
         }
 
         // Prevent changing own role
-        const currentUserId = (req as any).user?.userId;
+        const currentUserId = getAuthUser(req as any)?.userId;
         if (id === currentUserId) {
             return res.status(400).json({ error: 'No puedes cambiar tu propio rol' });
         }
@@ -96,9 +94,8 @@ export const updateUserRole = async (req: Request, res: Response) => {
         });
 
         res.json({ message: 'Rol actualizado exitosamente', user });
-    } catch (error) {
-        console.error('Error updating user role:', error);
-        res.status(500).json({ error: 'Error al actualizar rol' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al actualizar rol', { status: 500, response: { error: 'Error al actualizar rol' }, log: () => console.error('Error updating user role:', error) });
     }
 };
 
@@ -126,16 +123,15 @@ export const getEngineers = async (req: Request, res: Response) => {
             orderBy: { name: 'asc' }
         });
         res.json(engineers);
-    } catch (error) {
-        console.error('Error fetching engineers:', error);
-        res.status(500).json({ error: 'Error al obtener ingenieros' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener ingenieros', { status: 500, response: { error: 'Error al obtener ingenieros' }, log: () => console.error('Error fetching engineers:', error) });
     }
 };
 
 // Get current user profile
 export const getProfile = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.userId;
+        const userId = getAuthUser(req as any)?.userId;
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
@@ -153,9 +149,8 @@ export const getProfile = async (req: Request, res: Response) => {
         }
 
         res.json(user);
-    } catch (error) {
-        console.error('Error fetching profile:', error);
-        res.status(500).json({ error: 'Error al obtener perfil' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener perfil', { status: 500, response: { error: 'Error al obtener perfil' }, log: () => console.error('Error fetching profile:', error) });
     }
 };
 // Create new user (SUPER_ADMIN only)
@@ -196,9 +191,8 @@ export const createUser = async (req: Request, res: Response) => {
         });
 
         res.status(201).json(user);
-    } catch (error) {
-        console.error('Error creating user:', error);
-        res.status(500).json({ error: 'Error al crear usuario' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al crear usuario', { status: 500, response: { error: 'Error al crear usuario' }, log: () => console.error('Error creating user:', error) });
     }
 };
 
@@ -227,8 +221,7 @@ export const updatePassword = async (req: Request, res: Response) => {
         });
 
         res.json({ message: 'Contraseña actualizada exitosamente' });
-    } catch (error) {
-        console.error('Error updating password:', error);
-        res.status(500).json({ error: 'Error al actualizar contraseña' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al actualizar contraseña', { status: 500, response: { error: 'Error al actualizar contraseña' }, log: () => console.error('Error updating password:', error) });
     }
 };

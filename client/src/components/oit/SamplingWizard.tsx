@@ -10,6 +10,7 @@ import LocationMap from '@/components/shared/LocationMap';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { formatTime } from '@/lib/date';
 
 interface SamplingWizardProps {
     oitId: string;
@@ -291,7 +292,7 @@ export function SamplingWizard({ oitId, scheduledDate, startMessage }: SamplingW
                                                 <p className="text-sm font-medium text-slate-500 mb-1">Horario Programado</p>
                                                 <div className="flex items-baseline gap-2">
                                                     <span className="text-lg font-bold text-slate-900">
-                                                        {scheduledDate ? new Date(scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                                        {scheduledDate ? formatTime(new Date(scheduledDate), undefined, { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                                                     </span>
                                                     <span className="text-xs text-slate-500">
                                                         {scheduledDate ? new Date(scheduledDate).toLocaleDateString() : 'Sin fecha'}

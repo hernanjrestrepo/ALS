@@ -8,6 +8,7 @@ import { ArrowLeft, Trash2, RotateCcw, Workflow, Clock } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDate } from '@/lib/date';
 
 interface TrashedTemplate {
     id: string;
@@ -120,7 +121,7 @@ export default function SamplingTemplatesTrashPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="py-3 px-4 text-slate-600">
-                                                {new Date(template.deletedAt).toLocaleDateString('es-CO')}
+                                                {formatDate(new Date(template.deletedAt), 'es-CO')}
                                             </TableCell>
                                             <TableCell className="py-3 px-4">
                                                 <Badge variant="outline" className={template.daysRemaining <= 7 ? 'border-red-200 text-red-600 bg-red-50' : 'bg-slate-50'}>

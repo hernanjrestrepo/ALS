@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { aiService } from '../services/ai.service';
 import fs from 'fs';
+import { handleError } from '../utils/http';
 const pdfParse = require('pdf-parse');
 
-const prisma = new PrismaClient();
 
 export const chat = async (req: Request, res: Response) => {
     try {
@@ -80,9 +80,8 @@ Responde de manera clara, profesional y basándote en los datos reales del siste
 
         const response = await aiService.chat(contextPrompt, model);
         res.json({ response });
-    } catch (error) {
-        console.error('Error in chat:', error);
-        res.status(500).json({ error: 'Failed to process request' });
+    } catch (error: any) {
+        handleError(res, error, 'Failed to process request', { status: 500, response: { error: 'Failed to process request' }, log: () => console.error('Error in chat:', error) });
     }
 };
 
@@ -244,11 +243,14 @@ ${quotationText}
         console.log('✅ [VALIDATE] Respuesta de IA recibida:', result);
         return res.status(200).json(result);
     } catch (error: any) {
-        console.error('Error validating OIT documents:', error);
-        res.status(500).json({
-            valid: false,
-            message: 'Error al validar documentos',
-            errors: [error.message || 'Error interno del servidor']
+        handleError(res, error, 'Error al validar documentos', {
+            status: 500,
+            response: {
+                valid: false,
+                message: 'Error al validar documentos',
+                errors: [error.message || 'Error interno del servidor']
+            },
+            log: () => console.error('Error validating OIT documents:', error)
         });
     }
 };

@@ -37,6 +37,8 @@ import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
 
 
 import { QuotationLinker } from '@/components/oit/QuotationLinker';
+import { getStatusLabel, oitStatusLabels } from '@/lib/status';
+import { formatLongDate, formatTime } from '@/lib/date';
 
 // Service schedule structure for enhanced scheduling
 interface ServiceSchedule {
@@ -522,17 +524,6 @@ export default function OITDetailPage() {
     const aiData = oit.aiData ? JSON.parse(oit.aiData) : null;
     const resources = oit.resources ? JSON.parse(oit.resources) : [];
 
-    const getStatusLabel = (status: string) => {
-        const statusMap: Record<string, string> = {
-            'PENDING': 'Pendiente',
-            'IN_PROGRESS': 'En Progreso',
-            'COMPLETED': 'Completada',
-            'ANALYZING': 'Analizando',
-            'SCHEDULED': 'Programada',
-            'UPLOADING': 'Subiendo'
-        };
-        return statusMap[status] || status;
-    };
 
     return (
         <div className="min-h-screen bg-slate-50/50 pb-12">
@@ -547,7 +538,7 @@ export default function OITDetailPage() {
                                 </h1>
                                 <Badge variant={oit.status === 'ANALYZING' ? 'secondary' : 'default'} className="text-xs px-2.5 py-0.5 font-medium">
                                     {oit.status === 'ANALYZING' && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                                    {getStatusLabel(oit.status)}
+                                    {getStatusLabel(oit.status, oitStatusLabels)}
                                 </Badge>
                             </div>
                             <p className="text-slate-500 text-sm max-w-2xl truncate">
@@ -622,7 +613,7 @@ export default function OITDetailPage() {
                                         </div>
                                         <div className="space-y-1">
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</strong>
-                                            <p className="text-lg font-medium text-slate-900">{getStatusLabel(oit.status)}</p>
+                                            <p className="text-lg font-medium text-slate-900">{getStatusLabel(oit.status, oitStatusLabels)}</p>
                                         </div>
                                         <div className="col-span-2 space-y-1">
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Descripción</strong>
@@ -917,7 +908,7 @@ export default function OITDetailPage() {
                                                                         }
 
                                                                         const dateObj = new Date(dateToUse);
-                                                                        const dateStr = dateObj.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                                                                        const dateStr = formatLongDate(dateObj, 'es-ES');
 
                                                                         return (
                                                                             <div key={idx} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
@@ -1105,7 +1096,7 @@ export default function OITDetailPage() {
                                                                                     const schedule = serviceDates[firstId] || {};
 
                                                                                     const dateStr = schedule.date
-                                                                                        ? new Date(schedule.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                                                                                        ? formatLongDate(new Date(schedule.date), 'es-ES')
                                                                                         : 'Sin fecha';
 
                                                                                     return (
@@ -1239,7 +1230,7 @@ export default function OITDetailPage() {
                                                                 {new Date(oit.scheduledDate).toLocaleDateString()}
                                                                 <span className="text-slate-300">|</span>
                                                                 <Clock className="h-4 w-4 text-slate-400" />
-                                                                {new Date(oit.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                {formatTime(new Date(oit.scheduledDate), undefined, { hour: '2-digit', minute: '2-digit' })}
                                                             </div>
                                                         </div>
                                                         <div className="space-y-1">
@@ -1463,12 +1454,7 @@ export default function OITDetailPage() {
                                                                 <span className="text-sm font-medium text-indigo-900">Sugerencia de IA</span>
                                                             </div>
                                                             <p className="text-sm text-indigo-700">
-                                                                {new Date(aiData.data.proposedDate).toLocaleDateString('es-ES', {
-                                                                    weekday: 'long',
-                                                                    year: 'numeric',
-                                                                    month: 'long',
-                                                                    day: 'numeric'
-                                                                })} a las {aiData.data.proposedTime || '09:00'}
+                                                                {formatLongDate(new Date(aiData.data.proposedDate), 'es-ES')} a las {aiData.data.proposedTime || '09:00'}
                                                             </p>
                                                         </div>
                                                     )}

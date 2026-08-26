@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
+import { handleError } from '../utils/http';
 
-const prisma = new PrismaClient();
 
 const TRASH_RETENTION_DAYS = 90;
 
@@ -49,9 +49,8 @@ export const getTemplates = async (req: Request, res: Response) => {
             orderBy: { createdAt: 'desc' }
         });
         res.json(templates);
-    } catch (error) {
-        console.error('Error fetching templates:', error);
-        res.status(500).json({ error: 'Error al obtener plantillas' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener plantillas', { status: 500, response: { error: 'Error al obtener plantillas' }, log: () => console.error('Error fetching templates:', error) });
     }
 };
 
@@ -69,9 +68,8 @@ export const getTrashedTemplates = async (req: Request, res: Response) => {
             return { ...t, expiresAt, daysRemaining };
         });
         res.json(withExpiry);
-    } catch (error) {
-        console.error('Error fetching trashed templates:', error);
-        res.status(500).json({ error: 'Error al obtener la papelera' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener la papelera', { status: 500, response: { error: 'Error al obtener la papelera' }, log: () => console.error('Error fetching trashed templates:', error) });
     }
 };
 
@@ -87,9 +85,8 @@ export const getTemplateById = async (req: Request, res: Response) => {
         }
 
         res.json(template);
-    } catch (error) {
-        console.error('Error fetching template:', error);
-        res.status(500).json({ error: 'Error al obtener plantilla' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener plantilla', { status: 500, response: { error: 'Error al obtener plantilla' }, log: () => console.error('Error fetching template:', error) });
     }
 };
 
@@ -101,9 +98,8 @@ export const getTemplateVersions = async (req: Request, res: Response) => {
             orderBy: { versionNumber: 'desc' },
         });
         res.json(versions);
-    } catch (error) {
-        console.error('Error fetching template versions:', error);
-        res.status(500).json({ error: 'Error al obtener el historial de versiones' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener el historial de versiones', { status: 500, response: { error: 'Error al obtener el historial de versiones' }, log: () => console.error('Error fetching template versions:', error) });
     }
 };
 
@@ -121,9 +117,8 @@ export const createTemplate = async (req: Request, res: Response) => {
         });
 
         res.status(201).json(template);
-    } catch (error) {
-        console.error('Error creating template:', error);
-        res.status(500).json({ error: 'Error al crear plantilla' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al crear plantilla', { status: 500, response: { error: 'Error al crear plantilla' }, log: () => console.error('Error creating template:', error) });
     }
 };
 
@@ -147,9 +142,8 @@ export const updateTemplate = async (req: Request, res: Response) => {
         });
 
         res.json(template);
-    } catch (error) {
-        console.error('Error updating template:', error);
-        res.status(500).json({ error: 'Error al actualizar plantilla' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al actualizar plantilla', { status: 500, response: { error: 'Error al actualizar plantilla' }, log: () => console.error('Error updating template:', error) });
     }
 };
 
@@ -165,9 +159,8 @@ export const deleteTemplate = async (req: Request, res: Response) => {
         });
 
         res.json({ message: 'Plantilla movida a la papelera' });
-    } catch (error) {
-        console.error('Error deleting template:', error);
-        res.status(500).json({ error: 'Error al eliminar plantilla' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al eliminar plantilla', { status: 500, response: { error: 'Error al eliminar plantilla' }, log: () => console.error('Error deleting template:', error) });
     }
 };
 
@@ -181,9 +174,8 @@ export const restoreTemplate = async (req: Request, res: Response) => {
         });
 
         res.json(template);
-    } catch (error) {
-        console.error('Error restoring template:', error);
-        res.status(500).json({ error: 'Error al restaurar plantilla' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al restaurar plantilla', { status: 500, response: { error: 'Error al restaurar plantilla' }, log: () => console.error('Error restoring template:', error) });
     }
 };
 
@@ -214,8 +206,7 @@ export const restoreTemplateVersion = async (req: Request, res: Response) => {
         });
 
         res.json(template);
-    } catch (error) {
-        console.error('Error restoring template version:', error);
-        res.status(500).json({ error: 'Error al restaurar la version' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al restaurar la version', { status: 500, response: { error: 'Error al restaurar la version' }, log: () => console.error('Error restoring template version:', error) });
     }
 };

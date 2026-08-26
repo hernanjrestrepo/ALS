@@ -12,6 +12,7 @@ import {
     DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
 import { Calendar, Clock, Users, Pencil, Check, X, ChevronDown, Sparkles } from 'lucide-react';
+import { formatDate, formatLongDate } from '@/lib/date';
 
 interface ServiceSchedule {
     name: string;
@@ -108,7 +109,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                                 <span>
                                     💡 Sugerencia IA: {(() => {
                                         const [y, m, d] = schedule.date.split('-').map(Number);
-                                        return new Date(y, m - 1, d).toLocaleDateString('es-ES');
+                                        return formatDate(new Date(y, m - 1, d), 'es-ES');
                                     })()} a las {schedule.time}
                                 </span>
                             </div>
@@ -214,12 +215,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                                     // Parse manually to avoid UTC conversion shifts
                                     const [y, m, d] = localSchedule.date.split('-').map(Number);
                                     const localDate = new Date(y, m - 1, d);
-                                    return localDate.toLocaleDateString('es-ES', {
-                                        weekday: 'long',
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    });
+                                    return formatLongDate(localDate, 'es-ES');
                                 })()}
                             </span>
                         </div>

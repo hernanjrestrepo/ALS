@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, FileText, Type, Image, FileUp, CheckSquare, PenTool } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { TemplateStep, StepType } from '@/types/sampling';
+import { getStepIcon } from '@/lib/stepIcons';
 
 interface StepBuilderProps {
     onAddStep: (step: TemplateStep) => void;
@@ -110,16 +111,6 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
         resetForm();
     };
 
-    const getStepIcon = (type: StepType) => {
-        switch (type) {
-            case 'TEXT': return <FileText className="h-4 w-4" />;
-            case 'INPUT': return <Type className="h-4 w-4" />;
-            case 'IMAGE': return <Image className="h-4 w-4" />;
-            case 'DOCUMENT': return <FileUp className="h-4 w-4" />;
-            case 'CHECKBOX': return <CheckSquare className="h-4 w-4" />;
-            case 'SIGNATURE': return <PenTool className="h-4 w-4" />;
-        }
-    };
 
     return (
         <Card className="border-2 border-dashed border-slate-300">

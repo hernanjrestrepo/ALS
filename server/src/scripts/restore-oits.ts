@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import * as fs from 'fs';
 import * as path from 'path';
 import pdfParse from 'pdf-parse';
 
-const prisma = new PrismaClient();
 const UPLOADS_DIR = path.join(__dirname, '../../uploads');
 
 async function restore() {

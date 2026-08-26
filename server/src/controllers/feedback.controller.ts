@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
+import { handleError } from '../utils/http';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * POST /api/feedback
@@ -41,9 +41,8 @@ router.post('/', async (req: Request, res: Response) => {
 
         console.log(`[Feedback] New ${feedbackType} feedback for ${category}`);
         res.status(201).json(feedback);
-    } catch (error) {
-        console.error('[Feedback] Error saving feedback:', error);
-        res.status(500).json({ error: 'Failed to save feedback' });
+    } catch (error: any) {
+        handleError(res, error, 'Failed to save feedback', { status: 500, response: { error: 'Failed to save feedback' }, log: () => console.error('[Feedback] Error saving feedback:', error) });
     }
 });
 
@@ -66,9 +65,8 @@ router.get('/', async (req: Request, res: Response) => {
         });
 
         res.json(feedback);
-    } catch (error) {
-        console.error('[Feedback] Error fetching feedback:', error);
-        res.status(500).json({ error: 'Failed to fetch feedback' });
+    } catch (error: any) {
+        handleError(res, error, 'Failed to fetch feedback', { status: 500, response: { error: 'Failed to fetch feedback' }, log: () => console.error('[Feedback] Error fetching feedback:', error) });
     }
 });
 
@@ -97,9 +95,8 @@ router.get('/corrections/:category', async (req: Request, res: Response) => {
         });
 
         res.json(corrections);
-    } catch (error) {
-        console.error('[Feedback] Error fetching corrections:', error);
-        res.status(500).json({ error: 'Failed to fetch corrections' });
+    } catch (error: any) {
+        handleError(res, error, 'Failed to fetch corrections', { status: 500, response: { error: 'Failed to fetch corrections' }, log: () => console.error('[Feedback] Error fetching corrections:', error) });
     }
 });
 
@@ -130,9 +127,8 @@ router.get('/stats', async (req: Request, res: Response) => {
             byType: byType.reduce((acc: Record<string, number>, t: any) => ({ ...acc, [t.feedbackType]: t._count }), {}),
             averageRating: avgRating._avg.rating || 0
         });
-    } catch (error) {
-        console.error('[Feedback] Error fetching stats:', error);
-        res.status(500).json({ error: 'Failed to fetch stats' });
+    } catch (error: any) {
+        handleError(res, error, 'Failed to fetch stats', { status: 500, response: { error: 'Failed to fetch stats' }, log: () => console.error('[Feedback] Error fetching stats:', error) });
     }
 });
 

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AIService } from '../services/ai.service';
+import { getAuthUser, getUserId, handleError } from '../utils/http';
 const aiService = new AIService();
 import { createNotification } from './notification.controller';
 import fs from 'fs';
@@ -8,7 +9,6 @@ import path from 'path';
 // import { marked } from 'marked';
 import axios from 'axios';
 
-const prisma = new PrismaClient();
 
 // Guarda un snapshot de version por cada informe (name/url/type) generado para
 // un OIT, y marca como inactivas las versiones anteriores con el mismo nombre.
@@ -83,10 +83,10 @@ export const acceptPlanning = async (req: Request, res: Response) => {
         }
 
         // Create notification
-        if ((req as any).user?.userId) {
+        if (getAuthUser(req as any)?.userId) {
             await prisma.notification.create({
                 data: {
-                    userId: (req as any).user.userId,
+                    userId: getUserId(req as any),
                     oitId: id,
                     title: 'Planeación Aceptada',
                     message: `La propuesta de planeación para OIT ${oit.oitNumber} ha sido aceptada. Recursos asignados y programados.`,
@@ -96,9 +96,8 @@ export const acceptPlanning = async (req: Request, res: Response) => {
         }
 
         res.json(oit);
-    } catch (error) {
-        console.error('Error accepting planning:', error);
-        res.status(500).json({ error: 'Error al aceptar planeación' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al aceptar planeación', { status: 500, response: { error: 'Error al aceptar planeación' }, log: () => console.error('Error accepting planning:', error) });
     }
 };
 
@@ -116,9 +115,8 @@ export const rejectPlanning = async (req: Request, res: Response) => {
         });
 
         res.json({ message: 'Propuesta rechazada, puede crear una planeación manual', oit });
-    } catch (error) {
-        console.error('Error rejecting planning:', error);
-        res.status(500).json({ error: 'Error al rechazar planeación' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al rechazar planeación', { status: 500, response: { error: 'Error al rechazar planeación' }, log: () => console.error('Error rejecting planning:', error) });
     }
 };
 
@@ -140,10 +138,10 @@ export const saveSamplingData = async (req: Request, res: Response) => {
         });
 
         // Create notification if completed
-        if (isComplete && (req as any).user?.userId) {
+        if (isComplete && getAuthUser(req as any)?.userId) {
             await prisma.notification.create({
                 data: {
-                    userId: (req as any).user.userId,
+                    userId: getUserId(req as any),
                     oitId: id,
                     title: 'Muestreo Completado',
                     message: `El muestreo para OIT ${oit.oitNumber} ha sido completado`,
@@ -153,9 +151,8 @@ export const saveSamplingData = async (req: Request, res: Response) => {
         }
 
         res.json({ success: true, oit });
-    } catch (error) {
-        console.error('Error saving sampling data:', error);
-        res.status(500).json({ error: 'Error al guardar datos de muestreo' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al guardar datos de muestreo', { status: 500, response: { error: 'Error al guardar datos de muestreo' }, log: () => console.error('Error saving sampling data:', error) });
     }
 };
 
@@ -201,9 +198,8 @@ export const submitSampling = async (req: Request, res: Response) => {
             }
         })();
 
-    } catch (error) {
-        console.error('Error submitting sampling:', error);
-        res.status(500).json({ error: 'Error al enviar muestreo' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al enviar muestreo', { status: 500, response: { error: 'Error al enviar muestreo' }, log: () => console.error('Error submitting sampling:', error) });
     }
 };
 
@@ -218,9 +214,8 @@ export const getSamplingData = async (req: Request, res: Response) => {
         }
 
         res.json(JSON.parse(oit.samplingData));
-    } catch (error) {
-        console.error('Error getting sampling data:', error);
-        res.status(500).json({ error: 'Error al obtener datos de muestreo' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener datos de muestreo', { status: 500, response: { error: 'Error al obtener datos de muestreo' }, log: () => console.error('Error getting sampling data:', error) });
     }
 };
 
@@ -284,9 +279,8 @@ export const uploadLabResults = async (req: Request, res: Response) => {
             console.error('Error in background lab processing:', err);
         });
 
-    } catch (error) {
-        console.error('Error uploading lab results:', error);
-        res.status(500).json({ error: 'Error al subir resultados de laboratorio' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al subir resultados de laboratorio', { status: 500, response: { error: 'Error al subir resultados de laboratorio' }, log: () => console.error('Error uploading lab results:', error) });
     }
 };
 
@@ -715,9 +709,8 @@ export const assignEngineers = async (req: Request, res: Response) => {
             success: true,
             assignedEngineers: updatedOit?.assignedEngineers.map((a: any) => a.user) || []
         });
-    } catch (error) {
-        console.error('Error assigning engineers:', error);
-        res.status(500).json({ error: 'Error al asignar ingenieros' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al asignar ingenieros', { status: 500, response: { error: 'Error al asignar ingenieros' }, log: () => console.error('Error assigning engineers:', error) });
     }
 };
 
@@ -736,16 +729,15 @@ export const getAssignedEngineers = async (req: Request, res: Response) => {
         });
 
         res.json(assignments.map((a: any) => a.user));
-    } catch (error) {
-        console.error('Error getting assigned engineers:', error);
-        res.status(500).json({ error: 'Error al obtener ingenieros asignados' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener ingenieros asignados', { status: 500, response: { error: 'Error al obtener ingenieros asignados' }, log: () => console.error('Error getting assigned engineers:', error) });
     }
 };
 
 // Get all OIT records (filtered by role)
 export const getAllOITs = async (req: Request, res: Response) => {
     try {
-        const user = (req as any).user;
+        const user = getAuthUser(req as any);
         const userRole = user?.role;
         const userId = user?.userId;
 
@@ -788,9 +780,8 @@ export const getAllOITs = async (req: Request, res: Response) => {
         }));
 
         res.status(200).json(result);
-    } catch (error) {
-        console.error('Error in getAllOITs:', error);
-        res.status(500).json({ message: 'Something went wrong', error: String(error) });
+    } catch (error: any) {
+        handleError(res, error, 'Something went wrong', { status: 500, response: { message: 'Something went wrong', error: String(error) }, log: () => console.error('Error in getAllOITs:', error) });
     }
 };
 
@@ -798,7 +789,7 @@ export const getAllOITs = async (req: Request, res: Response) => {
 export const getOITById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const user = (req as any).user;
+        const user = getAuthUser(req as any);
 
         const oit = await prisma.oIT.findUnique({
             where: { id },
@@ -829,9 +820,8 @@ export const getOITById = async (req: Request, res: Response) => {
             ...oit,
             engineers: oit.assignedEngineers.map((a: any) => a.user)
         });
-    } catch (error) {
-        console.error('Error in getOITById:', error);
-        res.status(500).json({ message: 'Something went wrong', error: String(error) });
+    } catch (error: any) {
+        handleError(res, error, 'Something went wrong', { status: 500, response: { message: 'Something went wrong', error: String(error) }, log: () => console.error('Error in getOITById:', error) });
     }
 };
 
@@ -864,7 +854,7 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
 
         const oitNumber = OT || `OIT-${Date.now()}`;
         // Auth is optional for this endpoint as per requirement, but if token is sent, we can use it
-        const userId = (req as any).user?.userId;
+        const userId = getAuthUser(req as any)?.userId!;
 
         console.log(`[Legacy API] Processing OIT from URL: ${DOCUMENTO}`);
 
@@ -891,8 +881,7 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
                 writer.on('error', reject);
             });
         } catch (downloadError) {
-            console.error('Error downloading file:', downloadError);
-            return res.status(400).json({ error: 'Error al descargar el archivo desde la URL proporcionada' });
+            return handleError(res, downloadError, 'Error al descargar el archivo desde la URL proporcionada', { status: 400, response: { error: 'Error al descargar el archivo desde la URL proporcionada' }, log: () => console.error('Error downloading file:', downloadError) });
         }
 
         const fileUrl = `/uploads/${filename}`;
@@ -962,16 +951,15 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
             }
         })();
 
-    } catch (error) {
-        console.error('Error creating OIT from URL:', error);
-        res.status(500).json({ error: 'Error interno al procesar solicitud' });
+    } catch (error: any) {
+        handleError(res, error, 'Error interno al procesar solicitud', { status: 500, response: { error: 'Error interno al procesar solicitud' }, log: () => console.error('Error creating OIT from URL:', error) });
     }
 };
 
 export const createOITAsync = async (req: Request, res: Response) => {
     try {
         const { oitNumber, description } = req.body;
-        const userId = (req as any).user?.userId; // Cast req to any to access user property
+        const userId = getAuthUser(req as any)?.userId; // Cast req to any to access user property
 
         if (!userId) {
             return res.status(401).json({ error: 'Usuario no autenticado' });
@@ -1002,9 +990,8 @@ export const createOITAsync = async (req: Request, res: Response) => {
             console.error('Error processing OIT files:', err);
         });
 
-    } catch (error) {
-        console.error('Error creating OIT:', error);
-        res.status(500).json({ error: 'Error al crear OIT' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al crear OIT', { status: 500, response: { error: 'Error al crear OIT' }, log: () => console.error('Error creating OIT:', error) });
     }
 };
 
@@ -1146,7 +1133,7 @@ async function processOITFilesAsync(
 export const reanalyzeOIT = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const userId = (req as any).user?.userId;
+        const userId = getAuthUser(req as any)?.userId!;
 
         const oit = await prisma.oIT.findUnique({ where: { id } });
         if (!oit) return res.status(404).json({ error: 'OIT not found' });
@@ -1179,9 +1166,8 @@ export const reanalyzeOIT = async (req: Request, res: Response) => {
 
         res.json({ message: 'Re-análisis iniciado correctamente.' });
 
-    } catch (error) {
-        console.error('Error re-analyzing:', error);
-        res.status(500).json({ error: 'Error al iniciar re-análisis' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al iniciar re-análisis', { status: 500, response: { error: 'Error al iniciar re-análisis' }, log: () => console.error('Error re-analyzing:', error) });
     }
 };
 
@@ -1190,7 +1176,7 @@ export const updateOIT = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { oitNumber, description, status, oitFileUrl, quotationFileUrl, aiData, resources, engineerIds } = req.body;
-        const userId = (req as any).user?.userId;
+        const userId = getAuthUser(req as any)?.userId;
         const data: any = {};
 
         // Handle uploaded files from multer
@@ -1290,7 +1276,7 @@ export const updateOIT = async (req: Request, res: Response) => {
 
         // Create notification on status change (reuse existing logic)
         if (status && existing.status !== status) {
-            const userId = (req as any).user?.userId;
+            const userId = getAuthUser(req as any)?.userId;
             if (userId) {
                 const statusMessages: Record<string, { title: string; message: string; type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' }> = {
                     'REVIEW_REQUIRED': {
@@ -1363,9 +1349,8 @@ export const updateOIT = async (req: Request, res: Response) => {
             );
         }
 
-    } catch (error) {
-        console.error('Error updating OIT:', error);
-        res.status(500).json({ message: 'Error interno del servidor' });
+    } catch (error: any) {
+        handleError(res, error, 'Error interno del servidor', { status: 500, response: { message: 'Error interno del servidor' }, log: () => console.error('Error updating OIT:', error) });
     }
 };
 
@@ -1382,7 +1367,7 @@ export const deleteOIT = async (req: Request, res: Response) => {
 export const checkCompliance = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const userId = (req as any).user?.userId;
+        const userId = getAuthUser(req as any)?.userId;
 
         if (!userId) {
             return res.status(401).json({ error: 'Usuario no autenticado' });
@@ -1393,9 +1378,8 @@ export const checkCompliance = async (req: Request, res: Response) => {
 
         const result = await complianceService.checkCompliance(id, userId);
         res.json(result);
-    } catch (error) {
-        console.error('Error checking compliance:', error);
-        res.status(500).json({ error: 'Error al verificar cumplimiento' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al verificar cumplimiento', { status: 500, response: { error: 'Error al verificar cumplimiento' }, log: () => console.error('Error checking compliance:', error) });
     }
 };
 
@@ -1460,9 +1444,8 @@ export const validateStepData = async (req: Request, res: Response) => {
         });
 
         res.json(validationResult);
-    } catch (error) {
-        console.error('Error validating step:', error);
-        res.status(500).json({ error: 'Error al validar el paso' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al validar el paso', { status: 500, response: { error: 'Error al validar el paso' }, log: () => console.error('Error validating step:', error) });
     }
 };
 
@@ -1546,9 +1529,8 @@ export const finalizeSampling = async (req: Request, res: Response) => {
             success: true,
             analysis: finalAnalysis
         });
-    } catch (error) {
-        console.error('Error finalizing sampling:', error);
-        res.status(500).json({ error: 'Error al finalizar el muestreo' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al finalizar el muestreo', { status: 500, response: { error: 'Error al finalizar el muestreo' }, log: () => console.error('Error finalizing sampling:', error) });
     }
 };
 
@@ -1582,9 +1564,8 @@ export const generateSamplingReport = async (req: Request, res: Response) => {
 
         // Send PDF file
         res.download(pdfPath, `Informe_Muestreo_${oit.oitNumber}.pdf`);
-    } catch (error) {
-        console.error('Error generating report:', error);
-        res.status(500).json({ error: 'Error al generar el informe PDF' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al generar el informe PDF', { status: 500, response: { error: 'Error al generar el informe PDF' }, log: () => console.error('Error generating report:', error) });
     }
 };
 
@@ -1641,9 +1622,8 @@ export const uploadSamplingSheets = async (req: Request, res: Response) => {
             console.error('Error in background sampling sheets processing:', err);
         });
 
-    } catch (error) {
-        console.error('Error uploading sampling sheets:', error);
-        res.status(500).json({ error: 'Error al subir planillas de muestreo' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al subir planillas de muestreo', { status: 500, response: { error: 'Error al subir planillas de muestreo' }, log: () => console.error('Error uploading sampling sheets:', error) });
     }
 };
 
@@ -1690,9 +1670,8 @@ export const deleteSamplingSheet = async (req: Request, res: Response) => {
         });
 
         res.json({ success: true, samplingSheetUrl: JSON.stringify(groupedFiles), message: 'Archivo eliminado' });
-    } catch (error) {
-        console.error('Error deleting sampling sheet:', error);
-        res.status(500).json({ error: 'Error al eliminar planilla' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al eliminar planilla', { status: 500, response: { error: 'Error al eliminar planilla' }, log: () => console.error('Error deleting sampling sheet:', error) });
     }
 };
 
@@ -1913,9 +1892,8 @@ export const reportChatPreview = async (req: Request, res: Response) => {
         const proposedMarkdown = await aiService.reviseReportNarrative(baselineMarkdown, message);
 
         res.json({ currentMarkdown: baselineMarkdown, proposedMarkdown });
-    } catch (error) {
-        console.error('Error in report chat preview:', error);
-        res.status(500).json({ error: 'Error al generar la propuesta de cambio' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al generar la propuesta de cambio', { status: 500, response: { error: 'Error al generar la propuesta de cambio' }, log: () => console.error('Error in report chat preview:', error) });
     }
 };
 
@@ -1955,9 +1933,8 @@ export const reportChatApprove = async (req: Request, res: Response) => {
         await recordReportVersions(id, [newReport]);
 
         res.json({ message: 'Informe actualizado y nueva version creada', report: newReport });
-    } catch (error) {
-        console.error('Error approving report chat edit:', error);
-        res.status(500).json({ error: 'Error al aplicar el cambio aprobado' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al aplicar el cambio aprobado', { status: 500, response: { error: 'Error al aplicar el cambio aprobado' }, log: () => console.error('Error approving report chat edit:', error) });
     }
 };
 
@@ -1969,9 +1946,8 @@ export const getReportVersions = async (req: Request, res: Response) => {
             orderBy: [{ name: 'asc' }, { versionNumber: 'desc' }],
         });
         res.json(versions);
-    } catch (error) {
-        console.error('Error fetching report versions:', error);
-        res.status(500).json({ error: 'Error al obtener el historial de versiones del informe' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener el historial de versiones del informe', { status: 500, response: { error: 'Error al obtener el historial de versiones del informe' }, log: () => console.error('Error fetching report versions:', error) });
     }
 };
 
@@ -2014,9 +1990,8 @@ export const activateReportVersion = async (req: Request, res: Response) => {
         });
 
         res.json({ message: 'Version reactivada', activeVersion: version });
-    } catch (error) {
-        console.error('Error activating report version:', error);
-        res.status(500).json({ error: 'Error al reactivar la version' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al reactivar la version', { status: 500, response: { error: 'Error al reactivar la version' }, log: () => console.error('Error activating report version:', error) });
     }
 };
 
@@ -2080,9 +2055,8 @@ export const generateFinalReport = async (req: Request, res: Response) => {
             reports: []
         });
 
-    } catch (error) {
-        console.error('Final Report Error:', error);
-        res.status(500).json({ error: 'Error iniciando generación de informe final' });
+    } catch (error: any) {
+        handleError(res, error, 'Error iniciando generación de informe final', { status: 500, response: { error: 'Error iniciando generación de informe final' }, log: () => console.error('Final Report Error:', error) });
     }
 };
 
@@ -2146,9 +2120,8 @@ export const updatePlanningResources = async (req: Request, res: Response) => {
         });
 
         res.json({ success: true, resources: mappedResources });
-    } catch (error) {
-        console.error('Error updating planning resources:', error);
-        res.status(500).json({ error: 'Error al actualizar recursos' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al actualizar recursos', { status: 500, response: { error: 'Error al actualizar recursos' }, log: () => console.error('Error updating planning resources:', error) });
     }
 };
 
@@ -2249,9 +2222,8 @@ export const requestRedoSteps = async (req: Request, res: Response) => {
             message: redoAll ? 'Todos los pasos marcados para rehacer' : `${stepIndices?.length} paso(s) marcado(s) para rehacer`,
             samplingProgress
         });
-    } catch (error) {
-        console.error('Error requesting redo:', error);
-        res.status(500).json({ error: 'Error al solicitar corrección' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al solicitar corrección', { status: 500, response: { error: 'Error al solicitar corrección' }, log: () => console.error('Error requesting redo:', error) });
     }
 };
 
@@ -2310,9 +2282,8 @@ export const updateServiceDates = async (req: Request, res: Response) => {
             message: 'Programación actualizada correctamente',
             assignedEngineersCount: uniqueEngineerIds.length
         });
-    } catch (error) {
-        console.error('Error updating service dates:', error);
-        res.status(500).json({ error: 'Error al actualizar fechas de servicio' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al actualizar fechas de servicio', { status: 500, response: { error: 'Error al actualizar fechas de servicio' }, log: () => console.error('Error updating service dates:', error) });
     }
 };
 
@@ -2324,8 +2295,7 @@ export const verifyConsistency = async (req: Request, res: Response) => {
 
         const result = await verificationService.verifyConsistency(id);
         res.json(result);
-    } catch (error) {
-        console.error('Error verifying consistency:', error);
-        res.status(500).json({ error: 'Error en verificación de consistencia' });
+    } catch (error: any) {
+        handleError(res, error, 'Error en verificación de consistencia', { status: 500, response: { error: 'Error en verificación de consistencia' }, log: () => console.error('Error verifying consistency:', error) });
     }
 };

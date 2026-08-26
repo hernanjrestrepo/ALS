@@ -54,6 +54,16 @@ export class AIService {
         }
     }
 
+    private parseJsonResponse(responseText: string): any {
+        const normalizedText = responseText.trim().replace(/```json/g, '').replace(/```/g, '').trim();
+        const jsonStart = normalizedText.indexOf('{');
+        const jsonEnd = normalizedText.lastIndexOf('}');
+        const jsonText = jsonStart !== -1 && jsonEnd !== -1
+            ? normalizedText.substring(jsonStart, jsonEnd + 1)
+            : normalizedText;
+        return JSON.parse(jsonText);
+    }
+
     private chunkText(text: string, size: number): string[] {
         const chunks: string[] = [];
         for (let i = 0; i < text.length; i += size) {
@@ -184,15 +194,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 format: 'json',
             });
 
-            let responseText = (response.data.response || '').trim();
-            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const jsonStart = responseText.indexOf('{');
-            const jsonEnd = responseText.lastIndexOf('}');
-            if (jsonStart !== -1 && jsonEnd !== -1) {
-                responseText = responseText.substring(jsonStart, jsonEnd + 1);
-            }
-
-            const parsed = JSON.parse(responseText);
+            const parsed = this.parseJsonResponse(response.data.response || '');
             console.log(`[AI] Result Status: ${parsed.status}. Services: ${parsed.services?.length || 0}`);
 
             return {
@@ -392,15 +394,7 @@ REGLAS ESTRICTAS:
                 options: { num_ctx: 16384 },
             }, { timeout: 180000 });
 
-            let responseText = (response.data.response || '').trim();
-            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const jsonStart = responseText.indexOf('{');
-            const jsonEnd = responseText.lastIndexOf('}');
-            if (jsonStart !== -1 && jsonEnd !== -1) {
-                responseText = responseText.substring(jsonStart, jsonEnd + 1);
-            }
-
-            const parsed = JSON.parse(responseText);
+            const parsed = this.parseJsonResponse(response.data.response || '');
             if (!parsed.rawText) {
                 // Model didn't follow the schema; fall back to treating the whole response as narrative
                 return JSON.stringify({ rawText: response.data.response || '', parsedData: parsed.parsedData || {} });

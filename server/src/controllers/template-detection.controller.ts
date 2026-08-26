@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import PizZip from 'pizzip';
 import { AIService } from '../services/ai.service';
+import { handleError } from '../utils/http';
 
 const aiService = new AIService();
 const uploadsDir = path.join(__dirname, '../../uploads');
@@ -73,8 +74,7 @@ export const analyzeTemplateTags = async (req: Request, res: Response) => {
             candidates,
         });
     } catch (error: any) {
-        console.error('[TemplateDetection] analyzeTemplateTags error:', error.message);
-        res.status(500).json({ error: 'Error al analizar la plantilla', details: error.message });
+        handleError(res, error, 'Error al analizar la plantilla', { status: 500, response: { error: 'Error al analizar la plantilla', details: error.message }, log: () => console.error('[TemplateDetection] analyzeTemplateTags error:', error.message) });
     }
 };
 
@@ -217,7 +217,6 @@ export const applyTemplateTags = async (req: Request, res: Response) => {
             totalInsertFailed: insertionReport.filter(r => !r.inserted).length,
         });
     } catch (error: any) {
-        console.error('[TemplateDetection] applyTemplateTags error:', error.message);
-        res.status(500).json({ error: 'Error al aplicar los tags', details: error.message });
+        handleError(res, error, 'Error al aplicar los tags', { status: 500, response: { error: 'Error al aplicar los tags', details: error.message }, log: () => console.error('[TemplateDetection] applyTemplateTags error:', error.message) });
     }
 };

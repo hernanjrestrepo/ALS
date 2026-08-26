@@ -1,10 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { aiService } from './ai.service';
 import fs from 'fs';
 import path from 'path';
 // import { pdfService } from './pdf.service'; // Circular dependency if not careful
 
-const prisma = new PrismaClient();
 
 // Utility types
 interface ServiceExtraction {

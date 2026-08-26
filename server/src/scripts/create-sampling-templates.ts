@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const prisma = new PrismaClient();
 const PLANILLAS_DIR = path.join(__dirname, '../../uploads/PLANILLAS');
 
 // Definición de tipos de pasos

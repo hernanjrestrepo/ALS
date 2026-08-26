@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatTime } from '@/lib/date';
 
 export function HeaderAuth() {
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -11,13 +12,7 @@ export function HeaderAuth() {
         return () => clearInterval(timer);
     }, []);
 
-    const formatTime = (date: Date) => {
-        return date.toLocaleTimeString('es-ES', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-    };
+    const formatCurrentTime = (date: Date) => formatTime(date, 'es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 px-4 py-2">
@@ -26,7 +21,7 @@ export function HeaderAuth() {
                     ALS
                 </div>
                 <div className="text-sm font-medium text-gray-600 tabular-nums">
-                    {formatTime(currentTime)}
+                    {formatCurrentTime(currentTime)}
                 </div>
             </div>
         </header>

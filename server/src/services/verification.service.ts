@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { aiService } from './ai.service';
 import { pdfService } from './pdf.service';
 import fs from 'fs';
 
-const prisma = new PrismaClient();
 
 class VerificationService {
     async verifyConsistency(oitId: string) {

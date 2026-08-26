@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import fs from 'fs';
 import path from 'path';
 
-const prisma = new PrismaClient();
 
 const PREDEFINED_MAPPINGS: Record<string, string> = {
     // Standard Mappings based on keywords

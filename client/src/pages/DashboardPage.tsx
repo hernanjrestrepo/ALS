@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TodaySchedule } from '@/components/dashboard/TodaySchedule';
+import { getStatusLabel, oitStatusLabels } from '@/lib/status';
 
 export default function DashboardPage() {
     const { stats, isLoading } = useDashboardStats();
@@ -40,17 +41,6 @@ export default function DashboardPage() {
         },
     ];
 
-    const getStatusLabel = (status: string) => {
-        const statusMap: Record<string, string> = {
-            'PENDING': 'Pendiente',
-            'IN_PROGRESS': 'En Progreso',
-            'COMPLETED': 'Completada',
-            'ANALYZING': 'Analizando',
-            'SCHEDULED': 'Programada',
-            'UPLOADING': 'Subiendo'
-        };
-        return statusMap[status] || status;
-    };
 
     return (
         <div className="space-y-8">
@@ -114,7 +104,7 @@ export default function DashboardPage() {
                                             ${oit.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
                                                 oit.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700' :
                                                     'bg-slate-100 text-slate-700'}`}>
-                                            {getStatusLabel(oit.status)}
+                                            {getStatusLabel(oit.status, oitStatusLabels)}
                                         </div>
                                     </div>
                                 ))

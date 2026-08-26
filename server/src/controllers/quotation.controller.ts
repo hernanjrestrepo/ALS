@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import fs from 'fs';
 import path from 'path';
+import { handleError } from '../utils/http';
 
-const prisma = new PrismaClient();
 
 // Get all quotations
 export const getQuotations = async (req: Request, res: Response) => {
@@ -17,9 +17,8 @@ export const getQuotations = async (req: Request, res: Response) => {
             }
         });
         res.json(quotations);
-    } catch (error) {
-        console.error('Error fetching quotations:', error);
-        res.status(500).json({ error: 'Error al obtener cotizaciones' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener cotizaciones', { status: 500, response: { error: 'Error al obtener cotizaciones' }, log: () => console.error('Error fetching quotations:', error) });
     }
 };
 
@@ -41,9 +40,8 @@ export const getQuotation = async (req: Request, res: Response) => {
         }
 
         res.json(quotation);
-    } catch (error) {
-        console.error('Error fetching quotation:', error);
-        res.status(500).json({ error: 'Error al obtener cotización' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al obtener cotización', { status: 500, response: { error: 'Error al obtener cotización' }, log: () => console.error('Error fetching quotation:', error) });
     }
 };
 
@@ -77,9 +75,8 @@ export const createQuotation = async (req: Request, res: Response) => {
                 console.error('Error in background quotation analysis:', err);
             });
         }
-    } catch (error) {
-        console.error('Error creating quotation:', error);
-        res.status(500).json({ error: 'Error al crear cotización' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al crear cotización', { status: 500, response: { error: 'Error al crear cotización' }, log: () => console.error('Error creating quotation:', error) });
     }
 };
 
@@ -116,9 +113,8 @@ export const updateQuotation = async (req: Request, res: Response) => {
                 console.error('Error in background quotation re-analysis:', err);
             });
         }
-    } catch (error) {
-        console.error('Error updating quotation:', error);
-        res.status(500).json({ error: 'Error al actualizar cotización' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al actualizar cotización', { status: 500, response: { error: 'Error al actualizar cotización' }, log: () => console.error('Error updating quotation:', error) });
     }
 };
 
@@ -151,9 +147,8 @@ export const deleteQuotation = async (req: Request, res: Response) => {
 
         await prisma.quotation.delete({ where: { id } });
         res.json({ message: 'Cotización eliminada' });
-    } catch (error) {
-        console.error('Error deleting quotation:', error);
-        res.status(500).json({ error: 'Error al eliminar cotización' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al eliminar cotización', { status: 500, response: { error: 'Error al eliminar cotización' }, log: () => console.error('Error deleting quotation:', error) });
     }
 };
 
@@ -189,9 +184,8 @@ export const analyzeQuotation = async (req: Request, res: Response) => {
             console.error('Error in background quotation analysis:', err);
         });
 
-    } catch (error) {
-        console.error('Error analyzing quotation:', error);
-        res.status(500).json({ error: 'Error al analizar cotización' });
+    } catch (error: any) {
+        handleError(res, error, 'Error al analizar cotización', { status: 500, response: { error: 'Error al analizar cotización' }, log: () => console.error('Error analyzing quotation:', error) });
     }
 };
 
