@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
+import { handleError } from '../utils/http';
 
-const prisma = new PrismaClient();
 
 const TRASH_RETENTION_DAYS = 90;
 
@@ -50,8 +50,7 @@ export const getTemplates = async (req: Request, res: Response) => {
         });
         res.json(templates);
     } catch (error) {
-        console.error('Error fetching templates:', error);
-        res.status(500).json({ error: 'Error al obtener plantillas' });
+        handleError(res, error, 'Error al obtener plantillas', { logLabel: 'Error fetching templates:' });
     }
 };
 
@@ -70,8 +69,7 @@ export const getTrashedTemplates = async (req: Request, res: Response) => {
         });
         res.json(withExpiry);
     } catch (error) {
-        console.error('Error fetching trashed templates:', error);
-        res.status(500).json({ error: 'Error al obtener la papelera' });
+        handleError(res, error, 'Error al obtener la papelera', { logLabel: 'Error fetching trashed templates:' });
     }
 };
 
@@ -88,8 +86,7 @@ export const getTemplateById = async (req: Request, res: Response) => {
 
         res.json(template);
     } catch (error) {
-        console.error('Error fetching template:', error);
-        res.status(500).json({ error: 'Error al obtener plantilla' });
+        handleError(res, error, 'Error al obtener plantilla', { logLabel: 'Error fetching template:' });
     }
 };
 
@@ -102,8 +99,7 @@ export const getTemplateVersions = async (req: Request, res: Response) => {
         });
         res.json(versions);
     } catch (error) {
-        console.error('Error fetching template versions:', error);
-        res.status(500).json({ error: 'Error al obtener el historial de versiones' });
+        handleError(res, error, 'Error al obtener el historial de versiones', { logLabel: 'Error fetching template versions:' });
     }
 };
 
@@ -122,8 +118,7 @@ export const createTemplate = async (req: Request, res: Response) => {
 
         res.status(201).json(template);
     } catch (error) {
-        console.error('Error creating template:', error);
-        res.status(500).json({ error: 'Error al crear plantilla' });
+        handleError(res, error, 'Error al crear plantilla', { logLabel: 'Error creating template:' });
     }
 };
 
@@ -148,8 +143,7 @@ export const updateTemplate = async (req: Request, res: Response) => {
 
         res.json(template);
     } catch (error) {
-        console.error('Error updating template:', error);
-        res.status(500).json({ error: 'Error al actualizar plantilla' });
+        handleError(res, error, 'Error al actualizar plantilla', { logLabel: 'Error updating template:' });
     }
 };
 
@@ -166,8 +160,7 @@ export const deleteTemplate = async (req: Request, res: Response) => {
 
         res.json({ message: 'Plantilla movida a la papelera' });
     } catch (error) {
-        console.error('Error deleting template:', error);
-        res.status(500).json({ error: 'Error al eliminar plantilla' });
+        handleError(res, error, 'Error al eliminar plantilla', { logLabel: 'Error deleting template:' });
     }
 };
 
@@ -182,8 +175,7 @@ export const restoreTemplate = async (req: Request, res: Response) => {
 
         res.json(template);
     } catch (error) {
-        console.error('Error restoring template:', error);
-        res.status(500).json({ error: 'Error al restaurar plantilla' });
+        handleError(res, error, 'Error al restaurar plantilla', { logLabel: 'Error restoring template:' });
     }
 };
 
@@ -215,7 +207,6 @@ export const restoreTemplateVersion = async (req: Request, res: Response) => {
 
         res.json(template);
     } catch (error) {
-        console.error('Error restoring template version:', error);
-        res.status(500).json({ error: 'Error al restaurar la version' });
+        handleError(res, error, 'Error al restaurar la version', { logLabel: 'Error restoring template version:' });
     }
 };

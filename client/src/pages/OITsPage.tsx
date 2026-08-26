@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { getStatusColor, getStatusLabel, oitListStatusColors, oitListStatusLabels } from '@/lib/status';
 
 interface Quotation {
     id: string;
@@ -67,29 +68,6 @@ export default function OITsPage() {
         }
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'COMPLETED': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-            case 'IN_PROGRESS': return 'bg-amber-50 text-amber-700 border-amber-200';
-            case 'PENDING': return 'bg-slate-50 text-slate-700 border-slate-200';
-            case 'ANALYZING': return 'bg-blue-50 text-blue-700 border-blue-200';
-            case 'REVIEW_REQUIRED': return 'bg-orange-50 text-orange-700 border-orange-200';
-            case 'ERROR': return 'bg-red-50 text-red-700 border-red-200';
-            default: return 'bg-slate-50 text-slate-700 border-slate-200';
-        }
-    };
-
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'COMPLETED': return 'COMPLETADA';
-            case 'IN_PROGRESS': return 'EN PROGRESO';
-            case 'PENDING': return 'PENDIENTE';
-            case 'ANALYZING': return 'ANALIZANDO';
-            case 'REVIEW_REQUIRED': return 'REVISIÓN REQUERIDA';
-            case 'ERROR': return 'ERROR';
-            default: return status;
-        }
-    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -322,8 +300,8 @@ export default function OITsPage() {
                                             </span>
                                         </div>
                                         <div className="sm:w-32 sm:text-right flex justify-end">
-                                            <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(oit.status)}`}>
-                                                {getStatusLabel(oit.status)}
+                                            <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(oit.status, oitListStatusColors)}`}>
+                                                {getStatusLabel(oit.status, oitListStatusLabels)}
                                             </div>
                                         </div>
                                     </div>

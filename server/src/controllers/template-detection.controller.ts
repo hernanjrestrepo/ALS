@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import PizZip from 'pizzip';
 import { AIService } from '../services/ai.service';
+import { handleError } from '../utils/http';
 
 const aiService = new AIService();
 const uploadsDir = path.join(__dirname, '../../uploads');

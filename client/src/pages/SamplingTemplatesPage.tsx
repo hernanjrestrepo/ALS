@@ -27,6 +27,7 @@ import {
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDateTime } from '@/lib/date';
 
 interface TemplateStep {
     id: string;
@@ -397,7 +398,7 @@ export default function SamplingTemplatesPage() {
                                                     <span className="text-sm font-medium text-slate-900 truncate">{v.name}</span>
                                                 </div>
                                                 <p className="text-xs text-slate-500 mt-0.5">
-                                                    {new Date(v.createdAt).toLocaleString('es-CO')}
+                                                    {formatDateTime(new Date(v.createdAt), 'es-CO')}
                                                 </p>
                                             </div>
                                             <Button

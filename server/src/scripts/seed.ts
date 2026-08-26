@@ -2,10 +2,9 @@
  * Seed script - Crear usuario administrador inicial
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import * as bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
 
 async function seed() {
     console.log('🌱 Ejecutando seed...');

@@ -1,11 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { aiService } from './ai.service';
 import { pdfService } from './pdf.service';
 import { createNotification } from '../controllers/notification.controller';
 import fs from 'fs';
 import path from 'path';
 
-const prisma = new PrismaClient();
 
 const OIT_TYPE_CATEGORIES: Record<string, string[]> = {
     'AGUA_SUBTERRANEA': ['AGUA', 'SUBTERRANEA'],

@@ -12,6 +12,7 @@ import {
 import { History, RotateCcw, Download } from 'lucide-react';
 import api from '@/lib/api';
 import { notify } from '@/lib/notify';
+import { formatDateTime } from '@/lib/date';
 
 interface ReportVersion {
     id: string;
@@ -123,7 +124,7 @@ export function ReportVersionHistoryButton({ oitId, reportName, onActivated }: R
                                                 )}
                                             </div>
                                             <p className="text-xs text-slate-500 mt-0.5">
-                                                {new Date(v.createdAt).toLocaleString('es-CO')}
+                                                {formatDateTime(new Date(v.createdAt), 'es-CO')}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-1 shrink-0">

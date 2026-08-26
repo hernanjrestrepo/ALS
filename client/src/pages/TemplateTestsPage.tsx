@@ -16,6 +16,7 @@ import {
   Search, Send, ChevronRight, Eye, MessageCirclePlus, Loader2,
 } from 'lucide-react';
 import { type TestStatus, type CommentPriority, TEMPLATE_TEST_ITEMS } from '@/types/testing';
+import { formatDateTime } from '@/lib/date';
 
 /* ------------------------------------------------------------------ */
 /*  Config helpers                                                      */
@@ -219,7 +220,7 @@ export default function TemplateTestsPage() {
   const handleExportMd = () => {
     const data = exportTests(user?.name);
     let md = `# Correcciones de Templates — ALS\n\n`;
-    md += `**Exportado:** ${new Date(data.exportedAt).toLocaleString('es-CO')}\n`;
+    md += `**Exportado:** ${formatDateTime(new Date(data.exportedAt), 'es-CO')}\n`;
     md += `**Por:** ${data.exportedBy || 'N/A'}\n\n`;
     md += `## Resumen\n\n| Métrica | Valor |\n|---------|-------|\n`;
     md += `| Total | ${data.tests.length} |\n`;
@@ -498,7 +499,7 @@ export default function TemplateTestsPage() {
                   </div>
                   <p className="text-xs text-slate-700 mt-1.5 whitespace-pre-wrap break-words leading-relaxed">{c.text}</p>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    {new Date(c.createdAt).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    {formatDateTime(new Date(c.createdAt), 'es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               );

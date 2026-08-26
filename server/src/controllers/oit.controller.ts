@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AIService } from '../services/ai.service';
+import { getAuthUser, getUserId, handleError } from '../utils/http';
 const aiService = new AIService();
 import { createNotification } from './notification.controller';
 import fs from 'fs';
@@ -8,7 +9,6 @@ import path from 'path';
 // import { marked } from 'marked';
 import axios from 'axios';
 
-const prisma = new PrismaClient();
 
 // Guarda un snapshot de version por cada informe (name/url/type) generado para
 // un OIT, y marca como inactivas las versiones anteriores con el mismo nombre.
@@ -83,10 +83,10 @@ export const acceptPlanning = async (req: Request, res: Response) => {
         }
 
         // Create notification
-        if ((req as any).user?.userId) {
+        if (getAuthUser(req)?.userId) {
             await prisma.notification.create({
                 data: {
-                    userId: (req as any).user.userId,
+                    userId: getUserId(req),
                     oitId: id,
                     title: 'Planeación Aceptada',
                     message: `La propuesta de planeación para OIT ${oit.oitNumber} ha sido aceptada. Recursos asignados y programados.`,
@@ -97,8 +97,7 @@ export const acceptPlanning = async (req: Request, res: Response) => {
 
         res.json(oit);
     } catch (error) {
-        console.error('Error accepting planning:', error);
-        res.status(500).json({ error: 'Error al aceptar planeación' });
+        handleError(res, error, 'Error al aceptar planeación', { logLabel: 'Error accepting planning:' });
     }
 };
 
@@ -117,8 +116,7 @@ export const rejectPlanning = async (req: Request, res: Response) => {
 
         res.json({ message: 'Propuesta rechazada, puede crear una planeación manual', oit });
     } catch (error) {
-        console.error('Error rejecting planning:', error);
-        res.status(500).json({ error: 'Error al rechazar planeación' });
+        handleError(res, error, 'Error al rechazar planeación', { logLabel: 'Error rejecting planning:' });
     }
 };
 
@@ -140,10 +138,10 @@ export const saveSamplingData = async (req: Request, res: Response) => {
         });
 
         // Create notification if completed
-        if (isComplete && (req as any).user?.userId) {
+        if (isComplete && getAuthUser(req)?.userId) {
             await prisma.notification.create({
                 data: {
-                    userId: (req as any).user.userId,
+                    userId: getUserId(req),
                     oitId: id,
                     title: 'Muestreo Completado',
                     message: `El muestreo para OIT ${oit.oitNumber} ha sido completado`,
@@ -154,8 +152,7 @@ export const saveSamplingData = async (req: Request, res: Response) => {
 
         res.json({ success: true, oit });
     } catch (error) {
-        console.error('Error saving sampling data:', error);
-        res.status(500).json({ error: 'Error al guardar datos de muestreo' });
+        handleError(res, error, 'Error al guardar datos de muestreo', { logLabel: 'Error saving sampling data:' });
     }
 };
 
@@ -202,8 +199,7 @@ export const submitSampling = async (req: Request, res: Response) => {
         })();
 
     } catch (error) {
-        console.error('Error submitting sampling:', error);
-        res.status(500).json({ error: 'Error al enviar muestreo' });
+        handleError(res, error, 'Error al enviar muestreo', { logLabel: 'Error submitting sampling:' });
     }
 };
 
@@ -219,8 +215,7 @@ export const getSamplingData = async (req: Request, res: Response) => {
 
         res.json(JSON.parse(oit.samplingData));
     } catch (error) {
-        console.error('Error getting sampling data:', error);
-        res.status(500).json({ error: 'Error al obtener datos de muestreo' });
+        handleError(res, error, 'Error al obtener datos de muestreo', { logLabel: 'Error getting sampling data:' });
     }
 };
 
@@ -285,8 +280,7 @@ export const uploadLabResults = async (req: Request, res: Response) => {
         });
 
     } catch (error) {
-        console.error('Error uploading lab results:', error);
-        res.status(500).json({ error: 'Error al subir resultados de laboratorio' });
+        handleError(res, error, 'Error al subir resultados de laboratorio', { logLabel: 'Error uploading lab results:' });
     }
 };
 
@@ -716,8 +710,7 @@ export const assignEngineers = async (req: Request, res: Response) => {
             assignedEngineers: updatedOit?.assignedEngineers.map((a: any) => a.user) || []
         });
     } catch (error) {
-        console.error('Error assigning engineers:', error);
-        res.status(500).json({ error: 'Error al asignar ingenieros' });
+        handleError(res, error, 'Error al asignar ingenieros', { logLabel: 'Error assigning engineers:' });
     }
 };
 
@@ -737,15 +730,14 @@ export const getAssignedEngineers = async (req: Request, res: Response) => {
 
         res.json(assignments.map((a: any) => a.user));
     } catch (error) {
-        console.error('Error getting assigned engineers:', error);
-        res.status(500).json({ error: 'Error al obtener ingenieros asignados' });
+        handleError(res, error, 'Error al obtener ingenieros asignados', { logLabel: 'Error getting assigned engineers:' });
     }
 };
 
 // Get all OIT records (filtered by role)
 export const getAllOITs = async (req: Request, res: Response) => {
     try {
-        const user = (req as any).user;
+        const user = getAuthUser(req);
         const userRole = user?.role;
         const userId = user?.userId;
 
@@ -789,8 +781,7 @@ export const getAllOITs = async (req: Request, res: Response) => {
 
         res.status(200).json(result);
     } catch (error) {
-        console.error('Error in getAllOITs:', error);
-        res.status(500).json({ message: 'Something went wrong', error: String(error) });
+        handleError(res, error, 'Something went wrong', { key: 'message', extra: { error: String(error) }, logLabel: 'Error in getAllOITs:' });
     }
 };
 
@@ -798,7 +789,7 @@ export const getAllOITs = async (req: Request, res: Response) => {
 export const getOITById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const user = (req as any).user;
+        const user = getAuthUser(req);
 
         const oit = await prisma.oIT.findUnique({
             where: { id },
@@ -830,8 +821,7 @@ export const getOITById = async (req: Request, res: Response) => {
             engineers: oit.assignedEngineers.map((a: any) => a.user)
         });
     } catch (error) {
-        console.error('Error in getOITById:', error);
-        res.status(500).json({ message: 'Something went wrong', error: String(error) });
+        handleError(res, error, 'Something went wrong', { key: 'message', extra: { error: String(error) }, logLabel: 'Error in getOITById:' });
     }
 };
 
@@ -864,7 +854,7 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
 
         const oitNumber = OT || `OIT-${Date.now()}`;
         // Auth is optional for this endpoint as per requirement, but if token is sent, we can use it
-        const userId = (req as any).user?.userId;
+        const userId = getAuthUser(req)?.userId!;
 
         console.log(`[Legacy API] Processing OIT from URL: ${DOCUMENTO}`);
 
@@ -891,8 +881,7 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
                 writer.on('error', reject);
             });
         } catch (downloadError) {
-            console.error('Error downloading file:', downloadError);
-            return res.status(400).json({ error: 'Error al descargar el archivo desde la URL proporcionada' });
+            return handleError(res, downloadError, 'Error al descargar el archivo desde la URL proporcionada', { status: 400, logLabel: 'Error downloading file:' });
         }
 
         const fileUrl = `/uploads/${filename}`;
@@ -963,15 +952,14 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
         })();
 
     } catch (error) {
-        console.error('Error creating OIT from URL:', error);
-        res.status(500).json({ error: 'Error interno al procesar solicitud' });
+        handleError(res, error, 'Error interno al procesar solicitud', { logLabel: 'Error creating OIT from URL:' });
     }
 };
 
 export const createOITAsync = async (req: Request, res: Response) => {
     try {
         const { oitNumber, description } = req.body;
-        const userId = (req as any).user?.userId; // Cast req to any to access user property
+        const userId = getAuthUser(req)?.userId; // Cast req to any to access user property
 
         if (!userId) {
             return res.status(401).json({ error: 'Usuario no autenticado' });
@@ -1003,8 +991,7 @@ export const createOITAsync = async (req: Request, res: Response) => {
         });
 
     } catch (error) {
-        console.error('Error creating OIT:', error);
-        res.status(500).json({ error: 'Error al crear OIT' });
+        handleError(res, error, 'Error al crear OIT', { logLabel: 'Error creating OIT:' });
     }
 };
 
@@ -1146,7 +1133,7 @@ async function processOITFilesAsync(
 export const reanalyzeOIT = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const userId = (req as any).user?.userId;
+        const userId = getAuthUser(req)?.userId!;
 
         const oit = await prisma.oIT.findUnique({ where: { id } });
         if (!oit) return res.status(404).json({ error: 'OIT not found' });
@@ -1180,8 +1167,7 @@ export const reanalyzeOIT = async (req: Request, res: Response) => {
         res.json({ message: 'Re-análisis iniciado correctamente.' });
 
     } catch (error) {
-        console.error('Error re-analyzing:', error);
-        res.status(500).json({ error: 'Error al iniciar re-análisis' });
+        handleError(res, error, 'Error al iniciar re-análisis', { logLabel: 'Error re-analyzing:' });
     }
 };
 
@@ -1190,7 +1176,7 @@ export const updateOIT = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { oitNumber, description, status, oitFileUrl, quotationFileUrl, aiData, resources, engineerIds } = req.body;
-        const userId = (req as any).user?.userId;
+        const userId = getAuthUser(req)?.userId;
         const data: any = {};
 
         // Handle uploaded files from multer
@@ -1290,7 +1276,7 @@ export const updateOIT = async (req: Request, res: Response) => {
 
         // Create notification on status change (reuse existing logic)
         if (status && existing.status !== status) {
-            const userId = (req as any).user?.userId;
+            const userId = getAuthUser(req)?.userId;
             if (userId) {
                 const statusMessages: Record<string, { title: string; message: string; type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' }> = {
                     'REVIEW_REQUIRED': {
@@ -1364,8 +1350,7 @@ export const updateOIT = async (req: Request, res: Response) => {
         }
 
     } catch (error) {
-        console.error('Error updating OIT:', error);
-        res.status(500).json({ message: 'Error interno del servidor' });
+        handleError(res, error, 'Error interno del servidor', { key: 'message', logLabel: 'Error updating OIT:' });
     }
 };
 
@@ -1382,7 +1367,7 @@ export const deleteOIT = async (req: Request, res: Response) => {
 export const checkCompliance = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const userId = (req as any).user?.userId;
+        const userId = getAuthUser(req)?.userId;
 
         if (!userId) {
             return res.status(401).json({ error: 'Usuario no autenticado' });
@@ -1394,8 +1379,7 @@ export const checkCompliance = async (req: Request, res: Response) => {
         const result = await complianceService.checkCompliance(id, userId);
         res.json(result);
     } catch (error) {
-        console.error('Error checking compliance:', error);
-        res.status(500).json({ error: 'Error al verificar cumplimiento' });
+        handleError(res, error, 'Error al verificar cumplimiento', { logLabel: 'Error checking compliance:' });
     }
 };
 
@@ -1461,8 +1445,7 @@ export const validateStepData = async (req: Request, res: Response) => {
 
         res.json(validationResult);
     } catch (error) {
-        console.error('Error validating step:', error);
-        res.status(500).json({ error: 'Error al validar el paso' });
+        handleError(res, error, 'Error al validar el paso', { logLabel: 'Error validating step:' });
     }
 };
 
@@ -1547,8 +1530,7 @@ export const finalizeSampling = async (req: Request, res: Response) => {
             analysis: finalAnalysis
         });
     } catch (error) {
-        console.error('Error finalizing sampling:', error);
-        res.status(500).json({ error: 'Error al finalizar el muestreo' });
+        handleError(res, error, 'Error al finalizar el muestreo', { logLabel: 'Error finalizing sampling:' });
     }
 };
 
@@ -1583,8 +1565,7 @@ export const generateSamplingReport = async (req: Request, res: Response) => {
         // Send PDF file
         res.download(pdfPath, `Informe_Muestreo_${oit.oitNumber}.pdf`);
     } catch (error) {
-        console.error('Error generating report:', error);
-        res.status(500).json({ error: 'Error al generar el informe PDF' });
+        handleError(res, error, 'Error al generar el informe PDF', { logLabel: 'Error generating report:' });
     }
 };
 
@@ -1642,8 +1623,7 @@ export const uploadSamplingSheets = async (req: Request, res: Response) => {
         });
 
     } catch (error) {
-        console.error('Error uploading sampling sheets:', error);
-        res.status(500).json({ error: 'Error al subir planillas de muestreo' });
+        handleError(res, error, 'Error al subir planillas de muestreo', { logLabel: 'Error uploading sampling sheets:' });
     }
 };
 
@@ -1691,8 +1671,7 @@ export const deleteSamplingSheet = async (req: Request, res: Response) => {
 
         res.json({ success: true, samplingSheetUrl: JSON.stringify(groupedFiles), message: 'Archivo eliminado' });
     } catch (error) {
-        console.error('Error deleting sampling sheet:', error);
-        res.status(500).json({ error: 'Error al eliminar planilla' });
+        handleError(res, error, 'Error al eliminar planilla', { logLabel: 'Error deleting sampling sheet:' });
     }
 };
 
@@ -1914,8 +1893,7 @@ export const reportChatPreview = async (req: Request, res: Response) => {
 
         res.json({ currentMarkdown: baselineMarkdown, proposedMarkdown });
     } catch (error) {
-        console.error('Error in report chat preview:', error);
-        res.status(500).json({ error: 'Error al generar la propuesta de cambio' });
+        handleError(res, error, 'Error al generar la propuesta de cambio', { logLabel: 'Error in report chat preview:' });
     }
 };
 
@@ -1956,8 +1934,7 @@ export const reportChatApprove = async (req: Request, res: Response) => {
 
         res.json({ message: 'Informe actualizado y nueva version creada', report: newReport });
     } catch (error) {
-        console.error('Error approving report chat edit:', error);
-        res.status(500).json({ error: 'Error al aplicar el cambio aprobado' });
+        handleError(res, error, 'Error al aplicar el cambio aprobado', { logLabel: 'Error approving report chat edit:' });
     }
 };
 
@@ -1970,8 +1947,7 @@ export const getReportVersions = async (req: Request, res: Response) => {
         });
         res.json(versions);
     } catch (error) {
-        console.error('Error fetching report versions:', error);
-        res.status(500).json({ error: 'Error al obtener el historial de versiones del informe' });
+        handleError(res, error, 'Error al obtener el historial de versiones del informe', { logLabel: 'Error fetching report versions:' });
     }
 };
 
@@ -2015,8 +1991,7 @@ export const activateReportVersion = async (req: Request, res: Response) => {
 
         res.json({ message: 'Version reactivada', activeVersion: version });
     } catch (error) {
-        console.error('Error activating report version:', error);
-        res.status(500).json({ error: 'Error al reactivar la version' });
+        handleError(res, error, 'Error al reactivar la version', { logLabel: 'Error activating report version:' });
     }
 };
 
@@ -2081,8 +2056,7 @@ export const generateFinalReport = async (req: Request, res: Response) => {
         });
 
     } catch (error) {
-        console.error('Final Report Error:', error);
-        res.status(500).json({ error: 'Error iniciando generación de informe final' });
+        handleError(res, error, 'Error iniciando generación de informe final', { logLabel: 'Final Report Error:' });
     }
 };
 
@@ -2147,8 +2121,7 @@ export const updatePlanningResources = async (req: Request, res: Response) => {
 
         res.json({ success: true, resources: mappedResources });
     } catch (error) {
-        console.error('Error updating planning resources:', error);
-        res.status(500).json({ error: 'Error al actualizar recursos' });
+        handleError(res, error, 'Error al actualizar recursos', { logLabel: 'Error updating planning resources:' });
     }
 };
 
@@ -2250,8 +2223,7 @@ export const requestRedoSteps = async (req: Request, res: Response) => {
             samplingProgress
         });
     } catch (error) {
-        console.error('Error requesting redo:', error);
-        res.status(500).json({ error: 'Error al solicitar corrección' });
+        handleError(res, error, 'Error al solicitar corrección', { logLabel: 'Error requesting redo:' });
     }
 };
 
@@ -2311,8 +2283,7 @@ export const updateServiceDates = async (req: Request, res: Response) => {
             assignedEngineersCount: uniqueEngineerIds.length
         });
     } catch (error) {
-        console.error('Error updating service dates:', error);
-        res.status(500).json({ error: 'Error al actualizar fechas de servicio' });
+        handleError(res, error, 'Error al actualizar fechas de servicio', { logLabel: 'Error updating service dates:' });
     }
 };
 
@@ -2325,7 +2296,6 @@ export const verifyConsistency = async (req: Request, res: Response) => {
         const result = await verificationService.verifyConsistency(id);
         res.json(result);
     } catch (error) {
-        console.error('Error verifying consistency:', error);
-        res.status(500).json({ error: 'Error en verificación de consistencia' });
+        handleError(res, error, 'Error en verificación de consistencia', { logLabel: 'Error verifying consistency:' });
     }
 };

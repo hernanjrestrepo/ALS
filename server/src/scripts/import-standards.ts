@@ -3,13 +3,12 @@
  * Lee PDFs y XLSX, extrae el contenido, y lo guarda en la BD
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import * as fs from 'fs';
 import * as path from 'path';
 import pdfParse from 'pdf-parse';
 import * as XLSX from 'xlsx';
 
-const prisma = new PrismaClient();
 
 // Directorio con los archivos de normas
 const NORMAS_DIR = path.join(__dirname, '../../uploads/NORMAS INFORMES-20260104T155222Z-3-001/NORMAS INFORMES');

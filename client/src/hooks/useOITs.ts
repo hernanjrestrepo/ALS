@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useAsyncData } from './useAsyncData';
 import { fetchOITs } from '@/lib/api';
 
 export interface OIT {
@@ -11,27 +12,7 @@ export interface OIT {
 }
 
 export function useOITs(searchQuery?: string) {
-    const [oits, setOits] = useState<OIT[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const loadOITs = async () => {
-            try {
-                setIsLoading(true);
-                setError(null);
-                const data = await fetchOITs(searchQuery);
-                setOits(data);
-            } catch (err: any) {
-                setError(err.response?.data?.message || 'Error al cargar OITs');
-                setOits([]);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadOITs();
-    }, [searchQuery]);
-
-    return { oits, isLoading, error };
+    const loadOITs = useCallback(() => fetchOITs(searchQuery), [searchQuery]);
+    const { data, isLoading, error } = useAsyncData<OIT>(loadOITs, 'Error al cargar OITs');
+    return { oits: data, isLoading, error };
 }

@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { parse } from 'csv-parse';
+import { handleError } from '../utils/http';
 
-const prisma = new PrismaClient();
 
 export const getAllResources = async (req: Request, res: Response) => {
     try {
@@ -145,8 +145,7 @@ export const bulkUpload = async (req: Request, res: Response) => {
                     errors: errors.length > 0 ? errors : undefined
                 });
             } catch (dbError) {
-                console.error('Database Error:', dbError);
-                res.status(500).json({ message: 'Error saving resources to database' });
+                handleError(res, dbError, 'Error saving resources to database', { key: 'message', logLabel: 'Database Error:' });
             }
         });
 
@@ -155,7 +154,6 @@ export const bulkUpload = async (req: Request, res: Response) => {
         parser.end();
 
     } catch (error) {
-        console.error('Bulk upload error:', error);
-        res.status(500).json({ message: 'Internal server error during bulk upload' });
+        handleError(res, error, 'Internal server error during bulk upload', { key: 'message', logLabel: 'Bulk upload error:' });
     }
 };

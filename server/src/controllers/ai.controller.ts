@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { aiService } from '../services/ai.service';
 import fs from 'fs';
+import { handleError } from '../utils/http';
 const pdfParse = require('pdf-parse');
 
-const prisma = new PrismaClient();
 
 export const chat = async (req: Request, res: Response) => {
     try {
@@ -81,8 +81,7 @@ Responde de manera clara, profesional y basándote en los datos reales del siste
         const response = await aiService.chat(contextPrompt, model);
         res.json({ response });
     } catch (error) {
-        console.error('Error in chat:', error);
-        res.status(500).json({ error: 'Failed to process request' });
+        handleError(res, error, 'Failed to process request', { logLabel: 'Error in chat:' });
     }
 };
 

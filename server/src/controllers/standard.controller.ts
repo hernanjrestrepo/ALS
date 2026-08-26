@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
+import { handleError } from '../utils/http';
 
-const prisma = new PrismaClient();
 
 export const getStandards = async (req: Request, res: Response) => {
     try {
@@ -10,8 +10,7 @@ export const getStandards = async (req: Request, res: Response) => {
         });
         res.json(standards);
     } catch (error) {
-        console.error('Error fetching standards:', error);
-        res.status(500).json({ error: 'Error al obtener normas' });
+        handleError(res, error, 'Error al obtener normas', { logLabel: 'Error fetching standards:' });
     }
 };
 
@@ -28,8 +27,7 @@ export const getStandard = async (req: Request, res: Response) => {
 
         res.json(standard);
     } catch (error) {
-        console.error('Error fetching standard:', error);
-        res.status(500).json({ error: 'Error al obtener norma' });
+        handleError(res, error, 'Error al obtener norma', { logLabel: 'Error fetching standard:' });
     }
 };
 
@@ -48,8 +46,7 @@ export const createStandard = async (req: Request, res: Response) => {
         });
         res.status(201).json(standard);
     } catch (error) {
-        console.error('Error creating standard:', error);
-        res.status(500).json({ error: 'Error al crear norma' });
+        handleError(res, error, 'Error al crear norma', { logLabel: 'Error creating standard:' });
     }
 };
 
@@ -75,8 +72,7 @@ export const updateStandard = async (req: Request, res: Response) => {
         });
         res.json(standard);
     } catch (error) {
-        console.error('Error updating standard:', error);
-        res.status(500).json({ error: 'Error al actualizar norma' });
+        handleError(res, error, 'Error al actualizar norma', { logLabel: 'Error updating standard:' });
     }
 };
 
@@ -88,7 +84,6 @@ export const deleteStandard = async (req: Request, res: Response) => {
         });
         res.json({ message: 'Norma eliminada' });
     } catch (error) {
-        console.error('Error deleting standard:', error);
-        res.status(500).json({ error: 'Error al eliminar norma' });
+        handleError(res, error, 'Error al eliminar norma', { logLabel: 'Error deleting standard:' });
     }
 };

@@ -31,6 +31,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import api from '@/lib/api';
+import { getStatusColor, getStatusLabel, resourceStatusColors, resourceStatusLabels } from '@/lib/status';
 
 export default function ResourcesPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -48,31 +49,6 @@ export default function ResourcesPage() {
     const [editingResource, setEditingResource] = useState<any>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'AVAILABLE':
-                return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-            case 'IN_USE':
-                return 'bg-amber-50 text-amber-700 border-amber-200';
-            case 'MAINTENANCE':
-                return 'bg-red-50 text-red-700 border-red-200';
-            default:
-                return 'bg-slate-50 text-slate-700 border-slate-200';
-        }
-    };
-
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'AVAILABLE':
-                return 'Disponible';
-            case 'IN_USE':
-                return 'En uso';
-            case 'MAINTENANCE':
-                return 'Mantenimiento';
-            default:
-                return status;
-        }
-    };
 
     const handleEdit = (resource: any) => {
         setEditingResource(resource);
@@ -478,8 +454,8 @@ export default function ResourcesPage() {
                                             <td className="py-3 px-4 text-slate-500">{resource.type}</td>
                                             <td className="py-3 px-4 text-slate-500 font-mono">{resource.quantity}</td>
                                             <td className="py-3 px-4">
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getStatusColor(resource.status)}`}>
-                                                    {getStatusLabel(resource.status)}
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getStatusColor(resource.status, resourceStatusColors)}`}>
+                                                    {getStatusLabel(resource.status, resourceStatusLabels)}
                                                 </span>
                                             </td>
                                             <td className="py-3 px-4 text-right">

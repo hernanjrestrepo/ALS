@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { pushService } from '../services/push.service';
+import { getAuthUser, getUserId, handleError } from '../utils/http';
 
-const prisma = new PrismaClient();
 
 export const getNotifications = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user.userId;
+        const userId = getUserId(req);
 
         const notifications = await prisma.notification.findMany({
             where: { userId },
@@ -23,15 +23,14 @@ export const getNotifications = async (req: Request, res: Response) => {
 
         res.json(notifications);
     } catch (error) {
-        console.error('Error fetching notifications:', error);
-        res.status(500).json({ error: 'Error al obtener notificaciones' });
+        handleError(res, error, 'Error al obtener notificaciones', { logLabel: 'Error fetching notifications:' });
     }
 };
 
 export const markAsRead = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const userId = (req as any).user.userId;
+        const userId = getUserId(req);
 
         const notification = await prisma.notification.findFirst({
             where: { id, userId }
@@ -48,14 +47,13 @@ export const markAsRead = async (req: Request, res: Response) => {
 
         res.json(updated);
     } catch (error) {
-        console.error('Error marking notification as read:', error);
-        res.status(500).json({ error: 'Error al marcar como leída' });
+        handleError(res, error, 'Error al marcar como leída', { logLabel: 'Error marking notification as read:' });
     }
 };
 
 export const markAllAsRead = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user.userId;
+        const userId = getUserId(req);
 
         await prisma.notification.updateMany({
             where: { userId, read: false },
@@ -64,15 +62,14 @@ export const markAllAsRead = async (req: Request, res: Response) => {
 
         res.json({ message: 'Todas las notificaciones marcadas como leídas' });
     } catch (error) {
-        console.error('Error marking all as read:', error);
-        res.status(500).json({ error: 'Error al marcar todas como leídas' });
+        handleError(res, error, 'Error al marcar todas como leídas', { logLabel: 'Error marking all as read:' });
     }
 };
 
 export const deleteNotification = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const userId = (req as any).user.userId;
+        const userId = getUserId(req);
 
         const notification = await prisma.notification.findFirst({
             where: { id, userId }
@@ -88,8 +85,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
 
         res.json({ message: 'Notificación eliminada' });
     } catch (error) {
-        console.error('Error deleting notification:', error);
-        res.status(500).json({ error: 'Error al eliminar notificación' });
+        handleError(res, error, 'Error al eliminar notificación', { logLabel: 'Error deleting notification:' });
     }
 };
 

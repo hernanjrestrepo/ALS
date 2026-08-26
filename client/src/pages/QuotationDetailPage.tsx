@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackModal';
 import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
+import { getStatusLabel, quotationDetailStatusLabels } from '@/lib/status';
+import { formatDateTime, formatDate } from '@/lib/date';
 
 interface Quotation {
     id: string;
@@ -82,16 +84,6 @@ export default function QuotationDetailPage() {
         }
     };
 
-    const getStatusLabel = (status: string) => {
-        const statusMap: Record<string, string> = {
-            'PENDING': 'Pendiente',
-            'ANALYZING': 'Analizando',
-            'COMPLIANT': 'Conforme',
-            'NON_COMPLIANT': 'No Conforme',
-            'REVIEW_REQUIRED': 'Revisión Requerida'
-        };
-        return statusMap[status] || status;
-    };
 
     const parseAIData = () => {
         if (!quotation?.aiData) return null;
@@ -151,7 +143,7 @@ export default function QuotationDetailPage() {
                                 </h1>
                                 <Badge variant={quotation.status === 'ANALYZING' ? 'secondary' : 'default'} className="text-xs px-2.5 py-0.5 font-medium">
                                     {quotation.status === 'ANALYZING' && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                                    {getStatusLabel(quotation.status)}
+                                    {getStatusLabel(quotation.status, quotationDetailStatusLabels)}
                                 </Badge>
                             </div>
                             <p className="text-slate-500 text-sm max-w-2xl truncate flex items-center gap-2">
@@ -240,7 +232,7 @@ export default function QuotationDetailPage() {
                                         </div>
                                         <div className="space-y-1">
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</strong>
-                                            <p className="text-lg font-medium text-slate-900">{getStatusLabel(quotation.status)}</p>
+                                            <p className="text-lg font-medium text-slate-900">{getStatusLabel(quotation.status, quotationDetailStatusLabels)}</p>
                                         </div>
                                         <div className="space-y-1">
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Cliente</strong>
@@ -253,7 +245,7 @@ export default function QuotationDetailPage() {
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha de Creación</strong>
                                             <p className="text-lg font-medium text-slate-900 flex items-center gap-2">
                                                 <Calendar className="h-4 w-4 text-slate-400" />
-                                                {new Date(quotation.createdAt).toLocaleDateString('es-ES')}
+                                                {formatDate(new Date(quotation.createdAt), 'es-ES')}
                                             </p>
                                         </div>
                                         {quotation.description && (
@@ -636,7 +628,7 @@ export default function QuotationDetailPage() {
                                                 </h3>
                                                 <p className="text-sm text-slate-600 mt-1">
                                                     Verificado: {complianceResult.analyzedAt ?
-                                                        new Date(complianceResult.analyzedAt).toLocaleString('es-ES') : 'N/A'}
+                                                        formatDateTime(new Date(complianceResult.analyzedAt), 'es-ES') : 'N/A'}
                                                 </p>
                                                 {complianceResult.standardsCount !== undefined && (
                                                     <p className="text-xs text-slate-500">

@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 
 import {
     Dialog,
@@ -20,6 +19,9 @@ import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search, Plus, FileText, Loader2, Receipt, Building2, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { quotationStatusLabels, quotationStatusStyles } from '@/lib/status';
+import { StatusBadge } from '@/components/status/StatusBadge';
+import { formatDate } from '@/lib/date';
 
 interface Quotation {
     id: string;
@@ -130,23 +132,6 @@ export default function QuotationsPage() {
         setFile(null);
     };
 
-    const getStatusBadge = (status: string) => {
-        const styles: Record<string, string> = {
-            'PENDING': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-            'ANALYZING': 'bg-blue-50 text-blue-700 border-blue-200',
-            'COMPLIANT': 'bg-green-50 text-green-700 border-green-200',
-            'NON_COMPLIANT': 'bg-red-50 text-red-700 border-red-200',
-            'REVIEW_REQUIRED': 'bg-orange-50 text-orange-700 border-orange-200'
-        };
-        const labels: Record<string, string> = {
-            'PENDING': 'Pendiente',
-            'ANALYZING': 'Analizando',
-            'COMPLIANT': 'Conforme',
-            'NON_COMPLIANT': 'No Conforme',
-            'REVIEW_REQUIRED': 'Revisión'
-        };
-        return <Badge className={`${styles[status] || styles['PENDING']} hover:${styles[status]}`}>{labels[status] || status}</Badge>;
-    };
 
     return (
         <div className="space-y-6">
@@ -314,13 +299,13 @@ export default function QuotationsPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="py-3 px-4">
-                                                {getStatusBadge(q.status)}
+                                                <StatusBadge status={q.status} styles={quotationStatusStyles} labels={quotationStatusLabels} />
                                             </TableCell>
                                             <TableCell className="py-3 px-4 text-slate-600">
                                                 {q.linkedOITs?.length || 0} OIT(s)
                                             </TableCell>
                                             <TableCell className="py-3 px-4 text-slate-500 text-sm">
-                                                {new Date(q.createdAt).toLocaleDateString('es-ES')}
+                                                {formatDate(new Date(q.createdAt), 'es-ES')}
                                             </TableCell>
                                         </TableRow>
                                     ))

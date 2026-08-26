@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import planningService from '../services/planning.service';
+import { handleError } from '../utils/http';
 
 export const generatePlanning = async (req: Request, res: Response) => {
     try {
@@ -7,8 +8,7 @@ export const generatePlanning = async (req: Request, res: Response) => {
         const proposal = await planningService.generateProposal(id);
         res.json(proposal);
     } catch (error) {
-        console.error('Error generating planning:', error);
-        res.status(500).json({ error: 'Error al generar planeación' });
+        handleError(res, error, 'Error al generar planeación', { logLabel: 'Error generating planning:' });
     }
 };
 
@@ -18,8 +18,7 @@ export const acceptPlanning = async (req: Request, res: Response) => {
         await planningService.acceptProposal(id);
         res.json({ message: 'Planeación aceptada' });
     } catch (error) {
-        console.error('Error accepting planning:', error);
-        res.status(500).json({ error: 'Error al aceptar planeación' });
+        handleError(res, error, 'Error al aceptar planeación', { logLabel: 'Error accepting planning:' });
     }
 };
 
@@ -29,7 +28,6 @@ export const rejectPlanning = async (req: Request, res: Response) => {
         await planningService.rejectProposal(id);
         res.json({ message: 'Planeación rechazada' });
     } catch (error) {
-        console.error('Error rejecting planning:', error);
-        res.status(500).json({ error: 'Error al rechazar planeación' });
+        handleError(res, error, 'Error al rechazar planeación', { logLabel: 'Error rejecting planning:' });
     }
 };

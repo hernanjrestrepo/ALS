@@ -2,10 +2,10 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { sendPasswordResetEmail } from '../services/email.service';
+import { handleError } from '../utils/http';
 
-const prisma = new PrismaClient();
 
 export const register = async (req: Request, res: Response) => {
     try {
@@ -40,8 +40,7 @@ export const register = async (req: Request, res: Response) => {
             user: { id: user.id, email: user.email, name: user.name, role: user.role }
         });
     } catch (error) {
-        console.error('Register error:', error);
-        res.status(500).json({ message: 'Error del servidor' });
+        handleError(res, error, 'Error del servidor', { key: 'message', logLabel: 'Register error:' });
     }
 };
 
@@ -72,8 +71,7 @@ export const login = async (req: Request, res: Response) => {
             user: { id: user.id, email: user.email, name: user.name, role: user.role }
         });
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Error del servidor' });
+        handleError(res, error, 'Error del servidor', { key: 'message', logLabel: 'Login error:' });
     }
 };
 
@@ -116,8 +114,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
         res.status(200).json(genericResponse);
     } catch (error) {
-        console.error('Forgot password error:', error);
-        res.status(500).json({ message: 'Error del servidor' });
+        handleError(res, error, 'Error del servidor', { key: 'message', logLabel: 'Forgot password error:' });
     }
 };
 
@@ -150,7 +147,6 @@ export const resetPassword = async (req: Request, res: Response) => {
 
         res.status(200).json({ message: 'Contraseña actualizada correctamente' });
     } catch (error) {
-        console.error('Reset password error:', error);
-        res.status(500).json({ message: 'Error del servidor' });
+        handleError(res, error, 'Error del servidor', { key: 'message', logLabel: 'Reset password error:' });
     }
 };

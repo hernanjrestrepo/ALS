@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
+import { handleError } from '../utils/http';
 
-const prisma = new PrismaClient();
 
 export const getDashboardMetrics = async (req: Request, res: Response) => {
     try {
@@ -89,7 +89,6 @@ export const getDashboardMetrics = async (req: Request, res: Response) => {
             recentReports,
         });
     } catch (error) {
-        console.error('Error fetching dashboard metrics:', error);
-        res.status(500).json({ error: 'Error al obtener metricas del dashboard' });
+        handleError(res, error, 'Error al obtener metricas del dashboard', { logLabel: 'Error fetching dashboard metrics:' });
     }
 };

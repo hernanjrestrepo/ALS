@@ -17,6 +17,7 @@ import {
     Cell,
 } from 'recharts';
 import api from '@/lib/api';
+import { formatDateTime } from '@/lib/date';
 
 interface DashboardMetrics {
     totalOITs: number;
@@ -265,7 +266,7 @@ export default function AnalyticsPage() {
                                             <Badge variant="outline" className="uppercase text-xs bg-slate-50">{r.type}</Badge>
                                         </TableCell>
                                         <TableCell className="py-3 px-4 text-slate-600">
-                                            {new Date(r.createdAt).toLocaleString('es-CO')}
+                                            {formatDateTime(new Date(r.createdAt), 'es-CO')}
                                         </TableCell>
                                     </TableRow>
                                 ))

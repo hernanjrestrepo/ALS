@@ -2,11 +2,10 @@
  * Script para importar equipos desde el archivo XLSX de Ficha Técnica
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import * as XLSX from 'xlsx';
 import * as path from 'path';
 
-const prisma = new PrismaClient();
 
 // Path al archivo de equipos
 const EQUIPOS_FILE = path.join(__dirname, '../../uploads/FO-PR-MEI-01-01 FICHA TÉCNICA DE EQUIPOS 02.07.25 IA.xlsx');
@@ -28,6 +27,27 @@ function cleanNA(value: any): string | null {
     const str = String(value).trim();
     if (str === 'N.A.' || str === 'NA' || str === 'N/A' || str === '-') return null;
     return str;
+}
+
+function getEquipmentData(row: any[], codigo: string) {
+    return {
+        name: String(row[1] || 'Sin nombre').trim(),
+        type: String(row[0] || 'General').trim(),
+        brand: cleanNA(row[3]),
+        model: cleanNA(row[4]),
+        serial: cleanNA(row[5]),
+        location: cleanNA(row[6]),
+        maintenanceType: cleanNA(row[7]),
+        maintenanceFrequency: cleanNA(row[8]),
+        requiresCalibration: String(row[9]).toUpperCase().includes('SI'),
+        calibrationFrequency: cleanNA(row[10]),
+        variable: cleanNA(row[12]),
+        workRange: cleanNA(row[13]),
+        resolution: cleanNA(row[14]),
+        calibrationPoints: cleanNA(row[15]),
+        status: normalizeStatus(String(row[16])),
+        observations: cleanNA(row[17])
+    };
 }
 
 async function importEquipment() {
@@ -74,22 +94,7 @@ async function importEquipment() {
                 await prisma.resource.update({
                     where: { id: existing.id },
                     data: {
-                        name: String(row[1] || 'Sin nombre').trim(),
-                        type: String(row[0] || 'General').trim(),
-                        brand: cleanNA(row[3]),
-                        model: cleanNA(row[4]),
-                        serial: cleanNA(row[5]),
-                        location: cleanNA(row[6]),
-                        maintenanceType: cleanNA(row[7]),
-                        maintenanceFrequency: cleanNA(row[8]),
-                        requiresCalibration: String(row[9]).toUpperCase().includes('SI'),
-                        calibrationFrequency: cleanNA(row[10]),
-                        variable: cleanNA(row[12]),
-                        workRange: cleanNA(row[13]),
-                        resolution: cleanNA(row[14]),
-                        calibrationPoints: cleanNA(row[15]),
-                        status: normalizeStatus(String(row[16])),
-                        observations: cleanNA(row[17]),
+                        ...getEquipmentData(row, codigo),
                         updatedAt: new Date()
                     }
                 });
@@ -100,23 +105,8 @@ async function importEquipment() {
             // Crear nuevo
             await prisma.resource.create({
                 data: {
-                    name: String(row[1] || 'Sin nombre').trim(),
-                    type: String(row[0] || 'General').trim(),
+                    ...getEquipmentData(row, codigo),
                     code: codigo,
-                    brand: cleanNA(row[3]),
-                    model: cleanNA(row[4]),
-                    serial: cleanNA(row[5]),
-                    location: cleanNA(row[6]),
-                    maintenanceType: cleanNA(row[7]),
-                    maintenanceFrequency: cleanNA(row[8]),
-                    requiresCalibration: String(row[9]).toUpperCase().includes('SI'),
-                    calibrationFrequency: cleanNA(row[10]),
-                    variable: cleanNA(row[12]),
-                    workRange: cleanNA(row[13]),
-                    resolution: cleanNA(row[14]),
-                    calibrationPoints: cleanNA(row[15]),
-                    status: normalizeStatus(String(row[16])),
-                    observations: cleanNA(row[17]),
                     quantity: 1
                 }
             });
