@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { getJwtSecret } from '../config/env';
 
 const prisma = new PrismaClient();
 
@@ -19,7 +20,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
             return res.status(401).json({ error: 'No autorizado' });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { userId: string };
+        const decoded = jwt.verify(token, getJwtSecret()) as { userId: string };
 
         // Get user role from database
         const user = await prisma.user.findUnique({

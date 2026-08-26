@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 // import { marked } from 'marked';
 import axios from 'axios';
+import { assertSafeExternalUrl, isPrivateAddress } from '../config/url-guard';
 
 const prisma = new PrismaClient();
 
@@ -858,8 +859,19 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
     try {
         const { OT, DOCUMENTO } = req.body;
 
-        if (!DOCUMENTO) {
+        if (!DOCUMENTO || typeof DOCUMENTO !== 'string') {
             return res.status(400).json({ error: 'Falta el campo DOCUMENTO (URL)' });
+        }
+
+        if (OT !== undefined && typeof OT !== 'string') {
+            return res.status(400).json({ error: 'El campo OT debe ser texto' });
+        }
+
+        let documentUrl: URL;
+        try {
+            documentUrl = await assertSafeExternalUrl(DOCUMENTO);
+        } catch (urlError: any) {
+            return res.status(400).json({ error: urlError.message || 'URL inválida' });
         }
 
         const oitNumber = OT || `OIT-${Date.now()}`;
@@ -879,8 +891,17 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
         try {
             const response = await axios({
                 method: 'get',
-                url: DOCUMENTO,
-                responseType: 'stream'
+                url: documentUrl.toString(),
+                responseType: 'stream',
+                timeout: 30_000,
+                maxContentLength: 25 * 1024 * 1024,
+                maxRedirects: 3,
+                beforeRedirect: (options: any) => {
+                    const host = String(options.hostname || '').replace(/^\[|\]$/g, '');
+                    if (isPrivateAddress(host)) {
+                        throw new Error('Redirección a una dirección de red interna bloqueada');
+                    }
+                },
             });
 
             const writer = fs.createWriteStream(filePath);

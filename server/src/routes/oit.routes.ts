@@ -35,12 +35,13 @@ import {
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { authMiddleware, requireAdmin } from '../middleware/auth.middleware';
+import { integrationAuthMiddleware } from '../middleware/integration.middleware';
 
 const router = Router();
 
 router.get('/', authMiddleware, getAllOITs);
 router.get('/:id', authMiddleware, getOITById);
-router.post('/', createOIT);
+router.post('/', authMiddleware, createOIT);
 
 // Async creation endpoint with file uploads (oitFile and quotationFile)
 router.post(
@@ -52,9 +53,9 @@ router.post(
     ]),
     createOITAsync
 );
-router.post('/from-url', createOITFromUrl);
+router.post('/from-url', integrationAuthMiddleware, createOITFromUrl);
 
-router.put('/:id', updateOIT);
+router.put('/:id', authMiddleware, updateOIT);
 router.patch('/:id', authMiddleware, upload.fields([
     { name: 'oitFile', maxCount: 1 },
     { name: 'quotationFile', maxCount: 1 },
@@ -93,7 +94,7 @@ router.post('/:id/verify', authMiddleware, verifyConsistency);
 // Request redo of sampling steps (Admin only)
 router.post('/:id/request-redo', authMiddleware, requireAdmin, requestRedoSteps);
 
-router.delete('/:id', deleteOIT);
+router.delete('/:id', authMiddleware, requireAdmin, deleteOIT);
 
 // Engineer assignment endpoints
 router.post('/:id/assign-engineers', authMiddleware, requireAdmin, assignEngineers);

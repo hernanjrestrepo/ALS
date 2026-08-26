@@ -153,7 +153,11 @@ async function main() {
     const users = await prisma.user.count();
     if (users === 0) {
         console.log('   - Creating default users...');
-        const hashedPassword = await bcrypt.hash('admin123', 10);
+        const seedPassword = process.env.SEED_ADMIN_PASSWORD;
+        if (!seedPassword || seedPassword.length < 12) {
+            throw new Error('SEED_ADMIN_PASSWORD debe estar definido con al menos 12 caracteres para crear los usuarios iniciales');
+        }
+        const hashedPassword = await bcrypt.hash(seedPassword, 10);
 
         await prisma.user.create({
             data: {
@@ -172,7 +176,7 @@ async function main() {
                 role: 'ENGINEER'
             }
         });
-        console.log('   - Created admin@als.com / admin123 and ingeniero@als.com');
+        console.log('   - Created admin@als.com and ingeniero@als.com with SEED_ADMIN_PASSWORD');
     }
 
     console.log(`✅ Seed completion: ${templates.length} templates created.`);

@@ -54,6 +54,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 // import { marked } from 'marked';
 const axios_1 = __importDefault(require("axios"));
+const url_guard_1 = require("../config/url-guard");
 const prisma = new client_1.PrismaClient();
 // Guarda un snapshot de version por cada informe (name/url/type) generado para
 // un OIT, y marca como inactivas las versiones anteriores con el mismo nombre.
@@ -847,8 +848,18 @@ const createOITFromUrl = (req, res) => __awaiter(void 0, void 0, void 0, functio
     var _a;
     try {
         const { OT, DOCUMENTO } = req.body;
-        if (!DOCUMENTO) {
+        if (!DOCUMENTO || typeof DOCUMENTO !== 'string') {
             return res.status(400).json({ error: 'Falta el campo DOCUMENTO (URL)' });
+        }
+        if (OT !== undefined && typeof OT !== 'string') {
+            return res.status(400).json({ error: 'El campo OT debe ser texto' });
+        }
+        let documentUrl;
+        try {
+            documentUrl = yield (0, url_guard_1.assertSafeExternalUrl)(DOCUMENTO);
+        }
+        catch (urlError) {
+            return res.status(400).json({ error: urlError.message || 'URL inválida' });
         }
         const oitNumber = OT || `OIT-${Date.now()}`;
         // Auth is optional for this endpoint as per requirement, but if token is sent, we can use it
@@ -864,8 +875,17 @@ const createOITFromUrl = (req, res) => __awaiter(void 0, void 0, void 0, functio
         try {
             const response = yield (0, axios_1.default)({
                 method: 'get',
-                url: DOCUMENTO,
-                responseType: 'stream'
+                url: documentUrl.toString(),
+                responseType: 'stream',
+                timeout: 30000,
+                maxContentLength: 25 * 1024 * 1024,
+                maxRedirects: 3,
+                beforeRedirect: (options) => {
+                    const host = String(options.hostname || '').replace(/^\[|\]$/g, '');
+                    if ((0, url_guard_1.isPrivateAddress)(host)) {
+                        throw new Error('Redirección a una dirección de red interna bloqueada');
+                    }
+                },
             });
             const writer = fs_1.default.createWriteStream(filePath);
             response.data.pipe(writer);

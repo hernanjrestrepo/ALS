@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const ai_controller_1 = require("../controllers/ai.controller");
 const multer_1 = require("../config/multer");
+const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = (0, express_1.Router)();
+router.use(auth_middleware_1.authMiddleware);
 // Using shared upload config (disk storage). Controller will still validate mimetypes
 router.post('/chat', ai_controller_1.chat);
 router.get('/models', ai_controller_1.getModels);

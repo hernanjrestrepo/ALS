@@ -18,10 +18,20 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
 const client_1 = require("@prisma/client");
 const email_service_1 = require("../services/email.service");
+const env_1 = require("../config/env");
 const prisma = new client_1.PrismaClient();
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password, name } = req.body;
+        if (typeof email !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+            return res.status(400).json({ message: 'Correo electrónico inválido' });
+        }
+        if (typeof password !== 'string' || password.length < 8) {
+            return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres' });
+        }
+        if (name !== undefined && typeof name !== 'string') {
+            return res.status(400).json({ message: 'Nombre inválido' });
+        }
         const existingUser = yield prisma.user.findUnique({ where: { email } });
         if (existingUser) {
             return res.status(400).json({ message: 'El usuario ya existe' });
@@ -38,7 +48,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 role: isFirstUser ? 'SUPER_ADMIN' : 'USER'
             },
         });
-        const token = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET, {
+        const token = jsonwebtoken_1.default.sign({ userId: user.id }, (0, env_1.getJwtSecret)(), {
             expiresIn: '24h',
         });
         res.status(201).json({
@@ -55,6 +65,9 @@ exports.register = register;
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
+        if (typeof email !== 'string' || typeof password !== 'string') {
+            return res.status(400).json({ message: 'Credenciales inválidas' });
+        }
         const user = yield prisma.user.findUnique({ where: { email } });
         if (!user) {
             return res.status(400).json({ message: 'Credenciales inválidas' });
@@ -66,7 +79,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (!user.isActive) {
             return res.status(403).json({ message: 'Cuenta inactiva. Contacte al administrador.' });
         }
-        const token = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET, {
+        const token = jsonwebtoken_1.default.sign({ userId: user.id }, (0, env_1.getJwtSecret)(), {
             expiresIn: '24h',
         });
         res.status(200).json({
@@ -88,6 +101,9 @@ exports.login = login;
 const forgotPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email } = req.body;
+        if (typeof email !== 'string' || !email) {
+            return res.status(400).json({ message: 'Correo electrónico inválido' });
+        }
         const user = yield prisma.user.findUnique({ where: { email } });
         // Respuesta genérica siempre, para no revelar si el correo existe o no
         const genericResponse = { message: 'Si el correo existe, se generó un link de recuperación.' };
@@ -121,8 +137,11 @@ exports.forgotPassword = forgotPassword;
 const resetPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, token, password } = req.body;
-        if (!password || password.length < 6) {
-            return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+        if (typeof email !== 'string' || typeof token !== 'string') {
+            return res.status(400).json({ message: 'Link de recuperación inválido o expirado' });
+        }
+        if (typeof password !== 'string' || password.length < 8) {
+            return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres' });
         }
         const user = yield prisma.user.findUnique({ where: { email } });
         if (!user || !user.resetTokenHash || !user.resetTokenExpiry) {

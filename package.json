@@ -12,8 +12,8 @@
     "build": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "xmldom": "^0.6.0"
+    "@xmldom/xmldom": "^0.9.11",
+    "concurrently": "^8.2.2"
   },
   "dependencies": {
     "puppeteer": "^24.34.0"

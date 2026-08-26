@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireEngineer = exports.requireAdmin = exports.requireSuperAdmin = exports.requireRole = exports.authMiddleware = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const client_1 = require("@prisma/client");
+const env_1 = require("../config/env");
 const prisma = new client_1.PrismaClient();
 const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -23,7 +24,7 @@ const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         if (!token) {
             return res.status(401).json({ error: 'No autorizado' });
         }
-        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'secret');
+        const decoded = jsonwebtoken_1.default.verify(token, (0, env_1.getJwtSecret)());
         // Get user role from database
         const user = yield prisma.user.findUnique({
             where: { id: decoded.userId },
