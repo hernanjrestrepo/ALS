@@ -41,4 +41,6 @@ export const TEMPLATE_TEST_ITEMS: Omit<TemplateTest, 'status' | 'hasErrors' | 'c
   { templateId: 'respel', matrix: 'RESPEL', fileName: 'PLANTILLA_RESPEL_DOCXTEMPLATER.docx' },
   { templateId: 'ruido-ambiental', matrix: 'Ruido Ambiental', fileName: 'PLANTILLA_RUIDO_AMBIENTAL_DOCXTEMPLATER.docx' },
   { templateId: 'suelo', matrix: 'Suelo', fileName: 'PLANTILLA_SUELO_DOCXTEMPLATER.docx' },
+  { templateId: 'ruido-intradomiciliario', matrix: 'Ruido Intradomiciliario', fileName: 'PLANTILLA_RUIDO_INTRADOMICILIARIO_DOCXTEMPLATER.docx' },
+  { templateId: 'fuentes-fijas-previo', matrix: 'Fuentes Fijas (Previo)', fileName: 'PLANTILLA_FF_PREVIO_DOCXTEMPLATER.docx' },
 ];
