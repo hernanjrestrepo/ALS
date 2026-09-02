@@ -1,7 +1,7 @@
 import app from './app';
 import { logError } from './utils/errors';
 
-const PORT = process.env.PORT || 4000;
+const PORT = Number(process.env.PORT) || 4000;
 
 // Sin estos handlers, un fallo en una tarea de fondo (analisis de OIT, generacion
 // de informes) desaparece sin dejar rastro.
@@ -14,6 +14,6 @@ process.on('uncaughtException', (error) => {
     process.exit(1);
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '127.0.0.1', () => {
     console.log(`Server running on port ${PORT}`);
 });
