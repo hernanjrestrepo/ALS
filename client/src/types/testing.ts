@@ -28,7 +28,7 @@ export interface TestsExport {
 }
 
 export const TEMPLATE_TEST_ITEMS: Omit<TemplateTest, 'status' | 'hasErrors' | 'comments' | 'lastTestedAt' | 'testedBy'>[] = [
-  { templateId: 'agua-subterranea', matrix: 'Agua Subterránea', fileName: 'PLANTILLA_AGUA_MARINA_DOCXTEMPLATER.docx' },
+  { templateId: 'agua-subterranea', matrix: 'Agua', fileName: 'PLANTILLA_AGUA_MARINA_DOCXTEMPLATER.docx' },
   { templateId: 'biota', matrix: 'Biota Marina', fileName: 'PLANTILLA_BIOTA_DOCXTEMPLATER.docx' },
   { templateId: 'ca-calidad', matrix: 'Calidad de Aire', fileName: 'PLANTILLA_CA_CALIDAD_AIRE_DOCXTEMPLATER.docx' },
   { templateId: 'ca-olores', matrix: 'Olores Ofensivos', fileName: 'PLANTILLA_CA_OLORES_DOCXTEMPLATER.docx' },
