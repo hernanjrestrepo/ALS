@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.aiService = exports.AIService = void 0;
 const axios_1 = __importDefault(require("axios"));
+const errors_1 = require("../utils/errors");
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'gpt-oss';
 class AIService {
@@ -28,6 +29,7 @@ class AIService {
                 return true;
             }
             catch (error) {
+                (0, errors_1.logWarning)(`AI no disponible en ${this.baseURL}`, error);
                 return false;
             }
         });
@@ -39,6 +41,7 @@ class AIService {
                 return response.data.models.map((m) => m.name);
             }
             catch (error) {
+                (0, errors_1.logError)(`No se pudo listar modelos de IA en ${this.baseURL}`, error);
                 return [];
             }
         });
@@ -52,7 +55,6 @@ class AIService {
     }
     cascadeSummary(text, objective) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
             // Larger chunks to reduce sequential API calls (Kimi can handle it)
             const chunks = this.chunkText(text, 30000);
             console.log(`[AI] Cascade Summary: ${chunks.length} chunks. Objective: ${objective}`);
@@ -77,8 +79,8 @@ class AIService {
                     summaries.push(response.data.response);
                 }
                 catch (error) {
-                    console.error(`Error chunk ${i}:`, ((_a = error.response) === null || _a === void 0 ? void 0 : _a.data) || error.message);
-                    summaries.push(`[Error en bloque ${i + 1}]`);
+                    (0, errors_1.logError)(`Cascade summary: fallo el bloque ${i + 1}/${chunks.length}`, error);
+                    summaries.push(`[Error en bloque ${i + 1}: ${(0, errors_1.errorMessage)(error)}]`);
                 }
             }
             return summaries.join('\n\n--- CONTINUACIÓN ---\n\n');
@@ -116,7 +118,6 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
     }
     chat(message, model, system) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
             const useModel = model || this.defaultModel;
             console.log(`[AI] Sending Chat Request. Model: ${useModel}`);
             try {
@@ -129,14 +130,14 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 return response.data.response || '';
             }
             catch (error) {
-                console.error('AI Chat error:', ((_a = error.response) === null || _a === void 0 ? void 0 : _a.data) || error.message);
+                (0, errors_1.logError)(`AI Chat error (modelo ${useModel})`, error);
                 throw error;
             }
         });
     }
     analyzeDocument(documentText) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
+            var _a;
             const available = yield this.isAvailable();
             if (!available)
                 return this.heuristicAnalysis(documentText);
@@ -196,8 +197,8 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 };
             }
             catch (error) {
-                console.error('AI Analysis error:', ((_b = error.response) === null || _b === void 0 ? void 0 : _b.data) || error.message);
-                return this.heuristicAnalysis(documentText);
+                (0, errors_1.logError)('AI Analysis error, se usa analisis heuristico', error);
+                return this.heuristicAnalysis(documentText, `Analisis IA fallido: ${(0, errors_1.errorMessage)(error)}`);
             }
         });
     }
@@ -218,12 +219,13 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 return JSON.parse(text);
             }
             catch (error) {
-                return { valid: false, message: 'Error' };
+                (0, errors_1.logError)('Extraccion de datos de OIT por IA fallida', error);
+                return { valid: false, message: `Error extrayendo datos de la OIT: ${(0, errors_1.errorMessage)(error)}` };
             }
         });
     }
-    heuristicAnalysis(text) {
-        return { status: 'alerta', alerts: ['Offline'], missing: [], evidence: [], services: [], location: null };
+    heuristicAnalysis(text, reason = 'Servicio de IA no disponible') {
+        return { status: 'alerta', alerts: [reason], missing: [], evidence: [], services: [], location: null };
     }
     recommendResources(documentText) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -236,7 +238,6 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
     // exacto), nunca edicion directa del documento por la IA.
     detectTemplateTags(documentText) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
             const safeText = documentText.substring(0, 20000);
             const prompt = `Eres un analista que prepara formatos de informes técnicos ambientales para automatización con docxtemplater.
 
@@ -305,14 +306,13 @@ REGLAS ESTRICTAS E INQUEBRANTABLES:
                 });
             }
             catch (error) {
-                console.error('Template tag detection error:', ((_a = error.response) === null || _a === void 0 ? void 0 : _a.data) || error.message);
+                (0, errors_1.logError)('Deteccion de tags de plantilla fallida', error);
                 return [];
             }
         });
     }
     analyzeLabResults(documentText, oitContext) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
             try {
                 const safeText = documentText.substring(0, 20000);
                 const prompt = `Eres Analista Técnico Ambiental de ALS Environmental. Analiza el siguiente resultado de laboratorio y extrae la información en el formato exacto solicitado.
@@ -394,8 +394,12 @@ REGLAS ESTRICTAS:
                 return JSON.stringify(parsed);
             }
             catch (error) {
-                console.error('Lab results analysis error:', ((_a = error.response) === null || _a === void 0 ? void 0 : _a.data) || error.message);
-                return JSON.stringify({ rawText: 'Error en análisis IA de resultados de laboratorio', parsedData: {} });
+                (0, errors_1.logError)('Analisis IA de resultados de laboratorio fallido', error);
+                return JSON.stringify({
+                    rawText: `Error en análisis IA de resultados de laboratorio: ${(0, errors_1.errorMessage)(error)}`,
+                    parsedData: {},
+                    error: true
+                });
             }
         });
     }

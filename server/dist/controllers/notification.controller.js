@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createNotification = exports.deleteNotification = exports.markAllAsRead = exports.markAsRead = exports.getNotifications = void 0;
 const client_1 = require("@prisma/client");
 const push_service_1 = require("../services/push.service");
+const errors_1 = require("../utils/errors");
 const prisma = new client_1.PrismaClient();
 const getNotifications = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -123,11 +124,11 @@ const createNotification = (userId_1, title_1, message_1, ...args_1) => __awaite
                 type,
                 oitId
             }
-        }).catch(err => console.error('Push send error:', err));
+        }).catch(err => (0, errors_1.logError)(`No se pudo enviar el push de la notificacion ${notification.id} al usuario ${userId}`, err));
         return notification;
     }
     catch (error) {
-        console.error('Error creating notification:', error);
+        (0, errors_1.logError)(`No se pudo crear la notificacion "${title}" para el usuario ${userId}`, error);
         throw error;
     }
 });

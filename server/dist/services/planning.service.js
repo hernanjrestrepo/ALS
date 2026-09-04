@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.planningService = void 0;
 const client_1 = require("@prisma/client");
 const ai_service_1 = require("./ai.service");
+const errors_1 = require("../utils/errors");
 // import { pdfService } from './pdf.service'; // Circular dependency if not careful
 const prisma = new client_1.PrismaClient();
 exports.planningService = {
@@ -89,14 +90,19 @@ exports.planningService = {
                     services = JSON.parse(cleanJson);
                 }
                 catch (e) {
-                    console.error('[Planning] Failed to parse AI JSON:', e);
+                    (0, errors_1.logWarning)('[Planning] Respuesta de IA no es JSON valido, se intenta extraer el array', e);
                     // Fallback regex compatible with older ES versions (no /s flag)
                     const match = aiResponse.match(/\[[\s\S]*\]/);
                     if (match) {
                         try {
                             services = JSON.parse(match[0]);
                         }
-                        catch (e2) { }
+                        catch (e2) {
+                            (0, errors_1.logError)('[Planning] Tampoco se pudo parsear el array extraido de la respuesta de IA', e2);
+                        }
+                    }
+                    else {
+                        (0, errors_1.logError)('[Planning] La respuesta de IA no contiene ningun array de servicios', e);
                     }
                 }
                 if (!Array.isArray(services))
@@ -122,9 +128,9 @@ exports.planningService = {
                 };
             }
             catch (error) {
-                console.error('[Planning] AI Analysis Failed:', error);
-                // Fallback: Return 0 services found
-                return { totalServicesFound: 0, services: [] };
+                (0, errors_1.logError)('[Planning] AI Analysis Failed', error);
+                // Se propaga el motivo para no reportar "0 servicios" como si fuera exito.
+                return { totalServicesFound: 0, services: [], error: (0, errors_1.errorMessage)(error) };
             }
         });
     },

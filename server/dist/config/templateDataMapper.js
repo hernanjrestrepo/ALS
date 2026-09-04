@@ -54,6 +54,7 @@ const templateConfigs_1 = __importStar(require("./templateConfigs"));
 const docx_service_1 = require("../services/docx.service");
 const water_indices_1 = require("../services/water-indices");
 const chart_service_1 = require("../services/chart.service");
+const errors_1 = require("../utils/errors");
 class TemplateDataMapper {
     constructor(templateFileName, oit, aiAnalysis) {
         this.oit = oit;
@@ -86,7 +87,8 @@ class TemplateDataMapper {
             }
             return data;
         }
-        catch (_a) {
+        catch (error) {
+            (0, errors_1.logWarning)(`[TemplateMapper] aiData invalido para OIT ${this.oit.oitNumber}, se usa objeto vacio`, error);
             return {};
         }
     }
@@ -94,7 +96,8 @@ class TemplateDataMapper {
         try {
             return docx_service_1.docxService.getTemplateFields(fileName);
         }
-        catch (_a) {
+        catch (error) {
+            (0, errors_1.logWarning)(`[TemplateMapper] no se pudieron leer los campos de la plantilla ${fileName}`, error);
             return [];
         }
     }

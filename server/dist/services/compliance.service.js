@@ -19,6 +19,7 @@ const pdf_service_1 = require("./pdf.service");
 const notification_controller_1 = require("../controllers/notification.controller");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const errors_1 = require("../utils/errors");
 const prisma = new client_1.PrismaClient();
 const OIT_TYPE_CATEGORIES = {
     'AGUA_SUBTERRANEA': ['AGUA', 'SUBTERRANEA'],
@@ -99,6 +100,7 @@ class ComplianceService {
                 return yield pdf_service_1.pdfService.extractText(filePath);
             }
             catch (error) {
+                (0, errors_1.logError)(`No se pudo extraer texto de la cotizacion (${filePath})`, error);
                 return '';
             }
         });
@@ -171,8 +173,9 @@ Responde SOLO JSON:
                 return result;
             }
             catch (error) {
-                console.error('Compliance error:', error);
-                return { compliant: false, score: 0, summary: 'Error en análisis IA' };
+                (0, errors_1.logError)(`Analisis de conformidad fallido para OIT ${oitId}`, error);
+                yield (0, notification_controller_1.createNotification)(userId, `Error en análisis de conformidad: ${oit.oitNumber}`, 'No se pudo completar el análisis de conformidad. Revise los archivos de la OIT e intente de nuevo.', 'ERROR', oitId);
+                return { compliant: false, score: 0, summary: `Error en análisis IA: ${(0, errors_1.errorMessage)(error)}`, error: true };
             }
         });
     }
