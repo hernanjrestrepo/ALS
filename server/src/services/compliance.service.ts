@@ -4,6 +4,7 @@ import { pdfService } from './pdf.service';
 import { createNotification } from '../controllers/notification.controller';
 import fs from 'fs';
 import path from 'path';
+import { errorMessage, logError } from '../utils/errors';
 
 const prisma = new PrismaClient();
 
@@ -72,6 +73,7 @@ export class ComplianceService {
         try {
             return await pdfService.extractText(filePath);
         } catch (error) {
+            logError(`No se pudo extraer texto de la cotizacion (${filePath})`, error);
             return '';
         }
     }
@@ -148,8 +150,15 @@ Responde SOLO JSON:
             await createNotification(userId, notifTitle, notifBody, noVerdict ? 'INFO' : (result.compliant ? 'SUCCESS' : 'WARNING'), oitId);
             return result;
         } catch (error) {
-            console.error('Compliance error:', error);
-            return { compliant: false, score: 0, summary: 'Error en análisis IA' };
+            logError(`Analisis de conformidad fallido para OIT ${oitId}`, error);
+            await createNotification(
+                userId,
+                `Error en análisis de conformidad: ${oit.oitNumber}`,
+                'No se pudo completar el análisis de conformidad. Revise los archivos de la OIT e intente de nuevo.',
+                'ERROR',
+                oitId
+            );
+            return { compliant: false, score: 0, summary: `Error en análisis IA: ${errorMessage(error)}`, error: true };
         }
     }
 }

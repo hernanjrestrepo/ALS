@@ -1,0 +1,17 @@
+AVISO -- NO RESTAURAR ESTE ARCHIVO A PRODUCCION BAJO NINGUNA CIRCUNSTANCIA.
+
+Este backup preserva la plantilla de 64-11 (Suelos) tal como estaba
+desplegada en produccion antes de la reconstruccion completa del
+2026-08-21. NO es una plantilla limpia: es una copia editada de un
+informe YA GENERADO para el cliente real "DESARROLLO ALS ENVIRONMENTAL
+S.A.S." en el sitio "Cienaga Mallorquin". Ese nombre de sitio aparecia
+hardcodeado 22 veces en el documento, incluyendo en titulos de tabla
+fijos ("Tabla 8. Resultados de campo- Cienaga Mallorquin - Ensayo 1").
+
+Se conserva unicamente como evidencia historica / referencia forense
+del bug de produccion (fuga de datos de un cliente real hacia informes
+de otros clientes). La version correcta y en uso desde el 2026-08-21
+se reconstruyo desde la fuente limpia en
+server/uploads/fuentes_18082027/FO-PO-PSM-64-11 ... INFORME DE
+SUELOS.docx -- ver commit de reconstruccion completa de 64-11 en git
+log para el detalle tecnico completo.

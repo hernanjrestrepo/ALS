@@ -16,6 +16,7 @@ const client_1 = require("@prisma/client");
 const ai_service_1 = require("./ai.service");
 const pdf_service_1 = require("./pdf.service");
 const fs_1 = __importDefault(require("fs"));
+const errors_1 = require("../utils/errors");
 const prisma = new client_1.PrismaClient();
 class VerificationService {
     verifyConsistency(oitId) {
@@ -35,7 +36,7 @@ class VerificationService {
                 clientName: '',
                 dates: {
                     scheduled: oit.scheduledDate,
-                    serviceDates: oit.serviceDates ? JSON.parse(oit.serviceDates) : null
+                    serviceDates: (0, errors_1.parseJsonOrDefault)(oit.serviceDates, null, `OIT ${oitId} serviceDates`)
                 }
             };
             // Extract Client Name from AI Data
@@ -46,7 +47,9 @@ class VerificationService {
                     sources.aiResources = (_b = ai.data) === null || _b === void 0 ? void 0 : _b.assignedResources;
                 }
             }
-            catch (e) { }
+            catch (e) {
+                (0, errors_1.logWarning)(`OIT ${oitId}: no se pudo leer aiData para la verificacion`, e);
+            }
             // Sampling Data (What was actually done in app)
             let samplingSummary = '';
             try {
@@ -56,7 +59,9 @@ class VerificationService {
                     samplingSummary = stepValues.join(', ');
                 }
             }
-            catch (e) { }
+            catch (e) {
+                (0, errors_1.logWarning)(`OIT ${oitId}: no se pudo leer stepValidations para la verificacion`, e);
+            }
             // Lab Results Text
             let labText = '';
             if (oit.labResultsUrl) {
@@ -75,7 +80,7 @@ class VerificationService {
                     }
                 }
                 catch (e) {
-                    console.error('Error reading lab summary', e);
+                    (0, errors_1.logError)(`OIT ${oitId}: error leyendo resultados de laboratorio (${oit.labResultsUrl})`, e);
                 }
             }
             // Field Form Text
@@ -91,7 +96,7 @@ class VerificationService {
                     }
                 }
                 catch (e) {
-                    console.error('Error reading field form', e);
+                    (0, errors_1.logError)(`OIT ${oitId}: error leyendo planilla de campo (${oit.fieldFormUrl})`, e);
                 }
             }
             // 2. AI Prompt
@@ -139,8 +144,8 @@ Responde en JSON:
                 return result;
             }
             catch (error) {
-                console.error('AI Verification failed', error);
-                throw new Error('Falló la verificación por IA');
+                (0, errors_1.logError)(`OIT ${oitId}: verificacion por IA fallida`, error);
+                throw new Error(`Falló la verificación por IA: ${(0, errors_1.errorMessage)(error)}`);
             }
         });
     }

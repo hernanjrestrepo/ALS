@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { aiService } from './ai.service';
 import fs from 'fs';
 import path from 'path';
+import { errorMessage, logError, logWarning } from '../utils/errors';
 // import { pdfService } from './pdf.service'; // Circular dependency if not careful
 
 const prisma = new PrismaClient();
@@ -16,6 +17,8 @@ interface ServiceExtraction {
 interface AnalysisResult {
     totalServicesFound: number;
     services: ServiceExtraction[];
+    /** Motivo del fallo cuando el analisis no pudo completarse. */
+    error?: string;
 }
 
 export const planningService = {
@@ -101,11 +104,17 @@ export const planningService = {
                 const cleanJson = aiResponse.replace(/```json/g, '').replace(/```/g, '').trim();
                 services = JSON.parse(cleanJson);
             } catch (e) {
-                console.error('[Planning] Failed to parse AI JSON:', e);
+                logWarning('[Planning] Respuesta de IA no es JSON valido, se intenta extraer el array', e);
                 // Fallback regex compatible with older ES versions (no /s flag)
                 const match = aiResponse.match(/\[[\s\S]*\]/);
                 if (match) {
-                    try { services = JSON.parse(match[0]); } catch (e2) { }
+                    try {
+                        services = JSON.parse(match[0]);
+                    } catch (e2) {
+                        logError('[Planning] Tampoco se pudo parsear el array extraido de la respuesta de IA', e2);
+                    }
+                } else {
+                    logError('[Planning] La respuesta de IA no contiene ningun array de servicios', e);
                 }
             }
 
@@ -133,9 +142,9 @@ export const planningService = {
             };
 
         } catch (error) {
-            console.error('[Planning] AI Analysis Failed:', error);
-            // Fallback: Return 0 services found
-            return { totalServicesFound: 0, services: [] };
+            logError('[Planning] AI Analysis Failed', error);
+            // Se propaga el motivo para no reportar "0 servicios" como si fuera exito.
+            return { totalServicesFound: 0, services: [], error: errorMessage(error) };
         }
     },
 

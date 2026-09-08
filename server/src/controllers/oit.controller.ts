@@ -7,8 +7,33 @@ import fs from 'fs';
 import path from 'path';
 // import { marked } from 'marked';
 import axios from 'axios';
+import { errorMessage, logError, logWarning } from '../utils/errors';
 
 const prisma = new PrismaClient();
+
+// Los procesos en segundo plano (analisis de laboratorio, planillas, generacion de
+// informes) responden 202 al cliente, asi que un fallo posterior solo quedaba en los
+// logs y el usuario esperaba indefinidamente. Esto notifica a los ingenieros asignados
+// para que el fallo llegue a la UI.
+async function notifyOitFailure(oitId: string, title: string, error: unknown) {
+    logError(`${title} (OIT ${oitId})`, error);
+    try {
+        const oit = await prisma.oIT.findUnique({
+            where: { id: oitId },
+            include: { assignedEngineers: true }
+        });
+        const userIds = new Set<string>();
+        for (const assignment of oit?.assignedEngineers || []) {
+            if (assignment.userId) userIds.add(assignment.userId);
+        }
+        const message = errorMessage(error).substring(0, 400);
+        for (const userId of userIds) {
+            await createNotification(userId, title, message, 'ERROR', oitId);
+        }
+    } catch (notifyError) {
+        logError(`No se pudo notificar el fallo "${title}" de la OIT ${oitId}`, notifyError);
+    }
+}
 
 // Guarda un snapshot de version por cada informe (name/url/type) generado para
 // un OIT, y marca como inactivas las versiones anteriores con el mismo nombre.
@@ -36,7 +61,7 @@ async function recordReportVersions(oitId: string, reports: Array<{ name: string
                 },
             });
         } catch (err) {
-            console.error(`[ReportVersion] Failed to record version for "${report.name}":`, err);
+            logError(`[ReportVersion] No se pudo registrar la version de "${report.name}" (OIT ${oitId})`, err);
         }
     }
 }
@@ -77,7 +102,7 @@ export const acceptPlanning = async (req: Request, res: Response) => {
                     }
                 }
             } catch (parseError) {
-                console.error('Error parsing aiData for resource updates:', parseError);
+                logError(`OIT ${id}: no se pudieron actualizar los recursos desde aiData`, parseError);
                 // Continue even if resource update fails
             }
         }
@@ -253,6 +278,7 @@ export const uploadLabResults = async (req: Request, res: Response) => {
                     groupedFiles = { 'General': [currentOit.labResultsUrl] };
                 }
             } catch (e) {
+                logWarning(`OIT ${id}: labResultsUrl no es JSON (formato legado), se agrupa como General`, e);
                 groupedFiles = { 'General': [currentOit.labResultsUrl] };
             }
         }
@@ -281,7 +307,7 @@ export const uploadLabResults = async (req: Request, res: Response) => {
 
         // 2. Trigger asynchronous processing for THIS GROUP
         processLabResultsAsync(id, groupedFiles[group].map(url => url.replace('uploads/', '')), group).catch(err => {
-            console.error('Error in background lab processing:', err);
+            void notifyOitFailure(id, `Error analizando los resultados de laboratorio (${group})`, err);
         });
 
     } catch (error) {
@@ -315,8 +341,8 @@ async function processLabResultsAsync(oitId: string, filenames: string[], group:
                     extractedText = fs.readFileSync(filePath, 'utf-8');
                 }
             } catch (readErr) {
-                console.error("Error extracting text from lab file:", readErr);
-                extractedText = "[Error al leer documento de laboratorio]";
+                logError(`OIT ${oitId}: no se pudo extraer texto del archivo de laboratorio ${filename}`, readErr);
+                extractedText = `[Error al leer documento de laboratorio: ${errorMessage(readErr)}]`;
             }
             fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
         }
@@ -334,7 +360,8 @@ async function processLabResultsAsync(oitId: string, filenames: string[], group:
             try {
                 const parsed = JSON.parse(oit.labResultsAnalysis);
                 currentAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': String(parsed) };
-            } catch {
+            } catch (e) {
+                logWarning(`OIT ${oitId}: labResultsAnalysis no es JSON (formato legado), se agrupa como General`, e);
                 currentAnalyses = { 'General': oit.labResultsAnalysis };
             }
         }
@@ -357,12 +384,12 @@ async function processLabResultsAsync(oitId: string, filenames: string[], group:
             try {
                 await internalGenerateFinalReport(oitId, group);
             } catch (reportErr) {
-                console.error(`Automatic report generation failed for OIT ${oitId}:`, reportErr);
+                await notifyOitFailure(oitId, 'Error generando el informe automático', reportErr);
             }
         }
 
     } catch (error) {
-        console.error('Background lab analysis failed:', error);
+        await notifyOitFailure(oitId, `Error en el análisis de laboratorio (${group})`, error);
         await prisma.oIT.update({
             where: { id: oitId },
             data: {
@@ -391,7 +418,10 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
         try {
             const parsed = JSON.parse(oit.labResultsAnalysis);
             groupedLabAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': String(parsed) };
-        } catch { groupedLabAnalyses = { 'General': oit.labResultsAnalysis }; }
+        } catch (e) {
+            logWarning(`OIT ${id}: labResultsAnalysis no es JSON (formato legado), se agrupa como General`, e);
+            groupedLabAnalyses = { 'General': oit.labResultsAnalysis };
+        }
     }
 
     // 2. Parse sampling sheet analysis
@@ -401,7 +431,7 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
             const parsed = JSON.parse(oit.samplingSheetAnalysis);
             groupedSheetAnalysis = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': parsed };
         } catch (e) {
-            console.warn('[Report] Failed to parse samplingSheetAnalysis', e);
+            logWarning(`[Report] OIT ${id}: samplingSheetAnalysis no es JSON valido, se ignora`, e);
         }
     }
 
@@ -430,7 +460,7 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
                 const comunicadoFilename = await comunicadoService.generateComunicado(oit, comunicadoContent, 'General');
                 generatedReports.push({ name: 'Comunicado General', url: comunicadoFilename, type: 'docx' });
             } catch (comErr) {
-                console.error('[Report] Comunicado generation failed for General:', comErr);
+                await notifyOitFailure(id, 'Error generando el comunicado (General)', comErr);
             }
         }
     } else {
@@ -518,7 +548,11 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
                             groupLabAnalysisNarrative = parsed.rawText;
                             groupLabAnalysisParsed = parsed.parsedData || {};
                         }
-                    } catch (e) { }
+                    } catch (e) {
+                        // El analisis puede venir como narrativa plana (formato antiguo) en vez
+                        // de JSON {rawText, parsedData}: se usa tal cual, pero se deja registro.
+                        logWarning(`[Report] OIT ${id}, grupo "${groupName}": analisis de laboratorio no es JSON, se usa como texto plano`, e);
+                    }
                 } else if (typeof groupLabAnalysisRaw === 'object' && groupLabAnalysisRaw !== null) {
                     groupLabAnalysisNarrative = (groupLabAnalysisRaw as any).rawText || JSON.stringify(groupLabAnalysisRaw);
                     groupLabAnalysisParsed = (groupLabAnalysisRaw as any).parsedData || {};
@@ -551,12 +585,12 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
                         const comunicadoFilename = await comunicadoService.generateComunicado(oit, comunicadoContent, groupName);
                         groupResults.push({ name: `Comunicado ${groupName}`, url: comunicadoFilename, type: 'docx' as const });
                     } catch (comErr) {
-                        console.error(`[Report] Comunicado generation failed for ${groupName}:`, comErr);
+                        await notifyOitFailure(id, `Error generando el comunicado (${groupName})`, comErr);
                     }
                 }
                 return groupResults;
             } catch (err) {
-                console.error(`[Report] Failed to generate report for group ${groupName}:`, err);
+                await notifyOitFailure(id, `Error generando el informe del servicio "${groupName}"`, err);
                 return [];
             }
         });
@@ -619,7 +653,7 @@ async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, te
             generatedFileName = `Informe_${safeType}_${oit.oitNumber}_${Date.now()}.docx`;
             isDocx = true;
         } catch (e) {
-            console.error('[Report] Docx generation failed, falling back to PDF', e);
+            logError(`[Report] OIT ${oit.oitNumber}: generacion DOCX fallida, se genera PDF`, e);
         }
     }
 
@@ -789,8 +823,8 @@ export const getAllOITs = async (req: Request, res: Response) => {
 
         res.status(200).json(result);
     } catch (error) {
-        console.error('Error in getAllOITs:', error);
-        res.status(500).json({ message: 'Something went wrong', error: String(error) });
+        logError('Error in getAllOITs', error);
+        res.status(500).json({ message: 'Error al obtener las OITs' });
     }
 };
 
@@ -830,8 +864,8 @@ export const getOITById = async (req: Request, res: Response) => {
             engineers: oit.assignedEngineers.map((a: any) => a.user)
         });
     } catch (error) {
-        console.error('Error in getOITById:', error);
-        res.status(500).json({ message: 'Something went wrong', error: String(error) });
+        logError(`Error in getOITById (${req.params.id})`, error);
+        res.status(500).json({ message: 'Error al obtener la OIT' });
     }
 };
 
@@ -848,7 +882,8 @@ export const createOIT = async (req: Request, res: Response) => {
         });
         res.status(201).json(oit);
     } catch (error) {
-        res.status(500).json({ message: 'Something went wrong' });
+        logError('Error creando OIT (createOIT)', error);
+        res.status(500).json({ message: 'Error al crear OIT' });
     }
 };
 
@@ -998,8 +1033,9 @@ export const createOITAsync = async (req: Request, res: Response) => {
         });
 
         // Process files asynchronously
-        processOITFilesAsync(oit.id, req.files as any, userId).catch(err => {
-            console.error('Error processing OIT files:', err);
+        processOITFilesAsync(oit.id, req.files as any, userId).catch(async err => {
+            logError(`Error procesando archivos de la OIT ${oit.id}`, err);
+            await createNotification(userId, 'Error al procesar archivos', `No se pudieron procesar los archivos de la OIT: ${errorMessage(err)}`.substring(0, 400), 'ERROR', oit.id);
         });
 
     } catch (error) {
@@ -1092,7 +1128,7 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
                 data: { status: 'REVIEW_REQUIRED' }
             });
         } catch (e) {
-            console.error('Compliance check error:', e);
+            await notifyOitFailure(oitId, 'Error verificando conformidad normativa', e);
             // Fallback: update status anyway so it doesn't get stuck
             await prisma.oIT.update({
                 where: { id: oitId },
@@ -1105,14 +1141,17 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
             await createNotification(userId, 'Generando Propuesta', 'Creando propuesta de planeación...', 'INFO', oitId);
             const proposal = await planningService.generateProposal(oitId);
             await createNotification(userId, 'Propuesta Lista', `Propuesta generada con plantilla "${proposal.templateName}"`, 'SUCCESS', oitId);
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            logError(`OIT ${oitId}: no se pudo generar la propuesta de planeacion`, e);
+            await createNotification(userId, 'Error generando propuesta', `No se pudo generar la propuesta de planeación: ${errorMessage(e)}`.substring(0, 400), 'ERROR', oitId);
+        }
 
         await createNotification(userId, 'OIT Procesada', 'Análisis completado exitosamente.', 'SUCCESS', oitId);
 
     } catch (error) {
-        console.error('Error in runOITAnalysis:', error);
+        logError(`Error en runOITAnalysis para la OIT ${oitId}`, error);
         await prisma.oIT.update({ where: { id: oitId }, data: { status: 'PENDING' } });
-        await createNotification(userId, 'Error al Procesar', 'Falló el análisis de la OIT.', 'ERROR', oitId);
+        await createNotification(userId, 'Error al Procesar', `Falló el análisis de la OIT: ${errorMessage(error)}`.substring(0, 400), 'ERROR', oitId);
     }
 }
 
@@ -1175,7 +1214,7 @@ export const reanalyzeOIT = async (req: Request, res: Response) => {
         }
 
         // Trigger Async Analysis
-        runOITAnalysis(id, oitPath, quotationPath, userId).catch(err => console.error("Re-analysis error:", err));
+        runOITAnalysis(id, oitPath, quotationPath, userId).catch(err => notifyOitFailure(id, 'Error en el re-análisis de la OIT', err));
 
         res.json({ message: 'Re-análisis iniciado correctamente.' });
 
@@ -1221,7 +1260,7 @@ export const updateOIT = async (req: Request, res: Response) => {
             try {
                 const q = await prisma.quotation.findUnique({ where: { id: req.body.quotationId } });
                 if (q && q.fileUrl) data.quotationFileUrl = q.fileUrl;
-            } catch (e) { console.error('Error fetching linked quotation file', e) }
+            } catch (e) { logError(`OIT ${id}: no se pudo obtener el archivo de la cotizacion vinculada`, e); }
         }
         if (aiData !== undefined) data.aiData = aiData;
         if (resources !== undefined) data.resources = resources;
@@ -1359,7 +1398,7 @@ export const updateOIT = async (req: Request, res: Response) => {
                 : null;
 
             runOITAnalysis(id, oitPath, quotationPath, userId).catch(err =>
-                console.error('Error in background re-analysis after update:', err)
+                notifyOitFailure(id, 'Error en el re-análisis tras actualizar la OIT', err)
             );
         }
 
@@ -1375,7 +1414,8 @@ export const deleteOIT = async (req: Request, res: Response) => {
         await prisma.oIT.delete({ where: { id } });
         res.status(200).json({ message: 'OIT deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Something went wrong' });
+        logError(`Error eliminando la OIT ${req.params.id}`, error);
+        res.status(500).json({ message: 'Error al eliminar la OIT' });
     }
 };
 
@@ -1522,7 +1562,9 @@ export const finalizeSampling = async (req: Request, res: Response) => {
                     ? resources.map((r: any) => typeof r === 'string' ? r : r.id).filter(Boolean)
                     : [];
                 resourceIdsToRelease.push(...ids);
-            } catch (e) { }
+            } catch (e) {
+                logWarning(`OIT ${id}: campo resources no es JSON valido, no se liberan esos recursos`, e);
+            }
         }
 
         // Also check aiData.data.assignedResources
@@ -1638,7 +1680,7 @@ export const uploadSamplingSheets = async (req: Request, res: Response) => {
 
         // Trigger async analysis for THIS GROUP
         processSamplingSheetsAsync(id, groupedFiles[group].map(url => url.replace('uploads/', '')), group).catch(err => {
-            console.error('Error in background sampling sheets processing:', err);
+            void notifyOitFailure(id, `Error analizando las planillas de muestreo (${group})`, err);
         });
 
     } catch (error) {
@@ -1664,7 +1706,10 @@ export const deleteSamplingSheet = async (req: Request, res: Response) => {
             try {
                 const parsed = JSON.parse(currentOit.samplingSheetUrl);
                 groupedFiles = Array.isArray(parsed) ? { 'General': parsed } : parsed;
-            } catch { groupedFiles = { 'General': [currentOit.samplingSheetUrl] }; }
+            } catch (e) {
+                logWarning(`OIT ${id}: samplingSheetUrl no es JSON (formato legado), se agrupa como General`, e);
+                groupedFiles = { 'General': [currentOit.samplingSheetUrl] };
+            }
         }
 
         if (groupedFiles[group]) {
@@ -1677,7 +1722,10 @@ export const deleteSamplingSheet = async (req: Request, res: Response) => {
             try {
                 const parsed = JSON.parse(currentOit.samplingSheetAnalysis);
                 groupedAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': parsed };
-            } catch { groupedAnalyses = { 'General': currentOit.samplingSheetAnalysis }; }
+            } catch (e) {
+                logWarning(`OIT ${id}: samplingSheetAnalysis no es JSON (formato legado), se agrupa como General`, e);
+                groupedAnalyses = { 'General': currentOit.samplingSheetAnalysis };
+            }
         }
         delete groupedAnalyses[group];
 
@@ -1713,7 +1761,10 @@ export const deleteLabResult = async (req: Request, res: Response) => {
             try {
                 const parsed = JSON.parse(currentOit.labResultsUrl);
                 groupedFiles = Array.isArray(parsed) ? { 'General': parsed } : parsed;
-            } catch { groupedFiles = { 'General': [currentOit.labResultsUrl] }; }
+            } catch (e) {
+                logWarning(`OIT ${id}: labResultsUrl no es JSON (formato legado), se agrupa como General`, e);
+                groupedFiles = { 'General': [currentOit.labResultsUrl] };
+            }
         }
 
         if (groupedFiles[group]) {
@@ -1726,7 +1777,10 @@ export const deleteLabResult = async (req: Request, res: Response) => {
             try {
                 const parsed = JSON.parse(currentOit.labResultsAnalysis);
                 groupedAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { 'General': String(parsed) };
-            } catch { groupedAnalyses = { 'General': currentOit.labResultsAnalysis }; }
+            } catch (e) {
+                logWarning(`OIT ${id}: labResultsAnalysis no es JSON (formato legado), se agrupa como General`, e);
+                groupedAnalyses = { 'General': currentOit.labResultsAnalysis };
+            }
         }
         delete groupedAnalyses[group];
 
@@ -1740,6 +1794,7 @@ export const deleteLabResult = async (req: Request, res: Response) => {
 
         res.json({ success: true, labResultsUrl: JSON.stringify(groupedFiles), message: 'Archivo eliminado' });
     } catch (error) {
+        logError(`Error eliminando resultado de laboratorio de la OIT ${req.params.id}`, error);
         res.status(500).json({ error: 'Error al eliminar resultado de laboratorio' });
     }
 };
@@ -1782,6 +1837,8 @@ async function processSamplingSheetsAsync(oitId: string, filenames: string[], gr
                     extractedText = "[Contenido no legible directamente]";
                 }
             } catch (readErr) {
+                logError(`OIT ${oitId}: no se pudo extraer texto de la planilla de muestreo ${filename}`, readErr);
+                extractedText = `[Error al leer planilla de muestreo: ${errorMessage(readErr)}]`;
             }
 
             fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
@@ -1828,7 +1885,9 @@ async function getGroupContextForReport(oit: any, groupName: string) {
         try {
             const parsed = JSON.parse(oit.labResultsAnalysis);
             groupedLabAnalyses = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { General: parsed };
-        } catch (e) { }
+        } catch (e) {
+            logWarning(`OIT ${oit.id}: labResultsAnalysis no es JSON valido, se ignora en el contexto del informe`, e);
+        }
     }
 
     const matchesGroup = (oitType: string, target: string): boolean => {
@@ -1862,7 +1921,9 @@ async function getGroupContextForReport(oit: any, groupName: string) {
                 groupLabAnalysisNarrative = parsed.rawText;
                 groupLabAnalysisParsed = parsed.parsedData || {};
             }
-        } catch (e) { }
+        } catch (e) {
+            logWarning(`OIT ${oit.id}: analisis de laboratorio del grupo "${groupName}" no es JSON valido, se usa el texto crudo`, e);
+        }
     } else if (typeof groupLabAnalysisRaw === 'object' && groupLabAnalysisRaw !== null) {
         groupLabAnalysisNarrative = (groupLabAnalysisRaw as any).rawText || JSON.stringify(groupLabAnalysisRaw);
         groupLabAnalysisParsed = (groupLabAnalysisRaw as any).parsedData || {};
@@ -1873,7 +1934,9 @@ async function getGroupContextForReport(oit: any, groupName: string) {
         try {
             const parsed = JSON.parse(oit.samplingSheetAnalysis);
             groupedSheetAnalysis = (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : { General: parsed };
-        } catch (e) { }
+        } catch (e) {
+            logWarning(`OIT ${oit.id}: samplingSheetAnalysis no es JSON valido, se ignora en el contexto del informe`, e);
+        }
     }
     const groupSheetAnalysis = fuzzyLookup(groupedSheetAnalysis, groupName) || null;
 
@@ -1946,7 +2009,10 @@ export const reportChatApprove = async (req: Request, res: Response) => {
             try {
                 existingReports = JSON.parse(oit.finalReportUrl);
                 if (!Array.isArray(existingReports)) existingReports = [];
-            } catch { existingReports = []; }
+            } catch (e) {
+                logWarning(`OIT ${oit.id}: finalReportUrl no es JSON valido, se reinicia la lista de informes`, e);
+                existingReports = [];
+            }
         }
         const newReport = { name: reportName, url: filename, type: (isDocx ? 'docx' : 'pdf') as 'docx' | 'pdf' };
         const updatedReports = [...existingReports.filter(r => r.name !== reportName), newReport];
@@ -2003,7 +2069,10 @@ export const activateReportVersion = async (req: Request, res: Response) => {
             try {
                 reports = JSON.parse(oit.finalReportUrl);
                 if (!Array.isArray(reports)) reports = [];
-            } catch { reports = []; }
+            } catch (e) {
+                logWarning(`OIT ${id}: finalReportUrl no es JSON valido, se reinicia la lista de informes`, e);
+                reports = [];
+            }
         }
         const otherReports = reports.filter(r => r.name !== version.name);
         const updatedReports = [...otherReports, { name: version.name, url: version.url, type: version.type as 'pdf' | 'docx' }];
@@ -2050,7 +2119,10 @@ export const generateFinalReport = async (req: Request, res: Response) => {
                         try {
                             existingReports = JSON.parse(currentOit.finalReportUrl);
                             if (!Array.isArray(existingReports)) existingReports = [];
-                        } catch { existingReports = []; }
+                        } catch (e) {
+                            logWarning(`OIT ${id}: finalReportUrl no es JSON valido, se reinicia la lista de informes`, e);
+                            existingReports = [];
+                        }
                     }
 
                     // Remove existing reports that match ANY of the newly generated report names
@@ -2122,7 +2194,9 @@ export const updatePlanningResources = async (req: Request, res: Response) => {
         if (oit.planningProposal) {
             try {
                 planningProposal = JSON.parse(oit.planningProposal);
-            } catch (e) { }
+            } catch (e) {
+                logWarning(`OIT ${id}: planningProposal no es JSON valido, se reconstruye desde cero`, e);
+            }
         }
         planningProposal.assignedResources = mappedResources;
 
@@ -2134,7 +2208,9 @@ export const updatePlanningResources = async (req: Request, res: Response) => {
                 if (aiData.data) {
                     aiData.data.assignedResources = mappedResources;
                 }
-            } catch (e) { }
+            } catch (e) {
+                logWarning(`OIT ${id}: aiData no es JSON valido, se reconstruye desde cero`, e);
+            }
         }
 
         await prisma.oIT.update({

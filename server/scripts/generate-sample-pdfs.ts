@@ -68,6 +68,8 @@ const QA_TO_CONFIG = {
     'PLANTILLA_RESPEL_DOCXTEMPLATER.docx': 'RESPEL', // FO-PO-PSM-64-09
     'PLANTILLA_RUIDO_AMBIENTAL_DOCXTEMPLATER.docx': 'RUIDO_AMBIENTAL', // FO-PO-PSM-65-07
     'PLANTILLA_SUELO_DOCXTEMPLATER.docx': 'SUELO', // FO-PO-PSM-64-11
+    'PLANTILLA_RUIDO_INTRADOMICILIARIO_DOCXTEMPLATER.docx': 'RUIDO_INTRADOMICILIARIO', // FO-PO-PSM-65-08
+    'PLANTILLA_FF_PREVIO_DOCXTEMPLATER.docx': 'FUENTES_FIJAS_PREVIO', // FO-PO-PSM-67-10
     // 'PLANTILLA_CA_AUTOMATICOS_DOCXTEMPLATER.docx' queda AFUERA a proposito:
     // no existe ninguna TemplateConfig ni plantilla en templates/reports/ para
     // una matriz de "CA Automaticos" (estaciones automaticas de calidad de aire)
@@ -372,7 +374,7 @@ async function main() {
         '\nSIN SINCRONIZAR: PLANTILLA_CA_AUTOMATICOS_DOCXTEMPLATER.docx (sin TemplateConfig ni plantilla de produccion correspondiente entre las 14 actuales)'
     );
     console.log(
-        'SIN COBERTURA EN TESTING.TS (matrices de produccion validas, sin item en TEMPLATE_TEST_ITEMS): RUIDO_INTRADOMICILIARIO (65-08), FUENTES_FIJAS_PREVIO (67-10)'
+        '(2026-09-02: RUIDO_INTRADOMICILIARIO y FUENTES_FIJAS_PREVIO ya tienen cobertura completa en TESTING.TS)'
     );
 }
 

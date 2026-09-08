@@ -1,6 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { errorMessage, logError, logWarning } from '../utils/errors';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'gpt-oss';
@@ -41,6 +42,7 @@ export class AIService {
             await axios.get(`${this.baseURL}/api/tags`, { timeout: 2000 });
             return true;
         } catch (error) {
+            logWarning(`AI no disponible en ${this.baseURL}`, error);
             return false;
         }
     }
@@ -50,6 +52,7 @@ export class AIService {
             const response = await axios.get(`${this.baseURL}/api/tags`);
             return response.data.models.map((m: any) => m.name);
         } catch (error) {
+            logError(`No se pudo listar modelos de IA en ${this.baseURL}`, error);
             return [];
         }
     }
@@ -88,8 +91,8 @@ export class AIService {
                 });
                 summaries.push(response.data.response);
             } catch (error: any) {
-                console.error(`Error chunk ${i}:`, error.response?.data || error.message);
-                summaries.push(`[Error en bloque ${i+1}]`);
+                logError(`Cascade summary: fallo el bloque ${i + 1}/${chunks.length}`, error);
+                summaries.push(`[Error en bloque ${i + 1}: ${errorMessage(error)}]`);
             }
         }
         return summaries.join('\n\n--- CONTINUACIÓN ---\n\n');
@@ -137,7 +140,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
             });
             return response.data.response || '';
         } catch (error: any) {
-            console.error('AI Chat error:', error.response?.data || error.message);
+            logError(`AI Chat error (modelo ${useModel})`, error);
             throw error;
         }
     }
@@ -206,8 +209,8 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 rawResponse: response.data.response
             };
         } catch (error: any) {
-            console.error('AI Analysis error:', error.response?.data || error.message);
-            return this.heuristicAnalysis(documentText);
+            logError('AI Analysis error, se usa analisis heuristico', error);
+            return this.heuristicAnalysis(documentText, `Analisis IA fallido: ${errorMessage(error)}`);
         }
     }
 
@@ -227,12 +230,13 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
             const text = response.data.response.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(text);
         } catch (error) {
-            return { valid: false, message: 'Error' };
+            logError('Extraccion de datos de OIT por IA fallida', error);
+            return { valid: false, message: `Error extrayendo datos de la OIT: ${errorMessage(error)}` };
         }
     }
 
-    private heuristicAnalysis(text: string): AIAnalysisResult {
-        return { status: 'alerta', alerts: ['Offline'], missing: [], evidence: [], services: [], location: null };
+    private heuristicAnalysis(text: string, reason = 'Servicio de IA no disponible'): AIAnalysisResult {
+        return { status: 'alerta', alerts: [reason], missing: [], evidence: [], services: [], location: null };
     }
 
     public async recommendResources(documentText: string): Promise<string[]> {
@@ -318,7 +322,7 @@ REGLAS ESTRICTAS E INQUEBRANTABLES:
                 return p.length > 0 && !promptEchoMarkers.some(marker => p.includes(marker));
             });
         } catch (error: any) {
-            console.error('Template tag detection error:', error.response?.data || error.message);
+            logError('Deteccion de tags de plantilla fallida', error);
             return [];
         }
     }
@@ -407,8 +411,12 @@ REGLAS ESTRICTAS:
             }
             return JSON.stringify(parsed);
         } catch (error: any) {
-            console.error('Lab results analysis error:', error.response?.data || error.message);
-            return JSON.stringify({ rawText: 'Error en análisis IA de resultados de laboratorio', parsedData: {} });
+            logError('Analisis IA de resultados de laboratorio fallido', error);
+            return JSON.stringify({
+                rawText: `Error en análisis IA de resultados de laboratorio: ${errorMessage(error)}`,
+                parsedData: {},
+                error: true
+            });
         }
     }
 

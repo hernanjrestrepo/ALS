@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { pushService } from '../services/push.service';
+import { logError } from '../utils/errors';
 
 const prisma = new PrismaClient();
 
@@ -130,11 +131,11 @@ export const createNotification = async (
                 type,
                 oitId
             }
-        }).catch(err => console.error('Push send error:', err));
+        }).catch(err => logError(`No se pudo enviar el push de la notificacion ${notification.id} al usuario ${userId}`, err));
 
         return notification;
     } catch (error) {
-        console.error('Error creating notification:', error);
+        logError(`No se pudo crear la notificacion "${title}" para el usuario ${userId}`, error);
         throw error;
     }
 };

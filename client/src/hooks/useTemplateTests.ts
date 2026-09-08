@@ -32,8 +32,8 @@ function getInitialTests(): TemplateTest[] {
         })),
       ];
     }
-  } catch {
-    // ignore
+  } catch (error) {
+    console.warn('[useTemplateTests] estado guardado invalido en localStorage, se reinicia', error);
   }
   return TEMPLATE_TEST_ITEMS.map((item) => ({
     ...item,

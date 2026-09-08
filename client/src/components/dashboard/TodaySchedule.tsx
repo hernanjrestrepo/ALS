@@ -17,6 +17,7 @@ interface OIT {
 export function TodaySchedule() {
     const [todayOITs, setTodayOITs] = useState<OIT[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -42,8 +43,10 @@ export function TodaySchedule() {
             });
 
             setTodayOITs(filtered);
+            setLoadError(null);
         } catch (error) {
-            console.error('Error fetching today OITs:', error);
+            console.error('[TodaySchedule] Error obteniendo las OITs de hoy', error);
+            setLoadError('No se pudo cargar la agenda de hoy.');
         } finally {
             setIsLoading(false);
         }
@@ -69,6 +72,16 @@ export function TodaySchedule() {
                         {[1, 2, 3].map((i) => (
                             <div key={i} className="h-16 bg-slate-100 rounded-lg animate-pulse" />
                         ))}
+                    </div>
+                ) : loadError ? (
+                    <div className="text-center py-8 space-y-3">
+                        <p className="text-sm text-red-600">{loadError}</p>
+                        <button
+                            onClick={() => { setIsLoading(true); fetchTodayOITs(); }}
+                            className="text-xs font-medium text-slate-700 underline"
+                        >
+                            Reintentar
+                        </button>
                     </div>
                 ) : todayOITs.length === 0 ? (
                     <div className="text-center py-8">

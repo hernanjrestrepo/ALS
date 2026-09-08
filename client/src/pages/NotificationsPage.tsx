@@ -75,6 +75,7 @@ export default function NotificationsPage() {
             setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
         } catch (error) {
             console.error('Error marking as read:', error);
+            toast.error('Error al marcar la notificación como leída');
         }
     };
 
