@@ -47,7 +47,7 @@ beforeEach(() => {
 describe('authMiddleware', () => {
     it('attaches the user and continues for a valid bearer token', async () => {
         verify.mockReturnValue({ userId: 'u1' });
-        findUnique.mockResolvedValue({ id: 'u1', role: 'ADMIN' });
+        findUnique.mockResolvedValue({ id: 'u1', role: 'ADMIN', isActive: true });
 
         const req = { headers: { authorization: 'Bearer good-token' } } as Request;
         const res = mockRes();
@@ -63,7 +63,7 @@ describe('authMiddleware', () => {
     it('uses the configured JWT secret when present', async () => {
         vi.stubEnv('JWT_SECRET', 'from-env');
         verify.mockReturnValue({ userId: 'u1' });
-        findUnique.mockResolvedValue({ id: 'u1', role: 'ADMIN' });
+        findUnique.mockResolvedValue({ id: 'u1', role: 'ADMIN', isActive: true });
 
         await authMiddleware({ headers: { authorization: 'Bearer t' } } as Request, mockRes(), vi.fn());
 
@@ -92,6 +92,17 @@ describe('authMiddleware', () => {
 
         expect(res.statusCode).toBe(401);
         expect(res.payload).toEqual({ error: 'Usuario no encontrado' });
+    });
+
+    it('rejects a token whose user was deactivated', async () => {
+        verify.mockReturnValue({ userId: 'u1' });
+        findUnique.mockResolvedValue({ id: 'u1', role: 'ADMIN', isActive: false });
+        const res = mockRes();
+
+        await authMiddleware({ headers: { authorization: 'Bearer t' } } as Request, res, vi.fn());
+
+        expect(res.statusCode).toBe(401);
+        expect(res.payload).toEqual({ error: 'Usuario desactivado' });
     });
 
     it('rejects a token that fails verification', async () => {
