@@ -58,7 +58,8 @@ export default function DashboardPage() {
             'COMPLETED': 'Completada',
             'ANALYZING': 'Analizando',
             'SCHEDULED': 'Programada',
-            'UPLOADING': 'Subiendo'
+            'UPLOADING': 'Subiendo',
+            'REVIEW_REQUIRED': 'Revisión Requerida'
         };
         return statusMap[status] || status;
     };
