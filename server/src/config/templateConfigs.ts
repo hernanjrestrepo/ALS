@@ -115,7 +115,7 @@ const AGUA_FIELDS: Record<string, FieldMapping> = {
         description: 'Parámetros analizados por el laboratorio'
     },
     'tag_lab_resolucion': {
-        source: 'STATIC', staticValue: 'Resolución 1262 del 18 de junio de 2021',
+        source: 'STATIC', staticValue: '',
         description: 'Número y fecha de resolución de acreditación'
     },
 
@@ -343,7 +343,7 @@ const ERRA_LEGACY_FIELDS: Record<string, FieldMapping> = {
     'chart_indices': { source: 'STATIC', staticValue: '', description: 'Placeholder gráfico' },
     'contrato_los_servicios_de_servicios_de_ingenieria__1': { source: 'AI', field: 'cliente', description: 'Cliente que contrata' },
     'contrato_los_servicios_de_servicios_de_ingenieria__2': { source: 'OIT', field: 'oitNumber', description: 'OIT desarrollada' },
-    'hidrologia_meteorologia_y_estudios_ambientales_de__1': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución acreditación IDEAM' },
+    'hidrologia_meteorologia_y_estudios_ambientales_de__1': { source: 'STATIC', staticValue: '', description: 'Resolución acreditación IDEAM' },
     'vigente_hasta_el_1': { source: 'STATIC', staticValue: '18 de junio de 2026', description: 'Vigencia acreditación' },
     'las_mediciones_de_ruido_se_llevaron_a_cabo_en_1': { source: 'STATIC', staticValue: 'tres (3)', description: 'Número de puntos (numeral)' },
     'las_mediciones_de_ruido_se_llevaron_a_cabo_en_2': { source: 'STATIC', staticValue: '', description: 'Continuación numeral puntos' },
@@ -520,7 +520,7 @@ const ASUB_AGUA_SUBTERRANEA_FIELDS: Record<string, FieldMapping> = {
     'actividad_economica': { source: 'STATIC', staticValue: '', description: 'Actividad economica (se obtiene del RUES, sin dato confiable disponible)' },
     'nombre_empresa_cliente': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (parrafo empresa responsable del estudio)' },
     'matriz_tipo_empresa': { source: 'STATIC', staticValue: 'agua subterránea', description: 'Tipo de matriz (parrafo empresa responsable del estudio)' },
-    'numero_resolucion_ideam': { source: 'STATIC', staticValue: '1262', description: 'Numero de resolucion de acreditacion IDEAM (dato institucional fijo)' },
+    'numero_resolucion_ideam': { source: 'STATIC', staticValue: '', description: 'Numero de resolucion de acreditacion IDEAM (dato institucional fijo)' },
     'fecha_resolucion_ideam': { source: 'STATIC', staticValue: '18 de junio de 2021', description: 'Fecha de la resolucion de acreditacion IDEAM' },
     'fuente_anio_tabla1': { source: 'DATE', field: 'year', description: 'Anio fuente (cita ALS ENVIRONMENTAL, Tabla 1)' },
     'sitio_muestreo': { source: 'AI', field: 'puntos[0].nombre', description: 'Sitio de muestreo (Tabla 2, identificacion de la muestra)' },
@@ -769,7 +769,7 @@ const RESIDUOS_SOLIDOS_FIELDS: Record<string, FieldMapping> = {
     'numero_en_letras_muestreo': { source: 'AI', field: 'numeroPuntos', description: 'Frase completa "en [numero en letras] ([numero]) punto[s]" (objetivos específicos, nodo único fusionado)' },
 
     // --- CONDICIONES GENERALES / ACREDITACIÓN ---
-    'numero_resolucion': { source: 'STATIC', staticValue: '1262', description: 'Número de la resolución de acreditación IDEAM (dato institucional fijo de Serambiente, ver "resolution_number" en otros templates: Resolución 1262 del 18 de junio de 2021)' },
+    'numero_resolucion': { source: 'STATIC', staticValue: '', description: 'Número de la resolución de acreditación IDEAM (dato institucional fijo de Serambiente, ver "resolution_number" en otros templates: Resolución 1262 del 18 de junio de 2021)' },
     'fecha_resolucion': { source: 'STATIC', staticValue: ' del 18 de junio de 2021', description: 'Fecha de la resolución de acreditación IDEAM (reemplaza el nodo completo "de XX", incluye espacio inicial para separar de numero_resolucion)' },
     'fecha_xxxx': { source: 'DATE', field: 'year', description: 'Año fuente (cita "ALS ENVIRONMENTAL S.A.S., XXXX")' },
 
@@ -857,7 +857,7 @@ export const RESPEL_CONFIG: TemplateConfig = {
 // ================================================================
 const EMISION_RUIDO_DELTA_FIELDS: Record<string, FieldMapping> = {
     'monitoreo_de_emision_de_ruido_realizado_el_1': { source: 'DATE', field: 'fullDate', description: 'Fecha de monitoreo (portada)' },
-    'un_monitoreo_de_emision_de_ruido_en_serambiente_s__1': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución acreditación' },
+    'un_monitoreo_de_emision_de_ruido_en_serambiente_s__1': { source: 'STATIC', staticValue: '', description: 'Resolución acreditación' },
     'las_mediciones_de_emision_de_ruido_se_llevaron_a_c_1': { source: 'STATIC', staticValue: 'tres (3) puntos', description: 'Número de puntos' },
     'de_monitoreo_ubicados_en_el_area_de_estudio_de_la__1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización compañía' },
     'cabe_se_alar_que_la_jornada_de_monitoreo_se_ejecut_1': { source: 'DATE', field: 'fullDate', description: 'Días de jornada' },
@@ -908,7 +908,7 @@ const EMISION_RUIDO_DELTA_FIELDS: Record<string, FieldMapping> = {
 // RUIDO AMBIENTAL (65-07) — delta sobre AGUA_FIELDS + ERRA_LEGACY_FIELDS
 // ================================================================
 const RUIDO_AMBIENTAL_DELTA_FIELDS: Record<string, FieldMapping> = {
-    'contrato_los_servicios_de_servicios_de_ingenieria__3': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución acreditación IDEAM' },
+    'contrato_los_servicios_de_servicios_de_ingenieria__3': { source: 'STATIC', staticValue: '', description: 'Resolución acreditación IDEAM' },
     'las_mediciones_de_ruido_ambiental_se_llevaron_a_ca_1': { source: 'STATIC', staticValue: 'tres (3) puntos', description: 'Número de puntos monitoreados' },
     'el_monitoreo_se_realizo_en_horario_1': { source: 'STATIC', staticValue: 'diurno y nocturno, hábil y no hábil', description: 'Horarios de monitoreo' },
     'aron_a_cabo_mediciones_de_ruido_ambiental_1': { source: 'STATIC', staticValue: 'en tres (3) puntos', description: 'Puntos de medición ubicación' },
@@ -1006,7 +1006,7 @@ const RUIDO_INTRADOMICILIARIO_DELTA_FIELDS: Record<string, FieldMapping> = {
     'de_de_1': { source: 'DATE', field: 'year', description: 'Año de monitoreo (portada)' },
     'de_de_2': { source: 'AI', field: 'cliente', description: 'Cliente (portada)' },
     'serambiente_s_a_s_para_desarrollar_un_monitoreo_de_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización del monitoreo (introducción)' },
-    'serambiente_s_a_s_es_una_empresa_acreditada_por_el_1': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución acreditación IDEAM' },
+    'serambiente_s_a_s_es_una_empresa_acreditada_por_el_1': { source: 'STATIC', staticValue: '', description: 'Resolución acreditación IDEAM' },
     'las_mediciones_de_ruido_intradomiciliario_se_lleva_1': { source: 'STATIC', staticValue: 'tres (3) puntos', description: 'Número de puntos monitoreados' },
     'mediciones_de_ruido_intradomiciliario_se_llevaron__1': { source: 'STATIC', staticValue: '', description: 'Continuación número de puntos' },
     'para_ello_se_tuvo_en_cuenta_los_criterios_establec_1': { source: 'STATIC', staticValue: '', description: 'Continuación referencia normativa jornada' },
@@ -1014,7 +1014,7 @@ const RUIDO_INTRADOMICILIARIO_DELTA_FIELDS: Record<string, FieldMapping> = {
     '1_hora_de_inicio_y_finalizacion_1': { source: 'STATIC', staticValue: 'Jornada diurna', description: 'Título tabla hora inicio/fin (1)' },
     'hora_de_inicio_y_finalizacion_1': { source: 'STATIC', staticValue: '', description: 'Continuación título tabla hora inicio/fin' },
     '2_hora_de_inicio_y_finalizacion_1': { source: 'STATIC', staticValue: 'Jornada nocturna', description: 'Título tabla hora inicio/fin (2)' },
-    'serambiente_s_a_s_es_una_empresa_acreditada_por_el_2': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución acreditación IDEAM (metodología)' },
+    'serambiente_s_a_s_es_una_empresa_acreditada_por_el_2': { source: 'STATIC', staticValue: '', description: 'Resolución acreditación IDEAM (metodología)' },
     'la_metodologia_de_medicion_de_ruido_intradomicilia_1': { source: 'STATIC', staticValue: ' de la Resolución 0627 de 2006.', description: 'Continuación referencia normativa metodología' },
     'se_llevaron_a_cabo_mediciones_de_ruido_intradomici_1': { source: 'STATIC', staticValue: 'tres (3) puntos', description: 'Puntos de medición (ubicación)' },
     'los_cuales_se_encuentran_ubicados_en_el_area_de_es_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Área de estudio (ubicación)' },
@@ -1233,7 +1233,7 @@ const CALIDAD_AIRE_LEGACY_FIELDS: Record<string, FieldMapping> = {
 
     // --- EMPRESA RESPONSABLE / EVALUACIÓN DE LA CALIDAD DEL AIRE ---
     'las_mediciones_toma_de_muestra_y_analisis_de_1': { source: 'STATIC', staticValue: 'partículas menores a 10 (PM10) y 2.5 micras (PM2.5), Dióxido de Nitrógeno (NO2), Dióxido de Azufre (SO2), Monóxido de carbono (CO) y Ozono (O3)', description: 'Lista de contaminantes (empresa responsable del estudio) -- confirmado con el informe de referencia real, panel fijo (coincide con e_por_1)' },
-    'fue_realizada_por_servicios_de_ingenieria_y_ambien_1': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución de acreditación IDEAM' },
+    'fue_realizada_por_servicios_de_ingenieria_y_ambien_1': { source: 'STATIC', staticValue: '', description: 'Resolución de acreditación IDEAM' },
     'para_determinar_los_niveles_de_calidad_de_aire_de_1': { source: 'STATIC', staticValue: 'tres (3) estaciones', description: 'Número de estaciones de monitoreo (evaluación calidad del aire)' },
     'de_de_monitoreo_ubicadas_en_el_area_de_estudio_del_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización del área de estudio (evaluación calidad del aire)' },
 
@@ -1559,7 +1559,7 @@ const OLORES_LEGACY_FIELDS: Record<string, FieldMapping> = {
     'para_un_tiempo_de_exposicion_de_1_hora_en_un_estud_1': { source: 'STATIC', staticValue: '.', description: 'Cierre de objetivo tiempo 1 hora' },
     'para_un_tiempo_de_exposicion_de_24_horas_1': { source: 'STATIC', staticValue: '.', description: 'Cierre de objetivo tiempo 24 horas' },
     'las_mediciones_y_analisis_1': { source: 'STATIC', staticValue: 'del presente estudio', description: 'Continuación narrativa' },
-    'fue_realizada_por_servicios_de_ingenieria_y_ambien_1': { source: 'STATIC', staticValue: 'Resolución 1262 del 18 de junio de 2021', description: 'Resolución de acreditación IDEAM de Serambiente' },
+    'fue_realizada_por_servicios_de_ingenieria_y_ambien_1': { source: 'STATIC', staticValue: '', description: 'Resolución de acreditación IDEAM de Serambiente' },
     'la_calidad_de_aire_por_olores_ofensivos_en_las_1': { source: 'STATIC', staticValue: 'tres (3) estaciones', description: 'Número de estaciones evaluadas' },
     'de_monitoreo_ubicadas_en_el_en_el_area_de_estudio__1': { source: 'AI', field: 'ubicacion.direccion', description: 'Área de estudio de las estaciones' },
     'var_6': { source: 'STATIC', staticValue: 'Sulfuro de Hidrógeno (H2S)', description: 'Contaminante 1' },
@@ -1677,7 +1677,7 @@ const PARTICULAS_LEGACY_FIELDS: Record<string, FieldMapping> = {
     'caracterizar_la_calidad_microbiologica_del_aire_en_1': { source: 'STATIC', staticValue: 'cinco (5)', description: 'Número de puntos (objetivo)' },
     'puntos_en_el_area_de_influencia_del_localizado_en_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Localización (objetivo)' },
     'identificar_la_presencia_en_el_aire_ambiente_de_di_1': { source: 'STATIC', staticValue: 'bacterias y hongos', description: 'Grupos de microorganismos' },
-    'el_monitoreo_fue_realizado_por_servicios_de_ingeni_1': { source: 'STATIC', staticValue: 'Resolución 1262 del 18 de junio de 2021', description: 'Resolución acreditación IDEAM' },
+    'el_monitoreo_fue_realizado_por_servicios_de_ingeni_1': { source: 'STATIC', staticValue: '', description: 'Resolución acreditación IDEAM' },
     'localizado_en_se_seleccionaron_un_total_de_1': { source: 'STATIC', staticValue: 'cinco (5)', description: 'Total de puntos seleccionados' },
     'puntos_de_medicion_para_particulas_viables_teniend_1': { source: 'DATE', field: 'fullDate', description: 'Fecha del muestreo' },
     'el_monitoreo_se_realizo_el_dia_1': { source: 'DATE', field: 'fullDate', description: 'Fecha del monitoreo (metodología)' },
@@ -1782,7 +1782,7 @@ const FUENTES_FIJAS_PREVIO_DELTA_FIELDS: Record<string, FieldMapping> = {
     'la_cual_se_encuentra_ubicada_en_las_instalaciones__1': { source: 'AI', field: 'cliente', description: 'Instalaciones del cliente' },
     'localizado_en_1': { source: 'AI', field: 'ubicacion.direccion', description: 'Dirección de las instalaciones' },
     'en_la_organizacion_tiene_como_actividad_principal_1': { source: 'STATIC', staticValue: 'actividades industriales sujetas a control de emisiones atmosféricas.', description: 'Actividad principal de la organización' },
-    'erambiente_s_a_s_empresa_acreditada_por_el_institu_1': { source: 'STATIC', staticValue: '1262 del 18 de junio de 2021', description: 'Resolución acreditación IDEAM' },
+    'erambiente_s_a_s_empresa_acreditada_por_el_institu_1': { source: 'STATIC', staticValue: '', description: 'Resolución acreditación IDEAM' },
     'para_producir_informacion_cuantitativa_fisica_y_qu_1': { source: 'STATIC', staticValue: '', description: 'Continuación acreditación (1)' },
     'fisica_y_quimica_para_los_estudios_o_analisis_ambi_1': { source: 'STATIC', staticValue: '', description: 'Continuación acreditación (2)' },
     'la_fecha_programada_para_llevar_a_cabo_la_evaluaci_1': { source: 'DATE', field: 'fullDate', description: 'Fecha programada de evaluación' },
@@ -1903,7 +1903,7 @@ const FUENTES_FIJAS_DELTA_FIELDS: Record<string, FieldMapping> = {
     'evaluadas_cuentan_con_1': { source: 'STATIC', staticValue: 'sistemas de control de emisiones', description: 'Sistemas de control de emisiones' },
     'cuentan_con_1': { source: 'STATIC', staticValue: 'establecido', description: 'Continuación sistemas de control' },
     'valor_tomado_de_la_resolucion_909_de_2008_para_flu_1': { source: 'STATIC', staticValue: 'volumétrico normalizado.', description: 'Referencia flujo de contaminante (Res. 909/2008)' },
-    'el_monitoreo_y_analisis_fueron_realizados_por_serv_1': { source: 'STATIC', staticValue: 'Resolución 1262 del 18 de junio de 2021', description: 'Resolución acreditación IDEAM (introducción)' },
+    'el_monitoreo_y_analisis_fueron_realizados_por_serv_1': { source: 'STATIC', staticValue: '', description: 'Resolución acreditación IDEAM (introducción)' },
     'para_dar_cumplimiento_a_su_programa_de_control_y_s_1': { source: 'AI', field: 'representanteNombre', description: 'Representante (contratación del servicio)' },
     'contrato_los_servicios_de_serambiente_s_a_s_para_l_1': { source: 'AI', field: 'tipoEstudio', description: 'Tipo de estudio (introducción)' },
     'en_las_instalaciones_de_1': { source: 'AI', field: 'ubicacion.ciudadDepartamento', description: 'Instalaciones (introducción)' },
@@ -1954,7 +1954,7 @@ const FUENTES_FIJAS_DELTA_FIELDS: Record<string, FieldMapping> = {
     'var_99': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes de emisión (18)' },
     'var_100': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes de emisión (19)' },
     'var_101': { source: 'STATIC', staticValue: '', description: 'Tabla fuentes de emisión (20)' },
-    'el_monitoreo_fue_realizado_por_la_empresa_servicio_1': { source: 'STATIC', staticValue: 'Resolución 1262 del 18 de junio de 2021', description: 'Resolución acreditación IDEAM (personal técnico)' },
+    'el_monitoreo_fue_realizado_por_la_empresa_servicio_1': { source: 'STATIC', staticValue: '', description: 'Resolución acreditación IDEAM (personal técnico)' },
     'para_producir_informacion_cuantitativa_fisica_y_qu_2': { source: 'STATIC', staticValue: 'el equipo técnico de campo,', description: 'Supervisión técnica de campo' },
     'bajo_supervision_del_1': { source: 'STATIC', staticValue: 'coordinador técnico', description: 'Cargo del supervisor' },
     'el_cual_puede_ser_contactado_al_numero_de_celular_1': { source: 'STATIC', staticValue: 'registrado en la Orden de Trabajo.', description: 'Contacto del supervisor' },
@@ -2235,7 +2235,7 @@ const SUELO_64_11_FIELDS: Record<string, FieldMapping> = {
 
     // ---- Empresa responsable del estudio ----
     'nombre_empresa_cliente': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (parrafo empresa responsable del estudio)' },
-    'numero_resolucion_ideam': { source: 'STATIC', staticValue: '1262', description: 'Numero de resolucion de acreditacion IDEAM (dato institucional fijo, mismo valor usado en 64-08)' },
+    'numero_resolucion_ideam': { source: 'STATIC', staticValue: '', description: 'Numero de resolucion de acreditacion IDEAM (dato institucional fijo, mismo valor usado en 64-08)' },
     'fecha_resolucion_ideam': { source: 'STATIC', staticValue: '18 de junio de 2021', description: 'Fecha de la resolucion de acreditacion IDEAM' },
 
     // ---- Tabla 1: Empresas responsables de los analisis (fila ejemplo, posible subcontratacion por parametro) ----
