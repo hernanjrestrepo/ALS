@@ -65,7 +65,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <Breadcrumb className="hidden md:flex">
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/" className="font-medium text-slate-500 hover:text-slate-900">ALS</BreadcrumbLink>
+                            <BreadcrumbLink href="/" className="font-semibold text-[#004CAB] hover:text-[#003b85]">ALS</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator>
                             <Slash className="h-4 w-4 text-slate-300" />

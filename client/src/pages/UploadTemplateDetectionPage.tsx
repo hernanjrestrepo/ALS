@@ -171,7 +171,7 @@ export default function UploadTemplateDetectionPage() {
                     <Button
                         onClick={handleAnalyze}
                         disabled={!selectedFile || isAnalyzing}
-                        className="bg-slate-900 hover:bg-slate-800 text-white"
+                        className="bg-[#004CAB] hover:bg-[#003b85] text-white"
                     >
                         {isAnalyzing ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

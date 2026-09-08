@@ -156,7 +156,7 @@ export default function OITsPage() {
                     setIsDialogOpen(open);
                 }}>
                     <DialogTrigger asChild>
-                        <Button className="bg-slate-900 hover:bg-slate-800 text-white">
+                        <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white">
                             <Plus className="mr-2 h-4 w-4" />
                             Nueva OIT
                         </Button>
@@ -247,7 +247,7 @@ export default function OITsPage() {
                             <Button
                                 onClick={handleCreateAsync}
                                 disabled={isProcessing || !formData.oitFile}
-                                className="bg-slate-900 hover:bg-slate-800"
+                                className="bg-[#004CAB] hover:bg-[#003b85]"
                             >
                                 {isProcessing ? 'Creando...' : 'Crear OIT'}
                             </Button>

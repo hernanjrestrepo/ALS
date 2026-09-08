@@ -263,7 +263,7 @@ export default function UsersPage() {
 
                     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DialogTrigger asChild>
-                            <Button className="bg-slate-900 hover:bg-slate-800 text-white">
+                            <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white">
                                 <UserPlus className="mr-2 h-4 w-4" />
                                 Crear Usuario
                             </Button>

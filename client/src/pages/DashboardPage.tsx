@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TodaySchedule } from '@/components/dashboard/TodaySchedule';
+import { StatusChart } from '@/components/dashboard/StatusChart';
+import { TrendChart } from '@/components/dashboard/TrendChart';
+import { InsightsPanel } from '@/components/dashboard/InsightsPanel';
 
 export default function DashboardPage() {
     const { stats, isLoading } = useDashboardStats();
@@ -19,24 +22,32 @@ export default function DashboardPage() {
             value: stats.totalOITs,
             icon: FileText,
             description: 'Inspecciones totales',
+            iconBg: 'bg-[#E6EEF8]',
+            iconColor: 'text-[#004CAB]',
         },
         {
             title: 'Completadas',
             value: stats.completedOITs,
             icon: CheckCircle,
             description: 'Cerradas exitosamente',
+            iconBg: 'bg-emerald-50',
+            iconColor: 'text-emerald-600',
         },
         {
             title: 'En Progreso',
             value: stats.inProgressOITs,
             icon: Clock,
             description: 'Actualmente activas',
+            iconBg: 'bg-amber-50',
+            iconColor: 'text-amber-600',
         },
         {
             title: 'Pendientes',
             value: stats.pendingOITs,
             icon: AlertCircle,
             description: 'Esperando acción',
+            iconBg: 'bg-slate-100',
+            iconColor: 'text-slate-500',
         },
     ];
 
@@ -61,7 +72,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <Link to="/oits">
-                        <Button className="bg-slate-900 hover:bg-slate-800 text-white">
+                        <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white">
                             <Plus className="mr-2 h-4 w-4" /> Nueva OIT
                         </Button>
                     </Link>
@@ -77,7 +88,9 @@ export default function DashboardPage() {
                                 <CardTitle className="text-sm font-medium text-slate-600">
                                     {stat.title}
                                 </CardTitle>
-                                <Icon className="h-4 w-4 text-slate-400" />
+                                <div className={`h-8 w-8 rounded-lg ${stat.iconBg} flex items-center justify-center`}>
+                                    <Icon className={`h-4 w-4 ${stat.iconColor}`} />
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
@@ -134,7 +147,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-slate-900"
+                                    className="h-full bg-[#004CAB]"
                                     style={{ width: `${stats.totalResources > 0 ? (stats.availableResources / stats.totalResources) * 100 : 0}%` }}
                                 />
                             </div>
@@ -144,6 +157,20 @@ export default function DashboardPage() {
                         </div>
                     </CardContent>
                 </Card>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-1">
+                <InsightsPanel
+                    stuckOITs={stats.stuckOITs}
+                    completedOITs={stats.completedOITs}
+                    totalOITs={stats.totalOITs}
+                    statusBreakdown={stats.statusBreakdown}
+                />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <StatusChart data={stats.statusBreakdown} />
+                <TrendChart data={stats.monthlyTrend} />
             </div>
 
             <div className="grid gap-4 md:grid-cols-1">

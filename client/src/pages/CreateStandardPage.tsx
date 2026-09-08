@@ -153,7 +153,7 @@ export default function CreateStandardPage() {
                                     <Button
                                         type="submit"
                                         disabled={isCreating}
-                                        className="w-full bg-slate-900 hover:bg-slate-800 text-white"
+                                        className="w-full bg-[#004CAB] hover:bg-[#003b85] text-white"
                                     >
                                         <Save className="mr-2 h-4 w-4" />
                                         {isCreating ? 'Creando...' : 'Crear Norma'}

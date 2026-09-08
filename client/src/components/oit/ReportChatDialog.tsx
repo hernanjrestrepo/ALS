@@ -161,7 +161,7 @@ export function ReportChatDialog({ oitId, reportName, group = 'General', onAppro
                             <Button
                                 onClick={handleSend}
                                 disabled={isLoading || !message.trim()}
-                                className="shrink-0 bg-slate-900 hover:bg-slate-800 text-white h-11"
+                                className="shrink-0 bg-[#004CAB] hover:bg-[#003b85] text-white h-11"
                             >
                                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                             </Button>

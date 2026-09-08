@@ -79,14 +79,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 isOpen ? "translate-x-0" : "-translate-x-full lg:w-0 lg:border-none lg:overflow-hidden"
             )}>
                 {/* Branding */}
-                <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200/50">
+                <div className="h-20 flex items-center justify-between px-4 border-b border-slate-200/50">
                     <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden">
-                            <img src="/logo.png" alt="Logo" className="h-6 w-6 object-contain" />
-                        </div>
+                        <img src="/logo.png" alt="ALS" className="h-12 w-12 object-contain flex-shrink-0" />
                         <div className="text-left">
-                            <p className="text-sm font-medium text-slate-900 leading-none">ALS</p>
-                            <p className="text-xs text-slate-500 mt-0.5">Serambiente</p>
+                            <p className="text-base font-bold text-[#004CAB] leading-none tracking-tight">ALS</p>
+                            <p className="text-xs text-slate-500 mt-1">Serambiente</p>
                         </div>
                     </div>
                     {/* Close button for mobile */}
@@ -114,7 +112,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                                         className={cn(
                                             'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                                             isActive
-                                                ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50'
+                                                ? 'bg-[#004CAB] text-white shadow-sm'
                                                 : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'
                                         )}
                                         onClick={() => window.innerWidth < 1024 && onClose()}

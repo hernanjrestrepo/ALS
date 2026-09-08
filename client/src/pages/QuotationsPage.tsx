@@ -162,7 +162,7 @@ export default function QuotationsPage() {
                     setIsCreateOpen(open);
                 }}>
                     <DialogTrigger asChild>
-                        <Button className="bg-slate-900 hover:bg-slate-800 text-white">
+                        <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white">
                             <Plus className="mr-2 h-4 w-4" />
                             Nueva Cotización
                         </Button>
@@ -236,7 +236,7 @@ export default function QuotationsPage() {
                             <Button
                                 onClick={handleCreate}
                                 disabled={isCreating || !file}
-                                className="bg-slate-900 hover:bg-slate-800"
+                                className="bg-[#004CAB] hover:bg-[#003b85]"
                             >
                                 {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 {isCreating ? 'Creando...' : 'Crear Cotización'}

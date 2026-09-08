@@ -125,7 +125,7 @@ function CommentModal({
                 onSave(text.trim(), field.trim() || undefined, priority);
                 onClose();
               }}
-              className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5"
+              className="bg-[#004CAB] hover:bg-[#003b85] text-white gap-1.5"
             >
               <Send className="h-3.5 w-3.5" />
               Guardar

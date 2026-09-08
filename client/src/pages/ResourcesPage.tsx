@@ -107,7 +107,7 @@ export default function ResourcesPage() {
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button className="bg-slate-900 hover:bg-slate-800 text-white">
+                        <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white">
                             <Plus className="mr-2 h-4 w-4" />
                             Agregar Recurso
                         </Button>
@@ -304,7 +304,7 @@ export default function ResourcesPage() {
                                         }
                                     }}
                                     disabled={isCreating || !formData.name || !formData.type}
-                                    className="bg-slate-900 hover:bg-slate-800"
+                                    className="bg-[#004CAB] hover:bg-[#003b85]"
                                 >
                                     {isCreating ? 'Creando...' : 'Crear Recurso'}
                                 </Button>
@@ -333,7 +333,7 @@ export default function ResourcesPage() {
                                         }
                                     }}
                                     disabled={isCreating || !csvFile}
-                                    className="bg-slate-900 hover:bg-slate-800"
+                                    className="bg-[#004CAB] hover:bg-[#003b85]"
                                 >
                                     {isCreating ? 'Importando...' : 'Importar Recursos'}
                                 </Button>
@@ -409,7 +409,7 @@ export default function ResourcesPage() {
                                         alert('Error al actualizar recurso');
                                     }
                                 }}
-                                className="bg-slate-900 hover:bg-slate-800"
+                                className="bg-[#004CAB] hover:bg-[#003b85]"
                             >
                                 Guardar Cambios
                             </Button>

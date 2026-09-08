@@ -62,9 +62,7 @@ export default function LoginPage() {
             <Card className="w-full max-w-[400px] shadow-none border-slate-200">
                 <CardHeader className="space-y-1 text-center pb-8">
                     <div className="flex justify-center mb-4">
-                        <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden">
-                            <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
-                        </div>
+                        <img src="/logo.png" alt="ALS" className="h-20 w-20 object-contain" />
                     </div>
                     <CardTitle className="text-xl font-semibold text-slate-900">
                         Bienvenido de nuevo
@@ -123,7 +121,7 @@ export default function LoginPage() {
                             )}
                             <Button
                                 type="submit"
-                                className="w-full bg-slate-900 hover:bg-slate-800 text-white"
+                                className="w-full bg-[#004CAB] hover:bg-[#003b85] text-white"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
