@@ -15,7 +15,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Users, Shield, Loader2, UserCog, Plus, UserPlus, Key } from 'lucide-react';
+import { Users, Shield, Loader2, UserCog, Plus, UserPlus, Key, Pencil } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
 import { canManageUsers } from '@/types/auth';
@@ -64,6 +64,12 @@ export default function UsersPage() {
         password: '',
         role: 'USER' as UserRole
     });
+
+    // Edit user state
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editUserId, setEditUserId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState({ name: '', email: '' });
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
 
     const currentUser = useAuthStore((state: any) => state.user);
 
@@ -131,6 +137,32 @@ export default function UsersPage() {
             toast.error(error.response?.data?.error || 'Error al crear usuario');
         } finally {
             setIsCreating(false);
+        }
+    };
+
+    const openEditModal = (user: UserData) => {
+        setEditUserId(user.id);
+        setEditForm({ name: user.name, email: user.email });
+        setIsEditOpen(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editForm.name || !editForm.email) {
+            toast.error('Nombre y email son obligatorios');
+            return;
+        }
+
+        setIsSavingEdit(true);
+        try {
+            await api.put(`/users/${editUserId}`, editForm);
+            setUsers(users.map((u: UserData) => u.id === editUserId ? { ...u, ...editForm } : u));
+            toast.success('Usuario actualizado correctamente');
+            setIsEditOpen(false);
+        } catch (error: any) {
+            console.error('Error updating user:', error);
+            toast.error(error.response?.data?.error || 'Error al actualizar usuario');
+        } finally {
+            setIsSavingEdit(false);
         }
     };
 
@@ -359,15 +391,26 @@ export default function UsersPage() {
                                         )}
                                     </td>
                                     <td className="p-4">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => openPasswordModal(user.id)}
-                                            className="text-slate-500 hover:text-amber-600 hover:bg-amber-50"
-                                        >
-                                            <Key className="h-4 w-4 mr-1" />
-                                            Cambiar Clave
-                                        </Button>
+                                        <div className="flex items-center gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openEditModal(user)}
+                                                className="text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+                                            >
+                                                <Pencil className="h-4 w-4 mr-1" />
+                                                Editar
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openPasswordModal(user.id)}
+                                                className="text-slate-500 hover:text-amber-600 hover:bg-amber-50"
+                                            >
+                                                <Key className="h-4 w-4 mr-1" />
+                                                Cambiar Clave
+                                            </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -392,19 +435,68 @@ export default function UsersPage() {
                         </div>
                         <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
                             <h4 className="text-sm font-medium text-blue-900">Administrador</h4>
-                            <p className="text-xs text-blue-700 mt-1">Gestiona OITs, asigna ingenieros y genera reportes.</p>
+                            <p className="text-xs text-blue-700 mt-1">Crea/edita OITs, asigna ingenieros, aprueba planeación, genera el informe final.</p>
                         </div>
                         <div className="p-3 rounded-lg bg-green-50 border border-green-100">
                             <h4 className="text-sm font-medium text-green-900">Ingeniero de Campo</h4>
-                            <p className="text-xs text-green-700 mt-1">Ve solo OITs asignadas. Realiza muestreo y captura datos.</p>
+                            <p className="text-xs text-green-700 mt-1">Ve y opera solo las OITs asignadas a él: muestreo, resultados de laboratorio.</p>
                         </div>
                         <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
                             <h4 className="text-sm font-medium text-gray-900">Usuario</h4>
-                            <p className="text-xs text-gray-700 mt-1">Acceso de solo lectura. Ve dashboard y estadísticas básicas.</p>
+                            <p className="text-xs text-gray-700 mt-1">Solo consulta: ve todas las OITs, reportes y dashboard, sin poder editar nada.</p>
                         </div>
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Edit User Modal */}
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Pencil className="h-5 w-5 text-blue-600" />
+                            Editar Usuario
+                        </DialogTitle>
+                        <DialogDescription>
+                            Actualiza el nombre y el email de este usuario.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="editName">Nombre Completo</Label>
+                            <Input
+                                id="editName"
+                                value={editForm.name}
+                                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="editEmail">Correo Electrónico</Label>
+                            <Input
+                                id="editEmail"
+                                type="email"
+                                value={editForm.email}
+                                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleSaveEdit} disabled={isSavingEdit}>
+                            {isSavingEdit ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Guardando...
+                                </>
+                            ) : (
+                                'Guardar Cambios'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Password Change Modal */}
             <Dialog open={isPasswordOpen} onOpenChange={setIsPasswordOpen}>

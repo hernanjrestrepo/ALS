@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/features/auth/authStore';
+import { canManageOITs } from '@/types/auth';
 
 interface Quotation {
     id: string;
@@ -37,6 +39,8 @@ export default function OITsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const navigate = useNavigate();
+    const currentUser = useAuthStore((state: any) => state.user);
+    const canCreate = currentUser && canManageOITs(currentUser.role);
 
     // Quotations for selector
     const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -147,7 +151,7 @@ export default function OITsPage() {
                     <h2 className="text-2xl font-bold tracking-tight text-slate-900">OITs</h2>
                     <p className="text-slate-500">Gestiona y rastrea registros de inspección.</p>
                 </div>
-                <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                {canCreate && <Dialog open={isDialogOpen} onOpenChange={(open) => {
                     if (!open) resetForm();
                     setIsDialogOpen(open);
                 }}>
@@ -249,7 +253,7 @@ export default function OITsPage() {
                             </Button>
                         </DialogFooter>
                     </DialogContent>
-                </Dialog>
+                </Dialog>}
             </div>
 
             <Card className="border-slate-200 shadow-sm bg-white">

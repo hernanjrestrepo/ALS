@@ -24,4 +24,8 @@ export interface AuthState {
 export const canManageUsers = (role: UserRole): boolean => role === 'SUPER_ADMIN';
 export const canManageOITs = (role: UserRole): boolean => ['SUPER_ADMIN', 'ADMIN'].includes(role);
 export const canAssignEngineers = (role: UserRole): boolean => ['SUPER_ADMIN', 'ADMIN'].includes(role);
+// USER role is read-only: sees everything, cannot operate anything
+export const isReadOnly = (role: UserRole): boolean => role === 'USER';
+export const canOperate = (role: UserRole): boolean => ['SUPER_ADMIN', 'ADMIN', 'ENGINEER'].includes(role);
+export const canGenerateFinalReport = (role: UserRole): boolean => ['SUPER_ADMIN', 'ADMIN'].includes(role);
 

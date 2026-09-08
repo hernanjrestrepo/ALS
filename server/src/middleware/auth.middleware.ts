@@ -68,3 +68,34 @@ export const requireSuperAdmin = requireRole(['SUPER_ADMIN']);
 export const requireAdmin = requireRole(['SUPER_ADMIN', 'ADMIN']);
 export const requireEngineer = requireRole(['SUPER_ADMIN', 'ADMIN', 'ENGINEER']);
 
+// USER role is read-only across the platform: blocks any operational (write) action
+export const requireOperational = requireRole(['SUPER_ADMIN', 'ADMIN', 'ENGINEER']);
+
+// For OIT-scoped write actions: SUPER_ADMIN/ADMIN pass through, ENGINEER only if assigned to that OIT
+export const requireEngineerAssignment = async (req: Request, res: Response, next: NextFunction) => {
+    const user = (req as AuthenticatedRequest).user;
+
+    if (!user) {
+        return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
+        return next();
+    }
+
+    if (user.role !== 'ENGINEER') {
+        return res.status(403).json({ error: 'No tienes permisos para esta acción' });
+    }
+
+    const oitId = req.params.id;
+    const assignment = await prisma.oITAssignment.findFirst({
+        where: { oitId, userId: user.userId }
+    });
+
+    if (!assignment) {
+        return res.status(403).json({ error: 'No estás asignado a esta OIT' });
+    }
+
+    next();
+};
+

@@ -3,6 +3,7 @@ import {
     getAllUsers,
     getUserById,
     updateUserRole,
+    updateUser,
     getEngineers,
     getProfile,
     createUser,
@@ -32,6 +33,9 @@ router.get('/:id', requireSuperAdmin, getUserById);
 
 // Update user role - requires SUPER_ADMIN
 router.put('/:id/role', requireSuperAdmin, updateUserRole);
+
+// Update user name/email/active status - requires SUPER_ADMIN
+router.put('/:id', requireSuperAdmin, updateUser);
 
 // Update user password - requires ADMIN+
 router.put('/:id/password', requireAdmin, updatePassword);

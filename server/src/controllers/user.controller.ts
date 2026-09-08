@@ -202,6 +202,45 @@ export const createUser = async (req: Request, res: Response) => {
     }
 };
 
+// Update user name/email/active status (SUPER_ADMIN only)
+export const updateUser = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name, email, isActive } = req.body;
+        const data: any = {};
+
+        if (name !== undefined) data.name = name;
+        if (isActive !== undefined) data.isActive = isActive;
+
+        if (email !== undefined) {
+            const existing = await prisma.user.findUnique({ where: { email } });
+            if (existing && existing.id !== id) {
+                return res.status(400).json({ error: 'Ese email ya está en uso por otro usuario' });
+            }
+            data.email = email;
+        }
+
+        const user = await prisma.user.update({
+            where: { id },
+            data,
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                isActive: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
+
+        res.json({ message: 'Usuario actualizado exitosamente', user });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ error: 'Error al actualizar usuario' });
+    }
+};
+
 // Update user password (ADMIN/SUPER_ADMIN only)
 export const updatePassword = async (req: Request, res: Response) => {
     try {
