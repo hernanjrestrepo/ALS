@@ -24,11 +24,15 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         // Get user role from database
         const user = await prisma.user.findUnique({
             where: { id: decoded.userId },
-            select: { id: true, role: true }
+            select: { id: true, role: true, isActive: true }
         });
 
         if (!user) {
             return res.status(401).json({ error: 'Usuario no encontrado' });
+        }
+
+        if (!user.isActive) {
+            return res.status(401).json({ error: 'Usuario desactivado' });
         }
 
         (req as AuthenticatedRequest).user = {

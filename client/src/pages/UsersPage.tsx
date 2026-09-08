@@ -15,7 +15,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Users, Shield, Loader2, UserCog, Plus, UserPlus, Key, Pencil } from 'lucide-react';
+import { Users, Shield, Loader2, UserCog, Plus, UserPlus, Key, Pencil, Power, PowerOff } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
 import { canManageUsers } from '@/types/auth';
@@ -27,6 +27,7 @@ interface UserData {
     name: string;
     role: UserRole;
     createdAt: string;
+    isActive?: boolean;
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -137,6 +138,28 @@ export default function UsersPage() {
             toast.error(error.response?.data?.error || 'Error al crear usuario');
         } finally {
             setIsCreating(false);
+        }
+    };
+
+    const [togglingId, setTogglingId] = useState<string | null>(null);
+
+    const handleToggleActive = async (user: UserData) => {
+        if (user.id === currentUser?.id) {
+            toast.error('No puedes desactivar tu propia cuenta');
+            return;
+        }
+
+        setTogglingId(user.id);
+        try {
+            const nextActive = !(user.isActive ?? true);
+            await api.put(`/users/${user.id}`, { isActive: nextActive });
+            setUsers(users.map((u: UserData) => u.id === user.id ? { ...u, isActive: nextActive } : u));
+            toast.success(nextActive ? 'Usuario reactivado' : 'Usuario desactivado');
+        } catch (error: any) {
+            console.error('Error toggling user active state:', error);
+            toast.error(error.response?.data?.error || 'Error al cambiar el estado del usuario');
+        } finally {
+            setTogglingId(null);
         }
     };
 
@@ -339,6 +362,7 @@ export default function UsersPage() {
                                 <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Usuario</th>
                                 <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Email</th>
                                 <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Rol Actual</th>
+                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Estado</th>
                                 <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Cambiar Rol</th>
                                 <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
                             </tr>
@@ -363,6 +387,13 @@ export default function UsersPage() {
                                     <td className="p-4">
                                         <Badge className={`${ROLE_COLORS[user.role]} border`}>
                                             {ROLE_LABELS[user.role]}
+                                        </Badge>
+                                    </td>
+                                    <td className="p-4">
+                                        <Badge className={user.isActive === false
+                                            ? 'bg-red-100 text-red-800 border-red-200 border'
+                                            : 'bg-emerald-100 text-emerald-800 border-emerald-200 border'}>
+                                            {user.isActive === false ? 'Inactivo' : 'Activo'}
                                         </Badge>
                                     </td>
                                     <td className="p-4">
@@ -410,6 +441,25 @@ export default function UsersPage() {
                                                 <Key className="h-4 w-4 mr-1" />
                                                 Cambiar Clave
                                             </Button>
+                                            {user.id !== currentUser?.id && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleToggleActive(user)}
+                                                    disabled={togglingId === user.id}
+                                                    className={user.isActive === false
+                                                        ? 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
+                                                        : 'text-slate-500 hover:text-red-600 hover:bg-red-50'}
+                                                >
+                                                    {togglingId === user.id ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : user.isActive === false ? (
+                                                        <><Power className="h-4 w-4 mr-1" />Reactivar</>
+                                                    ) : (
+                                                        <><PowerOff className="h-4 w-4 mr-1" />Desactivar</>
+                                                    )}
+                                                </Button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

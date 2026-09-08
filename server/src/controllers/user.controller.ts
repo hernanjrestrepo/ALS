@@ -23,6 +23,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
                 email: true,
                 name: true,
                 role: true,
+                isActive: true,
                 createdAt: true,
                 updatedAt: true
             },

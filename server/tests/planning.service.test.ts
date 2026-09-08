@@ -138,7 +138,8 @@ describe('planningService.runOITAnalysis', () => {
 
         await expect(planningService.runOITAnalysis('oit-1')).resolves.toEqual({
             totalServicesFound: 0,
-            services: []
+            services: [],
+            error: 'offline'
         });
     });
 });

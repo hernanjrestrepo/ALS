@@ -99,7 +99,7 @@ describe('AIService.cascadeSummary', () => {
 
         const result = await new AIService().cascadeSummary('texto corto', 'objetivo');
 
-        expect(result).toBe('[Error en bloque 1]');
+        expect(result).toBe('[Error en bloque 1: down]');
     });
 });
 
@@ -127,7 +127,7 @@ describe('AIService.analyzeDocument', () => {
 
         expect(result).toEqual({
             status: 'alerta',
-            alerts: ['Offline'],
+            alerts: ['Servicio de IA no disponible'],
             missing: [],
             evidence: [],
             services: [],
@@ -176,7 +176,8 @@ describe('AIService.analyzeDocument', () => {
 
         const result = await new AIService().analyzeDocument('texto');
 
-        expect(result.alerts).toEqual(['Offline']);
+        expect(result.alerts).toHaveLength(1);
+        expect(result.alerts[0]).toContain('Analisis IA fallido');
     });
 
     it('summarizes documents above 25k characters before analysing them', async () => {
@@ -216,10 +217,9 @@ describe('AIService.extractOITData', () => {
     it('returns an error object when parsing fails', async () => {
         mockedAxios.post.mockResolvedValue(generateResponse('nope'));
 
-        await expect(new AIService().extractOITData('texto')).resolves.toEqual({
-            valid: false,
-            message: 'Error'
-        });
+        const result = await new AIService().extractOITData('texto');
+        expect(result.valid).toBe(false);
+        expect(result.message).toContain('Error extrayendo datos de la OIT');
     });
 });
 
@@ -305,10 +305,9 @@ describe('AIService.analyzeLabResults', () => {
 
         const result = JSON.parse(await new AIService().analyzeLabResults('doc'));
 
-        expect(result).toEqual({
-            rawText: 'Error en análisis IA de resultados de laboratorio',
-            parsedData: {}
-        });
+        expect(result.parsedData).toEqual({});
+        expect(result.error).toBe(true);
+        expect(result.rawText).toContain('Error en análisis IA de resultados de laboratorio');
     });
 });
 
