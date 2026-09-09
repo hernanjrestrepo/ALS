@@ -9,7 +9,8 @@ const prisma = new PrismaClient();
 
 export const register = async (req: Request, res: Response) => {
     try {
-        const { email, password, name } = req.body;
+        const { password, name } = req.body;
+        const email = (req.body.email || '').trim().toLowerCase();
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
@@ -47,7 +48,8 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
     try {
-        const { email, password } = req.body;
+        const { password } = req.body;
+        const email = (req.body.email || '').trim().toLowerCase();
 
         if (!email || !password) {
             return res.status(400).json({ message: 'Email y contraseña son obligatorios' });
@@ -89,7 +91,7 @@ export const login = async (req: Request, res: Response) => {
 // backend nunca recibe ni registra la contraseña en texto plano fuera de este flujo.
 export const forgotPassword = async (req: Request, res: Response) => {
     try {
-        const { email } = req.body;
+        const email = (req.body.email || '').trim().toLowerCase();
         const user = await prisma.user.findUnique({ where: { email } });
 
         // Respuesta genérica siempre, para no revelar si el correo existe o no
@@ -127,7 +129,8 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
 export const resetPassword = async (req: Request, res: Response) => {
     try {
-        const { email, token, password } = req.body;
+        const { token, password } = req.body;
+        const email = (req.body.email || '').trim().toLowerCase();
         if (!password || password.length < 6) {
             return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
         }

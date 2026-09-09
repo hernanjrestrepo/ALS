@@ -162,7 +162,8 @@ export const getProfile = async (req: Request, res: Response) => {
 // Create new user (SUPER_ADMIN only)
 export const createUser = async (req: Request, res: Response) => {
     try {
-        const { email, password, name, role } = req.body;
+        const { password, name, role } = req.body;
+        const email = (req.body.email || '').trim().toLowerCase();
 
         // Validate role
         if (!Object.values(ROLES).includes(role)) {
@@ -214,11 +215,12 @@ export const updateUser = async (req: Request, res: Response) => {
         if (isActive !== undefined) data.isActive = isActive;
 
         if (email !== undefined) {
-            const existing = await prisma.user.findUnique({ where: { email } });
+            const normalizedEmail = email.trim().toLowerCase();
+            const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
             if (existing && existing.id !== id) {
                 return res.status(400).json({ error: 'Ese email ya está en uso por otro usuario' });
             }
-            data.email = email;
+            data.email = normalizedEmail;
         }
 
         const user = await prisma.user.update({

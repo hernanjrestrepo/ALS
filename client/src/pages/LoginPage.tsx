@@ -82,6 +82,10 @@ export default function LoginPage() {
                                         <FormLabel className="text-slate-700">Correo Electrónico</FormLabel>
                                         <FormControl>
                                             <Input
+                                                type="email"
+                                                autoCapitalize="none"
+                                                autoCorrect="off"
+                                                autoComplete="email"
                                                 placeholder="nombre@ejemplo.com"
                                                 {...field}
                                                 className="bg-white border-slate-200 focus:border-slate-400 focus:ring-0"
