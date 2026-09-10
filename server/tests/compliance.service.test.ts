@@ -219,6 +219,63 @@ describe('quotation extraction', () => {
     });
 });
 
+describe('OIT <-> quotation identity cross-check', () => {
+    it('short-circuits to non-compliant when the client clearly does not match, without calling the norm-check prompt', async () => {
+        oitFindUnique.mockResolvedValue(oit({ quotationFileUrl: 'uploads/cot.pdf', oitFileUrl: 'uploads/oit.pdf' }));
+        extractText.mockImplementation(async (p: string) =>
+            p.includes('cot.pdf') ? 'Cliente: Acueducto Municipal de Sopó. Sitio: Vereda La Diana' : 'Cliente: Industrias Metálicas del Norte SAS. Sitio: Zona Franca Cota'
+        );
+        chat.mockImplementation(async (p: string) => {
+            if (p.includes('Extrae SOLO el nombre del cliente')) {
+                return p.includes('Acueducto')
+                    ? JSON.stringify({ client: 'Acueducto Municipal de Sopó', site: 'Vereda La Diana' })
+                    : JSON.stringify({ client: 'Industrias Metálicas del Norte SAS', site: 'Zona Franca Cota' });
+            }
+            return JSON.stringify(verdict);
+        });
+
+        const result = await complianceService.checkCompliance('oit-1', 'u1');
+
+        expect(result.compliant).toBe(false);
+        expect(result.score).toBe(0);
+        expect(result.issues[0]).toContain('no coincide');
+        // Solo las 2 llamadas de extraccion de identidad, nunca el prompt de conformidad completo
+        expect(chat).toHaveBeenCalledTimes(2);
+        expect(createNotification).toHaveBeenCalledWith(
+            'u1',
+            'Conformidad: OIT-2026-001',
+            expect.stringContaining('cruce de documentos'),
+            'WARNING',
+            'oit-1'
+        );
+    });
+
+    it('proceeds to the normal compliance check when client and site match', async () => {
+        oitFindUnique.mockResolvedValue(oit({ quotationFileUrl: 'uploads/cot.pdf', oitFileUrl: 'uploads/oit.pdf' }));
+        extractText.mockResolvedValue('Cliente: Acueducto Municipal de Sopó. Sitio: Vereda La Diana');
+        chat.mockImplementation(async (p: string) => {
+            if (p.includes('Extrae SOLO el nombre del cliente')) {
+                return JSON.stringify({ client: 'Acueducto Municipal de Sopó', site: 'Vereda La Diana' });
+            }
+            return JSON.stringify(verdict);
+        });
+
+        const result = await complianceService.checkCompliance('oit-1', 'u1');
+
+        expect(result).toEqual(verdict);
+        expect(chat).toHaveBeenCalledTimes(3); // 2 extracciones de identidad + 1 veredicto de conformidad
+    });
+
+    it('does not run the cross-check when either document is missing', async () => {
+        oitFindUnique.mockResolvedValue(oit({ quotationFileUrl: null, oitFileUrl: null }));
+
+        const result = await complianceService.checkCompliance('oit-1', 'u1');
+
+        expect(result).toEqual(verdict);
+        expect(chat).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('standards content', () => {
     it('falls back to the description or a placeholder and truncates each standard', async () => {
         standardFindMany.mockResolvedValue([

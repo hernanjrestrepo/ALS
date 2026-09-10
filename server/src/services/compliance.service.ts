@@ -78,6 +78,58 @@ export class ComplianceService {
         }
     }
 
+    private async extractOitContent(oitFileUrl: string | null): Promise<string> {
+        if (!oitFileUrl) return '';
+        let filePath = oitFileUrl.startsWith('/') ? oitFileUrl.substring(1) : oitFileUrl;
+        if (!fs.existsSync(filePath)) {
+            filePath = path.join(process.cwd(), filePath);
+        }
+        if (!fs.existsSync(filePath)) return '';
+        try {
+            return await pdfService.extractText(filePath);
+        } catch (error) {
+            logError(`No se pudo extraer texto de la OIT (${filePath})`, error);
+            return '';
+        }
+    }
+
+    // Extraccion deterministica de identidad (cliente/sitio), usada solo para
+    // el chequeo de cruce OIT<->cotizacion, no para el veredicto de conformidad
+    private async extractIdentity(text: string, label: string): Promise<{ client: string; site: string }> {
+        if (!text || text.trim().length < 20) return { client: '', site: '' };
+        try {
+            const prompt = `Extrae SOLO el nombre del cliente y el sitio/ubicación de este documento (${label}). Responde SOLO JSON, sin explicación:
+{"client": "", "site": ""}
+
+TEXTO:
+${text.substring(0, 6000)}`;
+            const response = await aiService.chat(prompt);
+            const jsonMatch = response.match(/\{[\s\S]*?\}/);
+            const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+            return { client: String(parsed.client || '').trim(), site: String(parsed.site || '').trim() };
+        } catch (error) {
+            logError(`No se pudo extraer identidad de ${label}`, error);
+            return { client: '', site: '' };
+        }
+    }
+
+    // Comparacion deterministica (no IA) por solapamiento de palabras normalizadas.
+    // Devuelve un puntaje 0-1; valores bajos con ambos campos no vacios indican
+    // que probablemente no son el mismo cliente/sitio.
+    private textSimilarity(a: string, b: string): number {
+        const normalize = (s: string) => s.toLowerCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '') // quitar tildes
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(w => w.length > 2);
+        const setA = new Set(normalize(a));
+        const setB = new Set(normalize(b));
+        if (setA.size === 0 || setB.size === 0) return 1; // sin datos suficientes, no bloquear
+        const intersection = [...setA].filter(w => setB.has(w)).length;
+        const union = new Set([...setA, ...setB]).size;
+        return union === 0 ? 1 : intersection / union;
+    }
+
     private buildStandardsContent(standards: any[]): string {
         // Truncate individual standards to 5000 chars each to stay within context
         return standards.map(s => {
@@ -94,7 +146,44 @@ export class ComplianceService {
         const standards = await this.getApplicableStandards(oitType);
 
         const quotationContent = await this.extractQuotationContent(oit.quotationFileUrl);
+        const oitContent = await this.extractOitContent(oit.oitFileUrl);
         const aiData = oit.aiData ? JSON.parse(oit.aiData) : {};
+
+        // Verificacion estructurada (deterministica, no IA) de que la cotizacion y
+        // la OIT correspondan al mismo cliente/sitio, antes de evaluar conformidad
+        // contra la norma. Antes de este chequeo el sistema podia marcar "conforme"
+        // una OIT y cotizacion de trabajos distintos porque nunca se cruzaban.
+        if (quotationContent.trim().length > 20 && oitContent.trim().length > 20) {
+            const [quotationIdentity, oitIdentity] = await Promise.all([
+                this.extractIdentity(quotationContent, 'cotización'),
+                this.extractIdentity(oitContent, 'OIT'),
+            ]);
+
+            const clientSimilarity = this.textSimilarity(quotationIdentity.client, oitIdentity.client);
+            const siteSimilarity = this.textSimilarity(quotationIdentity.site, oitIdentity.site);
+            const bothHaveClientData = quotationIdentity.client && oitIdentity.client;
+            const bothHaveSiteData = quotationIdentity.site && oitIdentity.site;
+            const clientMismatch = bothHaveClientData && clientSimilarity < 0.2;
+            const siteMismatch = bothHaveSiteData && siteSimilarity < 0.2;
+
+            if (clientMismatch || siteMismatch) {
+                const issue = clientMismatch
+                    ? `El cliente de la cotización ("${quotationIdentity.client}") no coincide con el de la OIT ("${oitIdentity.client}")`
+                    : `El sitio de la cotización ("${quotationIdentity.site}") no coincide con el de la OIT ("${oitIdentity.site}")`;
+                logError(`OIT ${oit.oitNumber}: cruce cotizacion/OIT fallido - ${issue}`, new Error(issue));
+                const result = {
+                    compliant: false,
+                    score: 0,
+                    oitType,
+                    summary: 'La cotización y la OIT no parecen corresponder al mismo trabajo. No se evaluó conformidad contra la norma.',
+                    exclusions: [],
+                    issues: [issue],
+                    recommendations: ['Verifica que se haya adjuntado la cotización correcta para esta OIT.'],
+                };
+                await createNotification(userId, `Conformidad: ${oit.oitNumber}`, `Posible cruce de documentos equivocado: ${issue}`, 'WARNING', oitId);
+                return result;
+            }
+        }
 
         // Cascade Summary for Standards if they are too many
         let standardsContent = this.buildStandardsContent(standards);
@@ -120,19 +209,20 @@ Responde SOLO JSON (compliant siempre null, no evalúes conformidad):
   "issues": [],
   "recommendations": []
 }`
-            : `Analiza conformidad ambiental.
+            : `Eres un auditor técnico riguroso. Compara, parámetro por parámetro, lo que pide la COTIZACIÓN contra lo que exige la NORMA aplicable. NO asumas conformidad por defecto — solo marca "compliant": true si verificaste explícitamente que cada parámetro/límite solicitado cumple lo que exige la norma. Si un parámetro, límite de cuantificación, o alcance no está claramente cubierto o coincide, es NO conforme.
+
 ## OIT: ${oit.oitNumber} (${oitType})
 ## COTIZACIÓN: ${quotationContent.substring(0, 10000)}
 ## NORMAS: ${standardsContent}
 
-Responde SOLO JSON:
+Responde SOLO JSON con este formato exacto (compliant es un booleano real basado en tu análisis, score es tu evaluación 0-100, issues debe listar cada discrepancia concreta que encontraste — vacío solo si de verdad no hay ninguna):
 {
-  "compliant": true,
-  "score": 100,
+  "compliant": <true o false, según lo que encontraste>,
+  "score": <0 a 100>,
   "oitType": "${oitType}",
-  "summary": "",
+  "summary": "<resumen de 2-3 líneas de tu comparación real>",
   "exclusions": [],
-  "issues": [],
+  "issues": ["<cada discrepancia concreta encontrada, con el parámetro/límite específico>"],
   "recommendations": []
 }`;
 
