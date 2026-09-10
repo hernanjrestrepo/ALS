@@ -2449,3 +2449,77 @@ export const verifyConsistency = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error en verificación de consistencia' });
     }
 };
+
+// Envia el informe final (todos los archivos generados: informe, comunicado, etc.)
+// como adjuntos a una lista de distribucion por correo.
+export const sendFinalReport = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { recipients } = req.body;
+
+        if (!Array.isArray(recipients) || recipients.length === 0) {
+            return res.status(400).json({ error: 'Se requiere al menos un destinatario' });
+        }
+        const invalidEmail = recipients.find((r: any) => typeof r !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r));
+        if (invalidEmail) {
+            return res.status(400).json({ error: `Email inválido: ${invalidEmail}` });
+        }
+
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+        if (!oit) return res.status(404).json({ error: 'OIT no encontrada' });
+        if (!oit.finalReportUrl) {
+            return res.status(400).json({ error: 'Esta OIT todavía no tiene informe final generado' });
+        }
+
+        let reports: Array<{ name: string; url: string }> = [];
+        try {
+            reports = JSON.parse(oit.finalReportUrl);
+            if (!Array.isArray(reports)) reports = [];
+        } catch (e) {
+            return res.status(500).json({ error: 'El registro de informes de esta OIT está corrupto' });
+        }
+        if (reports.length === 0) {
+            return res.status(400).json({ error: 'No hay anexos disponibles para enviar' });
+        }
+
+        const uploadsDir = path.join(__dirname, '../../uploads');
+        const attachments: { filename: string; content: Buffer }[] = [];
+        const missing: string[] = [];
+
+        for (const report of reports) {
+            const filePath = path.join(uploadsDir, report.url);
+            if (fs.existsSync(filePath)) {
+                attachments.push({ filename: report.url, content: fs.readFileSync(filePath) });
+            } else {
+                missing.push(report.name);
+            }
+        }
+
+        if (attachments.length === 0) {
+            return res.status(400).json({ error: 'Ninguno de los anexos registrados se encontró en el servidor' });
+        }
+
+        const { sendReportWithAttachments } = require('../services/email.service');
+        const html = `
+            <h2 style="color:#004CAB;font-size:18px;">Informe técnico — OIT ${oit.oitNumber}</h2>
+            <p style="color:#333;font-size:14px;line-height:1.5;">
+                Adjunto encontrarás el informe final y los anexos correspondientes a la OIT <strong>${oit.oitNumber}</strong>${oit.description ? ` (${oit.description})` : ''}.
+            </p>
+            <p style="color:#333;font-size:14px;">Documentos incluidos: ${attachments.map(a => a.filename).join(', ')}</p>
+        `;
+        await sendReportWithAttachments(recipients, `Informe técnico — OIT ${oit.oitNumber}`, html, attachments);
+
+        await createNotification(
+            (req as any).user?.userId,
+            `Informe enviado: ${oit.oitNumber}`,
+            `Se envió el informe a: ${recipients.join(', ')}${missing.length > 0 ? `. Advertencia: ${missing.length} anexo(s) no se encontraron y no se incluyeron.` : ''}`,
+            missing.length > 0 ? 'WARNING' : 'SUCCESS',
+            id
+        );
+
+        res.json({ message: 'Informe enviado correctamente', sentTo: recipients, attachmentsSent: attachments.map(a => a.filename), missing });
+    } catch (error) {
+        logError('Error enviando el informe final por correo', error);
+        res.status(500).json({ error: 'Error al enviar el informe' });
+    }
+};

@@ -15,6 +15,7 @@ import { SamplingStep } from '@/components/SamplingStep';
 import { FileDown } from 'lucide-react';
 import { Plus, X } from 'lucide-react';
 import { ReportGenerator } from '@/components/oit/ReportGenerator';
+import { SendReportButton } from '@/components/oit/SendReportButton';
 
 import { ServiceScheduleCard } from '@/components/oit/ServiceScheduleCard';
 import {
@@ -2194,6 +2195,7 @@ export default function OITDetailPage() {
                                                 <CardDescription>Suba planillas y resultados para generar informes individuales</CardDescription>
                                             </div>
                                         </div>
+                                        <SendReportButton oitId={id!} oitNumber={oit.oitNumber} disabled={!oit.finalReportUrl} />
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4">

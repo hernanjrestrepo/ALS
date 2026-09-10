@@ -1,4 +1,5 @@
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
+import MailComposer from 'nodemailer/lib/mail-composer';
 
 // Usa las credenciales del rol IAM de la instancia EC2 automáticamente
 // (sin API keys en .env — AWS SDK toma el rol vía el servicio de metadata).
@@ -48,6 +49,49 @@ export async function sendPasswordResetEmail(toEmail: string, resetUrl: string):
                 Body: { Html: { Data: html } },
             },
         },
+    });
+
+    await sesClient.send(command);
+}
+
+export interface EmailAttachment {
+    filename: string;
+    content: Buffer;
+}
+
+// Envia un correo con adjuntos (informe final + anexos) a una lista de
+// distribucion. SES no soporta adjuntos con Content.Simple, asi que se
+// arma el mensaje MIME crudo con nodemailer (solo para construir los
+// bytes, el envio real sigue siendo por SES via el rol IAM de la instancia).
+export async function sendReportWithAttachments(
+    toEmails: string[],
+    subject: string,
+    htmlBody: string,
+    attachments: EmailAttachment[]
+): Promise<void> {
+    if (toEmails.length === 0) {
+        throw new Error('Se requiere al menos un destinatario');
+    }
+
+    const mail = new MailComposer({
+        from: SENDER,
+        to: toEmails.join(', '),
+        subject,
+        html: `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:24px;">${htmlBody}${PARADIXE_FOOTER}</div>`,
+        attachments: attachments.map(a => ({ filename: a.filename, content: a.content })),
+    });
+
+    const rawMessage: Buffer = await new Promise((resolve, reject) => {
+        mail.compile().build((err: Error | null, message: Buffer) => {
+            if (err) reject(err);
+            else resolve(message);
+        });
+    });
+
+    const command = new SendEmailCommand({
+        FromEmailAddress: SENDER,
+        Destination: { ToAddresses: toEmails },
+        Content: { Raw: { Data: rawMessage } },
     });
 
     await sesClient.send(command);
