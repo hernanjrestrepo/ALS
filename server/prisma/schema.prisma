@@ -135,6 +135,27 @@ model Standard {
   updatedAt   DateTime @updatedAt
 }
 
+// Consecutivo de informe asignado a una OIT para una matriz especifica
+// (agua, suelo, etc). Se asigna una sola vez por OIT+matriz y se reutiliza
+// en cada regeneracion del informe, para que el numero nunca cambie.
+model ReportConsecutive {
+  id          String   @id @default(uuid())
+  oitId       String
+  matrixType  String
+  consecutive String   @unique
+  createdAt   DateTime @default(now())
+
+  @@unique([oitId, matrixType])
+}
+
+// Contador atomico por matriz+anio (ej. "AGUA-2026") usado para asignar
+// el siguiente ReportConsecutive.
+model ConsecutiveCounter {
+  id    String @id @default(uuid())
+  key   String @unique
+  value Int    @default(0)
+}
+
 model SamplingTemplate {
   id                  String   @id @default(uuid())
   name                String

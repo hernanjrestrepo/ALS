@@ -8,6 +8,7 @@ import path from 'path';
 // import { marked } from 'marked';
 import axios from 'axios';
 import { errorMessage, logError, logWarning } from '../utils/errors';
+import { getOrAssignConsecutive } from '../services/consecutive.service';
 
 const prisma = new PrismaClient();
 
@@ -440,7 +441,7 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
 
     // 3. Group Templates by Service Type
     const templateIds: string[] = oit.selectedTemplateIds ? JSON.parse(oit.selectedTemplateIds) : [];
-    const generatedReports: Array<{ name: string; url: string; type: 'pdf' | 'docx' }> = [];
+    const generatedReports: Array<{ name: string; url: string; type: 'pdf' | 'docx'; consecutive?: string }> = [];
 
     if (templateIds.length === 0) {
         // Fallback: One General Report
@@ -448,8 +449,8 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
         const groupLabAnalysis = groupedLabAnalyses['General'] || '';
         const groupSheetAnalysis = groupedSheetAnalysis['General'] || null;
         const reportMarkdown = await validationService.generateFinalReportContent(oit, groupLabAnalysis, 'General', groupSheetAnalysis);
-        const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, null);
-        generatedReports.push({ name: 'Informe General', url: filename, type: isDocx ? 'docx' : 'pdf' });
+        const { filename, isDocx, consecutive } = await generateDocumentFromMarkdown(oit, reportMarkdown, null);
+        generatedReports.push({ name: 'Informe General', url: filename, type: isDocx ? 'docx' : 'pdf', consecutive: consecutive || undefined });
 
         // Generate Comunicado for General
         if (groupLabAnalysis) {
@@ -568,12 +569,13 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
                 // Ensure masterTemplate is valid before passing
                 const effectiveTemplate = masterTemplate || (templates.length > 0 ? templates[0] : null);
                 console.log(`[Report] Using template: ${effectiveTemplate?.name}, File: ${effectiveTemplate?.reportTemplateFile}`);
-                const { filename, isDocx } = await generateDocumentFromMarkdown(oit, reportMarkdown, effectiveTemplate, groupLabAnalysisParsed);
+                const { filename, isDocx, consecutive } = await generateDocumentFromMarkdown(oit, reportMarkdown, effectiveTemplate, groupLabAnalysisParsed);
 
                 groupResults.push({
                     name: `Informe ${groupName}`,
                     url: filename,
-                    type: (isDocx ? 'docx' : 'pdf') as 'docx' | 'pdf'
+                    type: (isDocx ? 'docx' : 'pdf') as 'docx' | 'pdf',
+                    consecutive: consecutive || undefined
                 });
 
                 // 2. Generate Comunicado for this service group
@@ -625,6 +627,16 @@ async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, te
     let generatedFileName = '';
     let isDocx = false;
 
+    // Consecutivo propio por matriz (agua, suelo, etc.), independiente del numero
+    // de OIT. Se asigna una sola vez por OIT+matriz y se reutiliza en cada
+    // regeneracion del documento.
+    let consecutive: string | null = null;
+    try {
+        consecutive = await getOrAssignConsecutive(oit.id, template?.oitType || 'General');
+    } catch (e) {
+        logError(`OIT ${oit.oitNumber}: no se pudo asignar consecutivo de informe`, e);
+    }
+
     // Try Word Generation
     if (template && template.reportTemplateFile) {
         try {
@@ -636,6 +648,7 @@ async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, te
                     location: oit.location,
                     scheduledDate: oit.scheduledDate,
                     serviceName: template.oitType || template.name, // Use Type as main title if possible
+                    consecutivo: consecutive || undefined,
                     aiData: Object.keys(parsedAIData).length > 0 ? JSON.stringify(parsedAIData) : undefined
                 },
                 reportMarkdown
@@ -694,7 +707,7 @@ async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, te
     if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
     fs.writeFileSync(path.join(uploadsDir, generatedFileName), generatedFileBuffer!);
 
-    return { filename: generatedFileName, isDocx };
+    return { filename: generatedFileName, isDocx, consecutive };
 }
 
 // Generate Final Report
@@ -2031,7 +2044,7 @@ export const reportChatApprove = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'No se encontro la plantilla de informe asociada a este servicio' });
         }
 
-        const { filename, isDocx } = await generateDocumentFromMarkdown(
+        const { filename, isDocx, consecutive } = await generateDocumentFromMarkdown(
             oit, approvedMarkdown, context.masterTemplate, context.groupLabAnalysisParsed
         );
 
@@ -2045,7 +2058,7 @@ export const reportChatApprove = async (req: Request, res: Response) => {
                 existingReports = [];
             }
         }
-        const newReport = { name: reportName, url: filename, type: (isDocx ? 'docx' : 'pdf') as 'docx' | 'pdf' };
+        const newReport = { name: reportName, url: filename, type: (isDocx ? 'docx' : 'pdf') as 'docx' | 'pdf', consecutive: consecutive || undefined };
         const updatedReports = [...existingReports.filter(r => r.name !== reportName), newReport];
 
         await prisma.oIT.update({ where: { id }, data: { finalReportUrl: JSON.stringify(updatedReports) } });
