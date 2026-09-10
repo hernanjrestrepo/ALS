@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks, FileText, FileSearch, History, RotateCcw, Sparkles } from 'lucide-react';
+import { Search, Plus, Workflow, Trash2, Edit, Eye, ListChecks, FileText, FileSearch, History, RotateCcw, Sparkles, FileDown } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -130,6 +130,23 @@ export default function SamplingTemplatesPage() {
             toast.error('Error al restaurar la versión');
         } finally {
             setRestoreVersionTarget(null);
+        }
+    };
+
+    const handleDownloadFieldTemplate = async (template: { id: string; name: string }) => {
+        try {
+            const response = await api.get(`/sampling-templates/${template.id}/field-template.pdf`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Plantilla_Campo_${template.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading field template:', error);
+            toast.error('Error al descargar la plantilla de campo');
         }
     };
 
@@ -280,6 +297,15 @@ export default function SamplingTemplatesPage() {
                                                             onClick={() => navigate(`/sampling-templates/edit/${template.id}`)}
                                                         >
                                                             <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-[#004CAB]"
+                                                            title="Descargar plantilla de campo (PDF)"
+                                                            onClick={() => handleDownloadFieldTemplate(template)}
+                                                        >
+                                                            <FileDown className="h-4 w-4" />
                                                         </Button>
                                                         <Button
                                                             variant="ghost"

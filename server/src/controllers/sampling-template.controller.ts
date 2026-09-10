@@ -219,3 +219,67 @@ export const restoreTemplateVersion = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error al restaurar la version' });
     }
 };
+
+// Plantilla de campo en blanco (punto 8 del blueprint): un PDF imprimible con
+// los mismos pasos/campos de la plantilla digital, para que el equipo de campo
+// la lleve impresa cuando no hay señal o prefiere registrar en papel.
+export const getFieldTemplatePdf = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const template = await prisma.samplingTemplate.findUnique({ where: { id } });
+        if (!template) return res.status(404).json({ error: 'Plantilla no encontrada' });
+
+        let steps: any[] = [];
+        try {
+            steps = JSON.parse(template.steps);
+            if (!Array.isArray(steps)) steps = [];
+        } catch (e) {
+            steps = [];
+        }
+        steps.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+        const stepsHtml = steps.map((s: any) => `
+            <div class="field">
+                <div class="field-title">${s.title || ''}${s.required ? ' *' : ''}</div>
+                ${s.description ? `<div class="field-desc">${s.description}</div>` : ''}
+                <div class="field-line"></div>
+            </div>
+        `).join('');
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #1e293b; }
+                    .header { border-bottom: 3px solid #004CAB; padding-bottom: 16px; margin-bottom: 24px; }
+                    .header h1 { color: #004CAB; font-size: 20px; margin: 0 0 4px; }
+                    .header p { color: #64748b; font-size: 13px; margin: 0; }
+                    .field { margin-bottom: 22px; page-break-inside: avoid; }
+                    .field-title { font-weight: 600; font-size: 14px; color: #0f172a; }
+                    .field-desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+                    .field-line { border-bottom: 1px solid #94a3b8; height: 28px; margin-top: 6px; }
+                    .footer { margin-top: 40px; font-size: 10px; color: #94a3b8; text-align: center; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>ALS XMART — Plantilla de Campo</h1>
+                    <p>${template.name}${template.oitType ? ` · ${template.oitType}` : ''}</p>
+                </div>
+                ${stepsHtml || '<p>Esta plantilla no tiene pasos configurados.</p>'}
+                <div class="footer">Generado desde ALS Xmart · para captura manual en sitio</div>
+            </body>
+            </html>
+        `;
+
+        const { pdfService } = require('../services/pdf.service');
+        const safeName = template.name.replace(/[^a-zA-Z0-9]/g, '_');
+        const pdfPath = await pdfService.generatePDFFromHTML(html, `Plantilla_Campo_${safeName}_${Date.now()}.pdf`);
+
+        res.download(pdfPath, `Plantilla_Campo_${safeName}.pdf`);
+    } catch (error) {
+        console.error('Error generating field template PDF:', error);
+        res.status(500).json({ error: 'Error al generar la plantilla de campo' });
+    }
+};

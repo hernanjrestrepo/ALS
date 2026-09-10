@@ -9,7 +9,8 @@ import {
     updateTemplate,
     deleteTemplate,
     restoreTemplate,
-    restoreTemplateVersion
+    restoreTemplateVersion,
+    getFieldTemplatePdf
 } from '../controllers/sampling-template.controller';
 import { docxService } from '../services/docx.service';
 
@@ -21,6 +22,7 @@ router.get('/', getTemplates);
 router.get('/trash', requireAdmin, getTrashedTemplates);
 router.get('/:id', getTemplateById);
 router.get('/:id/versions', getTemplateVersions);
+router.get('/:id/field-template.pdf', getFieldTemplatePdf);
 router.post('/', requireAdmin, createTemplate);
 router.put('/:id', requireAdmin, updateTemplate);
 router.delete('/:id', requireAdmin, deleteTemplate);
