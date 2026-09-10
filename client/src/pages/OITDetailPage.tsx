@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import api from '@/lib/api';
-import { CheckCircle2, AlertCircle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin, ShieldCheck, ArrowRight, Navigation, ChevronLeft } from 'lucide-react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin, ShieldCheck, ArrowRight, Navigation, ChevronLeft } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -16,6 +16,7 @@ import { FileDown } from 'lucide-react';
 import { Plus, X } from 'lucide-react';
 import { ReportGenerator } from '@/components/oit/ReportGenerator';
 import { SendReportButton } from '@/components/oit/SendReportButton';
+import { NonConformitiesPanel } from '@/components/oit/NonConformitiesPanel';
 
 import { ServiceScheduleCard } from '@/components/oit/ServiceScheduleCard';
 import {
@@ -592,7 +593,7 @@ export default function OITDetailPage() {
                 <Tabs defaultValue="info" className="w-full">
                     <div className="flex justify-center mb-8">
                         <TabsList className={`grid w-full ${isAdmin
-                            ? 'max-w-2xl grid-cols-2 sm:grid-cols-4'
+                            ? 'max-w-3xl grid-cols-2 sm:grid-cols-5'
                             : 'max-w-md grid-cols-2'
                             } bg-white p-1 rounded-xl sm:rounded-full border border-slate-200 shadow-sm h-auto transition-all duration-300`}>
                             <TabsTrigger value="info" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
@@ -609,6 +610,11 @@ export default function OITDetailPage() {
                             {isAdmin && (
                                 <TabsTrigger value="report" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                     <FileBarChart className="mr-2 h-4 w-4" /> Informe
+                                </TabsTrigger>
+                            )}
+                            {isAdmin && (
+                                <TabsTrigger value="quality" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
+                                    <AlertTriangle className="mr-2 h-4 w-4" /> Calidad
                                 </TabsTrigger>
                             )}
                         </TabsList>
@@ -2286,6 +2292,10 @@ export default function OITDetailPage() {
                                 </div>
                             )}
                         </div>
+                    </TabsContent>
+
+                    <TabsContent value="quality" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <NonConformitiesPanel oitId={id!} />
                     </TabsContent>
                 </Tabs>
 

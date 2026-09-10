@@ -13,6 +13,7 @@ import feedbackRoutes from '../controllers/feedback.controller';
 import quotationRoutes from './quotation.routes';
 import analyticsRoutes from './analytics.routes';
 import templateDetectionRoutes from './template-detection.routes';
+import nonConformityRoutes from './non-conformity.routes';
 
 const router = Router();
 
@@ -30,5 +31,7 @@ router.use('/feedback', feedbackRoutes);
 router.use('/quotations', quotationRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/template-detection', templateDetectionRoutes);
+// Ya trae sus propios prefijos completos (/oits/:id/non-conformities, /non-conformities/:id)
+router.use('/', nonConformityRoutes);
 
 export default router;

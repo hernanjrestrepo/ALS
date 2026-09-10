@@ -57,6 +57,26 @@ model OIT {
   updatedAt             DateTime       @updatedAt
   notifications         Notification[]
   assignedEngineers     OITAssignment[]
+  nonConformities       NonConformity[]
+}
+
+// Registro de laboratorio (punto 12 del blueprint): hallazgos que no cumplen
+// lo esperado, con seguimiento hasta el cierre. Antes de esto, si algo no
+// cumplia solo quedaba mencionado dentro del texto del informe, sin
+// trazabilidad ni seguimiento propio.
+model NonConformity {
+  id          String    @id @default(uuid())
+  oitId       String
+  oit         OIT       @relation(fields: [oitId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  severity    String    @default("MENOR") // MENOR, MAYOR, CRITICA
+  status      String    @default("ABIERTA") // ABIERTA, EN_TRATAMIENTO, CERRADA
+  detectedBy  String?
+  resolution  String?
+  closedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Quotation {
