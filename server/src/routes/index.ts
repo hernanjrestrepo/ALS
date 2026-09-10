@@ -14,6 +14,7 @@ import quotationRoutes from './quotation.routes';
 import analyticsRoutes from './analytics.routes';
 import templateDetectionRoutes from './template-detection.routes';
 import nonConformityRoutes from './non-conformity.routes';
+import signatureRoutes from './signature.routes';
 
 const router = Router();
 
@@ -33,5 +34,6 @@ router.use('/analytics', analyticsRoutes);
 router.use('/template-detection', templateDetectionRoutes);
 // Ya trae sus propios prefijos completos (/oits/:id/non-conformities, /non-conformities/:id)
 router.use('/', nonConformityRoutes);
+router.use('/', signatureRoutes);
 
 export default router;

@@ -17,6 +17,7 @@ import { Plus, X } from 'lucide-react';
 import { ReportGenerator } from '@/components/oit/ReportGenerator';
 import { SendReportButton } from '@/components/oit/SendReportButton';
 import { NonConformitiesPanel } from '@/components/oit/NonConformitiesPanel';
+import { SignaturesPanel } from '@/components/oit/SignaturesPanel';
 
 import { ServiceScheduleCard } from '@/components/oit/ServiceScheduleCard';
 import {
@@ -2294,8 +2295,9 @@ export default function OITDetailPage() {
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="quality" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <TabsContent value="quality" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <NonConformitiesPanel oitId={id!} />
+                        <SignaturesPanel oitId={id!} />
                     </TabsContent>
                 </Tabs>
 

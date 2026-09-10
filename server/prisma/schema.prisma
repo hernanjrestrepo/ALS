@@ -58,6 +58,21 @@ model OIT {
   notifications         Notification[]
   assignedEngineers     OITAssignment[]
   nonConformities       NonConformity[]
+  signatures            Signature[]
+}
+
+// Firma en campo (punto 11 del blueprint): captura digital en pantalla o
+// documento ya firmado subido como respaldo, para el funcionario de ALS
+// y/o el cliente.
+model Signature {
+  id            String   @id @default(uuid())
+  oitId         String
+  oit           OIT      @relation(fields: [oitId], references: [id], onDelete: Cascade)
+  signerName    String
+  signerRole    String   // ALS o CLIENTE
+  signatureData String?  // PNG en base64 capturado en pantalla
+  documentUrl   String?  // alternativa: documento ya firmado, subido como respaldo
+  createdAt     DateTime @default(now())
 }
 
 // Registro de laboratorio (punto 12 del blueprint): hallazgos que no cumplen
