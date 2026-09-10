@@ -2523,3 +2523,90 @@ export const sendFinalReport = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error al enviar el informe' });
     }
 };
+
+const CERTIFICATE_STAGES: Record<string, string> = {
+    PLANEACION_ACEPTADA: 'Planeación Aceptada',
+    MUESTREO_COMPLETADO: 'Muestreo Completado',
+    LABORATORIO_COMPLETADO: 'Análisis de Laboratorio Completado',
+    INFORME_ENTREGADO: 'Informe Final Entregado',
+};
+
+// Constancia/certificado de una etapa del proceso (punto 9 del blueprint).
+// Se genera como PDF y se agrega a la misma lista de informes de la OIT
+// (finalReportUrl), asi queda disponible para descargar y para el envio
+// por correo (send-report) sin duplicar esa logica.
+export const generateStageCertificate = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { stage, responsibleName } = req.body;
+
+        if (!stage || !CERTIFICATE_STAGES[stage]) {
+            return res.status(400).json({ error: 'Etapa inválida', validValues: Object.keys(CERTIFICATE_STAGES) });
+        }
+
+        const oit = await prisma.oIT.findUnique({ where: { id } });
+        if (!oit) return res.status(404).json({ error: 'OIT no encontrada' });
+
+        const stageLabel = CERTIFICATE_STAGES[stage];
+        const date = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Helvetica', sans-serif; padding: 60px; color: #1e293b; line-height: 1.6; }
+                    .header { text-align: center; border-bottom: 3px solid #004CAB; padding-bottom: 20px; margin-bottom: 40px; }
+                    .header h1 { color: #004CAB; font-size: 20px; margin: 0; letter-spacing: 1px; }
+                    .title { text-align: center; font-size: 26px; font-weight: bold; margin: 40px 0; color: #0f172a; }
+                    .body-text { text-align: center; font-size: 15px; max-width: 560px; margin: 0 auto 40px; }
+                    .details { margin: 40px auto; max-width: 480px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+                    .details div { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+                    .details strong { color: #475569; }
+                    .signature-line { margin-top: 80px; text-align: center; }
+                    .signature-line .line { border-top: 1px solid #334155; width: 260px; margin: 0 auto 6px; }
+                </style>
+            </head>
+            <body>
+                <div class="header"><h1>ALS XMART — CONSTANCIA</h1></div>
+                <div class="title">${stageLabel}</div>
+                <p class="body-text">Se certifica que la etapa de <strong>${stageLabel}</strong> correspondiente a la OIT <strong>${oit.oitNumber}</strong>${oit.description ? ` (${oit.description})` : ''} fue completada satisfactoriamente.</p>
+                <div class="details">
+                    <div><span><strong>OIT</strong></span><span>${oit.oitNumber}</span></div>
+                    <div><span><strong>Etapa</strong></span><span>${stageLabel}</span></div>
+                    <div><span><strong>Fecha</strong></span><span>${date}</span></div>
+                    ${responsibleName ? `<div><span><strong>Responsable</strong></span><span>${responsibleName}</span></div>` : ''}
+                </div>
+                <div class="signature-line">
+                    <div class="line"></div>
+                    <span>${responsibleName || 'Responsable'}</span>
+                </div>
+            </body>
+            </html>
+        `;
+
+        const { pdfService } = require('../services/pdf.service');
+        const filename = `Constancia_${stage}_${oit.oitNumber}_${Date.now()}.pdf`;
+        const pdfPath = await pdfService.generatePDFFromHTML(html, filename);
+
+        // Se registra en la misma lista de informes de la OIT para que quede
+        // disponible en la pestaña Informe y se pueda enviar por correo.
+        let reports: any[] = [];
+        if (oit.finalReportUrl) {
+            try {
+                reports = JSON.parse(oit.finalReportUrl);
+                if (!Array.isArray(reports)) reports = [];
+            } catch (e) { reports = []; }
+        }
+        // pdfService guarda en uploads/reports/, no directo en uploads/ - se
+        // guarda la ruta relativa a uploads/ para que el resto del sistema
+        // (descarga, envio por correo) la resuelva igual que los demas informes
+        reports.push({ name: `Constancia - ${stageLabel}`, url: `reports/${path.basename(pdfPath)}`, type: 'pdf' });
+        await prisma.oIT.update({ where: { id }, data: { finalReportUrl: JSON.stringify(reports) } });
+
+        res.status(201).json({ message: 'Constancia generada', filename: path.basename(pdfPath), stage: stageLabel });
+    } catch (error) {
+        logError('Error generando constancia de etapa', error);
+        res.status(500).json({ error: 'Error al generar la constancia' });
+    }
+};

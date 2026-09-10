@@ -32,7 +32,8 @@ import {
     requestRedoSteps,
     updateServiceDates,
     verifyConsistency,
-    sendFinalReport
+    sendFinalReport,
+    generateStageCertificate
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { authMiddleware, requireAdmin, requireOperational, requireEngineerAssignment } from '../middleware/auth.middleware';
@@ -90,6 +91,7 @@ router.post('/:id/report-versions/:versionId/activate', authMiddleware, requireA
 router.post('/:id/report-chat', authMiddleware, requireAdmin, reportChatPreview);
 router.post('/:id/report-chat/approve', authMiddleware, requireAdmin, reportChatApprove);
 router.post('/:id/send-report', authMiddleware, requireAdmin, sendFinalReport);
+router.post('/:id/certificate', authMiddleware, requireOperational, requireEngineerAssignment, generateStageCertificate);
 
 // Sampling validation workflow: ADMIN+ always, ENGINEER only if assigned, USER blocked
 router.post('/:id/validate-step', authMiddleware, requireOperational, requireEngineerAssignment, validateStepData);
