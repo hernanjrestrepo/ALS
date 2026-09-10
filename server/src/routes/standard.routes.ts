@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, requireAdmin } from '../middleware/auth.middleware';
 import {
     getStandards,
     getStandard,
@@ -16,8 +16,8 @@ router.use(authMiddleware);
 
 router.get('/', getStandards);
 router.get('/:id', getStandard);
-router.post('/', upload.single('file'), createStandard);
-router.put('/:id', upload.single('file'), updateStandard);
-router.delete('/:id', deleteStandard);
+router.post('/', requireAdmin, upload.single('file'), createStandard);
+router.put('/:id', requireAdmin, upload.single('file'), updateStandard);
+router.delete('/:id', requireAdmin, deleteStandard);
 
 export default router;

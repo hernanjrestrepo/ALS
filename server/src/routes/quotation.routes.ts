@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, requireAdmin } from '../middleware/auth.middleware';
 import {
     getQuotations,
     getQuotation,
@@ -18,11 +18,11 @@ router.use(authMiddleware);
 // CRUD routes
 router.get('/', getQuotations);
 router.get('/:id', getQuotation);
-router.post('/', upload.single('file'), createQuotation);
-router.put('/:id', upload.single('file'), updateQuotation);
-router.delete('/:id', deleteQuotation);
+router.post('/', requireAdmin, upload.single('file'), createQuotation);
+router.put('/:id', requireAdmin, upload.single('file'), updateQuotation);
+router.delete('/:id', requireAdmin, deleteQuotation);
 
 // Analysis route
-router.post('/:id/analyze', analyzeQuotation);
+router.post('/:id/analyze', requireAdmin, analyzeQuotation);
 
 export default router;

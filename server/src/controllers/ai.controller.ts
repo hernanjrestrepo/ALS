@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 
 export const chat = async (req: Request, res: Response) => {
     try {
-        const { message, model } = req.body;
+        const { message, model, pageContext } = req.body;
 
         if (!message) {
             return res.status(400).json({ error: 'Message is required' });
@@ -25,10 +25,32 @@ export const chat = async (req: Request, res: Response) => {
             prisma.resource.findMany()
         ]);
 
+        // Si el usuario esta viendo una OIT especifica, se trae su detalle completo
+        // para que el asistente responda con contexto exacto de esa pantalla
+        let currentOitBlock = '';
+        if (pageContext?.oitId) {
+            const currentOit = await prisma.oIT.findUnique({
+                where: { id: pageContext.oitId },
+                include: { assignedEngineers: { include: { user: { select: { name: true, email: true } } } }, quotation: true }
+            });
+            if (currentOit) {
+                currentOitBlock = `
+🔎 EL USUARIO ESTÁ VIENDO AHORA MISMO ESTA OIT (responde con esto como prioridad si la pregunta se refiere a "esta OIT", "esta orden", etc.):
+- OIT #${currentOit.oitNumber}
+  Estado: ${currentOit.status}
+  Descripción: ${currentOit.description || 'N/A'}
+  Ubicación: ${currentOit.location || 'N/A'}
+  Fecha programada: ${currentOit.scheduledDate ? new Date(currentOit.scheduledDate).toLocaleDateString() : 'No programada'}
+  Ingenieros asignados: ${currentOit.assignedEngineers.map(a => a.user.name).join(', ') || 'Ninguno'}
+  Cotización relacionada: ${currentOit.quotation?.quotationNumber || 'N/A'}
+`;
+            }
+        }
+
         // Construir contexto enriquecido
         const contextPrompt = `
-Eres un asistente experto del sistema ALS V2 para gestión de Órdenes de Inspección y Toma de muestras (OIT).
-
+Eres un asistente experto del sistema ALS Xmart para gestión de Órdenes de Inspección y Toma de muestras (OIT).
+${currentOitBlock}
 CONTEXTO DE LA BASE DE DATOS:
 
 📊 OITs EN SISTEMA (${oits.length} total):

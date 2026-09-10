@@ -1,12 +1,17 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ParadixeFooter } from '@/components/brand/ParadixeFooter';
+import { ChatWidget } from '@/components/shared/ChatWidget';
 
 
 export function Layout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const location = useLocation();
+    // The dedicated Asistente IA page is already a full-screen chat; skip the
+    // floating widget there to avoid showing two chat surfaces at once.
+    const showChatWidget = location.pathname !== '/ai';
 
     return (
         <div className="flex h-screen w-full bg-slate-50">
@@ -20,6 +25,7 @@ export function Layout() {
                     <ParadixeFooter />
                 </main>
             </div>
+            {showChatWidget && <ChatWidget />}
         </div>
 
     );

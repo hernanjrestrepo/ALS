@@ -1,10 +1,13 @@
 import { Router } from 'express';
+import { authMiddleware } from '../middleware/auth.middleware';
 import { chat, getModels, analyzeDocument, recommendResources, validateOITDocuments } from '../controllers/ai.controller';
 import { upload } from '../config/multer';
 
 const router = Router();
 
 // Using shared upload config (disk storage). Controller will still validate mimetypes
+
+router.use(authMiddleware);
 
 router.post('/chat', chat);
 router.get('/models', getModels);

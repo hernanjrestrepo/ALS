@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, requireAdmin } from '../middleware/auth.middleware';
 import {
     getTemplates,
     getTrashedTemplates,
@@ -18,14 +18,14 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get('/', getTemplates);
-router.get('/trash', getTrashedTemplates);
+router.get('/trash', requireAdmin, getTrashedTemplates);
 router.get('/:id', getTemplateById);
 router.get('/:id/versions', getTemplateVersions);
-router.post('/', createTemplate);
-router.put('/:id', updateTemplate);
-router.delete('/:id', deleteTemplate);
-router.post('/:id/restore', restoreTemplate);
-router.post('/:id/versions/:versionId/restore', restoreTemplateVersion);
+router.post('/', requireAdmin, createTemplate);
+router.put('/:id', requireAdmin, updateTemplate);
+router.delete('/:id', requireAdmin, deleteTemplate);
+router.post('/:id/restore', requireAdmin, restoreTemplate);
+router.post('/:id/versions/:versionId/restore', requireAdmin, restoreTemplateVersion);
 
 // Get template fields (docxtemplater tags)
 router.get('/fields/:fileName', (req: Request, res: Response) => {
