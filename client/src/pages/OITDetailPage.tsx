@@ -249,9 +249,8 @@ export default function OITDetailPage() {
     useEffect(() => {
         const loadEngineers = async () => {
             try {
-                const res = await api.get('/users');
-                const engineers = res.data.filter((u: any) => u.role === 'ENGINEER' || u.role === 'ADMIN' || u.role === 'SUPER_ADMIN');
-                setAvailableEngineers(engineers);
+                const res = await api.get('/users/engineers');
+                setAvailableEngineers(res.data);
             } catch (error) {
                 console.error('Error fetching engineers:', error);
                 setAvailableEngineers([]);

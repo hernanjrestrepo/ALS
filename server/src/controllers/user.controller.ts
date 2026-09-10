@@ -103,11 +103,11 @@ export const updateUserRole = async (req: Request, res: Response) => {
     }
 };
 
-// Get all engineers (for OIT assignment)
+// Get all engineers + admins (assignable to an OIT for sampling)
 export const getEngineers = async (req: Request, res: Response) => {
     try {
         const engineers = await prisma.user.findMany({
-            where: { role: ROLES.ENGINEER },
+            where: { role: { in: [ROLES.ENGINEER, ROLES.ADMIN, ROLES.SUPER_ADMIN] } },
             select: {
                 id: true,
                 email: true,

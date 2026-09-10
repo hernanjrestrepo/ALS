@@ -1059,6 +1059,7 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
         const aiDataContent: any = {};
         let extractedDescription: string | null = null;
         let extractedLocation: string | null = null;
+        let extractedOitNumber: string | null = null;
 
         // Analyze OIT File
         if (oitFilePath && fs.existsSync(oitFilePath)) {
@@ -1069,6 +1070,21 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
 
             const oitAnalysis = await aiService.analyzeDocument(oitText);
             aiDataContent.oit = oitAnalysis;
+
+            // Extract the real OIT number from the document (creation only ever assigns
+            // a temporary OIT-<timestamp> placeholder, this is the only place the real
+            // number gets read)
+            try {
+                const oitDataResult = await aiService.extractOITData(oitText);
+                if (oitDataResult?.valid && oitDataResult?.data?.oitNumber) {
+                    const candidate = String(oitDataResult.data.oitNumber).trim();
+                    if (candidate && candidate.length <= 100) {
+                        extractedOitNumber = candidate;
+                    }
+                }
+            } catch (e) {
+                logError(`OIT ${oitId}: no se pudo extraer el numero real de OIT`, e);
+            }
 
             // Extract description
             if ((oitAnalysis as any).description) {
@@ -1118,6 +1134,21 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
                 resources: aiDataContent.resources ? JSON.stringify(aiDataContent.resources) : undefined
             }
         });
+
+        // Replace the temporary OIT-<timestamp> placeholder with the real number,
+        // once we have it. Separate update because a duplicate real number must not
+        // fail the rest of the analysis.
+        if (extractedOitNumber) {
+            try {
+                await prisma.oIT.update({
+                    where: { id: oitId },
+                    data: { oitNumber: extractedOitNumber }
+                });
+            } catch (e) {
+                logError(`OIT ${oitId}: no se pudo actualizar al numero real "${extractedOitNumber}" (posible duplicado)`, e);
+                await createNotification(userId, 'Número de OIT no actualizado', `Se detectó el número "${extractedOitNumber}" en el documento pero ya está en uso por otra OIT. Revisa y corrígelo manualmente.`, 'WARNING', oitId);
+            }
+        }
 
         // Compliance
         await createNotification(userId, 'Verificando Cumplimiento', 'Analizando normas...', 'INFO', oitId);
