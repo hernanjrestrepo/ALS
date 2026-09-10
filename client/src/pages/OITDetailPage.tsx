@@ -519,6 +519,13 @@ export default function OITDetailPage() {
     if (!oit) return <div className="flex items-center justify-center min-h-screen bg-slate-50"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>;
 
     const aiData = oit.aiData ? JSON.parse(oit.aiData) : null;
+    // El backend guarda los servicios detectados por IA en data.oit.services (junto con
+    // el resto del analisis del documento OIT), pero toda esta pantalla los lee de
+    // data.services. Sin este alias, la programacion de visita nunca mostraba nada
+    // que agendar porque esa ruta siempre estaba vacia.
+    if (aiData?.data && !aiData.data.services && aiData.data.oit?.services) {
+        aiData.data.services = aiData.data.oit.services;
+    }
     const resources = oit.resources ? JSON.parse(oit.resources) : [];
 
     const getStatusLabel = (status: string) => {
