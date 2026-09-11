@@ -17,9 +17,9 @@ interface DashboardStats {
 const STATUS_LABELS: Record<string, string> = {
     PENDING: 'Pendiente',
     ANALYZING: 'Analizando',
-    REVIEW_REQUIRED: 'Revisión requerida',
+    REVIEW_REQUIRED: 'Pendiente de aprobación',
     SCHEDULED: 'Programada',
-    IN_PROGRESS: 'En progreso',
+    IN_PROGRESS: 'En muestreo',
     COMPLETED: 'Completada',
 };
 

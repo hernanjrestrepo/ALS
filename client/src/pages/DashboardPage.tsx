@@ -54,12 +54,12 @@ export default function DashboardPage() {
     const getStatusLabel = (status: string) => {
         const statusMap: Record<string, string> = {
             'PENDING': 'Pendiente',
-            'IN_PROGRESS': 'En Progreso',
+            'IN_PROGRESS': 'En Muestreo',
             'COMPLETED': 'Completada',
             'ANALYZING': 'Analizando',
             'SCHEDULED': 'Programada',
             'UPLOADING': 'Subiendo',
-            'REVIEW_REQUIRED': 'Revisión Requerida'
+            'REVIEW_REQUIRED': 'Pendiente de Aprobación'
         };
         return statusMap[status] || status;
     };

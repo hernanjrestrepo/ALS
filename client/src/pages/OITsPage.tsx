@@ -86,10 +86,10 @@ export default function OITsPage() {
     const getStatusLabel = (status: string) => {
         switch (status) {
             case 'COMPLETED': return 'COMPLETADA';
-            case 'IN_PROGRESS': return 'EN PROGRESO';
+            case 'IN_PROGRESS': return 'EN MUESTREO';
             case 'PENDING': return 'PENDIENTE';
             case 'ANALYZING': return 'ANALIZANDO';
-            case 'REVIEW_REQUIRED': return 'REVISIÓN REQUERIDA';
+            case 'REVIEW_REQUIRED': return 'PENDIENTE DE APROBACIÓN';
             case 'ERROR': return 'ERROR';
             default: return status;
         }

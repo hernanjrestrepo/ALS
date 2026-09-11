@@ -46,9 +46,9 @@ const STATUS_LABELS: Record<string, string> = {
     PENDING: 'Pendiente',
     UPLOADING: 'Subiendo',
     ANALYZING: 'Analizando',
-    REVIEW_REQUIRED: 'Requiere revisión',
+    REVIEW_REQUIRED: 'Pendiente de aprobación',
     SCHEDULED: 'Programada',
-    IN_PROGRESS: 'En progreso',
+    IN_PROGRESS: 'En muestreo',
     COMPLETED: 'Completada',
 };
 
