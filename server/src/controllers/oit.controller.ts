@@ -317,6 +317,83 @@ export const uploadLabResults = async (req: Request, res: Response) => {
     }
 };
 
+// Webhook de integracion externa (Sistema Serambiente): recibe el resultado de
+// laboratorio de una OIT ya existente, identificandola por su numero real (OT).
+// Mismo patron de campos que createOITFromUrl (OT + DOCUMENTO) para mantener
+// consistencia con la integracion que ya conocen del otro lado. Reemplaza al
+// servicio externo (RunPod) que Sistema Serambiente usaba antes y que ya no
+// esta disponible - este vive en nuestra propia infraestructura.
+export const receiveLabResultsFromUrl = async (req: Request, res: Response) => {
+    try {
+        const { OT, DOCUMENTO, group = 'General' } = req.body;
+
+        if (!OT) {
+            return res.status(400).json({ error: 'Falta el campo OT (número de la OIT)' });
+        }
+        if (!DOCUMENTO) {
+            return res.status(400).json({ error: 'Falta el campo DOCUMENTO (URL del resultado de laboratorio)' });
+        }
+
+        const oit = await prisma.oIT.findUnique({ where: { oitNumber: OT } });
+        if (!oit) {
+            return res.status(404).json({ error: `No se encontró ninguna OIT con el número "${OT}"` });
+        }
+
+        console.log(`[Legacy API] Recibiendo resultado de laboratorio para OIT ${OT}: ${DOCUMENTO}`);
+
+        const filename = `labResultFromUrl-${Date.now()}.pdf`;
+        const uploadDir = path.join(__dirname, '../../uploads');
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+        const filePath = path.join(uploadDir, filename);
+
+        try {
+            const response = await axios({ method: 'get', url: DOCUMENTO, responseType: 'stream' });
+            const writer = fs.createWriteStream(filePath);
+            response.data.pipe(writer);
+            await new Promise((resolve, reject) => {
+                writer.on('finish', () => resolve(true));
+                writer.on('error', reject);
+            });
+        } catch (downloadError) {
+            logError(`OIT ${OT}: error descargando resultado de laboratorio desde URL externa`, downloadError);
+            return res.status(400).json({ error: 'Error al descargar el archivo desde la URL proporcionada' });
+        }
+
+        // Mismo agrupamiento por servicio que ya usa la carga manual (uploadLabResults)
+        let groupedFiles: Record<string, string[]> = {};
+        if (oit.labResultsUrl) {
+            try {
+                const parsed = JSON.parse(oit.labResultsUrl);
+                groupedFiles = Array.isArray(parsed) ? { General: parsed } : (parsed || {});
+            } catch (e) {
+                groupedFiles = { General: [oit.labResultsUrl] };
+            }
+        }
+        const newPath = `uploads/${filename}`;
+        if (!groupedFiles[group]) groupedFiles[group] = [];
+        groupedFiles[group].push(newPath);
+
+        await prisma.oIT.update({
+            where: { id: oit.id },
+            data: { labResultsUrl: JSON.stringify(groupedFiles), status: 'ANALYZING' }
+        });
+
+        res.json({
+            oitId: oit.id,
+            oitNumber: oit.oitNumber,
+            status: 'ANALYZING',
+            message: 'Resultado de laboratorio recibido. Análisis en curso...'
+        });
+
+        processLabResultsAsync(oit.id, groupedFiles[group].map(url => url.replace('uploads/', '')), group).catch(err => {
+            void notifyOitFailure(oit.id, `Error analizando el resultado de laboratorio recibido (${group})`, err);
+        });
+    } catch (error) {
+        logError('Error recibiendo resultado de laboratorio vía integración externa', error);
+        res.status(500).json({ error: 'Error al recibir el resultado de laboratorio' });
+    }
+};
+
 // Background Processor for Lab Results
 // Background Processor for Lab Results
 async function processLabResultsAsync(oitId: string, filenames: string[], group: string = 'General') {

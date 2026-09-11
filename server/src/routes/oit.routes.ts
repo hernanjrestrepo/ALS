@@ -33,7 +33,8 @@ import {
     updateServiceDates,
     verifyConsistency,
     sendFinalReport,
-    generateStageCertificate
+    generateStageCertificate,
+    receiveLabResultsFromUrl
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { authMiddleware, requireAdmin, requireOperational, requireEngineerAssignment } from '../middleware/auth.middleware';
@@ -60,6 +61,9 @@ router.post(
 );
 // Legacy webhook intake endpoint (e.g. automated email pipeline) - auth intentionally optional
 router.post('/from-url', createOITFromUrl);
+// Webhook de integracion externa (Sistema Serambiente): resultado de laboratorio
+// para una OIT existente, identificada por numero (OT) - auth intencionalmente opcional
+router.post('/lab-results-from-url', receiveLabResultsFromUrl);
 
 router.put('/:id', authMiddleware, requireAdmin, updateOIT);
 router.patch('/:id', authMiddleware, requireAdmin, upload.fields([
