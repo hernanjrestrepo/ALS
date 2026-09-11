@@ -1,20 +1,35 @@
 {
-    "name": "ALS Dashboard",
-    "short_name": "ALS",
+    "name": "ALS Xmart",
+    "short_name": "ALS Xmart",
+    "description": "Gestión de Órdenes de Inspección y Toma de Muestras",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
-    "theme_color": "#0f172a",
+    "theme_color": "#004CAB",
     "icons": [
         {
             "src": "/logo.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "/logo.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/logo.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         }
     ]
 }
