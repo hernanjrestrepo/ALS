@@ -4,9 +4,17 @@ type HttpErrorLike = { message?: string; response?: { data?: unknown } };
 export function describeError(error: unknown): string {
     if (error === null || error === undefined) return 'unknown error';
     const responseData = (error as HttpErrorLike)?.response?.data;
-    if (responseData) {
-        const detail = typeof responseData === 'string' ? responseData : JSON.stringify(responseData);
-        return `${(error as HttpErrorLike).message || 'HTTP error'} (${detail})`;
+    // responseData puede ser un stream (p.ej. axios con responseType: 'stream' en un
+    // request fallido), que tiene referencias circulares y rompe JSON.stringify.
+    if (responseData && typeof responseData !== 'object') {
+        return `${(error as HttpErrorLike).message || 'HTTP error'} (${responseData})`;
+    }
+    if (responseData && typeof responseData === 'object') {
+        try {
+            return `${(error as HttpErrorLike).message || 'HTTP error'} (${JSON.stringify(responseData)})`;
+        } catch {
+            return `${(error as HttpErrorLike).message || 'HTTP error'}`;
+        }
     }
     if (error instanceof Error) return error.stack || `${error.name}: ${error.message}`;
     if (typeof error === 'string') return error;
