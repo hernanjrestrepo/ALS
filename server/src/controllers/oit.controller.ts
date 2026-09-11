@@ -325,7 +325,8 @@ export const uploadLabResults = async (req: Request, res: Response) => {
 // esta disponible - este vive en nuestra propia infraestructura.
 export const receiveLabResultsFromUrl = async (req: Request, res: Response) => {
     try {
-        const { OT, DOCUMENTO, group = 'General' } = req.body;
+        const { OT, DOCUMENTO, SERVICIO } = req.body;
+        const group = req.body.group || SERVICIO || 'General';
 
         if (!OT) {
             return res.status(400).json({ error: 'Falta el campo OT (número de la OIT)' });
@@ -334,10 +335,18 @@ export const receiveLabResultsFromUrl = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Falta el campo DOCUMENTO (URL del resultado de laboratorio)' });
         }
 
-        const oit = await prisma.oIT.findUnique({ where: { oitNumber: OT } });
-        if (!oit) {
-            return res.status(404).json({ error: `No se encontró ninguna OIT con el número "${OT}"` });
-        }
+        // Si la OT no existe todavia en ALS Xmart, se crea automaticamente en vez de
+        // rechazar el envio - el objetivo de esta integracion es que la informacion
+        // fluya desde Sistema Serambiente sin ninguna carga manual de nuestro lado.
+        const oit = await prisma.oIT.upsert({
+            where: { oitNumber: OT },
+            update: {},
+            create: {
+                oitNumber: OT,
+                status: 'ANALYZING',
+                description: `OIT creada automáticamente al recibir resultado de laboratorio vía integración externa (Sistema Serambiente)`
+            }
+        });
 
         console.log(`[Legacy API] Recibiendo resultado de laboratorio para OIT ${OT}: ${DOCUMENTO}`);
 
