@@ -274,3 +274,43 @@ export const updatePassword = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error al actualizar contraseña' });
     }
 };
+
+// Auto-servicio: el usuario autenticado cambia su propia contraseña. A diferencia
+// de updatePassword (ADMIN+, resetea la de cualquiera), este exige la contraseña
+// actual - es la unica forma que tiene hoy un usuario nuevo de reemplazar la clave
+// temporal, ya que el frontend nunca conecto una pantalla para el endpoint de arriba
+// y el flujo de "olvide mi contraseña" depende de correo (bloqueado por SES sandbox).
+export const changeMyPassword = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.userId;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'Falta la contraseña actual o la nueva' });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const isCurrentValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isCurrentValid) {
+            return res.status(400).json({ error: 'La contraseña actual no es correcta' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        res.json({ message: 'Contraseña actualizada exitosamente' });
+    } catch (error) {
+        console.error('Error en cambio de contraseña propio:', error);
+        res.status(500).json({ error: 'Error al actualizar contraseña' });
+    }
+};

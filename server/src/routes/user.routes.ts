@@ -7,7 +7,8 @@ import {
     getEngineers,
     getProfile,
     createUser,
-    updatePassword
+    updatePassword,
+    changeMyPassword
 } from '../controllers/user.controller';
 import { authMiddleware, requireSuperAdmin, requireAdmin } from '../middleware/auth.middleware';
 
@@ -18,6 +19,10 @@ router.use(authMiddleware);
 
 // Get current user profile
 router.get('/profile', getProfile);
+
+// Auto-servicio: el usuario autenticado cambia su propia contraseña (exige la actual).
+// Declarado antes de /:id/password para que "me" no sea capturado como :id.
+router.put('/me/password', changeMyPassword);
 
 // Get all engineers (for assignment dropdown) - requires ADMIN+
 router.get('/engineers', requireAdmin, getEngineers);
