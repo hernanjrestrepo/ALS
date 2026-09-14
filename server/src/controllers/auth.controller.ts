@@ -75,7 +75,7 @@ export const login = async (req: Request, res: Response) => {
 
         res.status(200).json({
             token,
-            user: { id: user.id, email: user.email, name: user.name, role: user.role }
+            user: { id: user.id, email: user.email, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword }
         });
     } catch (error) {
         console.error('Login error:', error);
@@ -152,7 +152,7 @@ export const resetPassword = async (req: Request, res: Response) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         await prisma.user.update({
             where: { id: user.id },
-            data: { password: hashedPassword, resetTokenHash: null, resetTokenExpiry: null },
+            data: { password: hashedPassword, resetTokenHash: null, resetTokenExpiry: null, mustChangePassword: false },
         });
 
         res.status(200).json({ message: 'Contraseña actualizada correctamente' });

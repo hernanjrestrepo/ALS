@@ -8,8 +8,16 @@ export interface AuthenticatedRequest extends Request {
     user?: {
         userId: string;
         role: string;
+        mustChangePassword: boolean;
     };
 }
+
+// Rutas que un usuario con clave temporal pendiente puede seguir usando
+// mientras el resto de la plataforma queda bloqueada.
+const PASSWORD_CHANGE_ALLOWLIST = [
+    { method: 'PUT', path: '/api/users/me/password' },
+    { method: 'GET', path: '/api/users/profile' },
+];
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -24,7 +32,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         // Get user role from database
         const user = await prisma.user.findUnique({
             where: { id: decoded.userId },
-            select: { id: true, role: true, isActive: true }
+            select: { id: true, role: true, isActive: true, mustChangePassword: true }
         });
 
         if (!user) {
@@ -37,8 +45,21 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
         (req as AuthenticatedRequest).user = {
             userId: user.id,
-            role: user.role
+            role: user.role,
+            mustChangePassword: user.mustChangePassword
         };
+
+        if (user.mustChangePassword) {
+            const isAllowed = PASSWORD_CHANGE_ALLOWLIST.some(
+                (r) => r.method === req.method && req.originalUrl.startsWith(r.path)
+            );
+            if (!isAllowed) {
+                return res.status(403).json({
+                    error: 'Debes cambiar tu contraseña temporal antes de continuar',
+                    code: 'MUST_CHANGE_PASSWORD'
+                });
+            }
+        }
 
         next();
     } catch (error) {

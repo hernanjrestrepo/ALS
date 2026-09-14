@@ -145,7 +145,8 @@ export const getProfile = async (req: Request, res: Response) => {
                 email: true,
                 name: true,
                 role: true,
-                createdAt: true
+                createdAt: true,
+                mustChangePassword: true
             }
         });
 
@@ -185,7 +186,8 @@ export const createUser = async (req: Request, res: Response) => {
                 email,
                 password: hashedPassword,
                 name: name || email.split('@')[0],
-                role
+                role,
+                mustChangePassword: true
             },
             select: {
                 id: true,
@@ -305,7 +307,7 @@ export const changeMyPassword = async (req: Request, res: Response) => {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await prisma.user.update({
             where: { id: userId },
-            data: { password: hashedPassword }
+            data: { password: hashedPassword, mustChangePassword: false }
         });
 
         res.json({ message: 'Contraseña actualizada exitosamente' });

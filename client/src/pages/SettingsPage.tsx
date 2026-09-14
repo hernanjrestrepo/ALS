@@ -1,38 +1,12 @@
-import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/features/auth/authStore';
-import api from '@/lib/api';
+import { ChangePasswordForm } from '@/components/auth/ChangePasswordForm';
 
 export default function SettingsPage() {
     const user = useAuthStore((state) => state.user);
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-    const [changingPassword, setChangingPassword] = useState(false);
-
-    const handleChangePassword = async () => {
-        setPasswordMessage(null);
-        if (newPassword !== confirmPassword) {
-            setPasswordMessage({ type: 'error', text: 'La nueva contraseña y su confirmación no coinciden' });
-            return;
-        }
-        setChangingPassword(true);
-        try {
-            await api.put('/users/me/password', { currentPassword, newPassword });
-            setPasswordMessage({ type: 'success', text: 'Contraseña actualizada exitosamente' });
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-        } catch (error: any) {
-            setPasswordMessage({ type: 'error', text: error?.response?.data?.error || 'Error al actualizar la contraseña' });
-        } finally {
-            setChangingPassword(false);
-        }
-    };
 
     if (!user) {
         return (
@@ -90,45 +64,8 @@ export default function SettingsPage() {
                     <CardTitle>Cambiar contraseña</CardTitle>
                     <CardDescription>Actualiza tu contraseña de acceso</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="currentPassword">Contraseña actual</Label>
-                        <Input
-                            id="currentPassword"
-                            type="password"
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="newPassword">Nueva contraseña</Label>
-                        <Input
-                            id="newPassword"
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="confirmPassword">Confirmar nueva contraseña</Label>
-                        <Input
-                            id="confirmPassword"
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                        />
-                    </div>
-                    {passwordMessage && (
-                        <p className={passwordMessage.type === 'success' ? 'text-sm text-green-600' : 'text-sm text-red-600'}>
-                            {passwordMessage.text}
-                        </p>
-                    )}
-                    <Button
-                        onClick={handleChangePassword}
-                        disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
-                    >
-                        {changingPassword ? 'Actualizando...' : 'Actualizar contraseña'}
-                    </Button>
+                <CardContent>
+                    <ChangePasswordForm />
                 </CardContent>
             </Card>
 

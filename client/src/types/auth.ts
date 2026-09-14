@@ -5,6 +5,7 @@ export interface User {
     email: string;
     name: string;
     role: UserRole;
+    mustChangePassword?: boolean;
 }
 
 export interface AuthResponse {
@@ -18,6 +19,7 @@ export interface AuthState {
     isAuthenticated: boolean;
     login: (token: string, user: User) => void;
     logout: () => void;
+    updateUser: (patch: Partial<User>) => void;
 }
 
 // Helper to check permissions
