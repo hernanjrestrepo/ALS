@@ -861,10 +861,14 @@ export default function OITDetailPage() {
                                                 </div>
                                             )}
                                         </div>
-                                    ) : (
+                                    ) : (oit.status === 'PENDING' || oit.status === 'UPLOADING') ? (
                                         <div className="text-center py-8 text-slate-400">
                                             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
                                             <p className="text-sm">Esperando análisis...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 text-slate-400">
+                                            <p className="text-sm">Esta OIT no tiene análisis de planificación (creada automáticamente vía integración externa).</p>
                                         </div>
                                     )}
                                 </CardContent>
