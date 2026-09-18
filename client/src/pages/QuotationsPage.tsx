@@ -16,21 +16,28 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, FileText, Loader2, Receipt, Building2, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, Plus, FileText, Loader2, Receipt, Building2, Upload, CheckCircle2, AlertCircle, ShieldCheck, ShieldAlert } from 'lucide-react';
 
 interface Quotation {
     id: string;
     quotationNumber: string;
     description?: string;
     clientName?: string;
+    client?: { id: string; name: string };
+    service?: { id: string; name: string };
     fileUrl?: string;
     status: string;
+    approvedForOit: boolean;
     createdAt: string;
     linkedOITs?: { id: string; oitNumber: string; status: string }[];
 }
+
+interface ClientOption { id: string; name: string; }
+interface ServiceOption { id: string; name: string; }
 
 export default function QuotationsPage() {
     const navigate = useNavigate();
@@ -42,12 +49,17 @@ export default function QuotationsPage() {
     const [isCreating, setIsCreating] = useState(false);
 
     // Create form state
-    const [clientName, setClientName] = useState('');
+    const [clientId, setClientId] = useState('');
+    const [serviceId, setServiceId] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<File | null>(null);
+    const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+    const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
 
     useEffect(() => {
         fetchQuotations();
+        api.get('/clients').then(r => setClientOptions(r.data)).catch(() => {});
+        api.get('/services').then(r => setServiceOptions(r.data)).catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -99,12 +111,19 @@ export default function QuotationsPage() {
             toast.error('Debes seleccionar un archivo PDF');
             return;
         }
+        if (!clientId) {
+            toast.error('Debes seleccionar el cliente - según el flujo, el cliente debe existir antes de la cotización');
+            return;
+        }
 
         setIsCreating(true);
         try {
             const formData = new FormData();
             formData.append('file', file);
-            if (clientName) formData.append('clientName', clientName);
+            formData.append('clientId', clientId);
+            const selectedClient = clientOptions.find(c => c.id === clientId);
+            if (selectedClient) formData.append('clientName', selectedClient.name);
+            if (serviceId) formData.append('serviceId', serviceId);
             if (description) formData.append('description', description);
 
             await api.post('/quotations', formData, {
@@ -125,7 +144,8 @@ export default function QuotationsPage() {
 
 
     const resetForm = () => {
-        setClientName('');
+        setClientId('');
+        setServiceId('');
         setDescription('');
         setFile(null);
     };
@@ -207,15 +227,34 @@ export default function QuotationsPage() {
                                 </div>
                             </div>
 
-                            {/* Client Name Field */}
+                            {/* Client Select */}
                             <div className="grid gap-2">
-                                <Label htmlFor="clientName">Cliente (opcional)</Label>
-                                <Input
-                                    id="clientName"
-                                    placeholder="Nombre del cliente"
-                                    value={clientName}
-                                    onChange={(e) => setClientName(e.target.value)}
-                                />
+                                <Label htmlFor="clientId">Cliente *</Label>
+                                <Select value={clientId} onValueChange={setClientId}>
+                                    <SelectTrigger id="clientId">
+                                        <SelectValue placeholder={clientOptions.length === 0 ? 'No hay clientes registrados - créalo primero en Clientes' : 'Selecciona un cliente'} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {clientOptions.map(c => (
+                                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Service Select */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="serviceId">Servicio (opcional)</Label>
+                                <Select value={serviceId} onValueChange={setServiceId}>
+                                    <SelectTrigger id="serviceId">
+                                        <SelectValue placeholder="Selecciona un servicio" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {serviceOptions.map(s => (
+                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
@@ -271,6 +310,7 @@ export default function QuotationsPage() {
                                     <TableHead className="w-[180px] py-3 px-4 font-medium text-slate-500">Número</TableHead>
                                     <TableHead className="py-3 px-4 font-medium text-slate-500">Cliente</TableHead>
                                     <TableHead className="py-3 px-4 font-medium text-slate-500">Estado</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Aprobada para OIT</TableHead>
                                     <TableHead className="py-3 px-4 font-medium text-slate-500">OITs Vinculadas</TableHead>
                                     <TableHead className="py-3 px-4 font-medium text-slate-500">Fecha</TableHead>
                                 </TableRow>
@@ -283,12 +323,13 @@ export default function QuotationsPage() {
                                             <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[150px]" /></TableCell>
                                             <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[80px]" /></TableCell>
                                             <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[60px]" /></TableCell>
+                                            <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[60px]" /></TableCell>
                                             <TableCell className="py-3 px-4"><Skeleton className="h-4 w-[80px]" /></TableCell>
                                         </TableRow>
                                     ))
                                 ) : filteredQuotations.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-32 text-center text-slate-500">
+                                        <TableCell colSpan={6} className="h-32 text-center text-slate-500">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 <Receipt className="h-8 w-8 text-slate-300" />
                                                 <p>No hay cotizaciones registradas</p>
@@ -310,11 +351,22 @@ export default function QuotationsPage() {
                                             <TableCell className="py-3 px-4">
                                                 <div className="flex items-center gap-2 text-slate-600">
                                                     <Building2 className="h-4 w-4 text-slate-400" />
-                                                    {q.clientName || 'Sin cliente'}
+                                                    {q.client?.name || q.clientName || 'Sin cliente'}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="py-3 px-4">
                                                 {getStatusBadge(q.status)}
+                                            </TableCell>
+                                            <TableCell className="py-3 px-4">
+                                                {q.approvedForOit ? (
+                                                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                                                        <ShieldCheck className="h-3 w-3 mr-1" />Sí
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge className="bg-slate-100 text-slate-600 border-slate-200">
+                                                        <ShieldAlert className="h-3 w-3 mr-1" />No
+                                                    </Badge>
+                                                )}
                                             </TableCell>
                                             <TableCell className="py-3 px-4 text-slate-600">
                                                 {q.linkedOITs?.length || 0} OIT(s)

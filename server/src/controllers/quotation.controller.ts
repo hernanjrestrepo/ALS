@@ -13,7 +13,9 @@ export const getQuotations = async (req: Request, res: Response) => {
             include: {
                 linkedOITs: {
                     select: { id: true, oitNumber: true, status: true }
-                }
+                },
+                client: { select: { id: true, name: true } },
+                service: { select: { id: true, name: true } }
             }
         });
         res.json(quotations);
@@ -32,7 +34,9 @@ export const getQuotation = async (req: Request, res: Response) => {
             include: {
                 linkedOITs: {
                     select: { id: true, oitNumber: true, status: true, description: true }
-                }
+                },
+                client: true,
+                service: true
             }
         });
 
@@ -50,7 +54,7 @@ export const getQuotation = async (req: Request, res: Response) => {
 // Create new quotation
 export const createQuotation = async (req: Request, res: Response) => {
     try {
-        const { quotationNumber, description, clientName } = req.body;
+        const { quotationNumber, description, clientName, clientId, serviceId } = req.body;
         const file = req.file;
 
         // Generate quotation number if not provided
@@ -64,6 +68,8 @@ export const createQuotation = async (req: Request, res: Response) => {
                 quotationNumber: finalQuotationNumber,
                 description,
                 clientName,
+                clientId: clientId || undefined,
+                serviceId: serviceId || undefined,
                 fileUrl,
                 status: file ? 'ANALYZING' : 'PENDING'
             }
