@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import api from '@/lib/api';
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin, ShieldCheck, ArrowRight, Navigation, ChevronLeft } from 'lucide-react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin, ShieldCheck, ArrowRight, Navigation, ChevronLeft, X } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -467,6 +467,19 @@ export default function OITDetailPage() {
         }
     };
 
+    const handleClearSchedule = async () => {
+        if (!id) return;
+        if (!window.confirm('¿Quitar la fecha programada de esta OIT? Se puede volver a programar después.')) return;
+        try {
+            await api.put(`/oits/${id}`, { scheduledDate: null });
+            toast.success('Programación eliminada');
+            fetchOIT();
+        } catch (error) {
+            console.error('Error clearing schedule:', error);
+            toast.error('Error al quitar la programación');
+        }
+    };
+
     const handleOpenResourceDialog = () => {
         // Pre-select currently assigned resources
         const currentResources = oit.aiData ? JSON.parse(oit.aiData)?.data?.assignedResources : [];
@@ -509,11 +522,19 @@ export default function OITDetailPage() {
     };
 
     const toggleResource = (resourceId: string) => {
-        setSelectedResourceIdsEdit(prev =>
-            prev.includes(resourceId)
-                ? prev.filter(id => id !== resourceId)
-                : [...prev, resourceId]
-        );
+        setSelectedResourceIdsEdit(prev => {
+            const alreadySelected = prev.includes(resourceId);
+            if (!alreadySelected) {
+                // Un recurso marcado como no disponible (ej. IN_USE) solo se puede quitar,
+                // no agregar - antes solo se mostraba una etiqueta pero se dejaba seleccionar igual.
+                const resource = allResources.find(r => r.id === resourceId);
+                if (resource && resource.status !== 'AVAILABLE') {
+                    toast.error(`${resource.name} no está disponible (${resource.status})`);
+                    return prev;
+                }
+            }
+            return alreadySelected ? prev.filter(id => id !== resourceId) : [...prev, resourceId];
+        });
     };
 
     const filteredResources = allResources.filter(r =>
@@ -897,9 +918,17 @@ export default function OITDetailPage() {
                         ) : (
                             <>
                                 <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
-                                    <CardHeader>
-                                        <CardTitle>Programación de Visita</CardTitle>
-                                        <CardDescription>Define la fecha y hora para la toma de muestras.</CardDescription>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                                        <div>
+                                            <CardTitle>Programación de Visita</CardTitle>
+                                            <CardDescription>Define la fecha y hora para la toma de muestras.</CardDescription>
+                                        </div>
+                                        {oit.scheduledDate && (
+                                            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleClearSchedule}>
+                                                <X className="h-3.5 w-3.5 mr-1" />
+                                                Quitar programación
+                                            </Button>
+                                        )}
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         {/* AI Proposal Section */}
@@ -1574,10 +1603,16 @@ export default function OITDetailPage() {
                                             </div>
                                         )}
 
-                                        {/* No resources */}
+                                        {/* No resources - el boton para abrir el dialogo de asignacion antes solo
+                                            existia dentro del bloque "ya hay recursos", asi que no habia forma de
+                                            asignar el primer equipo/personal cuando la lista arrancaba vacia. */}
                                         {(!resources || resources.length === 0) && (!aiData?.data?.assignedResources || aiData.data.assignedResources.length === 0) && (
-                                            <div className="text-center py-12 text-slate-400">
+                                            <div className="text-center py-12 text-slate-400 space-y-3">
                                                 <p>No se han identificado recursos.</p>
+                                                <Button variant="outline" size="sm" onClick={handleOpenResourceDialog}>
+                                                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                                                    Asignar Recursos
+                                                </Button>
                                             </div>
                                         )}
                                     </CardContent>
