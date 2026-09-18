@@ -6,6 +6,58 @@ const pdfParse = require('pdf-parse');
 
 const prisma = new PrismaClient();
 
+const STATUS_LABELS: Record<string, string> = {
+    PENDING: 'Pendiente', UPLOADING: 'Cargando archivos', ANALYZING: 'Analizando',
+    REVIEW_REQUIRED: 'Pendiente de aprobación', SCHEDULED: 'Programada',
+    IN_PROGRESS: 'En muestreo', COMPLETED: 'Completada',
+};
+const statusLabel = (s: string) => STATUS_LABELS[s] || s;
+
+// Preguntas de hecho concreto (estado de una OIT, existencia de una norma) se
+// responden DIRECTO desde la base de datos, sin pasar por el modelo de IA local.
+// Se probo en vivo que el modelo (7B cuantizado) inventa respuestas incorrectas
+// incluso con el dato correcto justo delante en el prompt - para este tipo de
+// pregunta no hace falta "generar" nada, el dato ya existe, solo hay que devolverlo.
+function tryDeterministicAnswer(
+    message: string,
+    currentOit: any | null,
+    oits: any[],
+    standards: any[]
+): string | null {
+    const msg = message.toLowerCase();
+
+    const asksStatus = /estado|c[oó]mo va|en qu[eé] va/.test(msg);
+    const refersToCurrentOit = /esta oit|esa oit|esta orden|dicha oit/.test(msg);
+    if (asksStatus && refersToCurrentOit && currentOit) {
+        return `El estado de la OIT #${currentOit.oitNumber} es "${statusLabel(currentOit.status)}".`;
+    }
+
+    const oitNumberMatch = msg.match(/oit\s*#?\s*([a-z0-9-]{2,})/i);
+    if (asksStatus && oitNumberMatch) {
+        const number = oitNumberMatch[1];
+        const found = oits.find((o: any) => o.oitNumber.toLowerCase() === number.toLowerCase());
+        if (found) {
+            return `El estado de la OIT #${found.oitNumber} es "${statusLabel(found.status)}".`;
+        }
+        return `No encontré ninguna OIT con el número "${number}" en el sistema.`;
+    }
+
+    const normaMatch = msg.match(/(?:existe|hay|tenemos)\s+(?:la\s+|una\s+)?norma\s+(?:llamada\s+|de\s+)?["']?([^"'?.]+)["']?/i)
+        || msg.match(/norma\s+["']?([^"'?.]+)["']?\s+existe/i);
+    if (normaMatch) {
+        const term = normaMatch[1].trim();
+        const matches = standards.filter((s: any) =>
+            s.title.toLowerCase().includes(term.toLowerCase())
+        );
+        if (matches.length > 0) {
+            return `Sí, existe en el sistema: ${matches.map((s: any) => `"${s.title}"`).join(', ')}.`;
+        }
+        return `No encontré ninguna norma que coincida con "${term}" en el sistema. Puede que el nombre sea distinto - revisa el listado completo en el módulo Normas.`;
+    }
+
+    return null;
+}
+
 export const chat = async (req: Request, res: Response) => {
     try {
         const { message, model, pageContext } = req.body;
@@ -28,8 +80,9 @@ export const chat = async (req: Request, res: Response) => {
         // Si el usuario esta viendo una OIT especifica, se trae su detalle completo
         // para que el asistente responda con contexto exacto de esa pantalla
         let currentOitBlock = '';
+        let currentOit: any = null;
         if (pageContext?.oitId) {
-            const currentOit = await prisma.oIT.findUnique({
+            currentOit = await prisma.oIT.findUnique({
                 where: { id: pageContext.oitId },
                 include: { assignedEngineers: { include: { user: { select: { name: true, email: true } } } }, quotation: true }
             });
@@ -45,6 +98,13 @@ export const chat = async (req: Request, res: Response) => {
   Cotización relacionada: ${currentOit.quotation?.quotationNumber || 'N/A'}
 `;
             }
+        }
+
+        // Preguntas de hecho concreto se responden directo desde la base de datos,
+        // sin arriesgar que el modelo invente algo - ver tryDeterministicAnswer arriba.
+        const deterministicAnswer = tryDeterministicAnswer(message, currentOit, oits, standards);
+        if (deterministicAnswer) {
+            return res.json({ response: deterministicAnswer });
         }
 
         // Construir contexto enriquecido
