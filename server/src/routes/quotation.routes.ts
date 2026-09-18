@@ -6,7 +6,8 @@ import {
     createQuotation,
     updateQuotation,
     deleteQuotation,
-    analyzeQuotation
+    analyzeQuotation,
+    processEmailRequest
 } from '../controllers/quotation.controller';
 
 import { upload } from '../config/multer';
@@ -24,5 +25,9 @@ router.delete('/:id', requireAdmin, deleteQuotation);
 
 // Analysis route
 router.post('/:id/analyze', requireAdmin, analyzeQuotation);
+
+// Correo automatico -> resumen (requiere ADMIN+ por ahora; se puede abrir como
+// webhook publico, como /oits/from-url, una vez se conecte un buzon real)
+router.post('/from-email-request', requireAdmin, processEmailRequest);
 
 export default router;

@@ -400,3 +400,88 @@ Recuerda: Es mejor reportar 0 errores que inventar errores falsos.
     }
 }
 
+// Correo automatico -> resumen (pedido en la reunion 2026-09-18): procesa el texto
+// de una solicitud de cotizacion recibida por correo y genera un resumen ejecutivo
+// para que el area comercial solo tenga que ponerle precio, en vez de leer el
+// correo completo y armar la cotizacion desde cero.
+//
+// IMPORTANTE: este endpoint recibe el CONTENIDO del correo (asunto + cuerpo) ya
+// extraido - no lee ningun buzon por si mismo. Conectarlo a un buzon real
+// (reenvio automatico, IMAP, o SES receiving) es una decision de infraestructura
+// pendiente, igual que paso con la verificacion de SES: requiere elegir el
+// mecanismo y, segun cual sea, credenciales o acceso a DNS que solo Hernan puede dar.
+export const processEmailRequest = async (req: Request, res: Response) => {
+    try {
+        const { fromEmail, subject, body } = req.body;
+        if (!body || typeof body !== 'string' || body.trim().length < 10) {
+            return res.status(400).json({ error: 'Falta el cuerpo del correo (campo "body")' });
+        }
+
+        const { aiService } = require('../services/ai.service');
+
+        const systemPrompt = 'Eres un asistente que procesa solicitudes de cotizacion de servicios ambientales recibidas por correo, para el area comercial de un laboratorio ambiental.';
+        const prompt = `Un cliente envio este correo solicitando una cotizacion. Extrae la informacion y responde SOLO con JSON valido, sin texto adicional:
+
+{
+  "clientNameGuess": "nombre del cliente o empresa que se identifica en el correo, o null si no es claro",
+  "siteGuess": "sitio o ubicacion mencionada, o null",
+  "requestedServices": ["lista de servicios ambientales solicitados, en lenguaje claro"],
+  "requiredDocuments": ["documentos o requisitos que el cliente menciona que exige (manual de contratistas, polizas, etc.), vacio si no menciona ninguno"],
+  "summary": "resumen ejecutivo de 2-4 frases de lo que se necesita, para que el area comercial solo tenga que ponerle precio",
+  "missingInfo": ["informacion que falta para poder cotizar con precision, vacio si no falta nada"]
+}
+
+CORREO (de: ${fromEmail || 'remitente no especificado'}, asunto: ${subject || 'sin asunto'}):
+${body.substring(0, 8000)}
+
+JSON:`;
+
+        const aiResponse = await aiService.chat(prompt, undefined, systemPrompt);
+        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+        let extracted: any;
+        try {
+            extracted = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
+        } catch (e) {
+            extracted = { summary: 'No se pudo procesar automaticamente el correo. Revisar manualmente.', requestedServices: [], requiredDocuments: [], missingInfo: [] };
+        }
+
+        // Se crea como borrador (PENDING, sin archivo) para que el area comercial la
+        // complete: le asigne el Cliente real (creandolo si no existe todavia, con su
+        // documentacion), el Servicio, el precio, y el documento formal de cotizacion.
+        const quotation = await prisma.quotation.create({
+            data: {
+                quotationNumber: `SOL-${Date.now()}`,
+                description: extracted.summary || 'Solicitud recibida por correo - revisar y completar',
+                clientName: extracted.clientNameGuess || undefined,
+                status: 'PENDING',
+                aiData: JSON.stringify({
+                    source: 'email',
+                    fromEmail: fromEmail || null,
+                    subject: subject || null,
+                    ...extracted
+                })
+            }
+        });
+
+        // Notifica a todo el equipo comercial (ADMIN+) para que la complete
+        const commercialTeam = await prisma.user.findMany({
+            where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] }, isActive: true },
+            select: { id: true }
+        });
+        const { createNotification } = require('./notification.controller');
+        for (const u of commercialTeam) {
+            await createNotification(
+                u.id,
+                'Nueva solicitud de cotización por correo',
+                `${extracted.clientNameGuess || 'Cliente sin identificar'}: ${extracted.summary || 'Revisar solicitud recibida'}`.substring(0, 400),
+                'INFO'
+            );
+        }
+
+        res.status(201).json({ quotation, extracted });
+    } catch (error) {
+        console.error('Error processing email request:', error);
+        res.status(500).json({ error: 'Error al procesar la solicitud de correo' });
+    }
+};
+
