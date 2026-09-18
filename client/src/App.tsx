@@ -27,6 +27,8 @@ import UsersPage from '@/pages/UsersPage';
 import QuotationsPage from '@/pages/QuotationsPage';
 import QuotationDetailPage from '@/pages/QuotationDetailPage';
 import TemplateTestsPage from '@/pages/TemplateTestsPage';
+import ClientsPage from '@/pages/ClientsPage';
+import ServicesPage from '@/pages/ServicesPage';
 
 function App() {
   return (
@@ -56,6 +58,8 @@ function App() {
             <Route path="sampling-templates/edit/:id" element={<EditTemplatePage />} />
             <Route path="quotations" element={<QuotationsPage />} />
             <Route path='quotations/:id' element={<QuotationDetailPage />} />
+            <Route path="clients" element={<ClientsPage />} />
+            <Route path="services" element={<ServicesPage />} />
             <Route path='template-tests' element={<TemplateTestsPage />} />
             <Route path='ai' element={<AIAssistantPage />} />
             <Route path="notifications" element={<NotificationsPage />} />

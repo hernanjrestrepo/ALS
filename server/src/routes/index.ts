@@ -15,6 +15,8 @@ import analyticsRoutes from './analytics.routes';
 import templateDetectionRoutes from './template-detection.routes';
 import nonConformityRoutes from './non-conformity.routes';
 import signatureRoutes from './signature.routes';
+import clientRoutes from './client.routes';
+import serviceRoutes from './service.routes';
 
 const router = Router();
 
@@ -35,5 +37,7 @@ router.use('/template-detection', templateDetectionRoutes);
 // Ya trae sus propios prefijos completos (/oits/:id/non-conformities, /non-conformities/:id)
 router.use('/', nonConformityRoutes);
 router.use('/', signatureRoutes);
+router.use('/clients', clientRoutes);
+router.use('/services', serviceRoutes);
 
 export default router;

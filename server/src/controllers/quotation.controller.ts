@@ -354,7 +354,9 @@ Recuerda: Es mejor reportar 0 errores que inventar errores falsos.
         // Also run general document analysis for additional info
         const generalAnalysis = await aiService.analyzeDocument(extractedText);
 
-        // Update quotation with results
+        // Update quotation with results. approvedForOit es el bloqueo real pedido en
+        // la reunion del 2026-09-18: solo una cotizacion COMPLIANT puede usarse para
+        // crear una OIT (createOITAsync lo verifica) - antes esto era solo informativo.
         await prisma.quotation.update({
             where: { id: quotationId },
             data: {
@@ -364,7 +366,8 @@ Recuerda: Es mejor reportar 0 errores que inventar errores falsos.
                     ...generalAnalysis,
                     rawResponse: generalAnalysis.rawResponse
                 }),
-                complianceResult: JSON.stringify(complianceResult)
+                complianceResult: JSON.stringify(complianceResult),
+                approvedForOit: finalStatus === 'COMPLIANT'
             }
         });
 

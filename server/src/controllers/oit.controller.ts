@@ -1104,11 +1104,29 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
 
 export const createOITAsync = async (req: Request, res: Response) => {
     try {
-        const { oitNumber, description } = req.body;
+        const { oitNumber, description, quotationId } = req.body;
         const userId = (req as any).user?.userId; // Cast req to any to access user property
 
         if (!userId) {
             return res.status(401).json({ error: 'Usuario no autenticado' });
+        }
+
+        // Bloqueo pedido en la reunion del 2026-09-18: si se referencia una cotizacion
+        // ya existente (flujo de Clientes/Cotizaciones), debe estar aprobada contra la
+        // norma antes de poder generar la OIT. No aplica al flujo legado de subir un
+        // archivo de cotizacion suelto junto con la OIT (sin quotationId).
+        let linkedQuotation = null;
+        if (quotationId) {
+            linkedQuotation = await prisma.quotation.findUnique({ where: { id: quotationId } });
+            if (!linkedQuotation) {
+                return res.status(404).json({ error: 'Cotización no encontrada' });
+            }
+            if (!linkedQuotation.approvedForOit) {
+                return res.status(400).json({
+                    error: 'Esta cotización todavía no está aprobada contra la norma. Debe completarse esa verificación antes de generar la OIT.',
+                    quotationStatus: linkedQuotation.status
+                });
+            }
         }
 
         // Generate oitNumber if not provided
@@ -1119,7 +1137,8 @@ export const createOITAsync = async (req: Request, res: Response) => {
             data: {
                 oitNumber: finalOitNumber,
                 description: description || 'Análisis en curso...',
-                status: 'UPLOADING'
+                status: 'UPLOADING',
+                quotationId: linkedQuotation?.id
             }
         });
 
@@ -1132,7 +1151,7 @@ export const createOITAsync = async (req: Request, res: Response) => {
         });
 
         // Process files asynchronously
-        processOITFilesAsync(oit.id, req.files as any, userId).catch(async err => {
+        processOITFilesAsync(oit.id, req.files as any, userId, linkedQuotation?.fileUrl).catch(async err => {
             logError(`Error procesando archivos de la OIT ${oit.id}`, err);
             await createNotification(userId, 'Error al procesar archivos', `No se pudieron procesar los archivos de la OIT: ${errorMessage(err)}`.substring(0, 400), 'ERROR', oit.id);
         });
@@ -1293,7 +1312,8 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
 async function processOITFilesAsync(
     oitId: string,
     files: { oitFile?: Express.Multer.File[], quotationFile?: Express.Multer.File[] },
-    userId: string
+    userId: string,
+    existingQuotationFileUrl?: string | null
 ) {
     const oitFile = files?.oitFile?.[0];
     const quotationFile = files?.quotationFile?.[0];
@@ -1301,17 +1321,30 @@ async function processOITFilesAsync(
     let updateData: any = { status: 'ANALYZING' };
     if (oitFile) updateData.oitFileUrl = `/uploads/${oitFile.filename}`;
     if (quotationFile) updateData.quotationFileUrl = `/uploads/${quotationFile.filename}`;
+    else if (existingQuotationFileUrl) updateData.quotationFileUrl = existingQuotationFileUrl;
 
     await prisma.oIT.update({
         where: { id: oitId },
         data: updateData
     });
 
+    // Si viene de una cotizacion ya existente (Modulo Clientes/Cotizaciones) y no se
+    // subio un archivo nuevo, se reutiliza el archivo ya guardado de esa cotizacion
+    // para que el cruce cliente/sitio siga corriendo con contenido real.
+    let quotationPath: string | null = null;
+    if (quotationFile) {
+        quotationPath = quotationFile.path;
+    } else if (existingQuotationFileUrl) {
+        const uploadsRoot = path.join(__dirname, '../../');
+        const cleanPath = existingQuotationFileUrl.replace(/^\//, '');
+        quotationPath = path.join(uploadsRoot, cleanPath);
+    }
+
     // Run analysis using physical paths
     await runOITAnalysis(
         oitId,
         oitFile ? oitFile.path : null,
-        quotationFile ? quotationFile.path : null,
+        quotationPath,
         userId
     );
 }

@@ -99,15 +99,58 @@ model Quotation {
   id                String    @id @default(uuid())
   quotationNumber   String    @unique
   description       String?
-  clientName        String?
+  clientName        String?   // legado: texto libre, se mantiene por compatibilidad con cotizaciones ya cargadas
+  clientId          String?
+  client            Client?   @relation(fields: [clientId], references: [id])
+  serviceId         String?
+  service           Service?  @relation(fields: [serviceId], references: [id])
   fileUrl           String?
   extractedText     String?   // Extracted text from PDF for AI analysis
   status            String    @default("PENDING") // PENDING, ANALYZING, COMPLIANT, NON_COMPLIANT, REVIEW_REQUIRED
   aiData            String?   // JSON with AI analysis
   complianceResult  String?   // JSON with compliance check results
+  // Bloqueo real: una cotizacion NO puede usarse para crear una OIT hasta que
+  // esto sea true. Se marca cuando complianceResult indica conformidad real
+  // (compliant=true o compliant=null en matrices sin norma aplicable), nunca
+  // por defecto - antes el chequeo era solo informativo y no bloqueaba nada.
+  approvedForOit    Boolean   @default(false)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   linkedOITs        OIT[]     // OITs that use this quotation
+}
+
+// Modulo de Clientes (WO reunion 2026-09-18): cada cliente debe existir con su
+// documentacion antes de que se le pueda generar una cotizacion - manual de
+// contratistas, procedimientos y politicas que el area operativa debe seguir.
+model Client {
+  id                   String      @id @default(uuid())
+  name                 String
+  nit                  String?     @unique
+  contactName          String?
+  contactEmail         String?
+  contactPhone         String?
+  address              String?
+  contractorManualUrl  String?     // Manual de contratistas
+  proceduresUrl        String?     // Procedimientos del cliente
+  policiesUrl          String?     // Politicas del cliente
+  notes                String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  quotations           Quotation[]
+}
+
+// Modulo de Servicios: catalogo de servicios ambientales que se pueden cotizar
+// (independiente de las plantillas de muestreo, que son el detalle tecnico de
+// como se ejecuta cada servicio una vez aprobado).
+model Service {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  oitType     String?     // Matriz ambiental asociada (Agua, Aire, Suelo, Biota, etc.)
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  quotations  Quotation[]
 }
 
 model OITAssignment {
