@@ -177,7 +177,7 @@ export default function QuotationDetailPage() {
                             {quotation.fileUrl && (
                                 <Button variant="outline" size="sm" asChild>
                                     <a
-                                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/api/files/${quotation.fileUrl}`}
+                                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/api/files/${quotation.fileUrl}#view=FitH`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
@@ -275,7 +275,7 @@ export default function QuotationDetailPage() {
                                                 </div>
                                                 <Button variant="ghost" size="sm" asChild>
                                                     <a
-                                                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/api/files/${quotation.fileUrl}`}
+                                                        href={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/api/files/${quotation.fileUrl}#view=FitH`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                     >

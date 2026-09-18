@@ -1173,8 +1173,9 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
             // Extract the real OIT number from the document (creation only ever assigns
             // a temporary OIT-<timestamp> placeholder, this is the only place the real
             // number gets read)
+            let oitDataResult: any = null;
             try {
-                const oitDataResult = await aiService.extractOITData(oitText);
+                oitDataResult = await aiService.extractOITData(oitText);
                 if (oitDataResult?.valid && oitDataResult?.data?.oitNumber) {
                     const candidate = String(oitDataResult.data.oitNumber).trim();
                     if (candidate && candidate.length <= 100) {
@@ -1185,9 +1186,13 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
                 logError(`OIT ${oitId}: no se pudo extraer el numero real de OIT`, e);
             }
 
-            // Extract description
+            // Extract description: preferir el resumen de analyzeDocument, luego el de
+            // extractOITData (ya se pedia pero nunca se usaba), y solo como ultimo
+            // recurso el volcado crudo de texto (ilegible, era lo unico que se mostraba antes)
             if ((oitAnalysis as any).description) {
                 extractedDescription = (oitAnalysis as any).description;
+            } else if (oitDataResult?.valid && oitDataResult?.data?.description) {
+                extractedDescription = String(oitDataResult.data.description).trim();
             } else if (oitText.length > 50) {
                 extractedDescription = oitText.substring(0, 200).trim() + '...';
             }

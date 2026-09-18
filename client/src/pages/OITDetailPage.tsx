@@ -333,6 +333,7 @@ export default function OITDetailPage() {
             link.href = url;
             link.setAttribute('download', extractedFilename);
             document.body.appendChild(link);
+            link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
 
@@ -456,7 +457,9 @@ export default function OITDetailPage() {
             link.href = url;
             link.setAttribute('download', `Informe_Muestreo_${oit.oitNumber}.pdf`);
             document.body.appendChild(link);
+            link.click();
             link.remove();
+            window.URL.revokeObjectURL(url);
             toast.success('Informe descargado');
         } catch (error) {
             console.error('Error downloading report:', error);

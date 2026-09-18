@@ -161,6 +161,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
             FORMATO JSON REQUERIDO:
             {
               "status": "check",
+              "description": "Resumen breve y claro (1-2 frases) del trabajo solicitado: cliente, tipo de servicio y objetivo - NUNCA copies texto literal del documento",
               "alerts": ["alertas si existen"],
               "missing": ["datos faltantes"],
               "evidence": ["evidencias"],
