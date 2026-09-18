@@ -497,17 +497,14 @@ export default function OITDetailPage() {
                 resourceIds: selectedResourceIdsEdit
             });
 
-            // Update local state
+            // Update local state - igual que en el backend, se crea aiData.data si no
+            // existia, para que se vea al instante sin depender de recargar la pagina
             setOit((prev: any) => {
                 let newData = { ...prev };
-                if (newData.aiData) {
-                    const parsed = JSON.parse(newData.aiData);
-                    if (parsed.data) {
-                        parsed.data.assignedResources = response.data.resources;
-                        newData.aiData = JSON.stringify(parsed);
-                    }
-                }
-                // Also update planningProposal if exists? Yes backend does it
+                const parsed = newData.aiData ? JSON.parse(newData.aiData) : {};
+                if (!parsed.data) parsed.data = {};
+                parsed.data.assignedResources = response.data.resources;
+                newData.aiData = JSON.stringify(parsed);
                 return newData;
             });
 

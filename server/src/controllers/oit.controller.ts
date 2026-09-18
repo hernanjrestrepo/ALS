@@ -2335,18 +2335,20 @@ export const updatePlanningResources = async (req: Request, res: Response) => {
         }
         planningProposal.assignedResources = mappedResources;
 
-        // Update aiData too for consistency in UI
+        // Update aiData too for consistency in UI - el frontend solo lee assignedResources
+        // desde aiData.data, asi que ese objeto se crea si no existia (antes, si la OIT no
+        // tenia ya un aiData.data poblado, la asignacion de recursos se perdia en silencio:
+        // quedaba solo en planningProposal, que la pantalla de Recursos nunca lee).
         let aiData: any = {};
         if (oit.aiData) {
             try {
                 aiData = JSON.parse(oit.aiData);
-                if (aiData.data) {
-                    aiData.data.assignedResources = mappedResources;
-                }
             } catch (e) {
                 logWarning(`OIT ${id}: aiData no es JSON valido, se reconstruye desde cero`, e);
             }
         }
+        if (!aiData.data) aiData.data = {};
+        aiData.data.assignedResources = mappedResources;
 
         await prisma.oIT.update({
             where: { id },
