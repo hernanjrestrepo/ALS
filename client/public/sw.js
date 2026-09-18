@@ -3,10 +3,8 @@
  * Handles caching and Push Notifications
  */
 
-const CACHE_NAME = 'als-v2';
+const CACHE_NAME = 'als-v3';
 const urlsToCache = [
-    '/',
-    '/index.html',
     '/vite.svg'
 ];
 
@@ -38,12 +36,27 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - cache-first SOLO para assets estaticos verdaderos. Las llamadas a la
+// API y el documento/codigo de la app (/, index.html, JS) nunca se interceptan aqui:
+// deben llegar siempre frescos de la red, o quedan atrapados en una version vieja para
+// siempre sin importar lo que se despliegue despues (asi se encontro este bug: un OIT
+// mostraba datos de hace semanas porque "/" quedo cacheado desde la primera instalacion).
 self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    if (request.method !== 'GET') return;
+
+    const url = new URL(request.url);
+    const isAppShellOrApi =
+        url.pathname.startsWith('/api/') ||
+        request.mode === 'navigate' ||
+        url.pathname === '/' ||
+        url.pathname.endsWith('.html') ||
+        url.pathname.endsWith('.js');
+
+    if (isAppShellOrApi) return; // deja pasar directo a la red
+
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
-        })
+        caches.match(request).then((response) => response || fetch(request))
     );
 });
 
