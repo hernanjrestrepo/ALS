@@ -740,7 +740,8 @@ export default function OITDetailPage() {
                                             variant="outline"
                                             size="sm"
                                             className="h-8 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                                            disabled={isProcessing || oit.status === 'ANALYZING' || oit.status === 'UPLOADING'}
+                                            disabled={isProcessing || oit.status === 'ANALYZING' || oit.status === 'UPLOADING' || !oit.oitFileUrl}
+                                            title={!oit.oitFileUrl ? 'Esta OIT no tiene documento cargado (creada vía integración externa) - no hay nada que reanalizar' : undefined}
                                             onClick={async () => {
                                                 try {
                                                     setIsProcessing(true);
