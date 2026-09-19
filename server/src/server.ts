@@ -1,5 +1,6 @@
 import app from './app';
 import { logError } from './utils/errors';
+import { startMailboxPolling } from './services/mailbox-poller.service';
 
 const PORT = Number(process.env.PORT) || 4000;
 
@@ -16,4 +17,5 @@ process.on('uncaughtException', (error) => {
 
 app.listen(PORT, '127.0.0.1', () => {
     console.log(`Server running on port ${PORT}`);
+    startMailboxPolling();
 });
