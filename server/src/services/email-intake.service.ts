@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { aiService } from './ai.service';
 import { createNotification } from '../controllers/notification.controller';
+import { logError } from '../utils/errors';
 
 const prisma = new PrismaClient();
 
@@ -35,11 +36,15 @@ ${body.substring(0, 8000)}
 JSON:`;
 
     let extracted: any;
+    let rawResponse = '';
     try {
-        const aiResponse = await aiService.chat(prompt, undefined, systemPrompt);
-        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-        extracted = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
+        rawResponse = await aiService.chat(prompt, undefined, systemPrompt);
+        const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+        extracted = JSON.parse(jsonMatch ? jsonMatch[0] : rawResponse);
     } catch (e) {
+        // Antes este fallo se tragaba en silencio y el borrador quedaba con el
+        // texto de respaldo sin ninguna pista de por que.
+        logError(`Correo entrante (${subject || 'sin asunto'}): la IA no devolvio un JSON valido. Respuesta: "${rawResponse.substring(0, 300)}"`, e);
         extracted = { summary: 'No se pudo procesar automaticamente el correo. Revisar manualmente.', requestedServices: [], requiredDocuments: [], missingInfo: [] };
     }
 

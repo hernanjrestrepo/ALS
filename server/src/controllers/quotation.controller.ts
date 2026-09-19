@@ -422,8 +422,14 @@ export const processEmailRequest = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Falta el cuerpo del correo (campo "body")' });
         }
         const { createDraftFromEmail } = await import('../services/email-intake.service');
-        const result = await createDraftFromEmail({ fromEmail, subject, body });
-        res.status(201).json(result);
+        // La IA puede tardar mas de 60 s (carga en frio del modelo) y nginx corta la
+        // conexion con 504 - se responde de inmediato y el borrador llega como
+        // cotizacion + notificacion al equipo Comercial cuando termine.
+        res.status(202).json({ message: 'Solicitud recibida. El borrador y la notificación al equipo Comercial se generan en segundo plano.' });
+        createDraftFromEmail({ fromEmail, subject, body }).catch(err => {
+            console.error('Error procesando solicitud de correo en segundo plano:', err);
+        });
+        return;
     } catch (error) {
         console.error('Error processing email request:', error);
         res.status(500).json({ error: 'Error al procesar la solicitud de correo' });
