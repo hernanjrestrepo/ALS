@@ -436,3 +436,14 @@ export const processEmailRequest = async (req: Request, res: Response) => {
     }
 };
 
+
+// Revisar el buzon de solicitudes ahora mismo (sin esperar a la vuelta periodica).
+export const pollMailbox = async (req: Request, res: Response) => {
+    try {
+        const { pollMailboxNow } = await import('../services/mailbox-poller.service');
+        res.json(await pollMailboxNow());
+    } catch (error) {
+        console.error('Error revisando el buzon de solicitudes:', error);
+        res.status(500).json({ error: 'Error al revisar el buzón' });
+    }
+};

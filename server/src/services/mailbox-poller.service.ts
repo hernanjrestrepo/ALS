@@ -36,14 +36,36 @@ function matchesKeywords(text: string): boolean {
     return keywords.some(k => t.includes(k));
 }
 
-export async function pollMailboxOnce(): Promise<number> {
+export interface PollResult { skipped: boolean; scanned: number; processed: number; error?: string }
+
+// Una vuelta colgada (conexion IMAP o IA sin respuesta) dejaba `running` en true para
+// siempre y todas las vueltas siguientes se descartaban en silencio.
+export async function pollMailboxNow(): Promise<PollResult> {
+    if (running) return { skipped: true, scanned: 0, processed: 0 };
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<PollResult>(resolve => {
+        timer = setTimeout(() => { running = false; resolve({ skipped: false, scanned: 0, processed: 0, error: 'timeout de 5 min (la vuelta sigue en curso o quedo colgada)' }); }, 5 * 60_000);
+    });
+    let result: PollResult;
+    try {
+        result = await Promise.race([pollMailboxOnce(), timeout]);
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+    console.log(`[Buzon solicitudes] Vuelta: revisados ${result.scanned}, borradores creados ${result.processed}${result.error ? ', error: ' + result.error : ''}`);
+    return result;
+}
+
+async function pollMailboxOnce(): Promise<PollResult> {
     const host = process.env.INTAKE_IMAP_HOST;
     const user = process.env.INTAKE_IMAP_USER;
     const pass = process.env.INTAKE_IMAP_PASSWORD;
-    if (!host || !user || !pass || running) return 0;
+    if (!host || !user || !pass) return { skipped: true, scanned: 0, processed: 0 };
 
     running = true;
     let processed = 0;
+    let scanned = 0;
+    let errorMsg: string | undefined;
     const lookbackMs = (Number(process.env.INTAKE_LOOKBACK_HOURS) || 12) * 3_600_000;
     const since = new Date(Date.now() - lookbackMs);
     const client = new ImapFlow({
@@ -64,6 +86,7 @@ export async function pollMailboxOnce(): Promise<number> {
             for (const uid of uids.slice(-MAX_PER_POLL * 5).reverse()) {
                 if (processed >= MAX_PER_POLL) break;
                 const key = String(uid);
+                scanned++;
                 if (skippedThisRun.has(key)) continue;
                 try {
                     const msg = await client.fetchOne(key, { source: true }, { uid: true });
@@ -96,13 +119,14 @@ export async function pollMailboxOnce(): Promise<number> {
         } finally {
             lock.release();
         }
-    } catch (err) {
+    } catch (err: any) {
+        errorMsg = err?.responseText || err?.message || String(err);
         logError('Buzon de solicitudes: error de conexion IMAP', err);
     } finally {
         try { await client.logout(); } catch { /* conexion ya cerrada */ }
         running = false;
     }
-    return processed;
+    return { skipped: false, scanned, processed, error: errorMsg };
 }
 
 export function startMailboxPolling() {
@@ -113,6 +137,6 @@ export function startMailboxPolling() {
     const minutes = Number(process.env.INTAKE_POLL_MINUTES) || 5;
     const kw = process.env.INTAKE_KEYWORDS === undefined ? 'cotiz' : process.env.INTAKE_KEYWORDS;
     console.log(`[Buzon solicitudes] Activo (solo lectura): ${process.env.INTAKE_IMAP_USER} cada ${minutes} min, filtro="${kw || '(ninguno)'}"`);
-    setTimeout(() => { void pollMailboxOnce(); }, 15_000);
-    setInterval(() => { void pollMailboxOnce(); }, minutes * 60_000);
+    setTimeout(() => { void pollMailboxNow(); }, 15_000);
+    setInterval(() => { void pollMailboxNow(); }, minutes * 60_000);
 }
