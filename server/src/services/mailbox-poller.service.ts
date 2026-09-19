@@ -3,17 +3,37 @@ import { simpleParser } from 'mailparser';
 import { createDraftFromEmail, emailAlreadyProcessed } from './email-intake.service';
 import { logError } from '../utils/errors';
 
-// Lector del buzon de solicitudes de cotizacion. Se activa SOLO si las variables
-// de entorno estan definidas en el servidor (las pone Hernan directamente en .env,
-// la clave nunca pasa por el codigo ni por el repo):
+// Lector del buzon de solicitudes de cotizacion. Se activa SOLO si el servidor tiene
+// estas variables en su .env (las pone el dueno directamente, la clave nunca pasa
+// por el codigo ni por el repo):
 //   INTAKE_IMAP_HOST, INTAKE_IMAP_USER, INTAKE_IMAP_PASSWORD
-//   opcionales: INTAKE_IMAP_PORT (993), INTAKE_POLL_MINUTES (5)
+//   opcionales:
+//     INTAKE_IMAP_PORT       (993)
+//     INTAKE_POLL_MINUTES    (5)
+//     INTAKE_LOOKBACK_HOURS  (12)  solo se consideran correos de las ultimas N horas
+//     INTAKE_KEYWORDS        ("cotiz") palabras (separadas por coma) que debe contener
+//                            el asunto o el cuerpo; vacio = procesar todo. Con un buzon
+//                            personal o compartido DEBE haber filtro: sin el, cada correo
+//                            recibido se trataria como una solicitud de cotizacion.
+//
+// El lector es de SOLO LECTURA: nunca cambia marcas de leido/no leido ni mueve ni
+// borra nada en el buzon. Los duplicados se evitan por Message-ID guardado en la
+// cotizacion borrador.
 const MAX_PER_POLL = 20;
 let running = false;
+const skippedThisRun = new Set<string>(); // correos ya revisados que no aplican (evita re-descargarlos cada vuelta)
 
 function htmlToText(html: string): string {
     return html.replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<script[\s\S]*?<\/script>/gi, ' ')
         .replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function matchesKeywords(text: string): boolean {
+    const raw = process.env.INTAKE_KEYWORDS === undefined ? 'cotiz' : process.env.INTAKE_KEYWORDS;
+    const keywords = raw.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+    if (keywords.length === 0) return true;
+    const t = text.toLowerCase();
+    return keywords.some(k => t.includes(k));
 }
 
 export async function pollMailboxOnce(): Promise<number> {
@@ -24,6 +44,8 @@ export async function pollMailboxOnce(): Promise<number> {
 
     running = true;
     let processed = 0;
+    const lookbackMs = (Number(process.env.INTAKE_LOOKBACK_HOURS) || 12) * 3_600_000;
+    const since = new Date(Date.now() - lookbackMs);
     const client = new ImapFlow({
         host,
         port: Number(process.env.INTAKE_IMAP_PORT) || 993,
@@ -34,31 +56,39 @@ export async function pollMailboxOnce(): Promise<number> {
 
     try {
         await client.connect();
-        const lock = await client.getMailboxLock('INBOX');
+        // readOnly: garantiza a nivel de protocolo que no se modifica nada del buzon
+        const lock = await client.getMailboxLock('INBOX', { readOnly: true });
         try {
-            const uids = (await client.search({ seen: false }, { uid: true })) || [];
-            for (const uid of uids.slice(0, MAX_PER_POLL)) {
+            const uids = (await client.search({ since }, { uid: true })) || [];
+            // los mas recientes primero
+            for (const uid of uids.slice(-MAX_PER_POLL * 5).reverse()) {
+                if (processed >= MAX_PER_POLL) break;
+                const key = String(uid);
+                if (skippedThisRun.has(key)) continue;
                 try {
-                    const msg = await client.fetchOne(String(uid), { source: true, envelope: true }, { uid: true });
+                    const msg = await client.fetchOne(key, { source: true }, { uid: true });
                     if (!msg || !msg.source) continue;
                     const parsed = await simpleParser(msg.source);
+                    if (parsed.date && parsed.date < since) { skippedThisRun.add(key); continue; }
                     const messageId = parsed.messageId || `uid-${uid}`;
+                    const body = (parsed.text || (parsed.html ? htmlToText(String(parsed.html)) : '')).trim();
 
-                    if (!(await emailAlreadyProcessed(messageId))) {
-                        const body = (parsed.text || (parsed.html ? htmlToText(String(parsed.html)) : '')).trim();
-                        if (body.length >= 10) {
-                            await createDraftFromEmail({
-                                fromEmail: parsed.from?.value?.[0]?.address,
-                                subject: parsed.subject,
-                                body,
-                                messageId,
-                            });
-                            processed++;
-                        }
+                    if (body.length < 10 || !matchesKeywords(`${parsed.subject || ''}\n${body}`)) {
+                        skippedThisRun.add(key);
+                        continue;
                     }
-                    // Solo se marca leido si se proceso (o ya estaba procesado): si falla,
-                    // queda sin leer y se reintenta en la siguiente vuelta.
-                    await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
+                    if (await emailAlreadyProcessed(messageId)) {
+                        skippedThisRun.add(key);
+                        continue;
+                    }
+                    await createDraftFromEmail({
+                        fromEmail: parsed.from?.value?.[0]?.address,
+                        subject: parsed.subject,
+                        body,
+                        messageId,
+                    });
+                    skippedThisRun.add(key);
+                    processed++;
                 } catch (err) {
                     logError(`Buzon de solicitudes: error procesando el correo uid ${uid}`, err);
                 }
@@ -81,7 +111,8 @@ export function startMailboxPolling() {
         return;
     }
     const minutes = Number(process.env.INTAKE_POLL_MINUTES) || 5;
-    console.log(`[Buzon solicitudes] Activo: revisando ${process.env.INTAKE_IMAP_USER} cada ${minutes} min`);
+    const kw = process.env.INTAKE_KEYWORDS === undefined ? 'cotiz' : process.env.INTAKE_KEYWORDS;
+    console.log(`[Buzon solicitudes] Activo (solo lectura): ${process.env.INTAKE_IMAP_USER} cada ${minutes} min, filtro="${kw || '(ninguno)'}"`);
     setTimeout(() => { void pollMailboxOnce(); }, 15_000);
     setInterval(() => { void pollMailboxOnce(); }, minutes * 60_000);
 }
