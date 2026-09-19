@@ -31,6 +31,7 @@ interface Quotation {
     id: string;
     quotationNumber: string;
     clientName?: string;
+    approvedForOit?: boolean;
 }
 
 export default function OITsPage() {
@@ -133,7 +134,7 @@ export default function OITsPage() {
             navigate(`/oits/${createdOIT.id}`);
         } catch (error: any) {
             console.error('Error creating OIT:', error);
-            toast.error(error.response?.data?.message || 'Error al crear OIT');
+            toast.error(error.response?.data?.error || error.response?.data?.message || 'Error al crear OIT');
         } finally {
             setIsProcessing(false);
         }
@@ -216,8 +217,9 @@ export default function OITsPage() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {quotations.map(q => (
-                                                    <SelectItem key={q.id} value={q.id}>
+                                                    <SelectItem key={q.id} value={q.id} disabled={!q.approvedForOit}>
                                                         {q.quotationNumber} {q.clientName ? `- ${q.clientName}` : ''}
+                                                        {!q.approvedForOit ? ' (sin aprobar contra la norma)' : ''}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
