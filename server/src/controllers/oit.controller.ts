@@ -1060,58 +1060,61 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
             message: 'OIT recibida y creada. Procesando archivo...'
         });
 
-        // 4. Trigger Async Processing reusing existing logic
-        // We mock the file object structure expected by processOITFilesAsync (partial match)
-        const mockFiles = {
-            oitFile: [{
-                path: filePath,
-                filename: filename
-            }]
-        };
-
-        // Note: processOITFilesAsync needs to be defined/imported or available in scope. 
-        // Since it is in this same file (usually below), we can call it if it's hoisted or defined later. 
-        // If it's not exported or hoisted, we might need to check. 
-        // TypeScript functions are hoisted if defined as 'async function', but 'const func = ...' are not hoisted.
-        // If processOITFilesAsync is defined as 'const', we might have issues if it's below.
-        // Let's check processOITFilesAsync definition style.
-
-        // Assuming processOITFilesAsync is defined below as 'const processOITFilesAsync = ...' or 'export const ...'
-        // If so, we can't call it before definition.
-        // Safer approach: duplicate the crucial background logic locally or move definitions.
-        // For now, I'll inline the core logic to be safe and avoid refactoring huge file.
-
-        (async () => {
-            try {
-                const { pdfService } = require('../services/pdf.service');
-                const text = await pdfService.extractText(filePath);
-
-                await prisma.oIT.update({ where: { id: oit.id }, data: { status: 'ANALYZING' } });
-
-                const analysis = await aiService.analyzeDocument(text);
-
-                await prisma.oIT.update({
-                    where: { id: oit.id },
-                    data: {
-                        aiData: JSON.stringify(analysis),
-                        status: 'PENDING'
-                    }
-                });
-                console.log(`[Legacy API] OIT ${oit.oitNumber} processed successfully.`);
-            } catch (err) {
-                console.error('[Legacy API] Error processing background task:', err);
-                await prisma.oIT.update({
-                    where: { id: oit.id },
-                    data: { status: 'REVIEW_IMPORTANT' }
-                });
-            }
-        })();
+        // 4. Analisis en segundo plano, de a una OIT por vez (ver processLegacyOIT)
+        void enqueueLegacyOIT(oit.id, oit.oitNumber, filePath);
 
     } catch (error) {
         console.error('Error creating OIT from URL:', error);
         res.status(500).json({ error: 'Error interno al procesar solicitud' });
     }
 };
+
+// Sistema Serambiente puede mandar decenas de OITs en pocos segundos. La IA local no
+// aguanta ese paralelo (respuestas de JSON cortadas -> analisis heuristico pobre), asi
+// que el analisis de las OITs que llegan por integracion se hace en fila.
+let legacyQueue: Promise<void> = Promise.resolve();
+export function enqueueLegacyOIT(oitId: string, oitNumber: string, filePath: string): Promise<void> {
+    legacyQueue = legacyQueue.then(() => processLegacyOIT(oitId, oitNumber, filePath)).catch(() => undefined);
+    return legacyQueue;
+}
+
+async function processLegacyOIT(oitId: string, oitNumber: string, filePath: string): Promise<void> {
+    try {
+        const { pdfService } = require('../services/pdf.service');
+        const text = await pdfService.extractText(filePath);
+
+        await prisma.oIT.update({ where: { id: oitId }, data: { status: 'ANALYZING' } });
+
+        const analysis: any = await aiService.analyzeDocument(text);
+
+        // Mismo criterio que runOITAnalysis: resumen de la IA; solo si no hay, un
+        // fragmento del texto. Antes quedaba fijo "Importado via integracion externa".
+        let description: string | undefined;
+        if (analysis?.description) description = String(analysis.description).trim();
+        else if (text && text.length > 50) description = text.substring(0, 200).trim() + '...';
+
+        let location: string | undefined;
+        if (analysis?.location) location = String(analysis.location).trim();
+        else {
+            const m = String(text).match(/(?:Dirección|Ubicación|Lugar|Sitio|Dirección del sitio)[:\s]+([^\n.]{10,150})/i);
+            if (m) location = m[1].trim();
+        }
+
+        await prisma.oIT.update({
+            where: { id: oitId },
+            data: {
+                aiData: JSON.stringify(analysis),
+                status: 'PENDING',
+                description: description || undefined,
+                location: location || undefined,
+            }
+        });
+        console.log(`[Legacy API] OIT ${oitNumber} processed successfully.`);
+    } catch (err) {
+        console.error('[Legacy API] Error processing background task:', err);
+        await prisma.oIT.update({ where: { id: oitId }, data: { status: 'REVIEW_IMPORTANT' } }).catch(() => undefined);
+    }
+}
 
 export const createOITAsync = async (req: Request, res: Response) => {
     try {
