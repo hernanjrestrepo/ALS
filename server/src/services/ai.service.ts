@@ -32,6 +32,7 @@ export interface AIAnalysisResult {
         duration: number;
     }>;
     location?: string | null;
+    description?: string | null;
     generalProposedDate?: string | null;
     rawResponse?: string;
 }
@@ -214,6 +215,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 evidence: parsed.evidence || [],
                 services: parsed.services || [],
                 location: parsed.location || null,
+                description: typeof parsed.description === 'string' && parsed.description.trim() ? parsed.description.trim() : null,
                 generalProposedDate: parsed.generalProposedDate || null,
                 rawResponse: response.data.response
             };
