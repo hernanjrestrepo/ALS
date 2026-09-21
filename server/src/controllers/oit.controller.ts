@@ -8,6 +8,7 @@ import path from 'path';
 // import { marked } from 'marked';
 import axios from 'axios';
 import { errorMessage, logError, logWarning } from '../utils/errors';
+import { readIntegrationPayload } from '../utils/integrationPayload';
 import { getOrAssignConsecutive } from '../services/consecutive.service';
 
 const prisma = new PrismaClient();
@@ -325,13 +326,16 @@ export const uploadLabResults = async (req: Request, res: Response) => {
 // esta disponible - este vive en nuestra propia infraestructura.
 export const receiveLabResultsFromUrl = async (req: Request, res: Response) => {
     try {
-        const { OT, DOCUMENTO, SERVICIO } = req.body;
-        const group = req.body.group || SERVICIO || 'General';
+        const payload = readIntegrationPayload(req);
+        const { OT, DOCUMENTO, SERVICIO } = payload;
+        const group = payload.group || SERVICIO || 'General';
 
         if (!OT) {
+            console.warn(`[Legacy API] lab-results-from-url rechazado: falta OT (content-type: ${payload.contentType}, campos: ${payload.keys.join(', ') || 'ninguno'})`);
             return res.status(400).json({ error: 'Falta el campo OT (número de la OIT)' });
         }
         if (!DOCUMENTO) {
+            console.warn(`[Legacy API] lab-results-from-url rechazado (OT ${OT}): falta DOCUMENTO (content-type: ${payload.contentType}, campos: ${payload.keys.join(', ') || 'ninguno'})`);
             return res.status(400).json({ error: 'Falta el campo DOCUMENTO (URL del resultado de laboratorio)' });
         }
 
@@ -990,9 +994,11 @@ export const createOIT = async (req: Request, res: Response) => {
 // Create OIT from URL (Legacy JSON support)
 export const createOITFromUrl = async (req: Request, res: Response) => {
     try {
-        const { OT, DOCUMENTO } = req.body;
+        const payload = readIntegrationPayload(req);
+        const { OT, DOCUMENTO } = payload;
 
         if (!DOCUMENTO) {
+            console.warn(`[Legacy API] from-url rechazado${OT ? ` (OT ${OT})` : ''}: falta DOCUMENTO (content-type: ${payload.contentType}, campos: ${payload.keys.join(', ') || 'ninguno'})`);
             return res.status(400).json({ error: 'Falta el campo DOCUMENTO (URL)' });
         }
 
@@ -1031,15 +1037,20 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
 
         const fileUrl = `/uploads/${filename}`;
 
-        // 2. Create OIT Record
-        const oit = await prisma.oIT.create({
-            data: {
-                oitNumber: oitNumber,
-                description: 'Importado vía integración externa',
-                status: 'UPLOADING',
-                oitFileUrl: fileUrl,
-            }
-        });
+        // 2. Create OIT Record. Sistema Serambiente reenvia la misma OT (proceso
+        // periodico / reintentos): si ya existe se actualiza en vez de fallar por
+        // numero duplicado despues de haber descargado el archivo.
+        const existing = await prisma.oIT.findUnique({ where: { oitNumber } });
+        const oit = existing
+            ? await prisma.oIT.update({ where: { id: existing.id }, data: { status: 'UPLOADING', oitFileUrl: fileUrl } })
+            : await prisma.oIT.create({
+                data: {
+                    oitNumber: oitNumber,
+                    description: 'Importado vía integración externa',
+                    status: 'UPLOADING',
+                    oitFileUrl: fileUrl,
+                }
+            });
 
         // 3. Respond immediately
         res.json({

@@ -13,6 +13,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+// Integraciones externas (Sistema Serambiente) que no mandan JSON estricto
+app.use(express.urlencoded({ extended: true }));
+app.use(express.text({ type: 'text/*' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api', routes);
