@@ -228,7 +228,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
     public async extractOITData(documentText: string): Promise<any> {
         try {
             const safeText = documentText.substring(0, 15000);
-            const prompt = `Extrae número de OIT y descripción. Responde SOLO JSON:
+            const prompt = `Extrae número de OIT y descripción (la descripción: resumen breve en español, 1-2 frases: cliente, servicio y objetivo). Responde SOLO JSON:
             {"valid":true, "data":{"oitNumber":"", "description":"", "status":"PENDING"}}
             Texto: ${safeText}`;
 
