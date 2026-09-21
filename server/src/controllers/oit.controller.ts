@@ -1091,7 +1091,15 @@ async function processLegacyOIT(oitId: string, oitNumber: string, filePath: stri
         // fragmento del texto. Antes quedaba fijo "Importado via integracion externa".
         let description: string | undefined;
         if (analysis?.description) description = String(analysis.description).trim();
-        else if (text && text.length > 50) description = text.substring(0, 200).trim() + '...';
+        if (!description) {
+            try {
+                const extracted: any = await aiService.extractOITData(text);
+                if (extracted?.valid && extracted?.data?.description) description = String(extracted.data.description).trim();
+            } catch (e) {
+                logError(`OIT ${oitNumber}: no se pudo obtener la descripcion por extraccion`, e);
+            }
+        }
+        if (!description && text && text.length > 50) description = text.substring(0, 200).trim() + '...';
 
         let location: string | undefined;
         if (analysis?.location) location = String(analysis.location).trim();
