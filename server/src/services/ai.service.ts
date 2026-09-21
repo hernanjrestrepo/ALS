@@ -6,6 +6,14 @@ import { errorMessage, logError, logWarning } from '../utils/errors';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'gpt-oss';
 
+// Los modelos gpt-oss "razonan": con format:'json' Ollama devuelve la respuesta vacia
+// o el razonamiento en texto (medido en produccion: 86 s y sin JSON, contra 9 s y JSON
+// limpio sin ese parametro). Todos los parseos ya recortan el primer { ... ultimo },
+// asi que para esos modelos no se fuerza el formato.
+export function jsonFormat(model: string): { format?: 'json' } {
+    return /gpt-oss/i.test(model) ? {} : { format: 'json' };
+}
+
 interface OllamaResponse {
     model: string;
     created_at: string;
@@ -185,7 +193,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 model: this.defaultModel,
                 prompt,
                 stream: false,
-                format: 'json',
+                ...jsonFormat(this.defaultModel),
             });
 
             let responseText = (response.data.response || '').trim();
@@ -226,7 +234,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 model: this.defaultModel,
                 prompt,
                 stream: false,
-                format: 'json',
+                ...jsonFormat(this.defaultModel),
             });
             const text = response.data.response.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(text);
@@ -297,7 +305,7 @@ REGLAS ESTRICTAS E INQUEBRANTABLES:
                 system: 'Eres un asistente experto en preparar plantillas de documentos para automatizacion. Solo extraes texto que existe literalmente en el documento que se te da, nunca copias instrucciones ni ejemplos del prompt como si fueran datos reales.',
                 prompt,
                 stream: false,
-                format: 'json',
+                ...jsonFormat(this.defaultModel),
             });
 
             let responseText = (response.data.response || '').trim();
@@ -393,7 +401,7 @@ REGLAS ESTRICTAS:
                 model: this.defaultModel,
                 prompt,
                 stream: false,
-                format: 'json',
+                ...jsonFormat(this.defaultModel),
                 options: { num_ctx: 16384 },
             }, { timeout: 180000 });
 
