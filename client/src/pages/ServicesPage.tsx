@@ -115,7 +115,7 @@ export default function ServicesPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <Badge className="bg-indigo-100 text-indigo-800 border border-indigo-200">{services.length} servicios</Badge>
+                    <Badge className="bg-indigo-100 text-indigo-800 border border-indigo-200">{services.length} {services.length === 1 ? 'servicio' : 'servicios'}</Badge>
                     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                         <DialogTrigger asChild>
                             <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white" onClick={openCreate}>
