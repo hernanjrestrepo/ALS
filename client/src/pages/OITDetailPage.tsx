@@ -1638,11 +1638,17 @@ export default function OITDetailPage() {
                                                         className={`flex items-start space-x-3 p-3 rounded-md hover:bg-slate-50 transition-colors cursor-pointer ${selectedResourceIdsEdit.includes(resource.id) ? 'bg-indigo-50/50 border border-indigo-100' : ''}`}
                                                         onClick={() => toggleResource(resource.id)}
                                                     >
-                                                        <Checkbox
-                                                            id={`resource-${resource.id}`}
-                                                            checked={selectedResourceIdsEdit.includes(resource.id)}
-                                                            onCheckedChange={() => toggleResource(resource.id)}
-                                                        />
+                                                        {/* onClick aquí para no dejar pasar el clic a la fila (que también llama a
+                                                            toggleResource): sin esto, un clic justo sobre el checkbox lo activaba
+                                                            y lo desactivaba en el mismo golpe, y la seleccion quedaba vacia -
+                                                            "Guardar Cambios" avisaba éxito pero guardaba una lista vacía. */}
+                                                        <div onClick={(e) => e.stopPropagation()}>
+                                                            <Checkbox
+                                                                id={`resource-${resource.id}`}
+                                                                checked={selectedResourceIdsEdit.includes(resource.id)}
+                                                                onCheckedChange={() => toggleResource(resource.id)}
+                                                            />
+                                                        </div>
                                                         <div className="grid gap-1.5 leading-none flex-1">
                                                             <label
                                                                 htmlFor={`resource-${resource.id}`}
