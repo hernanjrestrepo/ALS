@@ -1458,6 +1458,12 @@ export const updateOIT = async (req: Request, res: Response) => {
         if (aiData !== undefined) data.aiData = aiData;
         if (resources !== undefined) data.resources = resources;
         if (req.body.scheduledDate !== undefined) data.scheduledDate = req.body.scheduledDate;
+        if (req.body.serviceDates !== undefined) {
+            data.serviceDates = req.body.serviceDates;
+            // "Quitar programación" manda serviceDates:null junto con scheduledDate:null;
+            // sin esto, la OIT quedaba con status SCHEDULED sin ninguna fecha real.
+            if (req.body.serviceDates === null && status === undefined) data.status = 'PENDING';
+        }
 
         // Handle selectedTemplateIds (expecting array from client)
         if (req.body.selectedTemplateIds !== undefined) {
@@ -2547,6 +2553,24 @@ export const updateServiceDates = async (req: Request, res: Response) => {
 
         const uniqueEngineerIds = Array.from(engineerIds);
 
+        // El Calendario (y otras pantallas que preguntan "¿cuándo es esta OIT?", como la
+        // disponibilidad de ingenieros) leen el campo unico "scheduledDate", que este
+        // endpoint nunca escribia - solo escribia "serviceDates" (uno por servicio).
+        // Una OIT programada por aqui (la via normal, "Aceptar Propuesta") nunca
+        // aparecia en el Calendario. Se sincroniza con la fecha confirmada mas
+        // temprana entre los servicios.
+        let earliestScheduledDate: Date | null = null;
+        if (serviceDates) {
+            Object.values(serviceDates).forEach((schedule: any) => {
+                if (schedule?.confirmed && schedule?.date) {
+                    const dt = new Date(`${schedule.date}T${schedule.time || '09:00'}`);
+                    if (!isNaN(dt.getTime()) && (!earliestScheduledDate || dt < earliestScheduledDate)) {
+                        earliestScheduledDate = dt;
+                    }
+                }
+            });
+        }
+
         // 2. Transaction to update OIT and sync assignments
         await prisma.$transaction(async (tx) => {
             // Update OIT JSON
@@ -2555,7 +2579,8 @@ export const updateServiceDates = async (req: Request, res: Response) => {
                 data: {
                     serviceDates: JSON.stringify(serviceDates),
                     status: 'SCHEDULED',
-                    planningAccepted: true
+                    planningAccepted: true,
+                    ...(earliestScheduledDate ? { scheduledDate: earliestScheduledDate } : {})
                 }
             });
 

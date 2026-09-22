@@ -472,7 +472,11 @@ export default function OITDetailPage() {
         if (!id) return;
         if (!window.confirm('¿Quitar la fecha programada de esta OIT? Se puede volver a programar después.')) return;
         try {
-            await api.put(`/oits/${id}`, { scheduledDate: null });
+            // También se limpia serviceDates: si solo se borraba scheduledDate, la
+            // Agenda seguia mostrando el servicio como "Confirmado" (serviceDates
+            // seguia con confirmed:true) y el estado se quedaba en SCHEDULED, aunque
+            // la OIT ya no tuviera fecha.
+            await api.put(`/oits/${id}`, { scheduledDate: null, serviceDates: null });
             toast.success('Programación eliminada');
             fetchOIT();
         } catch (error) {
