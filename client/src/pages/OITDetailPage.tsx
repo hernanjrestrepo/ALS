@@ -1732,43 +1732,6 @@ export default function OITDetailPage() {
                                     </DialogContent>
                                 </Dialog>
 
-                                {/* Sampling Template Picker Dialog */}
-                                <Dialog open={isTemplatePickerOpen} onOpenChange={setIsTemplatePickerOpen}>
-                                    <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-                                        <DialogHeader>
-                                            <DialogTitle>Seleccionar Plantilla de Muestreo</DialogTitle>
-                                            <DialogDescription>
-                                                Define los pasos del checklist de campo para esta OIT.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="flex-1 overflow-y-auto min-h-[200px] space-y-2">
-                                            {isLoadingTemplates ? (
-                                                <div className="flex items-center justify-center py-12 text-slate-400">
-                                                    <Loader2 className="h-6 w-6 animate-spin" />
-                                                </div>
-                                            ) : availableTemplates.length === 0 ? (
-                                                <div className="text-center py-12 text-slate-500">
-                                                    No hay plantillas creadas todavía. Créalas en la sección "Plantillas".
-                                                </div>
-                                            ) : (
-                                                availableTemplates.map((tmpl) => (
-                                                    <button
-                                                        key={tmpl.id}
-                                                        disabled={isSavingTemplate}
-                                                        onClick={() => handleSelectTemplate(tmpl)}
-                                                        className="w-full text-left p-3 rounded-md border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors disabled:opacity-50"
-                                                    >
-                                                        <div className="flex items-center justify-between">
-                                                            <p className="text-sm font-medium text-slate-900">{tmpl.name}</p>
-                                                            <Badge variant="secondary" className="text-[10px]">{tmpl.oitType}</Badge>
-                                                        </div>
-                                                        {tmpl.description && <p className="text-xs text-slate-500 mt-1">{tmpl.description}</p>}
-                                                    </button>
-                                                ))
-                                            )}
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
                             </>
                         )}
 
@@ -2443,6 +2406,48 @@ export default function OITDetailPage() {
                         <SignaturesPanel oitId={id!} />
                     </TabsContent>
                 </Tabs>
+
+                {/* Sampling Template Picker Dialog - a nivel de pagina, no dentro de un
+                    TabsContent: Radix Tabs desmonta el contenido de la pestaña inactiva, y
+                    el boton "Seleccionar Plantilla" vive en la pestaña Muestreo, no Agenda -
+                    si el dialogo quedaba anidado en el TabsContent de Agenda, abrirlo desde
+                    Muestreo no hacia nada porque ese arbol ya no estaba montado. */}
+                <Dialog open={isTemplatePickerOpen} onOpenChange={setIsTemplatePickerOpen}>
+                    <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+                        <DialogHeader>
+                            <DialogTitle>Seleccionar Plantilla de Muestreo</DialogTitle>
+                            <DialogDescription>
+                                Define los pasos del checklist de campo para esta OIT.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex-1 overflow-y-auto min-h-[200px] space-y-2">
+                            {isLoadingTemplates ? (
+                                <div className="flex items-center justify-center py-12 text-slate-400">
+                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                </div>
+                            ) : availableTemplates.length === 0 ? (
+                                <div className="text-center py-12 text-slate-500">
+                                    No hay plantillas creadas todavía. Créalas en la sección "Plantillas".
+                                </div>
+                            ) : (
+                                availableTemplates.map((tmpl) => (
+                                    <button
+                                        key={tmpl.id}
+                                        disabled={isSavingTemplate}
+                                        onClick={() => handleSelectTemplate(tmpl)}
+                                        className="w-full text-left p-3 rounded-md border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors disabled:opacity-50"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm font-medium text-slate-900">{tmpl.name}</p>
+                                            <Badge variant="secondary" className="text-[10px]">{tmpl.oitType}</Badge>
+                                        </div>
+                                        {tmpl.description && <p className="text-xs text-slate-500 mt-1">{tmpl.description}</p>}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Feedback Modal */}
                 <FeedbackModal
