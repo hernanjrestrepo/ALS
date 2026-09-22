@@ -41,6 +41,7 @@ import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
 
 
 import { QuotationLinker } from '@/components/oit/QuotationLinker';
+import { getSuggestedDate, formatLocalDateLong, parseLocalDate } from '@/lib/serviceDate';
 
 // Service schedule structure for enhanced scheduling
 interface ServiceSchedule {
@@ -952,22 +953,19 @@ export default function OITDetailPage() {
                                                                     </div>
                                                                     <div>
                                                                         <h4 className="font-semibold text-indigo-900">Propuesta de Programación IA</h4>
-                                                                        <p className="text-xs text-indigo-600">Basada en análisis del documento</p>
+                                                                        <p className="text-xs text-indigo-600">
+                                                                            {aiData.data.services.some((s: any) => s.proposedDate)
+                                                                                ? 'Basada en análisis del documento'
+                                                                                : 'El documento no trae fecha; se sugiere una por defecto'}
+                                                                        </p>
                                                                     </div>
                                                                 </div>
 
                                                                 <div className="p-0 divide-y divide-slate-100">
                                                                     {aiData.data.services.map((s: any, idx: number) => {
                                                                         const today = new Date();
-                                                                        let dateToUse = s.proposedDate?.split('T')[0];
-                                                                        if (!dateToUse) {
-                                                                            const futureDate = new Date(today);
-                                                                            futureDate.setDate(today.getDate() + 7 + idx);
-                                                                            dateToUse = futureDate.toISOString().split('T')[0];
-                                                                        }
-
-                                                                        const dateObj = new Date(dateToUse);
-                                                                        const dateStr = dateObj.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                                                                        const { date: dateToUse, fromDocument } = getSuggestedDate(s.proposedDate, idx, today);
+                                                                        const dateStr = formatLocalDateLong(dateToUse);
 
                                                                         return (
                                                                             <div key={idx} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
@@ -979,7 +977,7 @@ export default function OITDetailPage() {
                                                                                         <p className="text-sm font-medium text-slate-900">{s.name}</p>
                                                                                         <div className="flex items-center gap-2 text-xs text-slate-500">
                                                                                             <span className="flex items-center gap-1">
-                                                                                                <Calendar className="h-3 w-3" /> {dateStr}
+                                                                                                <Calendar className="h-3 w-3" /> {dateStr}{!fromDocument && ' (sugerida)'}
                                                                                             </span>
                                                                                             <span>•</span>
                                                                                             <span className="flex items-center gap-1">
@@ -1014,12 +1012,7 @@ export default function OITDetailPage() {
                                                                             const today = new Date();
                                                                             aiData.data.services.forEach((s: any, idx: number) => {
                                                                                 const serviceId = `ai-service-${idx}`;
-                                                                                let dateToUse = s.proposedDate?.split('T')[0];
-                                                                                if (!dateToUse) {
-                                                                                    const futureDate = new Date(today);
-                                                                                    futureDate.setDate(today.getDate() + 7 + idx);
-                                                                                    dateToUse = futureDate.toISOString().split('T')[0];
-                                                                                }
+                                                                                const { date: dateToUse } = getSuggestedDate(s.proposedDate, idx, today);
                                                                                 newServiceDates[serviceId] = {
                                                                                     name: s.name,
                                                                                     date: dateToUse,
@@ -1155,7 +1148,7 @@ export default function OITDetailPage() {
                                                                                     const schedule = serviceDates[firstId] || {};
 
                                                                                     const dateStr = schedule.date
-                                                                                        ? new Date(schedule.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                                                                                        ? formatLocalDateLong(schedule.date)
                                                                                         : 'Sin fecha';
 
                                                                                     return (
@@ -1836,7 +1829,7 @@ export default function OITDetailPage() {
                                                                     <div className="space-y-2 text-sm text-slate-600">
                                                                         <div className="flex items-center gap-2">
                                                                             <Calendar className="h-3.5 w-3.5" />
-                                                                            {schedule.date ? new Date(schedule.date).toLocaleDateString() : 'Por confirmar'}
+                                                                            {schedule.date ? parseLocalDate(schedule.date).toLocaleDateString() : 'Por confirmar'}
                                                                         </div>
                                                                         <div className="flex items-center gap-2">
                                                                             <Clock className="h-3.5 w-3.5" />
@@ -1900,7 +1893,7 @@ export default function OITDetailPage() {
                                                             {schedule.time}
                                                         </div>
                                                         <div className="text-xs text-slate-500 mt-1">
-                                                            {new Date(schedule.date).toLocaleDateString()}
+                                                            {parseLocalDate(schedule.date).toLocaleDateString()}
                                                         </div>
                                                     </div>
                                                 </div>
