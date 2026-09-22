@@ -1913,7 +1913,7 @@ export default function OITDetailPage() {
                                                         </div>
 
                                                         <div className="text-sm font-semibold text-slate-800 line-clamp-2 leading-tight min-h-[2.5rem]">
-                                                            CARRERA 41 # 73B – 72
+                                                            {oit.location || 'Sin ubicación registrada'}
                                                         </div>
                                                         <div className="text-xs text-slate-500 mt-2">
                                                             Radio permitido: 200m
@@ -1976,8 +1976,17 @@ export default function OITDetailPage() {
                                                                 const currentLng = pos.coords.longitude;
                                                                 let distanceInfo = '';
 
+                                                                // oit.location es la direccion en texto que extrae la IA ("Calle 65c # 78
+                                                                // D - 33, Bogotá..."), nunca "lat, lng" - por eso esta condicion nunca
+                                                                // se cumplia y el radio de 200m nunca se evaluaba: cualquier GPS
+                                                                // encendido, en cualquier parte, marcaba "Verificación Exitosa - Estás
+                                                                // en el sitio correcto". Sin coordenadas reales no hay como calcular
+                                                                // la distancia, asi que ahora se dice eso en vez de fingir que se
+                                                                // verifico la cercania al sitio.
                                                                 const locParts = (oit.location || '').split(',').map((s: string) => s.trim());
-                                                                if (locParts.length === 2 && !isNaN(parseFloat(locParts[0]))) {
+                                                                let hasCoordinates = false;
+                                                                if (locParts.length === 2 && !isNaN(parseFloat(locParts[0])) && !isNaN(parseFloat(locParts[1]))) {
+                                                                    hasCoordinates = true;
                                                                     const targetLat = parseFloat(locParts[0]);
                                                                     const targetLng = parseFloat(locParts[1]);
 
@@ -1998,8 +2007,13 @@ export default function OITDetailPage() {
                                                                 }
 
                                                                 setIsLocationVerified(true);
-                                                                setVerificationMsg(`Verificación Exitosa ${distanceInfo ? '- ' + distanceInfo : ''}`);
-                                                                toast.success('¡Estás en el sitio correcto!');
+                                                                if (hasCoordinates) {
+                                                                    setVerificationMsg(`Verificación Exitosa ${distanceInfo ? '- ' + distanceInfo : ''}`);
+                                                                    toast.success('¡Estás en el sitio correcto!');
+                                                                } else {
+                                                                    setVerificationMsg('GPS registrado. No se pudo verificar la distancia al sitio (esta OIT no tiene coordenadas, solo dirección de texto).');
+                                                                    toast.info('GPS registrado, pero no se pudo confirmar la cercanía al sitio.');
+                                                                }
                                                             },
                                                             (err) => {
                                                                 console.error(err);
