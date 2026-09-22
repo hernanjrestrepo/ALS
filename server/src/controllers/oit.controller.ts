@@ -1108,10 +1108,13 @@ async function processLegacyOIT(oitId: string, oitNumber: string, filePath: stri
             if (m) location = m[1].trim();
         }
 
+        // Mismo formato {valid, message, data} que usa runOITAnalysis (el flujo normal
+        // de carga manual) - la pantalla de la OIT lee esas 3 claves; guardar el
+        // analisis crudo dejaba la tarjeta de Analisis IA vacia y en rojo.
         await prisma.oIT.update({
             where: { id: oitId },
             data: {
-                aiData: JSON.stringify(analysis),
+                aiData: JSON.stringify({ valid: true, message: 'Análisis de documento completado', data: analysis }),
                 status: 'PENDING',
                 description: description || undefined,
                 location: location || undefined,
