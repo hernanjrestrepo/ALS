@@ -63,18 +63,6 @@ export default function AnalyticsPage() {
             .finally(() => setIsLoading(false));
     }, []);
 
-    // Los graficos de barra (ResponsiveContainer + layout="vertical") median su ancho
-    // en el primer render, antes de que el grid de dos columnas de esta pagina termine
-    // de acomodarse - las barras quedaban a ~1/7 de su tamano real (ancho medido de
-    // ~1960px en vez de los ~280px reales), mientras que los ejes SI se redibujaban
-    // bien. Disparar un resize despues de que los datos llegan (las tarjetas ya
-    // reemplazaron los Skeleton) obliga a Recharts a remedir con el ancho definitivo.
-    useEffect(() => {
-        if (!metrics) return;
-        const t = setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
-        return () => clearTimeout(t);
-    }, [metrics]);
-
     const statusData = metrics
         ? Object.entries(metrics.oitsByStatus).map(([status, count]) => ({
             status,
@@ -164,12 +152,17 @@ export default function AnalyticsPage() {
                             <EmptyState text="No hay OITs registradas" />
                         ) : (
                             <ResponsiveContainer width="100%" height={260}>
-                                <BarChart data={statusData} layout="vertical" margin={{ left: 20 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} />
-                                    <YAxis type="category" dataKey="label" width={110} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} />
+                                {/* layout="vertical" (barras horizontales) quedaba dibujando el largo
+                                    de la barra a ~1/7 de la escala real de los ejes con esta version de
+                                    Recharts (proporciones entre barras correctas, tamaño absoluto no) -
+                                    el mismo grafico de la pagina de inicio, sin layout="vertical", si
+                                    dibuja bien. Se usa esa orientacion (categorias en X, en angulo). */}
+                                <BarChart data={statusData} margin={{ bottom: 40 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} angle={-35} textAnchor="end" interval={0} />
+                                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} />
                                     <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                                    <Bar dataKey="count" name="OITs" radius={[0, 4, 4, 0]}>
+                                    <Bar dataKey="count" name="OITs" radius={[4, 4, 0, 0]}>
                                         {statusData.map((entry) => (
                                             <Cell key={entry.status} fill={STATUS_COLORS[entry.status] || '#94a3b8'} />
                                         ))}
@@ -224,12 +217,12 @@ export default function AnalyticsPage() {
                             <EmptyState text="No hay cotizaciones con cliente asociado" />
                         ) : (
                             <ResponsiveContainer width="100%" height={260}>
-                                <BarChart data={metrics.topClients} layout="vertical" margin={{ left: 20 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} />
-                                    <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} />
+                                <BarChart data={metrics.topClients} margin={{ bottom: 40 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} angle={-35} textAnchor="end" interval={0} />
+                                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} />
                                     <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                                    <Bar dataKey="count" name="OITs" fill="#0891b2" radius={[0, 4, 4, 0]} />
+                                    <Bar dataKey="count" name="OITs" fill="#0891b2" radius={[4, 4, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         )}
