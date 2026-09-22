@@ -60,6 +60,14 @@ export default function OITDetailPage() {
     const [finalAnalysis, setFinalAnalysis] = useState<string | null>(null);
     const [templateSteps, setTemplateSteps] = useState<any[]>([]);
     const [selectedTemplates, setSelectedTemplates] = useState<any[]>([]);
+    // Vincular una plantilla de muestreo a una OIT que llego por el flujo de IA
+    // (Serambiente): la pantalla ya leia selectedTemplateIds, pero no habia forma
+    // de elegirla - el Muestreo quedaba en un callejon sin salida ("Plantilla no
+    // seleccionada") para toda OIT que no viniera del flujo manual de plantillas.
+    const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
+    const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
+    const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+    const [isSavingTemplate, setIsSavingTemplate] = useState(false);
     const [serviceDates, setServiceDates] = useState<Record<string, ServiceSchedule>>({});
     const [isManualScheduling, setIsManualScheduling] = useState(false);
     const [isLocationVerified, setIsLocationVerified] = useState(false);
@@ -520,6 +528,38 @@ export default function OITDetailPage() {
             toast.error('Error al actualizar recursos');
         } finally {
             setIsSavingResources(false);
+        }
+    };
+
+    const handleOpenTemplatePicker = async () => {
+        setIsTemplatePickerOpen(true);
+        setIsLoadingTemplates(true);
+        try {
+            const res = await api.get('/sampling-templates');
+            setAvailableTemplates(res.data);
+        } catch (error) {
+            console.error('Error loading sampling templates:', error);
+            toast.error('Error al cargar las plantillas de muestreo');
+        } finally {
+            setIsLoadingTemplates(false);
+        }
+    };
+
+    const handleSelectTemplate = async (template: any) => {
+        if (!id) return;
+        try {
+            setIsSavingTemplate(true);
+            const ids = [template.id];
+            await api.patch(`/oits/${id}`, { selectedTemplateIds: JSON.stringify(ids) });
+            setSelectedTemplates([template]);
+            setOit((prev: any) => ({ ...prev, selectedTemplateIds: JSON.stringify(ids) }));
+            toast.success(`Plantilla "${template.name}" vinculada a esta OIT`);
+            setIsTemplatePickerOpen(false);
+        } catch (error) {
+            console.error('Error linking sampling template:', error);
+            toast.error('Error al vincular la plantilla');
+        } finally {
+            setIsSavingTemplate(false);
         }
     };
 
@@ -1691,6 +1731,44 @@ export default function OITDetailPage() {
                                         </div>
                                     </DialogContent>
                                 </Dialog>
+
+                                {/* Sampling Template Picker Dialog */}
+                                <Dialog open={isTemplatePickerOpen} onOpenChange={setIsTemplatePickerOpen}>
+                                    <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+                                        <DialogHeader>
+                                            <DialogTitle>Seleccionar Plantilla de Muestreo</DialogTitle>
+                                            <DialogDescription>
+                                                Define los pasos del checklist de campo para esta OIT.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="flex-1 overflow-y-auto min-h-[200px] space-y-2">
+                                            {isLoadingTemplates ? (
+                                                <div className="flex items-center justify-center py-12 text-slate-400">
+                                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                                </div>
+                                            ) : availableTemplates.length === 0 ? (
+                                                <div className="text-center py-12 text-slate-500">
+                                                    No hay plantillas creadas todavía. Créalas en la sección "Plantillas".
+                                                </div>
+                                            ) : (
+                                                availableTemplates.map((tmpl) => (
+                                                    <button
+                                                        key={tmpl.id}
+                                                        disabled={isSavingTemplate}
+                                                        onClick={() => handleSelectTemplate(tmpl)}
+                                                        className="w-full text-left p-3 rounded-md border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors disabled:opacity-50"
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="text-sm font-medium text-slate-900">{tmpl.name}</p>
+                                                            <Badge variant="secondary" className="text-[10px]">{tmpl.oitType}</Badge>
+                                                        </div>
+                                                        {tmpl.description && <p className="text-xs text-slate-500 mt-1">{tmpl.description}</p>}
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             </>
                         )}
 
@@ -2076,6 +2154,10 @@ export default function OITDetailPage() {
                                             <p className="text-slate-500 max-w-md mt-2">
                                                 No hay una plantilla de muestreo asociada a este OIT.
                                             </p>
+                                            <Button className="mt-4" onClick={handleOpenTemplatePicker}>
+                                                <Beaker className="mr-2 h-4 w-4" />
+                                                Seleccionar Plantilla
+                                            </Button>
                                         </CardContent>
                                     </Card>
                                 );
