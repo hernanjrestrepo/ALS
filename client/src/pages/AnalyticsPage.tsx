@@ -63,6 +63,18 @@ export default function AnalyticsPage() {
             .finally(() => setIsLoading(false));
     }, []);
 
+    // Los graficos de barra (ResponsiveContainer + layout="vertical") median su ancho
+    // en el primer render, antes de que el grid de dos columnas de esta pagina termine
+    // de acomodarse - las barras quedaban a ~1/7 de su tamano real (ancho medido de
+    // ~1960px en vez de los ~280px reales), mientras que los ejes SI se redibujaban
+    // bien. Disparar un resize despues de que los datos llegan (las tarjetas ya
+    // reemplazaron los Skeleton) obliga a Recharts a remedir con el ancho definitivo.
+    useEffect(() => {
+        if (!metrics) return;
+        const t = setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+        return () => clearTimeout(t);
+    }, [metrics]);
+
     const statusData = metrics
         ? Object.entries(metrics.oitsByStatus).map(([status, count]) => ({
             status,
