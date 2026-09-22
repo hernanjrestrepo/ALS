@@ -2559,11 +2559,15 @@ export const updateServiceDates = async (req: Request, res: Response) => {
         // Una OIT programada por aqui (la via normal, "Aceptar Propuesta") nunca
         // aparecia en el Calendario. Se sincroniza con la fecha confirmada mas
         // temprana entre los servicios.
+        // "${date}T${time}" sin offset se interpreta en la zona horaria del proceso de
+        // Node (el servidor corre en UTC), no en la de quien programa (Colombia,
+        // siempre UTC-5, sin horario de verano) - "08:00" quedaba guardado como
+        // 08:00 UTC = 03:00 en Bogotá. Se ancla explicitamente a -05:00.
         let earliestScheduledDate: Date | null = null;
         if (serviceDates) {
             Object.values(serviceDates).forEach((schedule: any) => {
                 if (schedule?.confirmed && schedule?.date) {
-                    const dt = new Date(`${schedule.date}T${schedule.time || '09:00'}`);
+                    const dt = new Date(`${schedule.date}T${schedule.time || '09:00'}:00-05:00`);
                     if (!isNaN(dt.getTime()) && (!earliestScheduledDate || dt < earliestScheduledDate)) {
                         earliestScheduledDate = dt;
                     }
