@@ -41,7 +41,7 @@ import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
 
 
 import { QuotationLinker } from '@/components/oit/QuotationLinker';
-import { getSuggestedDate, formatLocalDateLong, parseLocalDate } from '@/lib/serviceDate';
+import { getSuggestedDate, formatLocalDateLong, parseLocalDate, bogotaDateTimeToISO, toBogotaDateTimeInputs, formatBogotaDate, formatBogotaTime } from '@/lib/serviceDate';
 
 // Service schedule structure for enhanced scheduling
 interface ServiceSchedule {
@@ -1283,10 +1283,10 @@ export default function OITDetailPage() {
                                                             <p className="text-xs font-medium text-slate-500 uppercase">Fecha y Hora</p>
                                                             <div className="flex items-center gap-2 text-slate-900 font-medium">
                                                                 <Calendar className="h-4 w-4 text-slate-400" />
-                                                                {new Date(oit.scheduledDate).toLocaleDateString()}
+                                                                {formatBogotaDate(oit.scheduledDate)}
                                                                 <span className="text-slate-300">|</span>
                                                                 <Clock className="h-4 w-4 text-slate-400" />
-                                                                {new Date(oit.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                {formatBogotaTime(oit.scheduledDate)}
                                                             </div>
                                                         </div>
                                                         <div className="space-y-1">
@@ -1333,14 +1333,15 @@ export default function OITDetailPage() {
                                                                     <input
                                                                         type="date"
                                                                         className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
-                                                                        value={oit.scheduledDate ? new Date(oit.scheduledDate).toISOString().split('T')[0] : ''}
+                                                                        value={oit.scheduledDate ? toBogotaDateTimeInputs(oit.scheduledDate).date : ''}
                                                                         onChange={(e) => {
-                                                                            const currentDate = oit.scheduledDate ? new Date(oit.scheduledDate) : new Date();
-                                                                            const newDate = new Date(e.target.value);
-                                                                            // Keep time if exists
-                                                                            newDate.setHours(currentDate.getHours(), currentDate.getMinutes());
-                                                                            // Just update local state for preview, commit on button click
-                                                                            setOit({ ...oit, scheduledDate: newDate.toISOString() });
+                                                                            // Se combinan los valores crudos de los dos inputs, anclados a
+                                                                            // hora de Bogota (ver bogotaDateTimeToISO) - antes se mezclaba
+                                                                            // new Date(fecha) (parseada como UTC) con .setHours() (mutado en
+                                                                            // el huso del navegador), y el resultado dependia de en que huso
+                                                                            // horario corriera el navegador de quien programaba.
+                                                                            const currentTime = oit.scheduledDate ? toBogotaDateTimeInputs(oit.scheduledDate).time : '09:00';
+                                                                            setOit({ ...oit, scheduledDate: bogotaDateTimeToISO(e.target.value, currentTime) });
                                                                         }}
                                                                     />
                                                                 </div>
@@ -1354,12 +1355,10 @@ export default function OITDetailPage() {
                                                                     <input
                                                                         type="time"
                                                                         className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
-                                                                        value={oit.scheduledDate ? new Date(oit.scheduledDate).toTimeString().slice(0, 5) : '09:00'}
+                                                                        value={oit.scheduledDate ? toBogotaDateTimeInputs(oit.scheduledDate).time : '09:00'}
                                                                         onChange={(e) => {
-                                                                            const currentDate = oit.scheduledDate ? new Date(oit.scheduledDate) : new Date();
-                                                                            const [hours, minutes] = e.target.value.split(':');
-                                                                            currentDate.setHours(parseInt(hours), parseInt(minutes));
-                                                                            setOit({ ...oit, scheduledDate: currentDate.toISOString() });
+                                                                            const currentDate = oit.scheduledDate ? toBogotaDateTimeInputs(oit.scheduledDate).date : new Date().toISOString().split('T')[0];
+                                                                            setOit({ ...oit, scheduledDate: bogotaDateTimeToISO(currentDate, e.target.value) });
                                                                         }}
                                                                     />
                                                                 </div>
