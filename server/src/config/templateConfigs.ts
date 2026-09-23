@@ -2122,13 +2122,73 @@ const V2_COMMON_FIELDS: Record<string, FieldMapping> = {
     'autorizado_nombre': { source: 'STATIC', staticValue: 'Dirección Técnica ALS', description: 'Autorizado por' },
 };
 
-// BIOTA (74-01) — sin veredicto de conformidad (índices/BMW dejados como sección
-// condicional vacía hasta que Dirección Técnica confirme la tabla de referencia)
+// BIOTA (74-01) — RECONSTRUCCIÓN DE TAGS (septiembre 2026): la plantilla traía ~40
+// placeholders de ejemplo sin etiquetar ("el día xx de mes de año", "XX parcelas en
+// XXXX", coordenadas de ejemplo "XX°X'X,XX", "Fuente: ALS..., XXXX.", conclusiones
+// "NOMBRE EMPRESA... XXX", historial "OT XXXX-X-FF-XXXX-V00") que un informe real
+// mostraba literalmente. Mismo criterio que Suelos (64-11): dato real de la OIT donde
+// existe (cliente, punto, fecha, ciudad/departamento, contrato); donde no hay dato
+// estructurado, STATIC vacío (mejor un hueco que un "XXXX" al cliente).
+//
+// ESCENARIOS: la plantilla trae los 3 tipos de estudio (hidrobiológico / flora /
+// fauna) en secciones separadas; se conservan TODOS (decisión de Hernán, 2026-09-23),
+// igual que Suelos con sus 8 patrones de muestreo. No hay instrucción editorial de
+// "conservar solo uno" en este documento.
+//
+// PÁRRAFO DE ACREDITACIÓN: venía copiado de Calidad de Aire ("mediciones de
+// composición de gases", "no se encuentran dentro del alcance... biogás"). Se
+// reescribió como "caracterización de comunidades bióticas" y se eliminó la frase de
+// biogás por no aplicar a Biota.
+//
+// TABLA 5 (georreferenciación): bucle por punto sobre las 2 filas de datos con los
+// campos que ya entrega TemplateDataMapper (nombre, codigo, punto_hora, punto_cota,
+// punto_latitud_gms, punto_norte_or, punto_longitud_gms, punto_este_or); esos tags
+// viven en el ítem del bucle, no en este diccionario.
+//
+// PENDIENTE: la línea "OT XXXX-X-B-XXXX-VXX" del encabezado no se tocó (falta
+// definir el formato del identificador; igual en 64-08/09/10/11).
+const BIOTA_FIELDS: Record<string, FieldMapping> = {
+    ...V2_COMMON_FIELDS,
+    'fecha_muestreo': { source: 'DATE', field: 'fullDate', description: 'Fecha de toma de muestra (portada, introducción, metodología, acreditación, Tabla 5)' },
+    'fecha_inicio_muestreo': { source: 'DATE', field: 'fullDate', description: 'Fecha de inicio de la caracterización de fauna (metodología)' },
+    'fecha_fin_muestreo': { source: 'STATIC', staticValue: '', description: 'Fecha de fin de la caracterización de fauna -- la OIT solo tiene una fecha (scheduledDate), sin fecha de fin' },
+    'fuente_anio': { source: 'DATE', field: 'year', description: 'Año de la cita "Fuente: ALS ENVIRONMENTAL S.A.S., <año>." (8 tablas/figuras)' },
+    'contrato_numero': { source: 'AI', field: 'contrato', description: 'Número de contrato (introducción, 3 escenarios) -- extraído del documento de la OIT' },
+    'tipo_estudio_texto': { source: 'AI', field: 'tipoEstudio', description: 'Objeto/tipo de estudio (introducción hidrobiológica y metodología)' },
+    'comunidades_evaluadas': { source: 'STATIC', staticValue: '', description: 'Comunidades evaluadas (perifiton, macroinvertebrados, etc.) -- sin dato estructurado en la extracción IA' },
+    'metodos_medicion_texto': { source: 'STATIC', staticValue: '', description: 'Métodos de medición y análisis empleados (introducción) -- sin dato IA' },
+    'parametros_acreditados': { source: 'STATIC', staticValue: '', description: 'Parámetros acreditados por el IDEAM (introducción) -- sin dato IA' },
+    'parametros_evaluados': { source: 'STATIC', staticValue: '', description: 'Parámetros evaluados solicitados por el cliente (introducción) -- sin dato IA' },
+    'numero_parcelas_transectos': { source: 'STATIC', staticValue: '', description: 'Número de parcelas/transectos (objetivo de flora y metodología) -- sin dato IA' },
+    'numero_subparcelas_1': { source: 'STATIC', staticValue: '', description: 'Número de subparcelas de 10mx10m / 5mx10m (metodología de flora)' },
+    'numero_subparcelas_2': { source: 'STATIC', staticValue: '', description: 'Número de subparcelas de 1mx10m / 1mx5m / 2mx2m (metodología de flora)' },
+    'area_flora': { source: 'STATIC', staticValue: '', description: 'Área/ecosistema del estudio de flora (objetivo) -- sin dato IA' },
+    'area_fauna': { source: 'STATIC', staticValue: '', description: 'Área/ecosistema del estudio de fauna (objetivo) -- sin dato IA' },
+    'numero_resolucion_ideam': { source: 'STATIC', staticValue: '', description: 'Número de la resolución de acreditación IDEAM (dato institucional; mismo criterio que Suelos)' },
+    'vigencia_resolucion_ideam': { source: 'STATIC', staticValue: '', description: 'Fecha hasta la que está vigente la resolución IDEAM (dato institucional, sin fuente en el sistema)' },
+    'sitio_muestreo': { source: 'AI', field: 'puntos[0].nombre', description: 'Sitio de muestreo (Tabla 3)' },
+    'sistema_evaluado': { source: 'STATIC', staticValue: '', description: 'Sistema evaluado (metodología) -- sin dato IA' },
+    'metodos_citados': { source: 'STATIC', staticValue: '', description: 'Métodos de análisis citados en la preparación de muestras (metodología)' },
+    'parametros_insitu': { source: 'STATIC', staticValue: '', description: 'Parámetros medidos in situ (metodología)' },
+    'parametros_ambientales': { source: 'STATIC', staticValue: '', description: 'Parámetros ambientales medidos (metodología)' },
+    'codigo_formatos_campo': { source: 'STATIC', staticValue: '', description: 'Código de los formatos de campo (Anexo 2)' },
+    'foto1_sitio': { source: 'AI', field: 'puntos[0].nombre', description: 'Sitio de la Fotografía 1 (pie de foto e índice de fotografías)' },
+    'foto2_sitio': { source: 'AI', field: 'puntos[1].nombre', description: 'Sitio de la Fotografía 2 (pie de foto e índice) -- vacío si la OIT tiene un solo punto' },
+    'descripcion_area_estudio': { source: 'STATIC', staticValue: '', description: 'Información climática y aspectos geográficos del área (era instrucción editorial "Relacionar información climática... climate-data.org")' },
+    'tipo_sistema': { source: 'STATIC', staticValue: '', description: 'Tipo de sistema (lótico, léntico, marino o estuarino) -- Tabla 5' },
+    'numero_puntos': { source: 'AI', field: 'numeroPuntos', description: 'Cantidad de puntos de monitoreo (conclusiones)' },
+    'ot_id': { source: 'OIT', field: 'oitNumber', description: 'Identificador del informe (historial de cambios, versión 00)' },
+    'fecha_ot': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (historial, versión 00)' },
+    'ot_id_revision': { source: 'STATIC', staticValue: '', description: 'Identificador del informe (historial, versión 01) -- vacío para no generar un identificador falso' },
+    'fecha_revision': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (historial, versión 01)' },
+    'ot_id_final': { source: 'OIT', field: 'oitNumber', description: 'Identificador del informe nuevo que reemplaza al anulado (nota final)' },
+};
+
 export const BIOTA_CONFIG: TemplateConfig = {
     templateType: 'BIOTA',
     displayName: 'Informe de Biota',
     filePattern: 'FO-PO-PSM-74-01',
-    fields: { ...V2_COMMON_FIELDS }
+    fields: { ...BIOTA_FIELDS }
 };
 
 // ================================================================
