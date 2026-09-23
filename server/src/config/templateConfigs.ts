@@ -25,6 +25,41 @@ const FUENTE_ANIO_FIELDS: Record<string, FieldMapping> = {
     'fuente_anio': { source: 'DATE', field: 'year', description: 'Año de la cita "Fuente: ..., <año>." (todas las tablas/figuras)' },
 };
 
+// ---------------------------------------------------------------------------
+// Auditoría 2026-09-23, tanda 2: tags nuevos para portadas, historial de cambios y
+// blancos de instrucciones editoriales que llegaban literales al informe final. Donde el
+// sistema no tiene el dato, STATIC vacío (mejor un hueco que un "NOMBRE CLIENTE").
+// ---------------------------------------------------------------------------
+const HISTORIAL_FECHA_FIELDS: Record<string, FieldMapping> = {
+    'tag_fecha_v00': { source: 'DATE', field: 'headerDate', description: 'Fecha de emisión (historial de cambios, versión 00), formato DD/MM/AAAA' },
+    'tag_fecha_v01': { source: 'DATE', field: 'headerDate', description: 'Fecha de emisión (historial de cambios, versión 01), formato DD/MM/AAAA -- igual criterio que tag_ot_code_v01' },
+};
+const RESPEL_PORTADA_FIELDS: Record<string, FieldMapping> = {
+    'nombre_cliente': { source: 'AI', field: 'cliente', description: 'Nombre del cliente (portada e introducción)' },
+    'proyecto_sede': { source: 'STATIC', staticValue: '', description: "Proyecto y sede (portada) -- sin dato IA" },
+};
+const PUNTO_SECO_TANDA2_FIELDS: Record<string, FieldMapping> = {
+    'numero_puntos': { source: 'AI', field: 'numeroPuntos', description: 'Cantidad de puntos secos (introducción)' },
+};
+const AIRE_PROYECTO_FIELDS: Record<string, FieldMapping> = {
+    'proyecto_nombre': { source: 'STATIC', staticValue: '', description: "Nombre del proyecto (portada) -- sin dato IA" },
+};
+const CALIDAD_AIRE_TANDA2_FIELDS: Record<string, FieldMapping> = {
+    'contaminantes_evaluar': { source: 'STATIC', staticValue: '', description: "Contaminantes/parámetros a evaluar por ID (Tabla 4) -- era instrucción \"Diligenciar parámetros medidos que le aplique ID\"" },
+    'fecha_resultado_diario': { source: 'STATIC', staticValue: '', description: "Fecha de cada fila de resultados diarios (Tabla 14) -- sin mecanismo de filas repetibles" },
+};
+const ASUB_TANDA2_FIELDS: Record<string, FieldMapping> = {
+    'muestreo_espacial_n': { source: 'STATIC', staticValue: '', description: "Nº de submuestras del muestreo integrado espacial" },
+    'muestreo_espacial_vertices': { source: 'STATIC', staticValue: '', description: "Vértices/puntos de recolección (muestreo integrado espacial)" },
+    'muestreo_espacial_arreglo': { source: 'STATIC', staticValue: '', description: "Descripción del arreglo: transecto / polígono / margen-centro-margen (muestreo integrado espacial)" },
+    'muestreo_espacial_puntos': { source: 'STATIC', staticValue: '', description: "Ubicaciones de referencia (muestreo integrado espacial)" },
+    'muestreo_espacial_volumen': { source: 'STATIC', staticValue: '', description: "Volumen por submuestra en mL (muestreo integrado espacial)" },
+    'muestreo_profundidad_n': { source: 'STATIC', staticValue: '', description: "Nº de niveles/estratos (muestreo integrado por profundidad)" },
+    'muestreo_profundidad_valores': { source: 'STATIC', staticValue: '', description: "Profundidades de muestreo (muestreo integrado por profundidad)" },
+    'muestreo_profundidad_proporciones': { source: 'STATIC', staticValue: '', description: "Proporciones de integración iguales/ponderadas (muestreo integrado por profundidad)" },
+    'formatos_empleados': { source: 'STATIC', staticValue: '', description: "Código y nombre de los formatos de campo empleados -- era instrucción \"diligenciar código y nombre de formatos empleados\"" },
+};
+
 // ================================================================
 // AGUA SUBTERRÁNEA / LIXIVIADOS — 64-08 (32 tags)
 // Also used for PUNTO SECO — 64-10 (same 32 tags)
@@ -628,7 +663,7 @@ export const ASUB_CONFIG: TemplateConfig = {
     templateType: 'ASUB',
     displayName: 'Informe de Agua Subterránea / Lixiviados',
     filePattern: 'FO-PO-PSM-64-08',
-    fields: { ...ASUB_AGUA_SUBTERRANEA_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...ASUB_AGUA_SUBTERRANEA_FIELDS, ...FUENTE_ANIO_FIELDS, ...ASUB_TANDA2_FIELDS }
 };
 
 // ================================================================
@@ -741,7 +776,7 @@ export const PUNTO_SECO_CONFIG: TemplateConfig = {
     templateType: 'PUNTO_SECO',
     displayName: 'Caracterización de Agua (matriz genérica)',
     filePattern: 'FO-PO-PSM-64-10',
-    fields: { ...AGUA_GENERICA_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...AGUA_GENERICA_FIELDS, ...FUENTE_ANIO_FIELDS, ...PUNTO_SECO_TANDA2_FIELDS }
 };
 // ================================================================
 // CARACTERIZACIÓN DE RESIDUOS SÓLIDOS (64-09) — REEMPLAZO DE CONTENIDO
@@ -855,7 +890,7 @@ export const RESPEL_CONFIG: TemplateConfig = {
     templateType: 'RESPEL',
     displayName: 'Caracterización de Residuos Sólidos',
     filePattern: 'FO-PO-PSM-64-09',
-    fields: { ...RESIDUOS_SOLIDOS_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...RESIDUOS_SOLIDOS_FIELDS, ...FUENTE_ANIO_FIELDS, ...RESPEL_PORTADA_FIELDS }
 };
 // EMISIÓN DE RUIDO (65-06)
 
@@ -989,7 +1024,7 @@ export const EMISION_RUIDO_CONFIG: TemplateConfig = {
     templateType: 'EMISION_RUIDO',
     displayName: 'Estudio de Emisión de Ruido',
     filePattern: 'FO-PO-PSM-65-06',
-    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...EMISION_RUIDO_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...EMISION_RUIDO_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS }
 };
 
 // RUIDO AMBIENTAL (65-07)
@@ -997,7 +1032,7 @@ export const RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
     templateType: 'RUIDO_AMBIENTAL',
     displayName: 'Estudio de Ruido Ambiental',
     filePattern: 'FO-PO-PSM-65-07',
-    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...RUIDO_AMBIENTAL_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...RUIDO_AMBIENTAL_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS }
 };
 
 // RUIDO INTRADOMICILIARIO (65-08)
@@ -1104,7 +1139,7 @@ export const RUIDO_INTRADOMICILIARIO_CONFIG: TemplateConfig = {
     templateType: 'RUIDO_INTRADOMICILIARIO',
     displayName: 'Estudio de Ruido Intradomiciliario',
     filePattern: 'FO-PO-PSM-65-08',
-    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...RUIDO_INTRADOMICILIARIO_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...RUIDO_INTRADOMICILIARIO_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS }
 };
 
 // EMISIÓN DE RUIDO Y RUIDO AMBIENTAL (65-09)
@@ -1126,7 +1161,7 @@ export const EMISION_RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
     templateType: 'EMISION_RUIDO_AMBIENTAL',
     displayName: 'Estudio de Emisión de Ruido y Ruido Ambiental',
     filePattern: 'FO-PO-PSM-65-09',
-    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...EMISION_RUIDO_AMBIENTAL_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...EMISION_RUIDO_AMBIENTAL_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS }
 };
 
 // ================================================================
@@ -1539,7 +1574,7 @@ export const CALIDAD_AIRE_CONFIG: TemplateConfig = {
     templateType: 'CALIDAD_AIRE',
     displayName: 'Informe de Calidad de Aire',
     filePattern: 'FO-PO-PSM-66-18',
-    fields: { ...AGUA_FIELDS, ...CALIDAD_AIRE_LEGACY_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...AGUA_FIELDS, ...CALIDAD_AIRE_LEGACY_FIELDS, ...FUENTE_ANIO_FIELDS, ...AIRE_PROYECTO_FIELDS, ...CALIDAD_AIRE_TANDA2_FIELDS }
 };
 
 
@@ -1663,7 +1698,7 @@ export const OLORES_CONFIG: TemplateConfig = {
     templateType: 'OLORES',
     displayName: 'Informe de Olores Ofensivos',
     filePattern: 'FO-PO-PSM-66-19',
-    fields: { ...AGUA_FIELDS, ...OLORES_LEGACY_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...AGUA_FIELDS, ...OLORES_LEGACY_FIELDS, ...FUENTE_ANIO_FIELDS, ...AIRE_PROYECTO_FIELDS }
 };
 
 // PARTÍCULAS VIABLES (66-20)
@@ -2101,7 +2136,7 @@ export const FUENTES_FIJAS_CONFIG: TemplateConfig = {
     templateType: 'FUENTES_FIJAS',
     displayName: 'Informe de Fuentes Fijas',
     filePattern: 'FO-PO-PSM-67-11',
-    fields: { ...AGUA_FIELDS, ...FUENTES_FIJAS_PREVIO_DELTA_FIELDS, ...FUENTES_FIJAS_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...AGUA_FIELDS, ...FUENTES_FIJAS_PREVIO_DELTA_FIELDS, ...FUENTES_FIJAS_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS }
 };
 
 

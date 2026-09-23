@@ -85,3 +85,33 @@ describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const)
         });
     }
 );
+
+// ---------------------------------------------------------------------------
+// Auditoría 2026-09-23, tanda 2: portadas, historial de cambios/OT en el cuerpo, instrucciones
+// editoriales y blancos "[n = ___]". Excepciones = pendientes documentados (tanda 3 / decisión):
+//  - 67-11: Tabla 3 "Fuentes evaluadas" con 3 fechas DD/MM/AAAA de fila de ejemplo.
+//  - 65-07: portada "los días xx y xx de mes de año" (narrativa con datos por definir).
+// El encabezado (header*.xml) con "OT XXXX-..." queda fuera: pendiente del formato de la OT.
+// ---------------------------------------------------------------------------
+const TANDA2_RULES: Array<{ label: string; re: RegExp; allowed?: Record<string, number> }> = [
+    { label: 'NOMBRE CLIENTE/EMPRESA', re: /NOMBRE (CLIENTE|EMPRESA)|OMBRE EMPRESA/ },
+    { label: 'fecha de ejemplo (DD/MM/AA, Día/Mes/Año, de mes de año)', re: /DD\/MM\/AA|dd\/mm\/año|Día\/Mes\/Año|de mes de año/i, allowed: { '67-11': 3, '65-07': 1 } },
+    { label: 'portada con placeholder en mayúsculas', re: /^(PROYECTO|PROYECTO, SEDE|CIUDAD, DEPARTAMENTO)$/ },
+    { label: 'blanco de instrucción "[n = ___]"', re: /\[[^\]]*___[^\]]*\]|\[diligenciar|\[descripción del arreglo|\[listar|diligenciar código|Diligenciar parámetros/i },
+    { label: 'OT XXXX en el cuerpo', re: /OT ?XXXX|XXXX-X-/ },
+    { label: 'instrucción de escenarios "deberá conservarse"', re: /deberá conservarse únicamente/ },
+];
+
+describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const))(
+    'plantilla %s: tanda 2', (code, file) => {
+        const xml = new PizZip(fs.readFileSync(path.join(dir, file))).file('word/document.xml')!.asText();
+        const paras = xml.split('</w:p>')
+            .map(p => [...p.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map(m => m[1]).join('').replace(/\{[^}]*\}/g, '').trim())
+            .filter(Boolean);
+
+        it.each(TANDA2_RULES.map(r => [r.label, r] as const))('sin %s', (_l, rule) => {
+            const hits = paras.filter(t => rule.re.test(t));
+            expect(hits.length).toBeLessThanOrEqual(rule.allowed?.[code] ?? 0);
+        });
+    }
+);
