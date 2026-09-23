@@ -94,7 +94,7 @@ export const chat = async (req: Request, res: Response) => {
   Descripción: ${currentOit.description || 'N/A'}
   Ubicación: ${currentOit.location || 'N/A'}
   Fecha programada: ${currentOit.scheduledDate ? new Date(currentOit.scheduledDate).toLocaleDateString() : 'No programada'}
-  Ingenieros asignados: ${currentOit.assignedEngineers.map(a => a.user.name).join(', ') || 'Ninguno'}
+  Ingenieros asignados: ${currentOit.assignedEngineers.map((a: { user: { name: string } }) => a.user.name).join(', ') || 'Ninguno'}
   Cotización relacionada: ${currentOit.quotation?.quotationNumber || 'N/A'}
 `;
             }
