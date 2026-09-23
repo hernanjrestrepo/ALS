@@ -1810,8 +1810,20 @@ export const generateSamplingReport = async (req: Request, res: Response) => {
         // Import PDF service
         const { pdfService } = require('../services/pdf.service');
 
+        // Titles of each step live in the sampling template, not in samplingData
+        let templateSteps: { id: string; title: string }[] = [];
+        try {
+            const templateId = oit.samplingData ? JSON.parse(oit.samplingData).templateId : null;
+            if (templateId) {
+                const template = await prisma.samplingTemplate.findUnique({ where: { id: templateId } });
+                if (template) templateSteps = JSON.parse(template.steps);
+            }
+        } catch (e) {
+            console.error('Error loading template steps for report:', e);
+        }
+
         // Generate PDF
-        const pdfPath = await pdfService.generateSamplingReport(oit);
+        const pdfPath = await pdfService.generateSamplingReport(oit, templateSteps);
 
         // Update OIT with report URL
         await prisma.oIT.update({
