@@ -39,8 +39,10 @@ class PDFService {
 
     /**
      * Informe de muestreo. Las respuestas del checklist se guardan en
-     * OIT.samplingData (SamplingData del cliente: steps[] con stepId/value);
-     * los titulos de cada paso viven en la plantilla (templateSteps).
+     * OIT.samplingData, con dos formas segun el flujo que las escribio:
+     *  - SamplingExecutor: steps[] con stepId/value/metadata.comment; el titulo
+     *    del paso vive en la plantilla (templateSteps).
+     *  - Checklist de OIT (flujo IA): steps[] con description/value/comment.
      */
     async generateSamplingReport(oit: OIT, templateSteps: TemplateStepInfo[] = []): Promise<string> {
         const { marked } = await import('marked');
@@ -58,9 +60,9 @@ class PDFService {
                 const files: string[] = Array.isArray(s.files) ? s.files : [];
                 stepsHTML += `
                     <div class="step">
-                        <h3>${index + 1}. ${esc(titleById.get(s.stepId) || 'Paso ' + (index + 1))}</h3>
+                        <h3>${index + 1}. ${esc(s.description || titleById.get(s.stepId) || 'Paso ' + (index + 1))}</h3>
                         <p><strong>Respuesta:</strong> ${esc(this.formatStepValue(s))}</p>
-                        ${s.metadata?.comment ? `<p><strong>Comentario:</strong> ${esc(s.metadata.comment)}</p>` : ''}
+                        ${(s.comment || s.metadata?.comment) ? `<p><strong>Comentario:</strong> ${esc(s.comment || s.metadata.comment)}</p>` : ''}
                         ${s.timestamp ? `<p class="meta">Registrado: ${esc(s.timestamp)}</p>` : ''}
                         ${files.length ? `<p class="meta">Archivos adjuntos: ${files.map(esc).join(', ')}</p>` : ''}
                     </div>

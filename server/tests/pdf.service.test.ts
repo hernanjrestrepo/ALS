@@ -28,4 +28,25 @@ describe('pdfService.generateSamplingReport', () => {
         expect(html).toContain('Sí');
         expect(html).toContain('Sin novedad &lt;ok&gt;');
     });
+
+    it('renders the checklist shape written by the OIT flow (description/comment, no stepId)', async () => {
+        const spy = vi.spyOn(pdfService, 'generatePDFFromHTML').mockResolvedValue('/tmp/x.pdf');
+        const oit: any = {
+            id: '1', oitNumber: 'OIT-2', description: 'Agua', location: 'Barranquilla',
+            aiData: null, stepValidations: null, finalAnalysis: null, createdAt: new Date(),
+            samplingData: JSON.stringify({
+                steps: [
+                    { description: 'Nombre del cliente', value: 'VitAE Ingeniería S.A.S.', files: [], comment: '', stepType: 'INPUT', stepIndex: 0 },
+                    { description: 'Observaciones', value: 'ok', files: [], comment: 'Todo en orden', stepType: 'INPUT', stepIndex: 1 },
+                ],
+            }),
+        };
+
+        await pdfService.generateSamplingReport(oit);
+
+        const html = spy.mock.calls[spy.mock.calls.length - 1][0];
+        expect(html).toContain('Nombre del cliente');
+        expect(html).toContain('VitAE Ingeniería S.A.S.');
+        expect(html).toContain('Todo en orden');
+    });
 });
