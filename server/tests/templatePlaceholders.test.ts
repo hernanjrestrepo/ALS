@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import PizZip from 'pizzip';
-import { SUELO_CONFIG, BIOTA_CONFIG } from '../src/config/templateConfigs';
+import { SUELO_CONFIG, BIOTA_CONFIG, TEMPLATE_CONFIGS, getTemplateType } from '../src/config/templateConfigs';
 
 const dir = path.join(__dirname, '../templates/reports');
 
@@ -57,3 +57,31 @@ describe.each([
         expect(missing).toEqual([]);
     });
 });
+
+// ---------------------------------------------------------------------------
+// Auditoría 2026-09-23, tanda 1: en TODAS las plantillas las citas "Fuente: ..., <año>."
+// deben usar {fuente_anio} y no un "XXXX" literal.
+// Excepción documentada: 65-09 tiene "Fuente: XXXX, 202X." (fuente desconocida + año), que se
+// resuelve en la tanda 2.
+// ---------------------------------------------------------------------------
+const ALL_TEMPLATES = fs.readdirSync(dir).filter(n => n.endsWith('-plantilla.docx')).sort();
+
+describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const))(
+    'plantilla %s: citas "Fuente"', (code, file) => {
+        const xml = new PizZip(fs.readFileSync(path.join(dir, file))).file('word/document.xml')!.asText();
+        const paras = xml.split('</w:p>').map(p => [...p.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map(m => m[1]).join(''));
+        const fuentes = paras.filter(t => /^\s*Fuente/.test(t));
+        const allowed = code === '65-09' ? ['Fuente: XXXX, 202X.'] : [];
+
+        it('ninguna cita "Fuente" conserva XXXX', () => {
+            const bad = fuentes.filter(t => /X{2,}/.test(t.replace(/\{[^}]*\}/g, '')) && !allowed.includes(t.trim()));
+            expect(bad).toEqual([]);
+        });
+
+        it('si usa {fuente_anio}, la configuracion lo define', () => {
+            if (!fuentes.some(t => t.includes('{fuente_anio}'))) return;
+            const cfg = TEMPLATE_CONFIGS[getTemplateType(file)];
+            expect(cfg.fields['fuente_anio']).toBeDefined();
+        });
+    }
+);
