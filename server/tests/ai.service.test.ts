@@ -314,15 +314,82 @@ describe('AIService.analyzeLabResults', () => {
 describe('AIService stubs', () => {
     afterEach(() => vi.resetAllMocks());
 
-    it('expose stable placeholder values used by the controllers', async () => {
+    // analyzeSamplingResults / analyzeSamplingSheets ya NO son simulacros (devolvian 'Analizado' y
+    // 'OK/calidad buena' fijos); tienen sus propias pruebas arriba. Solo recommendResources sigue fijo.
+    it('recommendResources sigue devolviendo valores fijos', async () => {
         const service = new AIService();
         await expect(service.recommendResources('doc')).resolves.toEqual(['GPS', 'Vehículo']);
-        await expect(service.analyzeSamplingResults({})).resolves.toBe('Analizado');
-        await expect(service.analyzeSamplingSheets('doc')).resolves.toEqual({
-            summary: 'OK',
-            quality: 'buena',
-            findings: [],
-            recommendations: []
-        });
+    });
+});
+
+describe('AIService.analyzeSamplingResults', () => {
+    beforeEach(() => vi.resetAllMocks());
+
+    const samplingData = {
+        steps: [
+            { description: 'Nombre del cliente', value: 'VitAE S.A.S.', comment: '', files: [] },
+            { description: 'Medición previa', value: 'Purga de 3 volúmenes', comment: 'nivel a 2.1 m', files: ['a.jpg'] },
+            { description: 'Observaciones', value: '' },
+        ],
+    };
+
+    it('envia al modelo las respuestas reales del checklist y devuelve su resumen', async () => {
+        mockedAxios.post.mockResolvedValue(generateResponse('**Resumen**\nMuestreo en VitAE.'));
+        const out = await new AIService().analyzeSamplingResults(samplingData, 'Agua subterranea');
+        expect(out).toBe('**Resumen**\nMuestreo en VitAE.');
+        const prompt = (mockedAxios.post.mock.calls[0][1] as any).prompt as string;
+        expect(prompt).toContain('Nombre del cliente: VitAE S.A.S.');
+        expect(prompt).toContain('Purga de 3 volúmenes (comentario: nivel a 2.1 m) [1 archivo(s) adjunto(s)]');
+        expect(prompt).toContain('Observaciones: (sin respuesta)');
+        expect(prompt).toContain('NO emitas conclusiones de cumplimiento');
+    });
+
+    it('no llama al modelo si no hay respuestas', async () => {
+        const out = await new AIService().analyzeSamplingResults({ steps: [] });
+        expect(out).toMatch(/No hay respuestas/);
+        expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('si el modelo falla devuelve un aviso explicito, nunca "Analizado"', async () => {
+        mockedAxios.post.mockRejectedValue(new Error('ECONNREFUSED'));
+        const out = await new AIService().analyzeSamplingResults(samplingData);
+        expect(out).toMatch(/No se pudo generar el análisis automático/);
+        expect(out).not.toBe('Analizado');
+    });
+
+    it('trata una respuesta vacia como fallo', async () => {
+        mockedAxios.post.mockResolvedValue(generateResponse('   '));
+        await expect(new AIService().analyzeSamplingResults(samplingData)).resolves.toMatch(/No se pudo generar/);
+    });
+});
+
+describe('AIService.analyzeSamplingSheets', () => {
+    beforeEach(() => vi.resetAllMocks());
+
+    it('devuelve la evaluacion del modelo con la forma que espera la pantalla', async () => {
+        mockedAxios.post.mockResolvedValue(generateResponse('```json\n{"summary":"Planilla incompleta","quality":"deficiente","findings":["Falta la hora"],"recommendations":["Completar la hora"]}\n```'));
+        const out = await new AIService().analyzeSamplingSheets('texto de la planilla', 'OIT');
+        expect(out).toEqual({ summary: 'Planilla incompleta', quality: 'deficiente', findings: ['Falta la hora'], recommendations: ['Completar la hora'] });
+    });
+
+    it('normaliza una calidad invalida a "regular"', async () => {
+        mockedAxios.post.mockResolvedValue(generateResponse('{"summary":"x","quality":"excelente","findings":"no es lista"}'));
+        const out = await new AIService().analyzeSamplingSheets('texto');
+        expect(out.quality).toBe('regular');
+        expect(out.findings).toEqual([]);
+    });
+
+    it('sin texto no dice "buena": avisa que no se pudo analizar', async () => {
+        const out = await new AIService().analyzeSamplingSheets('   ');
+        expect(out.quality).toBe('regular');
+        expect(out.summary).toMatch(/No se pudo analizar/);
+        expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('si el modelo falla no devuelve un OK falso', async () => {
+        mockedAxios.post.mockRejectedValue(new Error('timeout'));
+        const out = await new AIService().analyzeSamplingSheets('texto');
+        expect(out.quality).not.toBe('buena');
+        expect(out.summary).toMatch(/No se pudo analizar/);
     });
 });

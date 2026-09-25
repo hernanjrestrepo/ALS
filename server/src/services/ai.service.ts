@@ -431,12 +431,107 @@ REGLAS ESTRICTAS:
         }
     }
 
+    /**
+     * Resumen del checklist de campo (OIT.samplingData). Se limita a lo registrado: no inventa
+     * valores ni emite veredictos de cumplimiento normativo. Devuelve Markdown (el PDF lo renderiza).
+     * Si el modelo falla devuelve un aviso explicito, nunca un texto que aparente un analisis.
+     */
     public async analyzeSamplingResults(samplingData: any, oitContext?: string): Promise<string> {
-        return 'Analizado';
+        const steps: any[] = Array.isArray(samplingData?.steps) ? samplingData.steps : [];
+        if (steps.length === 0) return 'No hay respuestas de muestreo registradas para analizar.';
+
+        const registro = steps.map((s, i) => {
+            const titulo = s.description || s.title || `Paso ${i + 1}`;
+            const valor = s.value === undefined || s.value === null || s.value === '' ? '(sin respuesta)' : (typeof s.value === 'object' ? JSON.stringify(s.value) : String(s.value));
+            const comentario = s.comment || s.metadata?.comment;
+            const archivos = Array.isArray(s.files) && s.files.length ? ` [${s.files.length} archivo(s) adjunto(s)]` : '';
+            return `${i + 1}. ${titulo}: ${valor}${comentario ? ` (comentario: ${comentario})` : ''}${archivos}`;
+        }).join('\n').substring(0, 12000);
+
+        const prompt = `Eres Analista Técnico Ambiental de ALS Environmental. A partir ÚNICAMENTE de los datos del checklist de campo que aparecen abajo, redacta un resumen breve en español (máximo 200 palabras) en formato Markdown con estas tres secciones:
+**Resumen**, **Datos clave registrados** y **Observaciones** (datos faltantes, respuestas vacías o valores que parezcan inconsistentes; si no hay, escribe "Sin observaciones").
+
+CONTEXTO DE LA OIT: ${oitContext || 'No especificado'}
+
+CHECKLIST DE CAMPO:
+${registro}
+
+REGLAS ESTRICTAS:
+- Usa solo los datos entregados. NUNCA inventes valores, nombres ni fechas.
+- NO emitas conclusiones de cumplimiento normativo ni compares con límites o normas: eso se hace en el informe final con los resultados de laboratorio.
+- Responde solo el resumen, sin texto adicional.`;
+
+        try {
+            const response = await axios.post(`${this.baseURL}/api/generate`, {
+                model: this.defaultModel,
+                prompt,
+                stream: false,
+                options: { num_ctx: 8192 },
+            }, { timeout: 180000 });
+            const text = String(response.data?.response || '').trim();
+            if (!text) throw new Error('respuesta vacia del modelo');
+            return text;
+        } catch (error) {
+            logError('Analisis IA del muestreo fallido', error);
+            return `No se pudo generar el análisis automático del muestreo (${errorMessage(error)}). Revise las respuestas registradas.`;
+        }
     }
 
+    /**
+     * Analisis de calidad de las planillas de muestreo subidas. Mantiene la forma que espera la
+     * pantalla: { summary, quality: 'buena'|'regular'|'deficiente', findings[], recommendations[] }.
+     */
     public async analyzeSamplingSheets(documentText: string, oitContext?: string): Promise<any> {
-        return { summary: 'OK', quality: 'buena', findings: [], recommendations: [] };
+        const fallback = (motivo: string) => ({
+            summary: `No se pudo analizar la planilla automáticamente (${motivo}). Revísela manualmente.`,
+            quality: 'regular',
+            findings: [],
+            recommendations: [],
+        });
+        const text = (documentText || '').trim();
+        if (!text) return fallback('no se extrajo texto del archivo');
+
+        const prompt = `Eres Analista Técnico Ambiental de ALS Environmental. Revisa el texto extraído de las planillas de muestreo de campo y evalúa su calidad y completitud.
+
+CONTEXTO DE LA OIT: ${oitContext || 'No especificado'}
+
+TEXTO DE LAS PLANILLAS:
+${text.substring(0, 16000)}
+
+Responde ÚNICAMENTE con un JSON válido con esta forma exacta:
+{
+  "summary": "Resumen de 2-3 frases de lo que contienen las planillas y su estado general",
+  "quality": "buena | regular | deficiente",
+  "findings": ["Cada hallazgo concreto: campos vacíos, ilegibles, datos incoherentes o faltantes. Lista vacía si no hay."],
+  "recommendations": ["Acciones concretas para corregir o completar. Lista vacía si no hay."]
+}
+
+REGLAS ESTRICTAS:
+- Basa todo SOLO en el texto entregado; NUNCA inventes datos.
+- "quality" solo puede ser buena, regular o deficiente. Usa "buena" únicamente si las planillas están completas y legibles.
+- Responde SOLO el JSON.`;
+
+        try {
+            const response = await axios.post(`${this.baseURL}/api/generate`, {
+                model: this.defaultModel,
+                prompt,
+                stream: false,
+                ...jsonFormat(this.defaultModel),
+                options: { num_ctx: 16384 },
+            }, { timeout: 180000 });
+            let raw = String(response.data?.response || '').replace(/```json/g, '').replace(/```/g, '').trim();
+            const a = raw.indexOf('{');
+            const b = raw.lastIndexOf('}');
+            if (a === -1 || b === -1) throw new Error('el modelo no devolvio JSON');
+            const parsed = JSON.parse(raw.substring(a, b + 1));
+            const quality = ['buena', 'regular', 'deficiente'].includes(parsed.quality) ? parsed.quality : 'regular';
+            const list = (v: any): string[] => (Array.isArray(v) ? v.map(String).filter(Boolean) : []);
+            if (!parsed.summary) throw new Error('el modelo no devolvio resumen');
+            return { summary: String(parsed.summary), quality, findings: list(parsed.findings), recommendations: list(parsed.recommendations) };
+        } catch (error) {
+            logError('Analisis IA de planillas de muestreo fallido', error);
+            return fallback(errorMessage(error));
+        }
     }
 }
 
