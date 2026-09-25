@@ -60,6 +60,84 @@ const ASUB_TANDA2_FIELDS: Record<string, FieldMapping> = {
     'formatos_empleados': { source: 'STATIC', staticValue: '', description: "Código y nombre de los formatos de campo empleados -- era instrucción \"diligenciar código y nombre de formatos empleados\"" },
 };
 
+// ---------------------------------------------------------------------------
+// Auditoría 2026-09-23, tanda 3: placeholders "xx/XX/X" dentro de narrativas y tablas de
+// ejemplo. Dato real de la OIT donde existe (municipio/departamento, nº de puntos, nombre de
+// punto/estación, fecha de muestreo); donde no hay dato estructurado, STATIC vacío.
+// ---------------------------------------------------------------------------
+const RUIDO_UBICACION_FIELDS: Record<string, FieldMapping> = {
+    'ubicacion_municipio': { source: 'AI', field: 'ubicacion.ciudad', description: "Municipio del área de estudio (narrativas \"se encuentra ubicada en el municipio de ...\")" },
+    'ubicacion_departamento': { source: 'AI', field: 'ubicacion.departamento', description: "Departamento del área de estudio (narrativas \"..., departamento de ...\")" },
+};
+const RUIDO_NARRATIVA_FIELDS: Record<string, FieldMapping> = {
+    'numero_puntos': { source: 'AI', field: 'numeroPuntos', description: "Cantidad de puntos de medición seleccionados" },
+    'frecuencia_viento': { source: 'STATIC', staticValue: "", description: "Frecuencia (%) de la dirección predominante del viento -- sin dato IA" },
+    'puntos_sin_asentamiento': { source: 'STATIC', staticValue: "", description: "Puntos que no se ubican sobre un asentamiento poblacional -- sin dato IA" },
+    'descripcion_zona_estudio': { source: 'STATIC', staticValue: "", description: "Descripción de la zona de estudio (frase inicial) -- sin dato IA" },
+    'sector_normativo': { source: 'STATIC', staticValue: "", description: "Sector de la Resolución 0627/2006 con el que se comparan los resultados -- sin dato IA" },
+    'descripcion_sector': { source: 'STATIC', staticValue: "", description: "Descripción del sector normativo -- sin dato IA" },
+    '1_ubicacion_1': { source: 'STATIC', staticValue: '', description: 'Figura 1: continuacion del titulo "Ubicacion ... de monitoreo de ruido ambiental" (65-07, indice y cuerpo)' },
+    'tipo_dia_medicion': { source: 'STATIC', staticValue: "", description: "Tipo de día de la medición (hábil / no hábil) -- sin dato IA" },
+};
+const RUIDO_FOTOS_FIELDS: Record<string, FieldMapping> = {
+    'punto_foto_1': { source: 'AI', field: 'puntos[0].nombre', description: "Punto de las fotografías 1 y 2 (pie de foto e índice)" },
+    'punto_foto_2': { source: 'AI', field: 'puntos[1].nombre', description: "Punto de las fotografías 3 y 4 -- vacío si la OIT tiene un solo punto" },
+    'punto_foto_3': { source: 'AI', field: 'puntos[2].nombre', description: "Punto de las fotografías 5 y 6 -- vacío si la OIT tiene menos de tres puntos" },
+    'puntos_rango_texto': { source: 'AI', field: 'puntos[0].nombre', description: "Puntos de monitoreo citados en la narrativa de rangos de color" },
+};
+const AIRE_TANDA3_FIELDS: Record<string, FieldMapping> = {
+    'numero_puntos': { source: 'AI', field: 'numeroPuntos', description: "Cantidad de estaciones de monitoreo (narrativas de resultados)" },
+    'temperatura_promedio': { source: 'STATIC', staticValue: "", description: "Temperatura promedio del periodo (°C) -- sin dato IA" },
+    'presion_promedio': { source: 'STATIC', staticValue: "", description: "Presión atmosférica promedio (mmHg) -- sin dato IA" },
+    'humedad_promedio': { source: 'STATIC', staticValue: "", description: "Humedad relativa promedio (%) -- sin dato IA" },
+    'precipitacion_maxima': { source: 'STATIC', staticValue: "", description: "Precipitación máxima registrada (mm) -- sin dato IA" },
+    'fecha_precipitacion_maxima': { source: 'STATIC', staticValue: "", description: "Fecha de la precipitación máxima -- era instrucción \"diligenciar fecha.\"" },
+    'porcentaje_ica_pm10_buena': { source: 'STATIC', staticValue: "", description: "% de muestras PM10 con ICA \"Buena\" -- sin dato calculado" },
+    'porcentaje_ica_pm10_aceptable': { source: 'STATIC', staticValue: "", description: "% de muestras PM10 con ICA \"Aceptable\" -- sin dato calculado" },
+    'porcentaje_ica_pm25': { source: 'STATIC', staticValue: "", description: "% de muestras PM2.5 con ICA \"Buena\" -- sin dato calculado" },
+    'porcentaje_ica_so2': { source: 'STATIC', staticValue: "", description: "% de datos SO2 con ICA \"Buena\" -- sin dato calculado" },
+    'porcentaje_ica_no2': { source: 'STATIC', staticValue: "", description: "% de datos NO2 con ICA \"Buena\" -- sin dato calculado" },
+    'porcentaje_ica_co': { source: 'STATIC', staticValue: "", description: "% de datos CO con ICA \"Buena\" -- sin dato calculado" },
+    'porcentaje_ica_o3': { source: 'STATIC', staticValue: "", description: "% de datos O3 con ICA \"Buena\" -- sin dato calculado" },
+};
+const OLORES_TANDA3_FIELDS: Record<string, FieldMapping> = {
+    'estacion_col_1': { source: 'AI', field: 'puntos[0].nombre', description: "Nombre de la estación 1 (encabezado de columna \"Estación X (µg/m3)\")" },
+    'estacion_col_2': { source: 'AI', field: 'puntos[1].nombre', description: "Nombre de la estación 2 (encabezado de columna)" },
+    'estacion_col_3': { source: 'AI', field: 'puntos[2].nombre', description: "Nombre de la estación 3 (encabezado de columna)" },
+    'temperatura_promedio': { source: 'STATIC', staticValue: "", description: "Temperatura promedio (°C) -- sin dato IA" },
+};
+const ASUB_TANDA3_FIELDS: Record<string, FieldMapping> = {
+    'matriz_aguas_texto': { source: 'STATIC', staticValue: "subterráneas", description: "Tipo de aguas en la narrativa de cloruros (\"Para las aguas <tipo> es común...\")" },
+    'cloruros_valor': { source: 'STATIC', staticValue: "", description: "Concentración de cloruros reportada (mg Cl-/L) -- sin dato IA" },
+    'numero_puntos': { source: 'AI', field: 'numeroPuntos', description: "Cantidad de puntos (conclusiones)" },
+    'celda_resultado': { source: 'STATIC', staticValue: "", description: "Celda de tabla de resultados de ejemplo (\"XX\") -- sin mecanismo de filas repetibles" },
+};
+const PUNTO_SECO_TANDA3_FIELDS: Record<string, FieldMapping> = {
+    'fecha_visita_campo': { source: 'DATE', field: 'fullDate', description: 'Fecha de la visita de campo en que los puntos se hallaron secos' },
+};
+const FUENTES_FIJAS_TANDA3_FIELDS: Record<string, FieldMapping> = {
+    'temperatura_media_anual_c': { source: 'STATIC', staticValue: "", description: "Temperatura media anual (°C), fuente climate-data.org -- sin dato IA" },
+    'temperatura_media_anual_f': { source: 'STATIC', staticValue: "", description: "Temperatura media anual (°F)" },
+    'precipitacion_anual_mm': { source: 'STATIC', staticValue: "", description: "Precipitación anual (mm)" },
+    'precipitacion_anual_pulgadas': { source: 'STATIC', staticValue: "", description: "Precipitación anual (pulgadas)" },
+    'fecha_medicion_fuente': { source: 'DATE', field: 'headerDate', description: 'Fecha de la medición de cada fuente evaluada (Tabla 3), DD/MM/AAAA -- solo primera fila real, sin filas repetibles' },
+    'nombre_fuente_evaluada': { source: 'STATIC', staticValue: "", description: "Nombre de la fuente evaluada (Tabla 3) -- sin dato IA" },
+    'parametro_fuente_evaluada': { source: 'STATIC', staticValue: "", description: "Parámetro evaluado en la fuente (Tabla 3) -- sin dato IA" },
+};
+
+// Tags viejos de Ruido que dicen "empresa"/"área de estudio de <empresa>" pero devolvían la
+// ubicación (ciudad, departamento): con el texto de ubicación agregado en la tanda 3 la frase
+// quedaba duplicada ("de la empresa Cartagena, Bolívar en el municipio de Cartagena..."). Se
+// remapean al nombre del cliente SOLO en 65-06 y 65-08 (en las otras plantillas de Ruido estos
+// tags ya devuelven el cliente).
+const EMISION_RUIDO_EMPRESA_FIX: Record<string, FieldMapping> = {
+    'el_area_de_estudio_de_la_empresa_1': { source: 'AI', field: 'cliente', description: 'Empresa cuya área de estudio se mide (65-06 #174; antes devolvía ciudad, departamento)' },
+    'se_presentan_las_descripciones_de_algunas_fuentes__1': { source: 'AI', field: 'cliente', description: 'Empresa cuya área de estudio se describe (65-06 #1146 y #1201; antes devolvía ciudad, departamento)' },
+};
+const INTRADOMICILIARIO_EMPRESA_FIX: Record<string, FieldMapping> = {
+    'los_cuales_se_encuentran_ubicados_en_el_area_de_es_1': { source: 'AI', field: 'cliente', description: 'Empresa cuya área de estudio se mide (65-08 #180; antes devolvía ciudad, departamento)' },
+};
+
 // ================================================================
 // AGUA SUBTERRÁNEA / LIXIVIADOS — 64-08 (32 tags)
 // Also used for PUNTO SECO — 64-10 (same 32 tags)
@@ -663,7 +741,7 @@ export const ASUB_CONFIG: TemplateConfig = {
     templateType: 'ASUB',
     displayName: 'Informe de Agua Subterránea / Lixiviados',
     filePattern: 'FO-PO-PSM-64-08',
-    fields: { ...ASUB_AGUA_SUBTERRANEA_FIELDS, ...FUENTE_ANIO_FIELDS, ...ASUB_TANDA2_FIELDS }
+    fields: { ...ASUB_AGUA_SUBTERRANEA_FIELDS, ...FUENTE_ANIO_FIELDS, ...ASUB_TANDA2_FIELDS, ...ASUB_TANDA3_FIELDS }
 };
 
 // ================================================================
@@ -776,7 +854,7 @@ export const PUNTO_SECO_CONFIG: TemplateConfig = {
     templateType: 'PUNTO_SECO',
     displayName: 'Caracterización de Agua (matriz genérica)',
     filePattern: 'FO-PO-PSM-64-10',
-    fields: { ...AGUA_GENERICA_FIELDS, ...FUENTE_ANIO_FIELDS, ...PUNTO_SECO_TANDA2_FIELDS }
+    fields: { ...AGUA_GENERICA_FIELDS, ...FUENTE_ANIO_FIELDS, ...PUNTO_SECO_TANDA2_FIELDS, ...PUNTO_SECO_TANDA3_FIELDS }
 };
 // ================================================================
 // CARACTERIZACIÓN DE RESIDUOS SÓLIDOS (64-09) — REEMPLAZO DE CONTENIDO
@@ -1024,7 +1102,7 @@ export const EMISION_RUIDO_CONFIG: TemplateConfig = {
     templateType: 'EMISION_RUIDO',
     displayName: 'Estudio de Emisión de Ruido',
     filePattern: 'FO-PO-PSM-65-06',
-    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...EMISION_RUIDO_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS }
+    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...EMISION_RUIDO_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS, ...RUIDO_UBICACION_FIELDS, ...RUIDO_NARRATIVA_FIELDS, ...EMISION_RUIDO_EMPRESA_FIX }
 };
 
 // RUIDO AMBIENTAL (65-07)
@@ -1032,7 +1110,7 @@ export const RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
     templateType: 'RUIDO_AMBIENTAL',
     displayName: 'Estudio de Ruido Ambiental',
     filePattern: 'FO-PO-PSM-65-07',
-    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...RUIDO_AMBIENTAL_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS }
+    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...RUIDO_AMBIENTAL_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS, ...RUIDO_UBICACION_FIELDS, ...RUIDO_NARRATIVA_FIELDS }
 };
 
 // RUIDO INTRADOMICILIARIO (65-08)
@@ -1139,7 +1217,7 @@ export const RUIDO_INTRADOMICILIARIO_CONFIG: TemplateConfig = {
     templateType: 'RUIDO_INTRADOMICILIARIO',
     displayName: 'Estudio de Ruido Intradomiciliario',
     filePattern: 'FO-PO-PSM-65-08',
-    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...RUIDO_INTRADOMICILIARIO_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS }
+    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...RUIDO_INTRADOMICILIARIO_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS, ...RUIDO_UBICACION_FIELDS, ...INTRADOMICILIARIO_EMPRESA_FIX }
 };
 
 // EMISIÓN DE RUIDO Y RUIDO AMBIENTAL (65-09)
@@ -1161,7 +1239,7 @@ export const EMISION_RUIDO_AMBIENTAL_CONFIG: TemplateConfig = {
     templateType: 'EMISION_RUIDO_AMBIENTAL',
     displayName: 'Estudio de Emisión de Ruido y Ruido Ambiental',
     filePattern: 'FO-PO-PSM-65-09',
-    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...EMISION_RUIDO_AMBIENTAL_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS }
+    fields: { ...AGUA_FIELDS, ...ERRA_LEGACY_FIELDS, ...EMISION_RUIDO_AMBIENTAL_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS, ...RUIDO_UBICACION_FIELDS, ...RUIDO_FOTOS_FIELDS }
 };
 
 // ================================================================
@@ -1574,7 +1652,7 @@ export const CALIDAD_AIRE_CONFIG: TemplateConfig = {
     templateType: 'CALIDAD_AIRE',
     displayName: 'Informe de Calidad de Aire',
     filePattern: 'FO-PO-PSM-66-18',
-    fields: { ...AGUA_FIELDS, ...CALIDAD_AIRE_LEGACY_FIELDS, ...FUENTE_ANIO_FIELDS, ...AIRE_PROYECTO_FIELDS, ...CALIDAD_AIRE_TANDA2_FIELDS }
+    fields: { ...AGUA_FIELDS, ...CALIDAD_AIRE_LEGACY_FIELDS, ...FUENTE_ANIO_FIELDS, ...AIRE_PROYECTO_FIELDS, ...CALIDAD_AIRE_TANDA2_FIELDS, ...AIRE_TANDA3_FIELDS }
 };
 
 
@@ -1698,7 +1776,7 @@ export const OLORES_CONFIG: TemplateConfig = {
     templateType: 'OLORES',
     displayName: 'Informe de Olores Ofensivos',
     filePattern: 'FO-PO-PSM-66-19',
-    fields: { ...AGUA_FIELDS, ...OLORES_LEGACY_FIELDS, ...FUENTE_ANIO_FIELDS, ...AIRE_PROYECTO_FIELDS }
+    fields: { ...AGUA_FIELDS, ...OLORES_LEGACY_FIELDS, ...FUENTE_ANIO_FIELDS, ...AIRE_PROYECTO_FIELDS, ...OLORES_TANDA3_FIELDS }
 };
 
 // PARTÍCULAS VIABLES (66-20)
@@ -1811,7 +1889,7 @@ export const PARTICULAS_VIABLES_CONFIG: TemplateConfig = {
     templateType: 'PARTICULAS_VIABLES',
     displayName: 'Informe de Partículas Viables',
     filePattern: 'FO-PO-PSM-66-20',
-    fields: { ...AGUA_FIELDS, ...PARTICULAS_LEGACY_FIELDS, ...FUENTE_ANIO_FIELDS }
+    fields: { ...AGUA_FIELDS, ...PARTICULAS_LEGACY_FIELDS, ...FUENTE_ANIO_FIELDS, ...RUIDO_FOTOS_FIELDS }
 };
 
 // ================================================================
@@ -2136,7 +2214,7 @@ export const FUENTES_FIJAS_CONFIG: TemplateConfig = {
     templateType: 'FUENTES_FIJAS',
     displayName: 'Informe de Fuentes Fijas',
     filePattern: 'FO-PO-PSM-67-11',
-    fields: { ...AGUA_FIELDS, ...FUENTES_FIJAS_PREVIO_DELTA_FIELDS, ...FUENTES_FIJAS_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS }
+    fields: { ...AGUA_FIELDS, ...FUENTES_FIJAS_PREVIO_DELTA_FIELDS, ...FUENTES_FIJAS_DELTA_FIELDS, ...FUENTE_ANIO_FIELDS, ...HISTORIAL_FECHA_FIELDS, ...RUIDO_UBICACION_FIELDS, ...FUENTES_FIJAS_TANDA3_FIELDS }
 };
 
 
@@ -2224,6 +2302,7 @@ const BIOTA_FIELDS: Record<string, FieldMapping> = {
     'ot_id_revision': { source: 'STATIC', staticValue: '', description: 'Identificador del informe (historial, versión 01) -- vacío para no generar un identificador falso' },
     'fecha_revision': { source: 'DATE', field: 'fullDate', description: 'Fecha de emisión (historial, versión 01)' },
     'ot_id_final': { source: 'OIT', field: 'oitNumber', description: 'Identificador del informe nuevo que reemplaza al anulado (nota final)' },
+    'valor_esfuerzo_muestreo': { source: 'STATIC', staticValue: '', description: 'Valores de las tablas de esfuerzo de muestreo (Tablas 10 y 11: días, personas, horas, total) -- sin filas repetibles' },
 };
 
 export const BIOTA_CONFIG: TemplateConfig = {

@@ -89,13 +89,12 @@ describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const)
 // ---------------------------------------------------------------------------
 // Auditoría 2026-09-23, tanda 2: portadas, historial de cambios/OT en el cuerpo, instrucciones
 // editoriales y blancos "[n = ___]". Excepciones = pendientes documentados (tanda 3 / decisión):
-//  - 67-11: Tabla 3 "Fuentes evaluadas" con 3 fechas DD/MM/AAAA de fila de ejemplo.
-//  - 65-07: portada "los días xx y xx de mes de año" (narrativa con datos por definir).
+//  (las excepciones de la tanda 2 en 67-11 y 65-07 se resolvieron en la tanda 3)
 // El encabezado (header*.xml) con "OT XXXX-..." queda fuera: pendiente del formato de la OT.
 // ---------------------------------------------------------------------------
 const TANDA2_RULES: Array<{ label: string; re: RegExp; allowed?: Record<string, number> }> = [
     { label: 'NOMBRE CLIENTE/EMPRESA', re: /NOMBRE (CLIENTE|EMPRESA)|OMBRE EMPRESA/ },
-    { label: 'fecha de ejemplo (DD/MM/AA, Día/Mes/Año, de mes de año)', re: /DD\/MM\/AA|dd\/mm\/año|Día\/Mes\/Año|de mes de año/i, allowed: { '67-11': 3, '65-07': 1 } },
+    { label: 'fecha de ejemplo (DD/MM/AA, Día/Mes/Año, de mes de año)', re: /DD\/MM\/AA|dd\/mm\/año|Día\/Mes\/Año|de mes de año/i, allowed: {} },
     { label: 'portada con placeholder en mayúsculas', re: /^(PROYECTO|PROYECTO, SEDE|CIUDAD, DEPARTAMENTO)$/ },
     { label: 'blanco de instrucción "[n = ___]"', re: /\[[^\]]*___[^\]]*\]|\[diligenciar|\[descripción del arreglo|\[listar|diligenciar código|Diligenciar parámetros/i },
     { label: 'OT XXXX en el cuerpo', re: /OT ?XXXX|XXXX-X-/ },
@@ -112,6 +111,71 @@ describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const)
         it.each(TANDA2_RULES.map(r => [r.label, r] as const))('sin %s', (_l, rule) => {
             const hits = paras.filter(t => rule.re.test(t));
             expect(hits.length).toBeLessThanOrEqual(rule.allowed?.[code] ?? 0);
+        });
+    }
+);
+
+// ---------------------------------------------------------------------------
+// Auditoría 2026-09-23, tanda 3: placeholders "xx/XX/X" en narrativas y tablas de ejemplo, y
+// "Fuente: ..., Año". Excepciones documentadas (pendientes de decisión o legítimas):
+//  - 65-07: párrafo suelto "xxx" junto al Certificado del pistófono (sin contexto claro).
+//  - 65-09: "X" marcas de SI/NO en la verificación de calibración (casillas), no son placeholders.
+// ---------------------------------------------------------------------------
+const TANDA3_RULES: Array<{ label: string; re: RegExp; allowed?: Record<string, number> }> = [
+    // "Año" como placeholder (no seguido de un año real: "Año 2006" es una cita legítima)
+    { label: '"Fuente: ..., Año/AÑO"', re: /^Fuente.*\b(Año|AÑO)\b(?!\s*\d{4})/ },
+    { label: 'instrucción "diligenciar fecha"', re: /diligenciar fecha/i },
+    // 65-09: "Fuente: XXXX, 202X." (origen de datos por definir). 65-07: "xxx" suelto junto al certificado.
+    { label: 'placeholder xxx en minúsculas', re: /\bx{3,}\b/i, allowed: { '65-07': 1, '65-09': 1 } },
+    { label: 'celda de ejemplo "X"/"XX" suelta', re: /^X{1,2}$/, allowed: { '65-09': 2 } },
+    // 65-09: encabezado "Punto X:" por definir. 66-19: pie de índice "Fotografía 1. Estación X..." sin contraparte en el cuerpo.
+    { label: '"Punto x" / "Estación X" de ejemplo', re: /Punto [xX]\b|Estación X\b/, allowed: { '65-09': 1, '66-19': 1 } },
+    { label: '"X estaciones" / "X %" de ejemplo', re: /\bX (\(X\) )?estaciones|\bel X ?%/ },
+];
+
+describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const))(
+    'plantilla %s: tanda 3', (code, file) => {
+        const xml = new PizZip(fs.readFileSync(path.join(dir, file))).file('word/document.xml')!.asText();
+        const paras = xml.split('</w:p>')
+            .map(p => [...p.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map(m => m[1]).join('').replace(/\{[^}]*\}/g, '').trim())
+            .filter(Boolean);
+
+        it.each(TANDA3_RULES.map(r => [r.label, r] as const))('sin %s', (_l, rule) => {
+            const hits = paras.filter(t => rule.re.test(t));
+            expect(hits.length).toBeLessThanOrEqual(rule.allowed?.[code] ?? 0);
+        });
+    }
+);
+
+// Todo tag escalar de CADA plantilla debe existir en su configuración (o ser de bucle/sección).
+const LOOP_KEYS = new Set([
+    'tiene_laboratorios_parametros', 'laboratorios_parametros', 'laboratorio_nombre', 'parametro_nombre', 'resolucion_numero_fecha',
+    'tiene_puntos_monitoreo', 'puntos_monitoreo', 'punto_descripcion', 'nombre', 'codigo', 'punto_hora', 'punto_cota',
+    'punto_latitud_gms', 'punto_longitud_gms', 'punto_norte_or', 'punto_este_or',
+    'tiene_metodos_analiticos', 'metodos_analiticos', 'metodo_analitico', 'tiene_categorias_tamano', 'categorias_tamano',
+    'categoria_nombre', 'categoria_criterio', 'tiene_esfuerzo_muestreo', 'esfuerzo_muestreo', 'esfuerzo_tipo', 'esfuerzo_dias',
+    'esfuerzo_personas', 'esfuerzo_horas', 'esfuerzo_total', 'tiene_indices_biologicos', 'indices_biologicos', 'indice_nombre',
+    'indice_concepto', 'indice_formula', 'indice_variables', 'indice_rango', 'tiene_parametros_puntaje', 'parametros_puntaje',
+    'parametro_puntaje', 'tiene_bmw_col', 'bmw_col', 'clase_nombre', 'calidad_descripcion', 'bmw_valor', 'astp_valor',
+    'significado', 'color', 'tiene_resultados_laboratorio', 'tiene_anexos', 'anexos', 'anexo_nombre', 'anexo_laboratorio',
+    'anexo_archivo', 'anexo_paginas',
+]);
+// Tags históricos sin entrada de config que ya se resuelven vacíos (pendiente de limpieza).
+const KNOWN_UNCONFIGURED: Record<string, string[]> = { '65-07': ['serial_pistofono_1'] };
+
+describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const))(
+    'plantilla %s: tags vs configuración', (code, file) => {
+        it('todo tag de la plantilla está configurado', () => {
+            const zip = new PizZip(fs.readFileSync(path.join(dir, file)));
+            const tags = new Set<string>();
+            for (const part of Object.keys(zip.files).filter(n => /^word\/(document|header\d|footer\d)\.xml$/.test(n))) {
+                const text = zip.file(part)!.asText().split('</w:p>')
+                    .map(p => [...p.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map(m => m[1]).join('')).join('\n');
+                for (const m of text.matchAll(/\{[#\/^]?([A-Za-z0-9_.]+)\}/g)) tags.add(m[1]);
+            }
+            const cfg = TEMPLATE_CONFIGS[getTemplateType(file)].fields;
+            const missing = [...tags].filter(t => !cfg[t] && !LOOP_KEYS.has(t) && !(KNOWN_UNCONFIGURED[code] || []).includes(t));
+            expect(missing).toEqual([]);
         });
     }
 );
