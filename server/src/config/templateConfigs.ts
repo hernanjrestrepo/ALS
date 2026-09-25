@@ -77,6 +77,7 @@ const RUIDO_NARRATIVA_FIELDS: Record<string, FieldMapping> = {
     'sector_normativo': { source: 'STATIC', staticValue: "", description: "Sector de la Resolución 0627/2006 con el que se comparan los resultados -- sin dato IA" },
     'descripcion_sector': { source: 'STATIC', staticValue: "", description: "Descripción del sector normativo -- sin dato IA" },
     '1_ubicacion_1': { source: 'STATIC', staticValue: '', description: 'Figura 1: continuacion del titulo "Ubicacion ... de monitoreo de ruido ambiental" (65-07, indice y cuerpo)' },
+    'certificado_adicional': { source: 'STATIC', staticValue: '', description: 'Tercera línea de la lista de certificados del Anexo 3 (65-07), sin nombre definido -- antes "xxx"' },
     'tipo_dia_medicion': { source: 'STATIC', staticValue: "", description: "Tipo de día de la medición (hábil / no hábil) -- sin dato IA" },
 };
 const RUIDO_FOTOS_FIELDS: Record<string, FieldMapping> = {

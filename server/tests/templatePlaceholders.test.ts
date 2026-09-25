@@ -118,18 +118,16 @@ describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const)
 // ---------------------------------------------------------------------------
 // Auditoría 2026-09-23, tanda 3: placeholders "xx/XX/X" en narrativas y tablas de ejemplo, y
 // "Fuente: ..., Año". Excepciones documentadas (pendientes de decisión o legítimas):
-//  - 65-07: párrafo suelto "xxx" junto al Certificado del pistófono (sin contexto claro).
 //  - 65-09: "X" marcas de SI/NO en la verificación de calibración (casillas), no son placeholders.
 // ---------------------------------------------------------------------------
 const TANDA3_RULES: Array<{ label: string; re: RegExp; allowed?: Record<string, number> }> = [
     // "Año" como placeholder (no seguido de un año real: "Año 2006" es una cita legítima)
     { label: '"Fuente: ..., Año/AÑO"', re: /^Fuente.*\b(Año|AÑO)\b(?!\s*\d{4})/ },
     { label: 'instrucción "diligenciar fecha"', re: /diligenciar fecha/i },
-    // 65-09: "Fuente: XXXX, 202X." (origen de datos por definir). 65-07: "xxx" suelto junto al certificado.
-    { label: 'placeholder xxx en minúsculas', re: /\bx{3,}\b/i, allowed: { '65-07': 1, '65-09': 1 } },
+    // 65-09: "Fuente: XXXX, 202X." (origen de datos por definir).
+    { label: 'placeholder xxx en minúsculas', re: /\bx{3,}\b/i, allowed: { '65-09': 1 } },
     { label: 'celda de ejemplo "X"/"XX" suelta', re: /^X{1,2}$/, allowed: { '65-09': 2 } },
-    // 65-09: encabezado "Punto X:" por definir.
-    { label: '"Punto x" / "Estación X" de ejemplo', re: /Punto [xX]\b|Estación X\b/, allowed: { '65-09': 1 } },
+    { label: '"Punto x" / "Estación X" de ejemplo', re: /Punto [xX]\b|Estación X\b/ },
     { label: '"X estaciones" / "X %" de ejemplo', re: /\bX (\(X\) )?estaciones|\bel X ?%/ },
     // "dirección XX ... velocidad de XX m/s" y similares dentro de un párrafo largo.
     { label: 'valor "XX" de ejemplo dentro del texto', re: /\bXX\b/ },
