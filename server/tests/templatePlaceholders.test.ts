@@ -131,6 +131,9 @@ const TANDA3_RULES: Array<{ label: string; re: RegExp; allowed?: Record<string, 
     // 65-09: encabezado "Punto X:" por definir. 66-19: pie de índice "Fotografía 1. Estación X..." sin contraparte en el cuerpo.
     { label: '"Punto x" / "Estación X" de ejemplo', re: /Punto [xX]\b|Estación X\b/, allowed: { '65-09': 1, '66-19': 1 } },
     { label: '"X estaciones" / "X %" de ejemplo', re: /\bX (\(X\) )?estaciones|\bel X ?%/ },
+    // "dirección XX ... velocidad de XX m/s" y similares dentro de un párrafo largo.
+    // 67-11: los 7 pies de índice "Fotografía N. XX" / "Figura 2 ... XX" sin contraparte en el cuerpo (pendiente).
+    { label: 'valor "XX" de ejemplo dentro del texto', re: /\bXX\b/, allowed: { '67-11': 7, '65-09': 0 } },
 ];
 
 describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const))(
@@ -179,3 +182,14 @@ describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const)
         });
     }
 );
+
+// Ningún valor STATIC de la configuración debe imprimir un literal tipo "XXXX"/"IT-XXXX-XX" en el informe
+// (auditoría 2026-09-23: 'codigo_it_muestreo' de Agua Subterránea imprimía "IT-XXXX-XX").
+describe('configuración: valores STATIC sin literales de ejemplo', () => {
+    it.each(Object.entries(TEMPLATE_CONFIGS))('%s', (_type, cfg) => {
+        const bad = Object.entries(cfg.fields)
+            .filter(([, v]) => v.source === 'STATIC' && /X{2,}/.test(v.staticValue || ''))
+            .map(([k, v]) => `${k}=${v.staticValue}`);
+        expect(bad).toEqual([]);
+    });
+});

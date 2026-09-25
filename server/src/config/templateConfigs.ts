@@ -87,6 +87,8 @@ const RUIDO_FOTOS_FIELDS: Record<string, FieldMapping> = {
 };
 const AIRE_TANDA3_FIELDS: Record<string, FieldMapping> = {
     'numero_puntos': { source: 'AI', field: 'numeroPuntos', description: "Cantidad de estaciones de monitoreo (narrativas de resultados)" },
+    'viento_direccion_predominante': { source: 'STATIC', staticValue: '', description: 'Dirección predominante del viento en la rosa de vientos consolidada -- sin dato IA' },
+    'viento_velocidad_promedio': { source: 'STATIC', staticValue: '', description: 'Velocidad promedio del viento registrada (m/s) -- sin dato IA' },
     'temperatura_promedio': { source: 'STATIC', staticValue: "", description: "Temperatura promedio del periodo (°C) -- sin dato IA" },
     'presion_promedio': { source: 'STATIC', staticValue: "", description: "Presión atmosférica promedio (mmHg) -- sin dato IA" },
     'humedad_promedio': { source: 'STATIC', staticValue: "", description: "Humedad relativa promedio (%) -- sin dato IA" },
@@ -104,6 +106,8 @@ const OLORES_TANDA3_FIELDS: Record<string, FieldMapping> = {
     'estacion_col_1': { source: 'AI', field: 'puntos[0].nombre', description: "Nombre de la estación 1 (encabezado de columna \"Estación X (µg/m3)\")" },
     'estacion_col_2': { source: 'AI', field: 'puntos[1].nombre', description: "Nombre de la estación 2 (encabezado de columna)" },
     'estacion_col_3': { source: 'AI', field: 'puntos[2].nombre', description: "Nombre de la estación 3 (encabezado de columna)" },
+    'viento_direccion_predominante': { source: 'STATIC', staticValue: '', description: 'Dirección predominante del viento en la rosa de vientos consolidada -- sin dato IA' },
+    'viento_velocidad_promedio': { source: 'STATIC', staticValue: '', description: 'Velocidad promedio del viento registrada (m/s) -- sin dato IA' },
     'temperatura_promedio': { source: 'STATIC', staticValue: "", description: "Temperatura promedio (°C) -- sin dato IA" },
 };
 const ASUB_TANDA3_FIELDS: Record<string, FieldMapping> = {
@@ -653,7 +657,7 @@ const ASUB_AGUA_SUBTERRANEA_FIELDS: Record<string, FieldMapping> = {
     'dia_muestreo_metodologia': { source: 'DATE', field: 'day', description: 'Dia de toma de muestra (metodologia, parrafo aplicable a subterraneas)' },
     'mes_muestreo_metodologia': { source: 'DATE', field: 'month', description: 'Mes de toma de muestra (metodologia)' },
     'ano_muestreo_metodologia': { source: 'DATE', field: 'year', description: 'Anio de toma de muestra (metodologia)' },
-    'codigo_it_muestreo': { source: 'STATIC', staticValue: 'IT-XXXX-XX', description: 'Codigo de instructivo de muestreo (placeholder literal preservado, sin dato AI)' },
+    'codigo_it_muestreo': { source: 'STATIC', staticValue: '', description: 'Codigo de instructivo de muestreo (sin dato AI; antes imprimia el literal IT-XXXX-XX en el informe)' },
     'diligenciar_matriz_instrumento': { source: 'STATIC', staticValue: 'agua subterránea', description: 'Tipo de matriz (parrafo instrumento de muestreo) -- fijo: agua subterranea' },
     'tipo_instrumento_empleado': { source: 'STATIC', staticValue: '', description: 'Tipo de instrumento de muestreo empleado (sin dato AI disponible)' },
     'tipo_agua_planeacion': { source: 'STATIC', staticValue: 'agua subterránea', description: 'Tipo de matriz (parrafo planeacion y definicion de la estrategia de monitoreo) -- fijo' },
