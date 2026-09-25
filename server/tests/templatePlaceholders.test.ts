@@ -128,12 +128,13 @@ const TANDA3_RULES: Array<{ label: string; re: RegExp; allowed?: Record<string, 
     // 65-09: "Fuente: XXXX, 202X." (origen de datos por definir). 65-07: "xxx" suelto junto al certificado.
     { label: 'placeholder xxx en minúsculas', re: /\bx{3,}\b/i, allowed: { '65-07': 1, '65-09': 1 } },
     { label: 'celda de ejemplo "X"/"XX" suelta', re: /^X{1,2}$/, allowed: { '65-09': 2 } },
-    // 65-09: encabezado "Punto X:" por definir. 66-19: pie de índice "Fotografía 1. Estación X..." sin contraparte en el cuerpo.
-    { label: '"Punto x" / "Estación X" de ejemplo', re: /Punto [xX]\b|Estación X\b/, allowed: { '65-09': 1, '66-19': 1 } },
+    // 65-09: encabezado "Punto X:" por definir.
+    { label: '"Punto x" / "Estación X" de ejemplo', re: /Punto [xX]\b|Estación X\b/, allowed: { '65-09': 1 } },
     { label: '"X estaciones" / "X %" de ejemplo', re: /\bX (\(X\) )?estaciones|\bel X ?%/ },
     // "dirección XX ... velocidad de XX m/s" y similares dentro de un párrafo largo.
-    // 67-11: los 7 pies de índice "Fotografía N. XX" / "Figura 2 ... XX" sin contraparte en el cuerpo (pendiente).
-    { label: 'valor "XX" de ejemplo dentro del texto', re: /\bXX\b/, allowed: { '67-11': 7, '65-09': 0 } },
+    { label: 'valor "XX" de ejemplo dentro del texto', re: /\bXX\b/ },
+    // Pies de índice "Fotografía N. XX18" (con el número de página pegado): el \b no los ve.
+    { label: 'pie de índice de fotografía/figura con XX', re: /^(Fotografía|Figura) \d+\. .*XX\d*$/ },
 ];
 
 describe.each(ALL_TEMPLATES.map(f => [f.match(/PSM-(\d+-\d+)/)![1], f] as const))(
@@ -191,5 +192,18 @@ describe('configuración: valores STATIC sin literales de ejemplo', () => {
             .filter(([, v]) => v.source === 'STATIC' && /X{2,}/.test(v.staticValue || ''))
             .map(([k, v]) => `${k}=${v.staticValue}`);
         expect(bad).toEqual([]);
+    });
+});
+
+// Un índice de fotografías solo tiene sentido si el cuerpo trae sus pies de foto: cada foto aparece dos
+// veces ("Fotografía N. ..." en el índice y en el cuerpo). 67-11 y 66-19 tenían entradas de ejemplo sin
+// fotos reales y se quitó el índice completo (2026-09-23): que no reaparezca.
+describe('índice de fotografías sin fotos en el cuerpo', () => {
+    it.each(['67-11', '66-19'])('%s no tiene índice de fotografías', code => {
+        const file = ALL_TEMPLATES.find(f => f.includes('PSM-' + code))!;
+        const xml = new PizZip(fs.readFileSync(path.join(dir, file))).file('word/document.xml')!.asText();
+        const text = xml.split('</w:p>').map(p => [...p.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map(m => m[1]).join(''));
+        expect(text.some(t => /ÍNDICE DE FOTOGRAFÍAS/.test(t))).toBe(false);
+        expect(text.filter(t => /^Fotografía \d+\./.test(t)).length).toBe(0);
     });
 });
