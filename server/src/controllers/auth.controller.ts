@@ -12,16 +12,21 @@ export const register = async (req: Request, res: Response) => {
         const { password, name } = req.body;
         const email = (req.body.email || '').trim().toLowerCase();
 
+        // El registro publico solo existe para crear el primer SUPER_ADMIN de una instalacion nueva.
+        // Con usuarios ya creados esta cerrado: cualquier cuenta autenticada (incluso rol USER) puede
+        // leer todas las OITs, asi que las cuentas las crea un SUPER_ADMIN (POST /users).
+        const userCount = await prisma.user.count();
+        const isFirstUser = userCount === 0;
+        if (!isFirstUser) {
+            return res.status(403).json({ message: 'El registro público está deshabilitado. Solicite su cuenta al administrador.' });
+        }
+
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
             return res.status(400).json({ message: 'El usuario ya existe' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Check if this is the first user - make them SUPER_ADMIN
-        const userCount = await prisma.user.count();
-        const isFirstUser = userCount === 0;
 
         const user = await prisma.user.create({
             data: {

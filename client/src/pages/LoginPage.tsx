@@ -142,10 +142,7 @@ export default function LoginPage() {
                 </CardContent>
                 <CardFooter className="justify-center border-t border-slate-100 pt-6">
                     <p className="text-sm text-slate-500">
-                        ¿No tienes una cuenta?{' '}
-                        <Link to="/register" className="text-slate-900 hover:underline font-medium">
-                            Regístrate
-                        </Link>
+                        ¿Necesitas acceso? Solicita tu cuenta al administrador.
                     </p>
                 </CardFooter>
             </Card>
