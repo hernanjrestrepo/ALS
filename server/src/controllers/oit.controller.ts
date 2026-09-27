@@ -1319,7 +1319,9 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
         try {
             await createNotification(userId, 'Generando Propuesta', 'Creando propuesta de planeación...', 'INFO', oitId);
             const proposal = await planningService.generateProposal(oitId);
-            await createNotification(userId, 'Propuesta Lista', `Propuesta generada con plantilla "${proposal.templateName}"`, 'SUCCESS', oitId);
+            // generateProposal es un stub legado que no devuelve templateName (ver
+            // planning.service.ts) - la notificacion decia literal 'plantilla "undefined"'.
+            await createNotification(userId, 'Propuesta Lista', proposal.templateName ? `Propuesta generada con plantilla "${proposal.templateName}"` : 'Propuesta de planeación generada', 'SUCCESS', oitId);
         } catch (e) {
             logError(`OIT ${oitId}: no se pudo generar la propuesta de planeacion`, e);
             await createNotification(userId, 'Error generando propuesta', `No se pudo generar la propuesta de planeación: ${errorMessage(e)}`.substring(0, 400), 'ERROR', oitId);
