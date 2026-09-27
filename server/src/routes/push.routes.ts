@@ -16,7 +16,10 @@ router.get('/vapid-public-key', (req: Request, res: Response) => {
 // Subscribe to push notifications
 router.post('/subscribe', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).userId;
+        // authMiddleware guarda el usuario en req.user.userId, no en req.userId - con
+        // el campo plano, userId siempre llegaba undefined y la suscripcion nunca
+        // funciono realmente (ni aqui ni en /unsubscribe ni en /test).
+        const userId = (req as any).user?.userId;
         const { subscription } = req.body;
 
         if (!subscription) {
@@ -39,7 +42,7 @@ router.post('/subscribe', authMiddleware, async (req: Request, res: Response) =>
 // Unsubscribe from push notifications
 router.post('/unsubscribe', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).userId;
+        const userId = (req as any).user?.userId;
         const success = await pushService.unsubscribe(userId);
 
         if (success) {
@@ -56,7 +59,7 @@ router.post('/unsubscribe', authMiddleware, async (req: Request, res: Response) 
 // Test push notification (for debugging)
 router.post('/test', authMiddleware, async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).userId;
+        const userId = (req as any).user?.userId;
 
         const success = await pushService.sendToUser(userId, {
             title: '🔔 Notificación de Prueba',

@@ -6,6 +6,17 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 
+// Mismo mapeo que AnalyticsPage.tsx (el estado se mostraba crudo, ej. "COMPLETED")
+const STATUS_LABELS: Record<string, string> = {
+    PENDING: 'Pendiente',
+    UPLOADING: 'Subiendo',
+    ANALYZING: 'Analizando',
+    REVIEW_REQUIRED: 'Pendiente de aprobación',
+    SCHEDULED: 'Programada',
+    IN_PROGRESS: 'En muestreo',
+    COMPLETED: 'Completada',
+};
+
 interface OIT {
     id: string;
     oitNumber: string;
@@ -114,7 +125,7 @@ export function TodaySchedule() {
                                         oit.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700' :
                                             oit.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
                                                 'bg-slate-100 text-slate-700'}`}>
-                                    {oit.status}
+                                    {STATUS_LABELS[oit.status] || oit.status}
                                 </div>
                             </div>
                         ))}

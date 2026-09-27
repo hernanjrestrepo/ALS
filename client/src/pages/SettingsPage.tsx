@@ -4,9 +4,34 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/features/auth/authStore';
 import { ChangePasswordForm } from '@/components/auth/ChangePasswordForm';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+// Mismo mapeo que UsersPage.tsx (el rol se mostraba crudo, ej. "SUPER_ADMIN")
+const ROLE_LABELS: Record<string, string> = {
+    'SUPER_ADMIN': 'Super Administrador',
+    'ADMIN': 'Administrador',
+    'ENGINEER': 'Ingeniero de Campo',
+    'USER': 'Usuario'
+};
 
 export default function SettingsPage() {
     const user = useAuthStore((state) => state.user);
+    const push = usePushNotifications();
+
+    const handlePushClick = async () => {
+        if (push.isSubscribed) {
+            const ok = await push.unsubscribe();
+            if (ok) toast.success('Notificaciones push desactivadas');
+            else toast.error('No se pudieron desactivar las notificaciones push');
+        } else {
+            const ok = await push.subscribe();
+            if (ok) toast.success('Notificaciones push activadas');
+            else if (push.permission === 'denied') toast.error('El navegador tiene bloqueadas las notificaciones para este sitio. Actívalas desde el candado en la barra de direcciones.');
+            else toast.error('No se pudo activar las notificaciones push');
+        }
+    };
 
     if (!user) {
         return (
@@ -51,7 +76,7 @@ export default function SettingsPage() {
                         <Label htmlFor="role">Rol</Label>
                         <Input
                             id="role"
-                            value={user.role || 'Usuario'}
+                            value={user.role ? (ROLE_LABELS[user.role] || user.role) : 'Usuario'}
                             disabled
                             className="bg-slate-50"
                         />
@@ -80,14 +105,23 @@ export default function SettingsPage() {
                             <p className="font-medium">Notificaciones por correo</p>
                             <p className="text-sm text-slate-500">Recibe actualizaciones por email</p>
                         </div>
-                        <Button variant="outline" size="sm">Configurar</Button>
+                        {/* Todavia no existe backend para preferencias de correo - antes
+                            este boton no hacia nada al hacer clic; se deja deshabilitado
+                            en vez de simular una funcion que no existe. */}
+                        <Button variant="outline" size="sm" disabled title="Próximamente">Próximamente</Button>
                     </div>
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="font-medium">Notificaciones push</p>
-                            <p className="text-sm text-slate-500">Recibe notificaciones en el navegador</p>
+                            <p className="text-sm text-slate-500">
+                                {!push.isSupported ? 'Tu navegador no soporta notificaciones push'
+                                    : push.isSubscribed ? 'Activas en este navegador'
+                                        : 'Recibe notificaciones en el navegador'}
+                            </p>
                         </div>
-                        <Button variant="outline" size="sm">Configurar</Button>
+                        <Button variant="outline" size="sm" disabled={!push.isSupported || push.loading} onClick={handlePushClick}>
+                            {push.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : push.isSubscribed ? 'Desactivar' : 'Activar'}
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
