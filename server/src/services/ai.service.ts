@@ -146,7 +146,8 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 system: system || 'Eres un asistente experto en ingeniería ambiental y normativa colombiana.',
                 prompt: message,
                 stream: false,
-            });
+                options: { num_ctx: 16384 },
+            }, { timeout: 180000 });
             return response.data.response || '';
         } catch (error: any) {
             logError(`AI Chat error (modelo ${useModel})`, error);

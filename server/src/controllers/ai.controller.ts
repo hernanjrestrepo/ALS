@@ -1,17 +1,12 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { aiService } from '../services/ai.service';
+import { buildAssistantContext, ASSISTANT_SYSTEM_PROMPT, statusLabel } from '../services/assistantContext';
 import fs from 'fs';
 const pdfParse = require('pdf-parse');
 
 const prisma = new PrismaClient();
 
-const STATUS_LABELS: Record<string, string> = {
-    PENDING: 'Pendiente', UPLOADING: 'Cargando archivos', ANALYZING: 'Analizando',
-    REVIEW_REQUIRED: 'Pendiente de aprobación', SCHEDULED: 'Programada',
-    IN_PROGRESS: 'En muestreo', COMPLETED: 'Completada',
-};
-const statusLabel = (s: string) => STATUS_LABELS[s] || s;
 
 // Preguntas de hecho concreto (estado de una OIT, existencia de una norma) se
 // responden DIRECTO desde la base de datos, sin pasar por el modelo de IA local.
@@ -60,45 +55,30 @@ function tryDeterministicAnswer(
 
 export const chat = async (req: Request, res: Response) => {
     try {
-        const { message, model, pageContext } = req.body;
+        const { message, model, pageContext, history } = req.body;
 
         if (!message) {
             return res.status(400).json({ error: 'Message is required' });
         }
+        const userId = (req as any).user?.userId;
 
-        // 🔥 OBTENER TODO EL CONTEXTO DE LA BASE DE DATOS
-        const [oits, templates, standards, resources] = await Promise.all([
+        // Foto completa del sistema (una linea por registro; ver services/assistantContext.ts)
+        const [oits, quotations, templates, standards, resources, users, nonConformities, unreadNotifications] = await Promise.all([
             prisma.oIT.findMany({
                 orderBy: { createdAt: 'desc' },
-                take: 50 // Últimos 50 OITs
+                take: 200,
+                include: { assignedEngineers: { include: { user: { select: { name: true, email: true } } } }, quotation: true }
             }),
-            prisma.samplingTemplate.findMany(),
-            prisma.standard.findMany(),
-            prisma.resource.findMany()
+            prisma.quotation.findMany({ orderBy: { createdAt: 'desc' }, take: 100, select: { quotationNumber: true, clientName: true, status: true, approvedForOit: true, createdAt: true, description: true } }),
+            prisma.samplingTemplate.findMany({ where: { deletedAt: null } }),
+            prisma.standard.findMany({ select: { title: true, type: true, description: true } }),
+            prisma.resource.findMany(),
+            prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true, email: true, role: true } }),
+            prisma.nonConformity.findMany({ orderBy: { createdAt: 'desc' }, take: 50, include: { oit: { select: { oitNumber: true } } } }),
+            userId ? prisma.notification.count({ where: { userId, read: false } }) : Promise.resolve(0),
         ]);
 
-        // Si el usuario esta viendo una OIT especifica, se trae su detalle completo
-        // para que el asistente responda con contexto exacto de esa pantalla
-        let currentOitBlock = '';
-        let currentOit: any = null;
-        if (pageContext?.oitId) {
-            currentOit = await prisma.oIT.findUnique({
-                where: { id: pageContext.oitId },
-                include: { assignedEngineers: { include: { user: { select: { name: true, email: true } } } }, quotation: true }
-            });
-            if (currentOit) {
-                currentOitBlock = `
-🔎 EL USUARIO ESTÁ VIENDO AHORA MISMO ESTA OIT (responde con esto como prioridad si la pregunta se refiere a "esta OIT", "esta orden", etc.):
-- OIT #${currentOit.oitNumber}
-  Estado: ${currentOit.status}
-  Descripción: ${currentOit.description || 'N/A'}
-  Ubicación: ${currentOit.location || 'N/A'}
-  Fecha programada: ${currentOit.scheduledDate ? new Date(currentOit.scheduledDate).toLocaleDateString() : 'No programada'}
-  Ingenieros asignados: ${currentOit.assignedEngineers.map((a: { user: { name: string } }) => a.user.name).join(', ') || 'Ninguno'}
-  Cotización relacionada: ${currentOit.quotation?.quotationNumber || 'N/A'}
-`;
-            }
-        }
+        const currentOit: any = pageContext?.oitId ? oits.find((o: any) => o.id === pageContext.oitId) || null : null;
 
         // Preguntas de hecho concreto se responden directo desde la base de datos,
         // sin arriesgar que el modelo invente algo - ver tryDeterministicAnswer arriba.
@@ -107,60 +87,21 @@ export const chat = async (req: Request, res: Response) => {
             return res.json({ response: deterministicAnswer });
         }
 
-        // Construir contexto enriquecido
-        const contextPrompt = `
-Eres un asistente experto del sistema ALS Xmart para gestión de Órdenes de Inspección y Toma de muestras (OIT).
-${currentOitBlock}
-CONTEXTO DE LA BASE DE DATOS:
+        const context = buildAssistantContext(
+            { oits, quotations, templates, standards, resources, users, nonConformities, unreadNotifications },
+            message,
+            { currentOitId: currentOit?.id }
+        );
 
-📊 OITs EN SISTEMA (${oits.length} total):
-${oits.slice(0, 10).map((oit: any) => `
-- OIT #${oit.oitNumber}
-  Estado: ${oit.status}
-  Descripción: ${oit.description || 'N/A'}
-  Fecha: ${oit.createdAt.toLocaleDateString()}
-  Planeación aceptada: ${oit.planningAccepted ? 'Sí' : 'No'}
-  Tiene muestreo: ${oit.samplingData ? 'Sí' : 'No'}
-`).join('\n')}
-${oits.length > 10 ? `... y ${oits.length - 10} OITs más` : ''}
+        // Ultimos turnos de la conversacion (la pagina del Asistente los envia), recortados
+        const turns: Array<{ role: string; content: string }> = Array.isArray(history) ? history.slice(-6) : [];
+        const historyBlock = turns.length
+            ? `CONVERSACIÓN PREVIA:\n${turns.map(t => `${t.role === 'user' ? 'Usuario' : 'Asistente'}: ${String(t.content || '').slice(0, 600)}`).join('\n')}\n\n`
+            : '';
 
-🧪 PLANTILLAS DE MUESTREO (${templates.length} total):
-${templates.map((t: any) => `
-- ${t.name}
-  Tipo OIT: ${t.oitType}
-  Descripción: ${t.description}
-  Pasos: ${JSON.parse(t.steps).length} pasos configurados
-`).join('\n')}
+        const prompt = `DATOS ACTUALES DEL SISTEMA:\n\n${context}\n\n${historyBlock}PREGUNTA DEL USUARIO: ${message}`;
 
-📋 NORMAS Y ESTÁNDARES (${standards.length} total):
-${standards.map((s: any) => `
-- ${s.title}
-  Tipo: ${s.type}
-  Descripción: ${s.description}
-`).join('\n')}
-
-🔧 RECURSOS DISPONIBLES (${resources.length} total):
-${resources.map((r: any) => `
-- ${r.name} (${r.type})
-  Cantidad: ${r.quantity}
-  Estado: ${r.status}
-`).join('\n')}
-
-ESTADÍSTICAS:
-- OITs Pendientes: ${oits.filter((o: any) => o.status === 'PENDING').length}
-- OITs En Análisis: ${oits.filter((o: any) => o.status === 'ANALYZING').length}
-- OITs Agendados: ${oits.filter((o: any) => o.status === 'SCHEDULED').length}
-- OITs En Progreso: ${oits.filter((o: any) => o.status === 'IN_PROGRESS').length}
-- OITs Completados: ${oits.filter((o: any) => o.status === 'COMPLETED').length}
-
-Usa esta información para dar respuestas precisas y útiles sobre el estado del sistema.
-
-PREGUNTA DEL USUARIO: ${message}
-
-Responde de manera clara, profesional y basándote en los datos reales del sistema.
-`.trim();
-
-        const response = await aiService.chat(contextPrompt, model);
+        const response = await aiService.chat(prompt, model, ASSISTANT_SYSTEM_PROMPT);
         res.json({ response });
     } catch (error) {
         console.error('Error in chat:', error);
