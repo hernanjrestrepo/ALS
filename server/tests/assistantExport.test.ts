@@ -42,6 +42,10 @@ describe('parseBlocks', () => {
     it('junta viñetas y numeradas en una lista', () => {
         expect((b[7] as any).items).toEqual(['Asignar ingeniero a las pendientes', 'Revisar las 9 en revisión']);
     });
+    it('quita citas, separadores y enlaces de descarga inventados', () => {
+        const x = parseBlocks(['> Nota importante', '', '---', '', '[Descargar PDF](#) | [Excel](#)', '', 'Fin'].join('\n'));
+        expect(x).toEqual([{ kind: 'paragraph', text: 'Nota importante' }, { kind: 'paragraph', text: 'Fin' }]);
+    });
     it('un bloque chart invalido se descarta sin romper', () => {
         expect(parseBlocks('```chart\n{no es json\n```\nhola').map(x => x.kind)).toEqual(['paragraph']);
     });

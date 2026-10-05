@@ -169,7 +169,7 @@ export function AssistantMessage({ content, compact, exportable = true }: { cont
                     p: ({ children }) => <p className="my-1.5">{children}</p>,
                     ul: ({ children }) => <ul className="my-1.5 list-disc space-y-0.5 pl-5">{children}</ul>,
                     ol: ({ children }) => <ol className="my-1.5 list-decimal space-y-0.5 pl-5">{children}</ol>,
-                    a: ({ children, href }) => <a href={href} target="_blank" rel="noreferrer" className="text-[#004CAB] underline">{children}</a>,
+                    a: ({ children, href }) => (!href || href === '#') ? null : <a href={href} target="_blank" rel="noreferrer" className="text-[#004CAB] underline">{children}</a>,
                 }}
             >
                 {content}

@@ -161,8 +161,10 @@ export function buildAssistantContext(data: AssistantData, message: string, opts
     const countType = (list: any[], t: string) => list.filter(r => (r.type || 'Sin tipo') === t).length;
     const calLabel = (r: any) => `${clip(r.name, 40)}${r.code ? ` [${r.code}]` : ''} (${r.type || 'sin tipo'}, ${fmtDate(r.calibrationExpiry)})`;
 
+    const pct = (n: number, total: number) => (total ? `${Math.round((n / total) * 100)}%` : '0%');
+    const ROLE: Record<string, string> = { SUPER_ADMIN: 'Super administrador', ADMIN: 'Administrador', ENGINEER: 'Ingeniero', USER: 'Usuario' };
     const usersByRole: Record<string, number> = {};
-    users.forEach(u => { usersByRole[u.role] = (usersByRole[u.role] || 0) + 1; });
+    users.forEach(u => { const r = ROLE[u.role] || u.role; usersByRole[r] = (usersByRole[r] || 0) + 1; });
     const engineers = users.filter(u => u.role === 'ENGINEER');
 
     const mentioned = oitsMentioned(message, oits, opts.currentOitId);
@@ -173,13 +175,13 @@ export function buildAssistantContext(data: AssistantData, message: string, opts
 
         mentioned.length ? `=== DETALLE DE LAS OIT QUE MENCIONA LA PREGUNTA${opts.currentOitId ? ' (la primera es la que el usuario tiene abierta en pantalla)' : ''} ===\n${mentioned.map(oitDetail).join('\n\n')}` : '',
 
-        `=== RESUMEN ===\nOITs: ${oits.length} (${Object.entries(byStatus).map(([k, v]) => `${k}: ${v}`).join(', ')})\nCotizaciones: ${quotations.length} | Plantillas de muestreo: ${templates.length} | Normas: ${standards.length} | Recursos/equipos: ${resources.length} | Usuarios: ${users.length} (${Object.entries(usersByRole).map(([k, v]) => `${k}: ${v}`).join(', ')}) | No conformidades: ${nonConformities.length} | Notificaciones sin leer del usuario: ${data.unreadNotifications}`,
+        `=== RESUMEN ===\nOITs: ${oits.length} (${Object.entries(byStatus).map(([k, v]) => `${k}: ${v} = ${pct(v, oits.length)}`).join(', ')})\nCotizaciones: ${quotations.length} | Plantillas de muestreo: ${templates.length} | Normas: ${standards.length} | Recursos/equipos: ${resources.length} | Usuarios: ${users.length} (${Object.entries(usersByRole).map(([k, v]) => `${k}: ${v}`).join(', ')}) | No conformidades: ${nonConformities.length} | Notificaciones sin leer del usuario: ${data.unreadNotifications}`,
 
         `=== TODAS LAS OIT (${oits.length}) ===\n${oits.map(oitLine).join('\n') || '(ninguna)'}`,
 
         `=== COTIZACIONES (${quotations.length}) ===\n${quotations.map(q => `- ${q.quotationNumber} | cliente: ${clip(q.clientName, 50) || 'N/A'} | ${q.status}${q.approvedForOit ? ' | aprobada para OIT' : ''} | ${fmtDate(q.createdAt)} | ${clip(q.description, 100)}`).join('\n') || '(ninguna)'}`,
 
-        `=== RECURSOS Y EQUIPOS (${resources.length}) por tipo ===\n${Object.entries(resByType).map(([t, v]) => `- ${t}: ${v.total} (${v.disponibles} disponibles; calibración vencida: ${countType(expired, t)}, por vencer en 60 días: ${countType(dueSoon, t)}, sin fecha de calibración registrada: ${countType(resources.filter(r => !r.calibrationExpiry), t)})`).join('\n')}\nCalibración vencida: ${expired.length}${expired.length ? ' → ' + expired.slice(0, 15).map(calLabel).join('; ') : ''}\nCalibración por vencer en 60 días: ${dueSoon.length}${dueSoon.length ? ' → ' + dueSoon.slice(0, 15).map(calLabel).join('; ') : ''}`,
+        `=== RECURSOS Y EQUIPOS (${resources.length}) por tipo ===\n${Object.entries(resByType).map(([t, v]) => `- ${t}: ${v.total} = ${pct(v.total, resources.length)} del inventario (${v.disponibles} disponibles; calibración vencida: ${countType(expired, t)}, por vencer en 60 días: ${countType(dueSoon, t)}, sin fecha de calibración registrada: ${countType(resources.filter(r => !r.calibrationExpiry), t)})`).join('\n')}\nCalibración vencida: ${expired.length}${expired.length ? ' → ' + expired.slice(0, 15).map(calLabel).join('; ') : ''}\nCalibración por vencer en 60 días: ${dueSoon.length}${dueSoon.length ? ' → ' + dueSoon.slice(0, 15).map(calLabel).join('; ') : ''}`,
 
         matchedResources.length ? `=== RECURSOS QUE COINCIDEN CON LA PREGUNTA (${matchedResources.length}) ===\n${matchedResources.map(resourceLine).join('\n')}` : '',
 
@@ -199,6 +201,8 @@ export const ASSISTANT_SYSTEM_PROMPT = `Eres el asistente del sistema ALS Xmart 
 REGLAS:
 - Responde SOLO con los datos del sistema que recibes abajo. Si el dato no está, dilo ("no tengo ese dato en el sistema"); NUNCA inventes números, nombres, fechas ni estados.
 - Cuando te pidan cantidades, cuenta sobre los datos entregados y da la cifra exacta.
+- Porcentajes: usa los que ya vienen calculados en los datos. Si necesitas otro, divide la cantidad entre el total y verifica que la suma dé 100%; si dudas, da solo la cantidad.
+- No escribas enlaces ni botones de descarga: la pantalla ya los muestra.
 - Para listas y comparaciones usa tablas Markdown (| Columna | Columna |). Para resúmenes usa títulos y viñetas.
 - No emitas veredictos de cumplimiento normativo que no estén en los datos.
 - Sé concreto: empieza por la respuesta, luego el detalle.

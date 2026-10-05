@@ -75,8 +75,11 @@ export function parseBlocks(markdown: string): Block[] {
     const blocks: Block[] = [];
     let i = 0;
     while (i < lines.length) {
-        const line = lines[i];
+        // citas ("> nota") se tratan como texto normal
+        const line = lines[i] = lines[i].replace(/^\s*>\s?/, '');
         if (!line.trim()) { i++; continue; }
+        // separadores y enlaces de "descarga" inventados por el modelo no van al documento
+        if (/^\s*([-*_]\s*){3,}$/.test(line) || /\]\(#?\)/.test(line)) { i++; continue; }
 
         const fence = line.trim().match(/^```\s*(\w*)/);
         if (fence) {
