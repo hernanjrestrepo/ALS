@@ -18,12 +18,13 @@ const STATUS_LABELS: Record<string, string> = {
     PENDING: 'Pendiente',
     ANALYZING: 'Analizando',
     REVIEW_REQUIRED: 'Pendiente de aprobación',
+    REVIEW_NEEDED: 'Requiere revisión',
     SCHEDULED: 'Programada',
     IN_PROGRESS: 'En muestreo',
     COMPLETED: 'Completada',
 };
 
-const STUCK_STATUSES = ['REVIEW_REQUIRED', 'PENDING', 'ANALYZING'];
+const STUCK_STATUSES = ['REVIEW_REQUIRED', 'REVIEW_NEEDED', 'PENDING', 'ANALYZING'];
 const STUCK_DAYS_THRESHOLD = 5;
 
 export function useDashboardStats() {
