@@ -466,7 +466,7 @@ REGLAS ESTRICTAS:
                 model: this.defaultModel,
                 prompt,
                 stream: false,
-                options: { num_ctx: 8192 },
+                options: { num_ctx: 16384 }, // mismo contexto en TODAS las llamadas: cambiarlo obliga a Ollama a recargar el modelo (~80 s medidos)
             }, { timeout: 180000 });
             const text = String(response.data?.response || '').trim();
             if (!text) throw new Error('respuesta vacia del modelo');
