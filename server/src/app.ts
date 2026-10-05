@@ -6,6 +6,7 @@ import path from 'path';
 
 import routes from './routes';
 import { logError } from './utils/errors';
+import { sessionOrBearer } from './middleware/auth.middleware';
 
 dotenv.config();
 
@@ -16,7 +17,8 @@ app.use(express.json());
 // Integraciones externas (Sistema Serambiente) que no mandan JSON estricto
 app.use(express.urlencoded({ extended: true }));
 app.use(express.text({ type: 'text/*' }));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Los archivos subidos (OITs, cotizaciones, resultados, informes) exigen sesion
+app.use('/uploads', sessionOrBearer, express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api', routes);
 

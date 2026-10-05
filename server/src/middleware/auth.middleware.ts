@@ -124,3 +124,21 @@ export const requireEngineerAssignment = async (req: Request, res: Response, nex
     next();
 };
 
+
+export const SESSION_COOKIE = 'als_session';
+
+/**
+ * Para archivos que el navegador abre con un enlace directo (<a href>, window.open, <img>):
+ * ahi no viaja la cabecera Authorization, asi que se acepta el mismo token desde la cookie
+ * de sesion que la pantalla mantiene sincronizada con el login (misma web, SameSite=Strict).
+ * Antes /uploads y las vistas previas se servian SIN ninguna autenticacion.
+ */
+export const sessionOrBearer = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.headers.authorization) {
+        const raw = String(req.headers.cookie || '');
+        const hit = raw.split(';').map(c => c.trim()).find(c => c.startsWith(SESSION_COOKIE + '='));
+        const token = hit ? decodeURIComponent(hit.slice(SESSION_COOKIE.length + 1)) : '';
+        if (token) req.headers.authorization = `Bearer ${token}`;
+    }
+    return authMiddleware(req, res, next);
+};

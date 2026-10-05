@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, sessionOrBearer } from '../middleware/auth.middleware';
 import path from 'path';
 import fs from 'fs';
 import { upload } from '../config/multer';
@@ -56,7 +56,7 @@ router.get('/download/:filename', authMiddleware, (req: Request, res: Response) 
 /* ------------------------------------------------------------------ */
 /*  DOCX Preview — convert template to interactive HTML               */
 /* ------------------------------------------------------------------ */
-router.get('/preview/:filename', async (req: Request, res: Response) => {
+router.get('/preview/:filename', sessionOrBearer, async (req: Request, res: Response) => {
     try {
         const { filename } = req.params;
         const sanitizedFilename = path.basename(filename);
@@ -144,7 +144,7 @@ ${html}
 /* ------------------------------------------------------------------ */
 /*  PDF Preview — serve filled sample PDFs                            */
 /* ------------------------------------------------------------------ */
-router.get('/preview-pdf/:filename', async (req: Request, res: Response) => {
+router.get('/preview-pdf/:filename', sessionOrBearer, async (req: Request, res: Response) => {
     try {
         const { filename } = req.params;
         const sanitizedFilename = path.basename(filename).replace('.docx', '.pdf');
@@ -172,7 +172,7 @@ router.get('/preview-pdf/:filename', async (req: Request, res: Response) => {
 /* ------------------------------------------------------------------ */
 /*  Image Preview — list pages and serve images                       */
 /* ------------------------------------------------------------------ */
-router.get('/preview-images/:filename', async (req: Request, res: Response) => {
+router.get('/preview-images/:filename', sessionOrBearer, async (req: Request, res: Response) => {
     try {
         const { filename } = req.params;
         const base = path.basename(filename).replace('.docx', '').replace('.pdf', '');
@@ -204,7 +204,7 @@ router.get('/preview-images/:filename', async (req: Request, res: Response) => {
 });
 
 // Serve individual image
-router.get('/preview-image/:template/:image', (req: Request, res: Response) => {
+router.get('/preview-image/:template/:image', sessionOrBearer, (req: Request, res: Response) => {
     try {
         const { template, image } = req.params;
         const imgPath = path.join(__dirname, '../../uploads/preview_images', path.basename(template), path.basename(image));
