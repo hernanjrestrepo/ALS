@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { aiService } from '../services/ai.service';
 import { buildAssistantContext, ASSISTANT_SYSTEM_PROMPT, statusLabel } from '../services/assistantContext';
+import { toPdfBuffer, toPptxBuffer, toXlsxBuffer, inferTitle, EXPORT_FORMATS, ExportFormat } from '../services/assistantExport';
 import fs from 'fs';
 const pdfParse = require('pdf-parse');
 
@@ -275,5 +276,39 @@ ${quotationText}
             message: 'Error al validar documentos',
             errors: [error.message || 'Error interno del servidor']
         });
+    }
+};
+
+// Exporta una respuesta del asistente (Markdown + graficas) a PDF, PowerPoint o Excel.
+export const exportAnswer = async (req: Request, res: Response) => {
+    try {
+        const format = String(req.body?.format || '').toLowerCase() as ExportFormat;
+        const content = String(req.body?.content || '');
+        if (!EXPORT_FORMATS[format]) {
+            return res.status(400).json({ error: 'Formato no soportado. Use pdf, pptx o xlsx.' });
+        }
+        if (!content.trim()) {
+            return res.status(400).json({ error: 'No hay contenido para exportar.' });
+        }
+        if (content.length > 300000) {
+            return res.status(413).json({ error: 'El contenido es demasiado grande para exportar.' });
+        }
+        const title = String(req.body?.title || '').trim().slice(0, 120) || inferTitle(content);
+        const userId = (req as any).user?.userId;
+        const user = userId ? await prisma.user.findUnique({ where: { id: userId }, select: { name: true } }) : null;
+        const meta = { author: user?.name || undefined };
+
+        const buffer = format === 'pdf' ? await toPdfBuffer(title, content, meta)
+            : format === 'pptx' ? await toPptxBuffer(title, content, meta)
+                : toXlsxBuffer(title, content);
+
+        const safe = title.normalize('NFD').replace(/[^a-zA-Z0-9 _-]/g, '').trim().replace(/ +/g, '_').slice(0, 60) || 'informe';
+        res.setHeader('Content-Type', EXPORT_FORMATS[format].mime);
+        res.setHeader('Content-Disposition', `attachment; filename="${safe}.${EXPORT_FORMATS[format].ext}"`);
+        res.setHeader('Content-Length', String(buffer.length));
+        res.end(buffer);
+    } catch (error) {
+        console.error('Error exporting assistant answer:', error);
+        res.status(500).json({ error: 'No se pudo generar el documento.' });
     }
 };

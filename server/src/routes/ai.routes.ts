@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
-import { chat, getModels, analyzeDocument, recommendResources, validateOITDocuments } from '../controllers/ai.controller';
+import { chat, exportAnswer, getModels, analyzeDocument, recommendResources, validateOITDocuments } from '../controllers/ai.controller';
 import { upload } from '../config/multer';
 
 const router = Router();
@@ -10,6 +10,7 @@ const router = Router();
 router.use(authMiddleware);
 
 router.post('/chat', chat);
+router.post('/export', exportAnswer);
 router.get('/models', getModels);
 router.post('/analyze', analyzeDocument);
 router.post('/recommend', recommendResources);

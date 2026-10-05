@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageCircle, X, Send, Bot, User, Sparkles } from 'lucide-react';
 import api from '@/lib/api';
+import { AssistantMessage } from './AssistantMessage';
 
 interface Message {
     role: 'user' | 'assistant';
     content: string;
+    isError?: boolean;
 }
 
 export function ChatWidget() {
@@ -42,7 +44,8 @@ export function ChatWidget() {
                 path: location.pathname,
                 oitId: isOitPage ? params.id : undefined,
             };
-            const response = await api.post('/ai/chat', { message: input, pageContext });
+            const history = messages.filter(m => !m.isError).slice(-6).map(m => ({ role: m.role, content: m.content }));
+            const response = await api.post('/ai/chat', { message: input, pageContext, history }, { timeout: 200000 });
             const assistantMessage: Message = {
                 role: 'assistant',
                 content: response.data.response,
@@ -51,7 +54,8 @@ export function ChatWidget() {
         } catch (error) {
             const errorMessage: Message = {
                 role: 'assistant',
-                content: 'Lo siento, el servicio de IA no está disponible. Asegúrate de que Ollama esté corriendo.',
+                content: 'Lo siento, no pude responder en este momento. Intenta de nuevo en unos segundos.',
+                isError: true,
             };
             setMessages((prev) => [...prev, errorMessage]);
         } finally {
@@ -126,12 +130,14 @@ export function ChatWidget() {
                                         </div>
                                     )}
                                     <div
-                                        className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm ${msg.role === 'user'
+                                        className={`${msg.role === 'user' ? 'max-w-[75%]' : 'max-w-[88%] min-w-0'} rounded-2xl px-4 py-3 text-sm shadow-sm ${msg.role === 'user'
                                             ? 'bg-[#004CAB] text-white'
                                             : 'bg-white text-slate-800 border border-slate-100'
                                             }`}
                                     >
-                                        {msg.content}
+                                        {msg.role === 'assistant'
+                                            ? <AssistantMessage content={msg.content} compact exportable={!msg.isError} />
+                                            : msg.content}
                                     </div>
                                     {msg.role === 'user' && (
                                         <div className="h-9 w-9 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center flex-shrink-0 shadow-sm">

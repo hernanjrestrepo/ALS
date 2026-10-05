@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Send, Loader2, Bot, User, Sparkles, Database, FileText, Beaker, AlertTriangle } from 'lucide-react';
 import api from '@/lib/api';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { AssistantMessage } from '@/components/shared/AssistantMessage';
 
 interface Message {
     id: string;
@@ -206,17 +205,13 @@ export default function AIAssistantPage() {
                                         </div>
                                     )}
                                     <div
-                                        className={`max-w-[70%] rounded-2xl px-4 py-3 ${message.role === 'user'
+                                        className={`${message.role === 'user' ? 'max-w-[70%]' : 'max-w-[85%] min-w-0'} rounded-2xl px-4 py-3 ${message.role === 'user'
                                             ? 'bg-slate-900 text-white'
                                             : 'bg-slate-100 text-slate-900'
                                             }`}
                                     >
                                         {message.role === 'assistant' ? (
-                                            <div className="prose prose-sm max-w-none prose-slate">
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                    {message.content}
-                                                </ReactMarkdown>
-                                            </div>
+                                            <AssistantMessage content={message.content} />
                                         ) : (
                                             <p className="text-sm">{message.content}</p>
                                         )}
