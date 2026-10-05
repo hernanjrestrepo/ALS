@@ -27,7 +27,9 @@ function tryDeterministicAnswer(
         return `El estado de la OIT #${currentOit.oitNumber} es "${statusLabel(currentOit.status)}".`;
     }
 
-    const oitNumberMatch = msg.match(/oit\s*#?\s*([a-z0-9-]{2,})/i);
+    // Un numero de OIT siempre trae al menos un digito: "cuantas OIT hay por estado" NO es una
+    // consulta de una OIT (antes respondia: No encontre ninguna OIT con el numero "hay").
+    const oitNumberMatch = msg.match(/oit\s*#?\s*((?=[a-z0-9-]*\d)[a-z0-9-]{2,})/i);
     if (asksStatus && oitNumberMatch) {
         const number = oitNumberMatch[1];
         const found = oits.find((o: any) => o.oitNumber.toLowerCase() === number.toLowerCase());

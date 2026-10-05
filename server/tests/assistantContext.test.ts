@@ -43,10 +43,10 @@ describe('buildAssistantContext', () => {
 
     it('resume los recursos por tipo en vez de listarlos todos, y avisa de calibraciones', () => {
         const ctx = buildAssistantContext(base(), 'hola', { now });
-        expect(ctx).toContain('- Ruido: 1 (1 disponibles)');
-        expect(ctx).toContain('- Calidad del aire: 1 (0 disponibles)');
-        expect(ctx).toMatch(/Calibración vencida: 1 → Sonómetro clase 1 \[SON-01\] \(2026-09-01\)/);
-        expect(ctx).toMatch(/por vencer en 60 días: 1 → Multiparámetro \[MP-02\] \(2026-10-20\)/);
+        expect(ctx).toContain('- Ruido: 1 (1 disponibles; calibración vencida: 1, por vencer en 60 días: 0, sin fecha de calibración registrada: 0)');
+        expect(ctx).toContain('- Calidad del aire: 1 (0 disponibles; calibración vencida: 0, por vencer en 60 días: 0');
+        expect(ctx).toMatch(/Calibración vencida: 1 → Sonómetro clase 1 \[SON-01\] \(Ruido, 2026-09-01\)/);
+        expect(ctx).toMatch(/por vencer en 60 días: 1 → Multiparámetro \[MP-02\] \(Aguas, 2026-10-20\)/);
         expect(ctx).not.toContain('RECURSOS QUE COINCIDEN');
     });
 

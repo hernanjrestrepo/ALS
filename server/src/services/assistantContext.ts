@@ -158,6 +158,9 @@ export function buildAssistantContext(data: AssistantData, message: string, opts
     const dueSoon = withExpiry.filter(r => new Date(r.calibrationExpiry) >= now && new Date(r.calibrationExpiry) <= in60)
         .sort((a, b) => +new Date(a.calibrationExpiry) - +new Date(b.calibrationExpiry));
 
+    const countType = (list: any[], t: string) => list.filter(r => (r.type || 'Sin tipo') === t).length;
+    const calLabel = (r: any) => `${clip(r.name, 40)}${r.code ? ` [${r.code}]` : ''} (${r.type || 'sin tipo'}, ${fmtDate(r.calibrationExpiry)})`;
+
     const usersByRole: Record<string, number> = {};
     users.forEach(u => { usersByRole[u.role] = (usersByRole[u.role] || 0) + 1; });
     const engineers = users.filter(u => u.role === 'ENGINEER');
@@ -176,7 +179,7 @@ export function buildAssistantContext(data: AssistantData, message: string, opts
 
         `=== COTIZACIONES (${quotations.length}) ===\n${quotations.map(q => `- ${q.quotationNumber} | cliente: ${clip(q.clientName, 50) || 'N/A'} | ${q.status}${q.approvedForOit ? ' | aprobada para OIT' : ''} | ${fmtDate(q.createdAt)} | ${clip(q.description, 100)}`).join('\n') || '(ninguna)'}`,
 
-        `=== RECURSOS Y EQUIPOS (${resources.length}) por tipo ===\n${Object.entries(resByType).map(([t, v]) => `- ${t}: ${v.total} (${v.disponibles} disponibles)`).join('\n')}\nCalibración vencida: ${expired.length}${expired.length ? ' → ' + expired.slice(0, 15).map(r => `${clip(r.name, 40)}${r.code ? ` [${r.code}]` : ''} (${fmtDate(r.calibrationExpiry)})`).join('; ') : ''}\nCalibración por vencer en 60 días: ${dueSoon.length}${dueSoon.length ? ' → ' + dueSoon.slice(0, 15).map(r => `${clip(r.name, 40)}${r.code ? ` [${r.code}]` : ''} (${fmtDate(r.calibrationExpiry)})`).join('; ') : ''}`,
+        `=== RECURSOS Y EQUIPOS (${resources.length}) por tipo ===\n${Object.entries(resByType).map(([t, v]) => `- ${t}: ${v.total} (${v.disponibles} disponibles; calibración vencida: ${countType(expired, t)}, por vencer en 60 días: ${countType(dueSoon, t)}, sin fecha de calibración registrada: ${countType(resources.filter(r => !r.calibrationExpiry), t)})`).join('\n')}\nCalibración vencida: ${expired.length}${expired.length ? ' → ' + expired.slice(0, 15).map(calLabel).join('; ') : ''}\nCalibración por vencer en 60 días: ${dueSoon.length}${dueSoon.length ? ' → ' + dueSoon.slice(0, 15).map(calLabel).join('; ') : ''}`,
 
         matchedResources.length ? `=== RECURSOS QUE COINCIDEN CON LA PREGUNTA (${matchedResources.length}) ===\n${matchedResources.map(resourceLine).join('\n')}` : '',
 
