@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -16,7 +17,8 @@ import {
     Users,
     Receipt,
     Building2,
-    Beaker
+    Beaker,
+    ChevronDown
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -62,6 +64,8 @@ const getNavigationGroups = (userRole?: string) => {
     ];
 };
 
+const COLLAPSED_KEY = 'als-menu-grupos-cerrados';
+
 interface SidebarProps {
     isOpen: boolean;
     onClose: () => void;
@@ -72,6 +76,26 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
     const unreadCount = useUnreadNotifications();
+
+    // Grupos plegables: se recuerda cuales dejo cerrados cada persona en su navegador.
+    const groups = getNavigationGroups(user?.role);
+    const isItemActive = (href: string) => href === '/' ? location.pathname === '/' : (location.pathname === href || location.pathname.startsWith(href + '/'));
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+        try { return JSON.parse(localStorage.getItem(COLLAPSED_KEY) || '{}'); } catch { return {}; }
+    });
+    const toggleGroup = (title: string) => setCollapsed((prev) => {
+        const next = { ...prev, [title]: !prev[title] };
+        try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch { /* sin almacenamiento: solo dura la sesion */ }
+        return next;
+    });
+    // Al navegar a una pagina de un grupo cerrado, ese grupo se abre para que se vea donde esta
+    useEffect(() => {
+        const current = groups.find((g) => g.items.some((i) => isItemActive(i.href)));
+        if (current && collapsed[current.title]) {
+            setCollapsed((prev) => ({ ...prev, [current.title]: false }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.pathname]);
 
     const handleLogout = () => {
         logout();
@@ -109,17 +133,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     </Button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto py-5 px-3 space-y-5">
+                <div className="flex-1 overflow-y-auto py-5 px-3 space-y-3">
                     {/* Menus agrupados por funcion, en el orden del proceso */}
-                    {getNavigationGroups(user?.role).map((group) => (
+                    {groups.map((group) => {
+                        const isCollapsed = !!collapsed[group.title];
+                        const hasUnread = unreadCount > 0 && group.items.some((i) => i.href === '/notifications');
+                        return (
                         <div key={group.title}>
-                            <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                                {group.title}
-                            </h3>
-                            <nav className="space-y-0.5">
+                            <button
+                                type="button"
+                                onClick={() => toggleGroup(group.title)}
+                                aria-expanded={!isCollapsed}
+                                className="w-full flex items-center justify-between px-3 py-1 mb-1 rounded-md text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-200/50 hover:text-slate-700 transition-colors"
+                            >
+                                <span className="flex items-center gap-2">
+                                    {group.title}
+                                    {isCollapsed && hasUnread && <span className="h-2 w-2 rounded-full bg-red-500" />}
+                                </span>
+                                <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200', isCollapsed && '-rotate-90')} />
+                            </button>
+                            <nav className={cn('space-y-0.5', isCollapsed && 'hidden')}>
                                 {group.items.map((item) => {
                                     const Icon = item.icon;
-                                    const isActive = item.href === '/' ? location.pathname === '/' : (location.pathname === item.href || location.pathname.startsWith(item.href + '/'));
+                                    const isActive = isItemActive(item.href);
                                     const showBadge = item.href === '/notifications' && unreadCount > 0;
 
                                     return (
@@ -146,7 +182,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 })}
                             </nav>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* User Profile */}
