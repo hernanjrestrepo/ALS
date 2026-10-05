@@ -38,6 +38,7 @@ const STATUS_COLORS: Record<string, string> = {
     SCHEDULED: '#0891b2', // cyan-600
     ANALYZING: '#7c3aed', // violet-600
     REVIEW_REQUIRED: '#ea580c', // orange-600
+    REVIEW_NEEDED: '#dc2626', // red-600 (error de analisis, distinto de "pendiente de aprobacion")
     PENDING: '#64748b', // slate-500
     UPLOADING: '#94a3b8', // slate-400
 };
@@ -47,6 +48,7 @@ const STATUS_LABELS: Record<string, string> = {
     UPLOADING: 'Subiendo',
     ANALYZING: 'Analizando',
     REVIEW_REQUIRED: 'Pendiente de aprobación',
+    REVIEW_NEEDED: 'Requiere revisión (análisis falló)',
     SCHEDULED: 'Programada',
     IN_PROGRESS: 'En muestreo',
     COMPLETED: 'Completada',

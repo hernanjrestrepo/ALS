@@ -606,7 +606,8 @@ export default function OITDetailPage() {
             'ANALYZING': 'Analizando',
             'SCHEDULED': 'Programada',
             'UPLOADING': 'Subiendo',
-            'REVIEW_REQUIRED': 'Pendiente de Aprobación'
+            'REVIEW_REQUIRED': 'Pendiente de Aprobación',
+            'REVIEW_NEEDED': 'Requiere Revisión'
         };
         return statusMap[status] || status;
     };

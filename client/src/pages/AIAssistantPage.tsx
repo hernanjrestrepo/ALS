@@ -52,7 +52,7 @@ export default function AIAssistantPage() {
                 oitsCount: oits.length,
                 resourcesCount: resourcesRes.data.length,
                 standardsCount: standardsRes.data.length,
-                pendingOits: oits.filter((o: any) => ['PENDING', 'ANALYZING', 'REVIEW_REQUIRED'].includes(o.status)).length
+                pendingOits: oits.filter((o: any) => ['PENDING', 'ANALYZING', 'REVIEW_REQUIRED', 'REVIEW_NEEDED'].includes(o.status)).length
             });
         } catch (error) {
             console.error('Error loading context:', error);

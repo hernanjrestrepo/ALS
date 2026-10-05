@@ -11,6 +11,7 @@ const STATUS_COLORS: Record<string, string> = {
     PENDING: '#94A3B8',
     ANALYZING: '#004CAB',
     REVIEW_REQUIRED: '#EA580C',
+    REVIEW_NEEDED: '#DC2626',
     SCHEDULED: '#7C3AED',
 };
 

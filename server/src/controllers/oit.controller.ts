@@ -409,7 +409,7 @@ export const receiveLabResultsFromUrl = async (req: Request, res: Response) => {
 
 // Background Processor for Lab Results
 // Background Processor for Lab Results
-async function processLabResultsAsync(oitId: string, filenames: string[], group: string = 'General') {
+export async function processLabResultsAsync(oitId: string, filenames: string[], group: string = 'General') {
     try {
         console.log(`Starting background lab analysis for OIT ${oitId}, Group: ${group} with ${filenames.length} files`);
         const { pdfService } = require('../services/pdf.service');

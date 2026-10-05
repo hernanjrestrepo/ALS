@@ -12,6 +12,7 @@ const STATUS_LABELS: Record<string, string> = {
     UPLOADING: 'Subiendo',
     ANALYZING: 'Analizando',
     REVIEW_REQUIRED: 'Pendiente de aprobación',
+    REVIEW_NEEDED: 'Requiere revisión',
     SCHEDULED: 'Programada',
     IN_PROGRESS: 'En muestreo',
     COMPLETED: 'Completada',

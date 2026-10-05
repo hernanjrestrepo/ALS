@@ -79,6 +79,7 @@ export default function OITsPage() {
             case 'PENDING': return 'bg-slate-50 text-slate-700 border-slate-200';
             case 'ANALYZING': return 'bg-blue-50 text-blue-700 border-blue-200';
             case 'REVIEW_REQUIRED': return 'bg-orange-50 text-orange-700 border-orange-200';
+            case 'REVIEW_NEEDED': return 'bg-red-50 text-red-700 border-red-200';
             case 'ERROR': return 'bg-red-50 text-red-700 border-red-200';
             default: return 'bg-slate-50 text-slate-700 border-slate-200';
         }
@@ -91,6 +92,7 @@ export default function OITsPage() {
             case 'PENDING': return 'PENDIENTE';
             case 'ANALYZING': return 'ANALIZANDO';
             case 'REVIEW_REQUIRED': return 'PENDIENTE DE APROBACIÓN';
+            case 'REVIEW_NEEDED': return 'REQUIERE REVISIÓN';
             case 'ERROR': return 'ERROR';
             default: return status;
         }
