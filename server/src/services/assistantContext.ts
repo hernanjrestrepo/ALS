@@ -216,6 +216,12 @@ export function buildAssistantContext(data: AssistantData, message: string, opts
     const engineers = users.filter(u => u.role === 'ENGINEER');
 
     const attention = oits.map(oit => ({ oit, ...(oitAttention(oit) || { cause: '', solution: '' }) })).filter(a => a.cause);
+    // Las OIT con la misma causa van juntas: asi el asistente la explica una vez y lista las ordenes
+    const attentionGroups: Array<{ cause: string; solution: string; items: typeof attention }> = [];
+    attention.forEach(a => {
+        const g = attentionGroups.find(x => x.cause === a.cause && x.solution === a.solution);
+        if (g) g.items.push(a); else attentionGroups.push({ cause: a.cause, solution: a.solution, items: [a] });
+    });
     const mentioned = oitsMentioned(message, oits, opts.currentOitId);
     const matchedResources = resourcesMatching(message, resources);
 
@@ -226,7 +232,7 @@ export function buildAssistantContext(data: AssistantData, message: string, opts
 
         `=== RESUMEN ===\nOITs: ${oits.length} (${Object.entries(byStatus).map(([k, v]) => `${k}: ${v} = ${pct(v, oits.length)}`).join(', ')})\nCotizaciones: ${quotations.length} | Plantillas de muestreo: ${templates.length} | Normas: ${standards.length} | Recursos/equipos: ${resources.length} | Usuarios: ${users.length} (${Object.entries(usersByRole).map(([k, v]) => `${k}: ${v}`).join(', ')}) | No conformidades: ${nonConformities.length} | Notificaciones sin leer del usuario: ${data.unreadNotifications}`,
 
-        attention.length ? `=== OIT QUE REQUIEREN ATENCIÓN (${attention.length}): CAUSA Y QUÉ HACER ===\n${attention.map(a => `- #${a.oit.oitNumber} (${statusLabel(a.oit.status)}${a.oit.quotation?.clientName ? `, cliente ${clip(a.oit.quotation.clientName, 40)}` : ''}${oitExtract(a.oit).location ? `, ${clip(oitExtract(a.oit).location, 40)}` : ''})\n  Causa: ${a.cause}\n  Qué hacer: ${a.solution}`).join('\n')}` : '',
+        attention.length ? `=== OIT QUE REQUIEREN ATENCIÓN (${attention.length}): CAUSA Y QUÉ HACER ===\n${attentionGroups.map((g, i) => `${attentionGroups.length > 1 ? `Grupo ${i + 1}: ` : ''}${g.items.length === 1 ? '1 OIT' : `${g.items.length} OIT con LA MISMA causa y la misma solución`}\n  OIT: ${g.items.map(a => `#${a.oit.oitNumber} (${statusLabel(a.oit.status)}${oitExtract(a.oit).location ? `, ${clip(oitExtract(a.oit).location, 35)}` : ''})`).join('; ')}\n  Causa: ${g.cause}\n  Qué hacer: ${g.solution}`).join('\n')}` : '',
 
         `=== TODAS LAS OIT (${oits.length}) ===\n${oits.map(oitLine).join('\n') || '(ninguna)'}`,
 
@@ -254,7 +260,7 @@ REGLAS:
 - Cuando te pidan cantidades, cuenta sobre los datos entregados y da la cifra exacta.
 - Porcentajes: usa los que ya vienen calculados en los datos. Si necesitas otro, divide la cantidad entre el total y verifica que la suma dé 100%; si dudas, da solo la cantidad.
 - No escribas enlaces ni botones de descarga: la pantalla ya los muestra.
-- Cuando pregunten por qué una OIT está detenida, en revisión o con problemas, o qué hacer con ella, usa la sección "OIT QUE REQUIEREN ATENCIÓN: CAUSA Y QUÉ HACER". Si varias OIT comparten la misma causa, dilo una sola vez de forma clara ("las 9 tienen la misma causa: ...") y luego lista las OIT; no repitas el mismo texto en cada fila.
+- Cuando pregunten por qué una OIT está detenida, en revisión o con problemas, o qué hacer con ella, usa la sección "OIT QUE REQUIEREN ATENCIÓN: CAUSA Y QUÉ HACER". Si varias OIT comparten la misma causa, responde así: (1) una frase con la causa común ("Las 9 tienen la misma causa: ..."), (2) qué hacer, en pasos numerados, (3) una tabla corta solo con OIT y lugar. PROHIBIDO repetir el texto de la causa o de la solución en cada fila de una tabla.
 - NUNCA llenes una tabla con "no tengo ese dato" en cada celda. Si de verdad falta un dato, dilo en una frase, explica qué sí sabes y sugiere dónde mirarlo dentro del sistema.
 - Los usuarios escriben los estados de muchas formas ("review_needed", "requiere revisión", "en revisión"): son lo mismo. Responde siempre con el nombre en español.
 - Para listas y comparaciones usa tablas Markdown (| Columna | Columna |). Para resúmenes usa títulos y viñetas.

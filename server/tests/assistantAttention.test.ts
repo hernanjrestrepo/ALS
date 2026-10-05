@@ -42,6 +42,15 @@ describe('buildAssistantContext: seccion de atencion', () => {
             quotations: [], templates: [], standards: [], resources: [], users: [], nonConformities: [], unreadNotifications: 0,
         }, '¿a qué se deben los casos en review_needed?', { now: new Date('2026-10-05') });
         expect(ctx).toContain('OIT QUE REQUIEREN ATENCIÓN (1): CAUSA Y QUÉ HACER');
-        expect(ctx).toMatch(/- #14803 \(Requiere revisión, Bogotá\)\n  Causa: .*3 minutos.*\n  Qué hacer: /);
+        expect(ctx).toMatch(/1 OIT\n  OIT: #14803 \(Requiere revisión, Bogotá\)\n  Causa: .*3 minutos.*\n  Qué hacer: /);
+    });
+    it('agrupa las OIT con la misma causa para explicarla una sola vez', () => {
+        const ctx = buildAssistantContext({
+            oits: [oit('14803', { status: 'REVIEW_NEEDED', labResultsAnalysis: labTimeout }), oit('14793', { status: 'REVIEW_NEEDED', labResultsAnalysis: labTimeout }), oit('14080', { status: 'REVIEW_REQUIRED' })],
+            quotations: [], templates: [], standards: [], resources: [], users: [], nonConformities: [], unreadNotifications: 0,
+        }, 'causas', { now: new Date('2026-10-05') });
+        expect(ctx).toContain('Grupo 1: 2 OIT con LA MISMA causa y la misma solución\n  OIT: #14803 (Requiere revisión); #14793 (Requiere revisión)');
+        expect(ctx).toContain('Grupo 2: 1 OIT\n  OIT: #14080 (Pendiente de aprobación)');
+        expect((ctx.match(/superó el tiempo límite de 3 minutos/g) || []).length).toBe(1);
     });
 });
