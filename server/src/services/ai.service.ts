@@ -417,7 +417,22 @@ REGLAS ESTRICTAS:
                 responseText = responseText.substring(jsonStart, jsonEnd + 1);
             }
 
-            const parsed = JSON.parse(responseText);
+            let parsed: any;
+            try {
+                parsed = JSON.parse(responseText);
+            } catch (parseErr) {
+                // Documentos largos (25+ parametros) a veces producen JSON mal formado (comilla sin
+                // escapar, corte por longitud) aunque el modelo si redacto un analisis real - antes
+                // esto se descartaba entero y la OIT quedaba en REVIEW_NEEDED con el analisis perdido.
+                // Se intenta rescatar el campo "rawText" con una expresion regular antes de rendirse.
+                logError('Analisis IA de resultados de laboratorio: JSON invalido, se intenta rescatar rawText', parseErr);
+                const match = responseText.match(/"rawText"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+                if (match) {
+                    const rawText = match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                    return JSON.stringify({ rawText, parsedData: {}, partial: true });
+                }
+                throw parseErr; // no se pudo rescatar nada util, cae al catch de afuera
+            }
             if (!parsed.rawText) {
                 // Model didn't follow the schema; fall back to treating the whole response as narrative
                 return JSON.stringify({ rawText: response.data.response || '', parsedData: parsed.parsedData || {} });

@@ -309,6 +309,19 @@ describe('AIService.analyzeLabResults', () => {
         expect(result.error).toBe(true);
         expect(result.rawText).toContain('Error en análisis IA de resultados de laboratorio');
     });
+
+    it('rescues rawText when the JSON is malformed past that point (documento largo cortado)', async () => {
+        // "resultados" quedo truncado/mal cerrado, pero rawText si se alcanzo a generar completo.
+        mockedAxios.post.mockResolvedValue(
+            generateResponse('{"rawText":"Se analizaron 25 parametros.\\nTodos dentro de norma.","parsedData":{"resultados":[{"parametro":"pH","valor":"7.2]}}')
+        );
+
+        const result = JSON.parse(await new AIService().analyzeLabResults('doc'));
+
+        expect(result.rawText).toBe('Se analizaron 25 parametros.\nTodos dentro de norma.');
+        expect(result.partial).toBe(true);
+        expect(result.error).toBeUndefined();
+    });
 });
 
 describe('AIService stubs', () => {
