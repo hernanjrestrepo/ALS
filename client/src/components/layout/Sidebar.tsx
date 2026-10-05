@@ -24,30 +24,42 @@ import { Button } from '@/components/ui/button';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
 import { canManageUsers } from '@/types/auth';
 
-const getNavigationItems = (userRole?: string) => {
-    const baseItems = [
-        { icon: LayoutDashboard, label: 'Panel de Control', href: '/' },
-        { icon: FileText, label: 'OITs', href: '/oits' },
-        { icon: Building2, label: 'Clientes', href: '/clients' },
-        { icon: Beaker, label: 'Servicios', href: '/services' },
-        { icon: Receipt, label: 'Cotizaciones', href: '/quotations' },
-        { icon: Box, label: 'Recursos', href: '/resources' },
-        { icon: Calendar, label: 'Calendario', href: '/calendar' },
-        { icon: Scale, label: 'Normas', href: '/standards' },
-        { icon: Workflow, label: 'Plantillas', href: '/sampling-templates' },
-        { icon: BarChart3, label: 'Analítica', href: '/analytics' },
-        { icon: Sparkles, label: 'Asistente IA', href: '/ai' },
-        { icon: Bell, label: 'Notificaciones', href: '/notifications' },
-    ];
-
-    // Add Users management for SUPER_ADMIN only
+// Menus en el orden del proceso de una orden y agrupados por funcion:
+// lo comercial ocurre antes de la OIT, la operacion es la OIT en curso, la base tecnica es
+// lo que la operacion usa, y al final el seguimiento y la administracion.
+const getNavigationGroups = (userRole?: string) => {
+    const admin = [];
+    // Gestion de usuarios solo para SUPER_ADMIN
     if (userRole && canManageUsers(userRole as any)) {
-        baseItems.push({ icon: Users, label: 'Usuarios', href: '/users' });
+        admin.push({ icon: Users, label: 'Usuarios', href: '/users' });
     }
+    admin.push({ icon: Settings, label: 'Configuración', href: '/settings' });
 
-    baseItems.push({ icon: Settings, label: 'Configuración', href: '/settings' });
-
-    return baseItems;
+    return [
+        { title: 'Inicio', items: [
+            { icon: LayoutDashboard, label: 'Panel de Control', href: '/' },
+        ] },
+        { title: 'Comercial', items: [
+            { icon: Building2, label: 'Clientes', href: '/clients' },
+            { icon: Beaker, label: 'Servicios', href: '/services' },
+            { icon: Receipt, label: 'Cotizaciones', href: '/quotations' },
+        ] },
+        { title: 'Operación', items: [
+            { icon: FileText, label: 'OITs', href: '/oits' },
+            { icon: Calendar, label: 'Calendario', href: '/calendar' },
+            { icon: Box, label: 'Recursos', href: '/resources' },
+        ] },
+        { title: 'Base técnica', items: [
+            { icon: Workflow, label: 'Plantillas', href: '/sampling-templates' },
+            { icon: Scale, label: 'Normas', href: '/standards' },
+        ] },
+        { title: 'Seguimiento', items: [
+            { icon: BarChart3, label: 'Analítica', href: '/analytics' },
+            { icon: Sparkles, label: 'Asistente IA', href: '/ai' },
+            { icon: Bell, label: 'Notificaciones', href: '/notifications' },
+        ] },
+        { title: 'Administración', items: admin },
+    ];
 };
 
 interface SidebarProps {
@@ -97,42 +109,44 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     </Button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto py-6 px-3 space-y-8">
-                    {/* Platform Section */}
-                    <div>
-                        <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                            Plataforma
-                        </h3>
-                        <nav className="space-y-0.5">
-                            {getNavigationItems(user?.role).map((item) => {
-                                const Icon = item.icon;
-                                const isActive = location.pathname === item.href;
-                                const showBadge = item.href === '/notifications' && unreadCount > 0;
+                <div className="flex-1 overflow-y-auto py-5 px-3 space-y-5">
+                    {/* Menus agrupados por funcion, en el orden del proceso */}
+                    {getNavigationGroups(user?.role).map((group) => (
+                        <div key={group.title}>
+                            <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                                {group.title}
+                            </h3>
+                            <nav className="space-y-0.5">
+                                {group.items.map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = item.href === '/' ? location.pathname === '/' : (location.pathname === item.href || location.pathname.startsWith(item.href + '/'));
+                                    const showBadge = item.href === '/notifications' && unreadCount > 0;
 
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        to={item.href}
-                                        className={cn(
-                                            'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                                            isActive
-                                                ? 'bg-[#004CAB] text-white shadow-sm'
-                                                : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'
-                                        )}
-                                        onClick={() => window.innerWidth < 1024 && onClose()}
-                                    >
-                                        <Icon className="h-4 w-4" />
-                                        {item.label}
-                                        {showBadge && (
-                                            <span className="ml-auto h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-semibold">
-                                                {unreadCount > 9 ? '9+' : unreadCount}
-                                            </span>
-                                        )}
-                                    </Link>
-                                );
-                            })}
-                        </nav>
-                    </div>
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            to={item.href}
+                                            className={cn(
+                                                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                                                isActive
+                                                    ? 'bg-[#004CAB] text-white shadow-sm'
+                                                    : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'
+                                            )}
+                                            onClick={() => window.innerWidth < 1024 && onClose()}
+                                        >
+                                            <Icon className="h-4 w-4" />
+                                            {item.label}
+                                            {showBadge && (
+                                                <span className="ml-auto h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-semibold">
+                                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                                </span>
+                                            )}
+                                        </Link>
+                                    );
+                                })}
+                            </nav>
+                        </div>
+                    ))}
                 </div>
 
                 {/* User Profile */}

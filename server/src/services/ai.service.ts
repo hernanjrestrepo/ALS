@@ -406,7 +406,8 @@ REGLAS ESTRICTAS:
                 stream: false,
                 ...jsonFormat(this.defaultModel),
                 options: { num_ctx: 16384 },
-            }, { timeout: 180000 });
+            // Corre en segundo plano: informes de 25+ parametros tardan ~170 s y uno real paso de 180 s.
+            }, { timeout: 600000 });
 
             let responseText = (response.data.response || '').trim();
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
