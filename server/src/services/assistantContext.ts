@@ -56,6 +56,54 @@ export function oitExtract(oit: any) {
     };
 }
 
+/**
+ * Por que una OIT esta detenida y que hacer. El dato existe en el sistema (errores guardados del
+ * analisis de laboratorio, alertas y faltantes del documento), pero disperso: aqui se resume para
+ * que el asistente lo pueda explicar. Devuelve null si la OIT no requiere atencion.
+ */
+export function oitAttention(oit: any): { cause: string; solution: string } | null {
+    const x = oitExtract(oit);
+    const lab = parse(oit.labResultsAnalysis);
+    const labTexts: string[] = [];
+    if (lab && typeof lab === 'object') {
+        for (const [group, v] of Object.entries(lab)) {
+            const inner = parse(v) || v;
+            const raw = typeof inner === 'object' && inner ? String((inner as any).rawText || '') : String(inner || '');
+            if ((typeof inner === 'object' && (inner as any)?.error) || /^Error/i.test(raw)) labTexts.push(`${group !== 'General' ? `servicio ${group}: ` : ''}${raw}`);
+        }
+    } else if (typeof oit.labResultsAnalysis === 'string' && /error/i.test(oit.labResultsAnalysis)) {
+        labTexts.push(oit.labResultsAnalysis);
+    }
+
+    if (labTexts.length) {
+        const timeout = labTexts.some(t => /timeout|exceeded|agot/i.test(t));
+        return {
+            cause: timeout
+                ? 'El análisis automático (IA) de los resultados de laboratorio no terminó: superó el tiempo límite de 3 minutos. Los resultados sí están cargados, pero no se pudieron leer ni se generó el informe final.'
+                : `El análisis automático (IA) de los resultados de laboratorio falló: ${clip(labTexts.join(' / '), 220)}`,
+            solution: 'Volver a lanzar el análisis: en la OIT, pestaña Informe, cargar de nuevo el PDF de resultados de laboratorio del servicio. Si el PDF es muy largo, subirlo dividido por servicio. Al terminar bien, la OIT pasa a Completada y se genera el informe final.',
+        };
+    }
+    if (oit.status === 'REVIEW_NEEDED' || oit.status === 'REVIEW_IMPORTANT') {
+        return {
+            cause: 'Un proceso automático de esta OIT terminó con error y quedó para revisión manual; el sistema no guardó el detalle del error.',
+            solution: 'Abrir la OIT, revisar qué paso quedó incompleto (análisis del documento, muestreo o resultados de laboratorio) y repetirlo.',
+        };
+    }
+    if (oit.status === 'REVIEW_REQUIRED') {
+        const pend = [
+            x.missing.length ? `información faltante en el documento: ${x.missing.map((m: string) => clip(m, 90)).join('; ')}` : '',
+            x.alerts.length ? `alertas: ${x.alerts.map((m: string) => clip(m, 90)).join('; ')}` : '',
+            !oit.planningAccepted ? 'la planeación aún no ha sido aceptada' : '',
+        ].filter(Boolean);
+        return {
+            cause: `El documento ya fue analizado y espera la revisión y aprobación de una persona${pend.length ? ' (' + pend.join(' | ') + ')' : ''}.`,
+            solution: 'Abrir la OIT, revisar los datos extraídos, completar lo faltante y aceptar la planeación (fecha, ingeniero y recursos) en la pestaña Agenda.',
+        };
+    }
+    return null;
+}
+
 function oitLine(oit: any): string {
     const x = oitExtract(oit);
     const eng = (oit.assignedEngineers || []).map((a: any) => a.user?.name).filter(Boolean);
@@ -167,6 +215,7 @@ export function buildAssistantContext(data: AssistantData, message: string, opts
     users.forEach(u => { const r = ROLE[u.role] || u.role; usersByRole[r] = (usersByRole[r] || 0) + 1; });
     const engineers = users.filter(u => u.role === 'ENGINEER');
 
+    const attention = oits.map(oit => ({ oit, ...(oitAttention(oit) || { cause: '', solution: '' }) })).filter(a => a.cause);
     const mentioned = oitsMentioned(message, oits, opts.currentOitId);
     const matchedResources = resourcesMatching(message, resources);
 
@@ -176,6 +225,8 @@ export function buildAssistantContext(data: AssistantData, message: string, opts
         mentioned.length ? `=== DETALLE DE LAS OIT QUE MENCIONA LA PREGUNTA${opts.currentOitId ? ' (la primera es la que el usuario tiene abierta en pantalla)' : ''} ===\n${mentioned.map(oitDetail).join('\n\n')}` : '',
 
         `=== RESUMEN ===\nOITs: ${oits.length} (${Object.entries(byStatus).map(([k, v]) => `${k}: ${v} = ${pct(v, oits.length)}`).join(', ')})\nCotizaciones: ${quotations.length} | Plantillas de muestreo: ${templates.length} | Normas: ${standards.length} | Recursos/equipos: ${resources.length} | Usuarios: ${users.length} (${Object.entries(usersByRole).map(([k, v]) => `${k}: ${v}`).join(', ')}) | No conformidades: ${nonConformities.length} | Notificaciones sin leer del usuario: ${data.unreadNotifications}`,
+
+        attention.length ? `=== OIT QUE REQUIEREN ATENCIÓN (${attention.length}): CAUSA Y QUÉ HACER ===\n${attention.map(a => `- #${a.oit.oitNumber} (${statusLabel(a.oit.status)}${a.oit.quotation?.clientName ? `, cliente ${clip(a.oit.quotation.clientName, 40)}` : ''}${oitExtract(a.oit).location ? `, ${clip(oitExtract(a.oit).location, 40)}` : ''})\n  Causa: ${a.cause}\n  Qué hacer: ${a.solution}`).join('\n')}` : '',
 
         `=== TODAS LAS OIT (${oits.length}) ===\n${oits.map(oitLine).join('\n') || '(ninguna)'}`,
 
@@ -203,6 +254,9 @@ REGLAS:
 - Cuando te pidan cantidades, cuenta sobre los datos entregados y da la cifra exacta.
 - Porcentajes: usa los que ya vienen calculados en los datos. Si necesitas otro, divide la cantidad entre el total y verifica que la suma dé 100%; si dudas, da solo la cantidad.
 - No escribas enlaces ni botones de descarga: la pantalla ya los muestra.
+- Cuando pregunten por qué una OIT está detenida, en revisión o con problemas, o qué hacer con ella, usa la sección "OIT QUE REQUIEREN ATENCIÓN: CAUSA Y QUÉ HACER". Si varias OIT comparten la misma causa, dilo una sola vez de forma clara ("las 9 tienen la misma causa: ...") y luego lista las OIT; no repitas el mismo texto en cada fila.
+- NUNCA llenes una tabla con "no tengo ese dato" en cada celda. Si de verdad falta un dato, dilo en una frase, explica qué sí sabes y sugiere dónde mirarlo dentro del sistema.
+- Los usuarios escriben los estados de muchas formas ("review_needed", "requiere revisión", "en revisión"): son lo mismo. Responde siempre con el nombre en español.
 - Para listas y comparaciones usa tablas Markdown (| Columna | Columna |). Para resúmenes usa títulos y viñetas.
 - No emitas veredictos de cumplimiento normativo que no estén en los datos.
 - Sé concreto: empieza por la respuesta, luego el detalle.
