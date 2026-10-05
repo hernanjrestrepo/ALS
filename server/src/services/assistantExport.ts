@@ -318,7 +318,17 @@ export async function toPptxBuffer(title: string, markdown: string, meta: { auth
         textBuf = [];
     };
 
-    for (const b of parseBlocks(markdown)) {
+    // Una frase corta justo despues de una grafica o tabla va como pie en la MISMA diapositiva
+    // (antes quedaba sola en una diapositiva casi vacia).
+    const all = parseBlocks(markdown);
+    const captionAfter = (i: number): string => {
+        const n = all[i + 1];
+        if (n && n.kind === 'paragraph' && n.text.length <= 320) { all.splice(i + 1, 1); return n.text.replace(/^\((.*)\)$/, '$1'); }
+        return '';
+    };
+    const addCaption = (s: any, text: string) => s.addText(text, { x: 0.6, y: 6.35, w: 12.1, h: 0.75, fontSize: 13, italic: true, color: GREY, fontFace: 'Arial', valign: 'middle', fit: 'shrink' });
+    for (let bi = 0; bi < all.length; bi++) {
+        const b = all[bi];
         if (b.kind === 'heading') { flushText(); heading = b.text; continue; }
         if (b.kind === 'paragraph') { textBuf.push({ text: b.text, bullet: false }); continue; }
         if (b.kind === 'list') { b.items.forEach(i => textBuf.push({ text: i, bullet: true })); continue; }
@@ -327,16 +337,21 @@ export async function toPptxBuffer(title: string, markdown: string, meta: { auth
             const cols = b.header.length || 1;
             const fs = cols > 6 ? 9 : cols > 4 ? 11 : 12;
             const head = b.header.map(h => ({ text: h, options: { bold: true, color: 'FFFFFF', fill: { color: BLUE }, fontSize: fs, fontFace: 'Arial' } }));
-            chunk(b.rows, 11).forEach((rows, page, all) => {
-                const s = newSlide(all.length > 1 ? `${heading} (${page + 1}/${all.length})` : heading);
+            const caption = captionAfter(bi);
+            const perPage = caption ? 9 : 11;
+            chunk(b.rows, perPage).forEach((rows, page, pages) => {
+                const s = newSlide(pages.length > 1 ? `${heading} (${page + 1}/${pages.length})` : heading);
                 s.addTable([head, ...rows.map((r, ri) => r.map(c => ({ text: c.slice(0, 160), options: { fontSize: fs, color: DARK, fontFace: 'Arial', fill: { color: ri % 2 ? 'F8FAFC' : 'FFFFFF' } } })))], { x: 0.4, y: 1.15, w: 12.5, colW: Array(cols).fill(12.5 / cols), border: { type: 'solid', color: 'E2E8F0', pt: 0.75 }, valign: 'middle', margin: 0.06 });
+                if (caption && page === pages.length - 1) addCaption(s, caption);
             });
         }
         if (b.kind === 'chart') {
             const c = b.chart;
+            const caption = captionAfter(bi);
             const s = newSlide(c.title || heading);
             const data = c.series.map(x => ({ name: x.name, labels: c.labels, values: x.data }));
-            const common = { x: 0.6, y: 1.15, w: 12.1, h: 5.8, chartColors: PALETTE.map(p => p.slice(1)), showLegend: c.series.length > 1 || c.type === 'pie', legendPos: 'b' as const, legendFontSize: 12, dataLabelFontSize: 11, catAxisLabelFontSize: 11, valAxisLabelFontSize: 11 };
+            if (caption) addCaption(s, caption);
+            const common = { x: 0.6, y: 1.15, w: 12.1, h: caption ? 5.1 : 5.8, chartColors: PALETTE.map(p => p.slice(1)), showLegend: c.series.length > 1 || c.type === 'pie', legendPos: 'b' as const, legendFontSize: 12, dataLabelFontSize: 11, catAxisLabelFontSize: 11, valAxisLabelFontSize: 11 };
             if (c.type === 'pie') s.addChart(pptx.ChartType.pie, [data[0]], { ...common, showPercent: true, showLegend: true });
             else if (c.type === 'line') s.addChart(pptx.ChartType.line, data, { ...common, lineSize: 3, lineDataSymbolSize: 7 });
             else s.addChart(pptx.ChartType.bar, data, { ...common, barDir: 'col', showValue: c.labels.length <= 14, barGapWidthPct: 60 });

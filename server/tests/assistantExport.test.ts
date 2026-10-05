@@ -123,3 +123,16 @@ describe('inferTitle / plain', () => {
         expect(plain('**a** y `b` [c](http://x) <br> d')).toBe('a y b c  ·  d');
     });
 });
+
+describe('toPptxBuffer: pies de grafica y tabla', () => {
+    it('la frase corta que sigue a una grafica o tabla va en la misma diapositiva', async () => {
+        const md = ['## Estado', '```chart', '{"type":"bar","labels":["a","b"],"series":[{"name":"s","data":[1,2]}]}', '```', 'La mayoría está en b.', '', '## Lista', '| A | B |', '|---|---|', '| 1 | 2 |', '', '(Datos al 5 de octubre.)'].join('\n');
+        const zip = new PizZip(await toPptxBuffer('T', md));
+        const slides = Object.keys(zip.files).filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort();
+        expect(slides.length).toBe(3); // portada + grafica con pie + tabla con pie
+        const all = slides.map(n => zip.file(n)!.asText()).join('');
+        expect(all).toContain('La mayoría está en b.');
+        expect(all).toContain('Datos al 5 de octubre.');
+        expect(all).not.toContain('(Datos al 5 de octubre.)');
+    }, 30000);
+});
