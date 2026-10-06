@@ -10,7 +10,7 @@ export interface OIT {
     updatedAt: string;
 }
 
-export function useOITs(searchQuery?: string) {
+export function useOITs(searchQuery?: string, sortBy?: string, sortDir?: string) {
     const [oits, setOits] = useState<OIT[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export function useOITs(searchQuery?: string) {
             try {
                 setIsLoading(true);
                 setError(null);
-                const data = await fetchOITs(searchQuery);
+                const data = await fetchOITs(searchQuery, sortBy, sortDir);
                 setOits(data);
             } catch (err: any) {
                 setError(err.response?.data?.message || 'Error al cargar OITs');
@@ -31,7 +31,7 @@ export function useOITs(searchQuery?: string) {
         };
 
         loadOITs();
-    }, [searchQuery]);
+    }, [searchQuery, sortBy, sortDir]);
 
     return { oits, isLoading, error };
 }

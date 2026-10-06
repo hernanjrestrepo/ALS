@@ -1,7 +1,26 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
+import { pdfService } from '../services/pdf.service';
+import { logError } from '../utils/errors';
 
 const prisma = new PrismaClient();
+
+// Extrae el texto del PDF subido para que quede disponible como "content" -
+// antes esto nunca se hacia en create/update, solo en la carga manual unica
+// de enero-2026, asi que toda norma nueva quedaba con content vacio y nunca
+// se podia usar para el analisis de cumplimiento (hallazgo 2026-10-05).
+async function extractStandardContent(filename: string): Promise<string | undefined> {
+    try {
+        const filePath = path.join(__dirname, '../../uploads', filename);
+        const text = await pdfService.extractText(filePath);
+        // Mismo limite que uso la carga inicial de enero-2026 (import-standards.ts)
+        return text && text.trim().length > 0 ? text.substring(0, 100000) : undefined;
+    } catch (error) {
+        logError(`No se pudo extraer contenido del PDF de norma (${filename})`, error);
+        return undefined;
+    }
+}
 
 export const getStandards = async (req: Request, res: Response) => {
     try {
@@ -38,14 +57,20 @@ export const createStandard = async (req: Request, res: Response) => {
         const { title, description, type } = req.body;
         const file = req.file;
 
-        const standard = await prisma.standard.create({
-            data: {
-                title,
-                description,
-                type,
-                fileUrl: file ? file.path : undefined
-            }
-        });
+        const data: any = {
+            title,
+            description,
+            type,
+            // Ruta web-relativa, no la ruta absoluta del disco del servidor (ese era
+            // el bug que rompia toda descarga de Normas desde enero-2026).
+            fileUrl: file ? `/uploads/${file.filename}` : undefined
+        };
+
+        if (file) {
+            data.content = await extractStandardContent(file.filename);
+        }
+
+        const standard = await prisma.standard.create({ data });
         res.status(201).json(standard);
     } catch (error) {
         console.error('Error creating standard:', error);
@@ -66,7 +91,8 @@ export const updateStandard = async (req: Request, res: Response) => {
         };
 
         if (file) {
-            data.fileUrl = file.path;
+            data.fileUrl = `/uploads/${file.filename}`;
+            data.content = await extractStandardContent(file.filename);
         }
 
         const standard = await prisma.standard.update({

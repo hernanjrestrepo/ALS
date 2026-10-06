@@ -25,8 +25,11 @@ api.interceptors.response.use(
 
 
 // OIT Services
-export const fetchOITs = async (searchQuery?: string) => {
-    const params = searchQuery ? { search: searchQuery } : {};
+export const fetchOITs = async (searchQuery?: string, sortBy?: string, sortDir?: string) => {
+    const params: Record<string, string> = {};
+    if (searchQuery) params.search = searchQuery;
+    if (sortBy) params.sortBy = sortBy;
+    if (sortDir) params.sortDir = sortDir;
     const response = await api.get('/oits', { params });
     return response.data;
 };

@@ -880,11 +880,36 @@ export const getAssignedEngineers = async (req: Request, res: Response) => {
 };
 
 // Get all OIT records (filtered by role)
+const OIT_SORT_FIELDS = new Set(['oitNumber', 'createdAt', 'updatedAt', 'status']);
+
+// oitNumber es el consecutivo real de Sistema Serambiente (hallazgo reunion
+// 2026-10-05): el orden natural que espera el usuario es por ese numero, no
+// por createdAt (cuando se subio el PDF a ALS, que puede ser mucho despues).
+// Es un campo String en Postgres, asi que el orden numerico se hace en
+// memoria (la lista completa son ~50 OITs, no justifica SQL crudo).
+function sortOITs(oits: any[], sortBy: string, sortDir: string): any[] {
+    const field = OIT_SORT_FIELDS.has(sortBy) ? sortBy : 'oitNumber';
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...oits].sort((a, b) => {
+        if (field === 'oitNumber') {
+            const na = parseInt(a.oitNumber, 10);
+            const nb = parseInt(b.oitNumber, 10);
+            if (!isNaN(na) && !isNaN(nb)) return (na - nb) * dir;
+            return String(a.oitNumber || '').localeCompare(String(b.oitNumber || '')) * dir;
+        }
+        if (field === 'status') {
+            return String(a.status || '').localeCompare(String(b.status || '')) * dir;
+        }
+        return (new Date(a[field]).getTime() - new Date(b[field]).getTime()) * dir;
+    });
+}
+
 export const getAllOITs = async (req: Request, res: Response) => {
     try {
         const user = (req as any).user;
         const userRole = user?.role;
         const userId = user?.userId;
+        const { search, sortBy, sortDir } = req.query as { search?: string; sortBy?: string; sortDir?: string };
 
         // If user is ENGINEER, only show OITs assigned to them
         let whereClause: any = {};
@@ -904,7 +929,6 @@ export const getAllOITs = async (req: Request, res: Response) => {
 
         const oits = await prisma.oIT.findMany({
             where: whereClause,
-            orderBy: { createdAt: 'desc' },
             include: {
                 assignedEngineers: {
                     include: {
@@ -918,8 +942,20 @@ export const getAllOITs = async (req: Request, res: Response) => {
 
         console.log(`[DEBUG-OIT-LIST] Found ${oits.length} OITs`);
 
+        // Filtro de busqueda real: antes el frontend mandaba "search" y el backend
+        // lo ignoraba por completo (hallazgo reunion 2026-10-05, OIT 13715 "no
+        // aparecia" porque el buscador nunca filtraba nada).
+        const term = (search || '').toString().trim().toLowerCase();
+        const filtered = term
+            ? oits.filter((oit: any) =>
+                String(oit.oitNumber || '').toLowerCase().includes(term) ||
+                String(oit.description || '').toLowerCase().includes(term))
+            : oits;
+
+        const sorted = sortOITs(filtered, String(sortBy || 'oitNumber'), String(sortDir || 'desc'));
+
         // Map to include engineers in a cleaner format
-        const result = oits.map((oit: any) => ({
+        const result = sorted.map((oit: any) => ({
             ...oit,
             engineers: oit.assignedEngineers.map((a: any) => a.user)
         }));
@@ -998,7 +1034,11 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
         const { OT, DOCUMENTO } = payload;
 
         if (!DOCUMENTO) {
-            console.warn(`[Legacy API] from-url rechazado${OT ? ` (OT ${OT})` : ''}: falta DOCUMENTO (content-type: ${payload.contentType}, campos: ${payload.keys.join(', ') || 'ninguno'})`);
+            // Diagnostico 2026-10-06: en produccion todas las llamadas a este webhook
+            // llegan rechazadas con 0 campos (content-type application/json vacio) -
+            // se vuelca el body crudo para que el tecnico de Sistema Serambiente pueda
+            // ver exactamente que esta mandando su lado, no solo que "fallo".
+            console.warn(`[Legacy API] from-url rechazado${OT ? ` (OT ${OT})` : ''}: falta DOCUMENTO (content-type: ${payload.contentType}, campos: ${payload.keys.join(', ') || 'ninguno'}, headers: ${JSON.stringify(req.headers)}, raw body: ${JSON.stringify(req.body)}, query: ${JSON.stringify(req.query)})`);
             return res.status(400).json({ error: 'Falta el campo DOCUMENTO (URL)' });
         }
 

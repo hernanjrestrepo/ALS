@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, FileText, Filter, Upload, CheckCircle2, AlertCircle, Receipt } from 'lucide-react';
+import { Plus, Search, FileText, Upload, CheckCircle2, AlertCircle, Receipt, ArrowUpDown } from 'lucide-react';
 import { useOITs } from '@/hooks/useOITs';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -34,9 +34,20 @@ interface Quotation {
     approvedForOit?: boolean;
 }
 
+const SORT_OPTIONS: { value: string; label: string }[] = [
+    { value: 'oitNumber-desc', label: 'Número de OIT (más reciente primero)' },
+    { value: 'oitNumber-asc', label: 'Número de OIT (más antiguo primero)' },
+    { value: 'createdAt-desc', label: 'Fecha de creación en ALS (más reciente primero)' },
+    { value: 'createdAt-asc', label: 'Fecha de creación en ALS (más antiguo primero)' },
+    { value: 'updatedAt-desc', label: 'Última actualización' },
+    { value: 'status-asc', label: 'Estado' },
+];
+
 export default function OITsPage() {
     const [searchQuery, setSearchQuery] = useState('');
-    const { oits, isLoading, error } = useOITs(searchQuery);
+    const [sortOption, setSortOption] = useState('oitNumber-desc');
+    const [sortBy, sortDir] = sortOption.split('-');
+    const { oits, isLoading, error } = useOITs(searchQuery, sortBy, sortDir);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const navigate = useNavigate();
@@ -272,10 +283,17 @@ export default function OITsPage() {
                                 className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors w-full"
                             />
                         </div>
-                        <Button variant="outline" size="sm" className="text-slate-600 border-slate-200 w-full sm:w-auto">
-                            <Filter className="mr-2 h-3.5 w-3.5" />
-                            Filtrar
-                        </Button>
+                        <Select value={sortOption} onValueChange={setSortOption}>
+                            <SelectTrigger className="w-full sm:w-72 bg-white border-slate-200 text-slate-600">
+                                <ArrowUpDown className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                                <SelectValue placeholder="Ordenar por..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {SORT_OPTIONS.map(opt => (
+                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
