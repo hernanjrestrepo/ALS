@@ -299,3 +299,18 @@ model AIFeedback {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+// Modulo de Listas de Distribucion: a quien se le manda cada tipo de correo (factura,
+// informes, cotizaciones...) para un cliente - el Cliente solo guarda UN contacto, pero
+// en la practica una factura o un informe van a varias personas (requeridas y opcionales,
+// igual que una invitacion de calendario).
+model DistributionList {
+  id          String   @id @default(uuid())
+  name        String   // ej. "Facturación - Oben Group"
+  purpose     String   // ej. "Factura", "Informes", "Cotizaciones"
+  clientId    String?  // enlace opcional al Cliente real, si ya existe en el catalogo
+  recipients  String   // JSON: [{ name, email, required: boolean }]
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

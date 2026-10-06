@@ -17,6 +17,7 @@ import nonConformityRoutes from './non-conformity.routes';
 import signatureRoutes from './signature.routes';
 import clientRoutes from './client.routes';
 import serviceRoutes from './service.routes';
+import distributionListRoutes from './distribution-list.routes';
 
 const router = Router();
 
@@ -39,5 +40,6 @@ router.use('/', nonConformityRoutes);
 router.use('/', signatureRoutes);
 router.use('/clients', clientRoutes);
 router.use('/services', serviceRoutes);
+router.use('/distribution-lists', distributionListRoutes);
 
 export default router;

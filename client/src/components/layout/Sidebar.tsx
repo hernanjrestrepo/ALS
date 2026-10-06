@@ -18,7 +18,8 @@ import {
     Receipt,
     Building2,
     Beaker,
-    ChevronDown
+    ChevronDown,
+    Mail
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -45,6 +46,7 @@ const getNavigationGroups = (userRole?: string) => {
             { icon: Building2, label: 'Clientes', href: '/clients' },
             { icon: Beaker, label: 'Servicios', href: '/services' },
             { icon: Receipt, label: 'Cotizaciones', href: '/quotations' },
+            { icon: Mail, label: 'Listas de Distribución', href: '/distribution-lists' },
         ] },
         { title: 'Operación', items: [
             { icon: FileText, label: 'OITs', href: '/oits' },
