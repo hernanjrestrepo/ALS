@@ -28,6 +28,19 @@ function findKey(obj: Record<string, any>, names: string[]): string | undefined 
     return undefined;
 }
 
+// Que hacer cuando Sistema Serambiente manda una OIT por el webhook from-url.
+// Solo se (re)procesa una OIT nueva o una cuya recepcion anterior fallo; una que
+// ya avanzo en ALS (incluidas las creadas al llegar su resultado de laboratorio)
+// nunca vuelve a PENDING ni se le pisa el analisis: a lo sumo se le pega el PDF.
+const FROM_URL_RETRY_STATUSES = new Set(['REVIEW_IMPORTANT', 'ERROR']);
+
+export type FromUrlAction = 'process' | 'attach-pdf' | 'ignore';
+
+export function fromUrlAction(existing: { status: string; oitFileUrl: string | null } | null): FromUrlAction {
+    if (!existing || FROM_URL_RETRY_STATUSES.has(existing.status)) return 'process';
+    return existing.oitFileUrl ? 'ignore' : 'attach-pdf';
+}
+
 export interface IntegrationPayload {
     OT?: string;
     DOCUMENTO?: string;

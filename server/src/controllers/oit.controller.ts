@@ -8,7 +8,7 @@ import path from 'path';
 // import { marked } from 'marked';
 import axios from 'axios';
 import { errorMessage, logError, logWarning } from '../utils/errors';
-import { readIntegrationPayload } from '../utils/integrationPayload';
+import { readIntegrationPayload, fromUrlAction } from '../utils/integrationPayload';
 import { getOrAssignConsecutive } from '../services/consecutive.service';
 
 const prisma = new PrismaClient();
@@ -1044,10 +1044,15 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
         }
 
         const oitNumber = OT || `OIT-${Date.now()}`;
-        // Auth is optional for this endpoint as per requirement, but if token is sent, we can use it
-        const userId = (req as any).user?.userId;
 
-        console.log(`[Legacy API] Processing OIT from URL: ${DOCUMENTO}`);
+        const existing = await prisma.oIT.findUnique({ where: { oitNumber } });
+        const action = fromUrlAction(existing);
+        if (action === 'ignore') {
+            console.log(`[Legacy API] from-url OT ${oitNumber}: ya existe en estado ${existing!.status} con PDF - no se modifica`);
+            return res.json({ id: existing!.id, oitNumber, status: existing!.status, message: 'La OIT ya existe en ALS Xmart; no se modifica.' });
+        }
+
+        console.log(`[Legacy API] Processing OIT from URL: ${DOCUMENTO} (accion: ${action})`);
 
         // 1. Download file
         const filename = `oitFromUrl-${Date.now()}.pdf`;
@@ -1078,20 +1083,30 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
 
         const fileUrl = `/uploads/${filename}`;
 
-        // 2. Create OIT Record. Sistema Serambiente reenvia la misma OT (proceso
-        // periodico / reintentos): si ya existe se actualiza en vez de fallar por
-        // numero duplicado despues de haber descargado el archivo.
-        const existing = await prisma.oIT.findUnique({ where: { oitNumber } });
+        if (action === 'attach-pdf') {
+            const updated = await prisma.oIT.update({ where: { id: existing!.id }, data: { oitFileUrl: fileUrl } });
+            console.log(`[Legacy API] from-url OT ${oitNumber}: ya existia en estado ${updated.status}; solo se adjunto el PDF`);
+            return res.json({ id: updated.id, oitNumber, status: updated.status, message: 'La OIT ya existía; se adjuntó el PDF sin cambiar su estado.' });
+        }
+
+        // 2. Crear o reintentar. Serambiente manda cada evento dos veces en el mismo
+        // segundo: el upsert evita el error de numero duplicado, y si la otra llamada
+        // gano la carrera (el PDF guardado no es el nuestro) no se procesa dos veces.
         const oit = existing
             ? await prisma.oIT.update({ where: { id: existing.id }, data: { status: 'UPLOADING', oitFileUrl: fileUrl } })
-            : await prisma.oIT.create({
-                data: {
+            : await prisma.oIT.upsert({
+                where: { oitNumber },
+                update: {},
+                create: {
                     oitNumber: oitNumber,
                     description: 'Importado vía integración externa',
                     status: 'UPLOADING',
                     oitFileUrl: fileUrl,
                 }
             });
+        if (oit.oitFileUrl !== fileUrl) {
+            return res.json({ id: oit.id, oitNumber: oit.oitNumber, status: oit.status, message: 'OIT ya recibida por otra llamada simultánea.' });
+        }
 
         // 3. Respond immediately
         res.json({

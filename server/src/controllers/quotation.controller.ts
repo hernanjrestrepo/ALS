@@ -233,7 +233,7 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
 
         // Import services
         const { pdfService } = require('../services/pdf.service');
-        const { aiService } = require('../services/ai.service');
+        const { aiService, AIService } = require('../services/ai.service');
 
         // Resolve file path
         const uploadsRoot = path.join(__dirname, '../../');
@@ -338,7 +338,7 @@ ${standardsContent || 'Sin normas disponibles para comparar.'}
         let complianceResult: any;
 
         try {
-            const aiResponse = await aiService.chat(prompt, undefined, systemPrompt);
+            const aiResponse = await aiService.chat(prompt, undefined, systemPrompt, AIService.DETERMINISTIC);
 
             // Parse JSON response
             const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);

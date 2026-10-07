@@ -10,6 +10,7 @@ const oitFindUnique = vi.fn();
 const standardFindMany = vi.fn();
 
 vi.mock('../src/services/ai.service', () => ({
+    AIService: { DETERMINISTIC: { temperature: 0, seed: 42 } },
     aiService: {
         chat: (p: string) => chat(p),
         cascadeSummary: (t: string, o: string) => cascadeSummary(t, o)

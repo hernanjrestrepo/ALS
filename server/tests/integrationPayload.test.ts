@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeDocumentUrl, readIntegrationPayload } from '../src/utils/integrationPayload';
+import { normalizeDocumentUrl, readIntegrationPayload, fromUrlAction } from '../src/utils/integrationPayload';
 
 const req = (body: any, extra: any = {}) => ({ body, query: {}, headers: {}, ...extra } as any);
 
@@ -49,5 +49,24 @@ describe('readIntegrationPayload', () => {
         expect(p.DOCUMENTO).toBeUndefined();
         expect(p.keys).toEqual(['OT', 'foo']);
         expect(p.contentType).toBe('application/json');
+    });
+});
+
+describe('fromUrlAction', () => {
+    it('procesa una OIT nueva', () => {
+        expect(fromUrlAction(null)).toBe('process');
+    });
+    it('reintenta una OIT cuya recepcion anterior fallo', () => {
+        expect(fromUrlAction({ status: 'REVIEW_IMPORTANT', oitFileUrl: '/uploads/a.pdf' })).toBe('process');
+        expect(fromUrlAction({ status: 'ERROR', oitFileUrl: null })).toBe('process');
+    });
+    it('a una OIT creada por resultado de laboratorio solo le pega el PDF, sin reprocesarla', () => {
+        expect(fromUrlAction({ status: 'COMPLETED', oitFileUrl: null })).toBe('attach-pdf');
+        expect(fromUrlAction({ status: 'ANALYZING', oitFileUrl: null })).toBe('attach-pdf');
+    });
+    it('ignora el reenvio de una OIT que ya avanzo y ya tiene PDF', () => {
+        for (const status of ['UPLOADING', 'PENDING', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'REVIEW_NEEDED']) {
+            expect(fromUrlAction({ status, oitFileUrl: '/uploads/a.pdf' })).toBe('ignore');
+        }
     });
 });

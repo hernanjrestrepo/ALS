@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { aiService } from './ai.service';
+import { aiService, AIService } from './ai.service';
 import { pdfService } from './pdf.service';
 import { createNotification } from '../controllers/notification.controller';
 import fs from 'fs';
@@ -103,7 +103,7 @@ export class ComplianceService {
 
 TEXTO:
 ${text.substring(0, 6000)}`;
-            const response = await aiService.chat(prompt);
+            const response = await aiService.chat(prompt, undefined, undefined, AIService.DETERMINISTIC);
             const jsonMatch = response.match(/\{[\s\S]*?\}/);
             const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
             return { client: String(parsed.client || '').trim(), site: String(parsed.site || '').trim() };
@@ -227,7 +227,7 @@ Responde SOLO JSON con este formato exacto (compliant es un booleano real basado
 }`;
 
         try {
-            const aiResponse = await aiService.chat(prompt);
+            const aiResponse = await aiService.chat(prompt, undefined, undefined, AIService.DETERMINISTIC);
             const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
             const result = JSON.parse(jsonMatch ? jsonMatch[0] : '{}');
             if (noVerdict) {
