@@ -251,6 +251,7 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
                 where: { id: quotationId },
                 data: {
                     status: 'REVIEW_REQUIRED',
+                    approvedForOit: false,
                     complianceResult: JSON.stringify({
                         error: 'Archivo no encontrado',
                         message: 'No se pudo localizar el archivo de cotización para análisis'
@@ -420,6 +421,8 @@ ${standardsContent || 'Sin normas disponibles para comparar.'}
             where: { id: quotationId },
             data: {
                 status: 'REVIEW_REQUIRED',
+                // Un analisis fallido no puede dejar viva una aprobacion anterior
+                approvedForOit: false,
                 complianceResult: JSON.stringify({
                     error: error.message || 'Error desconocido',
                     message: 'El análisis automático falló. Por favor revise manualmente.',

@@ -3,7 +3,9 @@
  * una por una (la IA local no aguanta varias a la vez). Se usa cuando cambia el
  * motor de analisis: el resultado guardado no se recalcula solo.
  *
- * Uso: npx ts-node src/scripts/reanalyze-quotations.ts
+ * Uso (desde server/, tras compilar): node dist/scripts/reanalyze-quotations.js
+ * No usar ts-node: pdf.service.ts no pasa su chequeo de tipos ('marked') y
+ * todas las cotizaciones quedan con error de analisis.
  */
 import { PrismaClient } from '@prisma/client';
 import { runQuotationAnalysis } from '../controllers/quotation.controller';
