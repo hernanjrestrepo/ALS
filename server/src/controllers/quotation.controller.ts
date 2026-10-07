@@ -227,7 +227,7 @@ function extractCitedStandardNumbers(text: string): Set<string> {
 const AUTO_GENERATED_NUMBER = /^COT-\d+$/;
 
 // Background analysis function
-async function runQuotationAnalysis(quotationId: string, fileUrl: string) {
+export async function runQuotationAnalysis(quotationId: string, fileUrl: string) {
     try {
         console.log(`[Quotation] Starting compliance analysis for ${quotationId}`);
 
