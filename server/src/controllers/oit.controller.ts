@@ -1038,7 +1038,8 @@ export const createOITFromUrl = async (req: Request, res: Response) => {
             // llegan rechazadas con 0 campos (content-type application/json vacio) -
             // se vuelca el body crudo para que el tecnico de Sistema Serambiente pueda
             // ver exactamente que esta mandando su lado, no solo que "fallo".
-            console.warn(`[Legacy API] from-url rechazado${OT ? ` (OT ${OT})` : ''}: falta DOCUMENTO (content-type: ${payload.contentType}, campos: ${payload.keys.join(', ') || 'ninguno'}, headers: ${JSON.stringify(req.headers)}, raw body: ${JSON.stringify(req.body)}, query: ${JSON.stringify(req.query)})`);
+            const { authorization, cookie, ...safeHeaders } = req.headers;
+            console.warn(`[Legacy API] from-url rechazado${OT ? ` (OT ${OT})` : ''}: falta DOCUMENTO (content-type: ${payload.contentType}, campos: ${payload.keys.join(', ') || 'ninguno'}, headers: ${JSON.stringify(safeHeaders)}, auth: ${authorization ? 'presente' : 'ausente'}, raw body: ${JSON.stringify(req.body)}, query: ${JSON.stringify(req.query)})`);
             return res.status(400).json({ error: 'Falta el campo DOCUMENTO (URL)' });
         }
 
