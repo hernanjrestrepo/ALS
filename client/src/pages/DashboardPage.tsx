@@ -108,7 +108,7 @@ export default function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-4 border-slate-200 shadow-sm bg-white">
                     <CardHeader>
-                        <CardTitle className="text-slate-900">OITs Recientes</CardTitle>
+                        <CardTitle className="text-slate-900">Últimas OIT cargadas</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
@@ -122,7 +122,7 @@ export default function DashboardPage() {
                                                 {oit.oitNumber || `OIT-${oit.id}`}
                                             </p>
                                             <p className="text-xs text-slate-500">
-                                                {new Date(oit.createdAt).toLocaleDateString()}
+                                                Cargada el {new Date(oit.createdAt).toLocaleDateString()}
                                             </p>
                                         </div>
                                         <div className={`px-2.5 py-0.5 rounded-full text-xs font-medium

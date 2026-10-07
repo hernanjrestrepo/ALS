@@ -159,14 +159,16 @@ export default function StandardsPage() {
                                             <TableCell className="py-3 px-4">
                                                 {getTypeBadge(std.type)}
                                             </TableCell>
-                                            <TableCell className="py-3 px-4 text-slate-600 max-w-md truncate">
-                                                {std.description}
-                                                {std.fileUrl && (
-                                                    <a href={std.fileUrl} download target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center text-blue-600 hover:underline text-xs bg-blue-50 px-2 py-1 rounded-full border border-blue-100">
-                                                        <Download className="h-3 w-3 mr-1" />
-                                                        Descargar PDF
-                                                    </a>
-                                                )}
+                                            <TableCell className="py-3 px-4 text-slate-600 max-w-md">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="truncate min-w-0" title={std.description}>{std.description}</span>
+                                                    {std.fileUrl && (
+                                                        <a href={std.fileUrl} download target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center text-blue-600 hover:underline text-xs bg-blue-50 px-2 py-1 rounded-full border border-blue-100">
+                                                            <Download className="h-3 w-3 mr-1" />
+                                                            {/.xlsx?$/i.test(std.fileUrl) ? 'Descargar Excel' : /.pdf$/i.test(std.fileUrl) ? 'Descargar PDF' : 'Descargar'}
+                                                        </a>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="py-3 px-4 text-right">
                                                 <DropdownMenu>

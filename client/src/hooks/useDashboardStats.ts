@@ -89,7 +89,8 @@ export function useDashboardStats() {
                     pendingOITs: oits.filter((o: any) => o.status === 'PENDING').length,
                     totalResources: resources.length,
                     availableResources: resources.filter((r: any) => r.status === 'AVAILABLE').length,
-                    recentOITs: oits.slice(0, 5),
+                    // la lista llega ordenada por numero de OIT; 'recientes' son las ultimas CARGADAS
+                    recentOITs: [...oits].sort((a: any, b: any) => +new Date(b.createdAt) - +new Date(a.createdAt)).slice(0, 5),
                     statusBreakdown,
                     monthlyTrend,
                     stuckOITs,

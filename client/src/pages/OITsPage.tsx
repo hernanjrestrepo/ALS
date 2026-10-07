@@ -300,7 +300,7 @@ export default function OITsPage() {
                     {/* Desktop Headers */}
                     <div className="hidden sm:flex items-center justify-between px-4 py-3 bg-slate-50/50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                         <div className="flex-1">OIT / Descripción</div>
-                        <div className="w-32 text-right">Fecha</div>
+                        <div className="w-32 text-right" title="Fecha en que la orden se cargó en ALS Xmart. No es la fecha de emisión de la OIT.">Cargada en Xmart</div>
                         <div className="w-32 text-right">Estado</div>
                     </div>
 
@@ -343,7 +343,7 @@ export default function OITsPage() {
                                     </div>
                                     <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto pl-14 sm:pl-0">
                                         <div className="sm:w-32 sm:text-right">
-                                            <span className="text-xs text-slate-400 font-mono">
+                                            <span className="text-xs text-slate-400 font-mono" title="Fecha en que la orden se cargó en ALS Xmart">
                                                 {new Date(oit.createdAt).toLocaleDateString()}
                                             </span>
                                         </div>
