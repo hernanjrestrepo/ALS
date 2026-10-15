@@ -141,7 +141,8 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
         // Sin esto, la misma cotizacion daba 4 hallazgos un dia y 1 al siguiente.
         public static readonly DETERMINISTIC = { temperature: 0, seed: 42 };
 
-        public async chat(message: string, model?: string, system?: string, extraOptions?: Record<string, unknown>): Promise<string> {
+        // timeoutMs: el analisis de cumplimiento de una cotizacion medido en produccion tarda ~225 s (2026-10-15).
+        public async chat(message: string, model?: string, system?: string, extraOptions?: Record<string, unknown>, timeoutMs = 180000): Promise<string> {
         const useModel = model || this.defaultModel;
         console.log(`[AI] Sending Chat Request. Model: ${useModel}`);
         try {
@@ -151,7 +152,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 prompt: message,
                 stream: false,
                 options: { num_ctx: 16384, ...extraOptions },
-            }, { timeout: 180000 });
+            }, { timeout: timeoutMs });
             return response.data.response || '';
         } catch (error: any) {
             logError(`AI Chat error (modelo ${useModel})`, error);

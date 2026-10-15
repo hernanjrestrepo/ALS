@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import { createNotification } from './notification.controller';
+import { pdfService } from '../services/pdf.service';
+import { aiService, AIService } from '../services/ai.service';
 import {
     extractQuotationNumber, parseComparisonTargets, buildArticleBlocks, describeTarget,
     detectMatrixMismatches, normalizeParameterChecks, applySystemChecks, buildVerdict, isAITimeout,
@@ -339,9 +341,6 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
     try {
         console.log(`[Quotation] Starting compliance analysis for ${quotationId}`);
 
-        // Import services
-        const { pdfService } = require('../services/pdf.service');
-        const { aiService, AIService } = require('../services/ai.service');
 
         // Resolve file path
         const uploadsRoot = path.join(__dirname, '../../');
@@ -427,7 +426,7 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
             let timedOut = false;
             for (let attempt = 1; attempt <= 2 && aiResponse === null; attempt++) {
                 try {
-                    aiResponse = await aiService.chat(prompt, undefined, COMPLIANCE_SYSTEM_PROMPT, AIService.DETERMINISTIC);
+                    aiResponse = await aiService.chat(prompt, undefined, COMPLIANCE_SYSTEM_PROMPT, AIService.DETERMINISTIC, 600_000);
                 } catch (error) {
                     timedOut = isAITimeout(error);
                     console.error(`[Quotation] Intento ${attempt} de la IA fallido${timedOut ? ' (timeout)' : ''}:`, (error as Error)?.message);
@@ -465,7 +464,7 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
         const unmatchedMatrix = applySystemChecks(checks, matrix.mismatches, extractedText, rules);
         // La consulta al laboratorio es secundaria: si falla, no debe tumbar el veredicto.
         try {
-            await registerParameterConsultations(pendingNameQuestions(checks), current?.quotationNumber || quotationId);
+            await registerParameterConsultations(pendingNameQuestions(checks), extractQuotationNumber(extractedText) || aiNumber || current?.quotationNumber || quotationId);
         } catch (error) {
             console.error('[Consulta] No se pudo registrar la consulta de parámetros:', error);
         }
