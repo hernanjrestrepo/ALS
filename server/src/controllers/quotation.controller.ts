@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
+import { createNotification } from './notification.controller';
 import {
     extractQuotationNumber, parseComparisonTargets, buildArticleBlocks, describeTarget,
     detectMatrixMismatches, normalizeParameterChecks, applySystemChecks, buildVerdict, isAITimeout,
@@ -22,44 +23,48 @@ export async function loadParameterRules(): Promise<ParameterRules> {
     };
 }
 
+// Usuario de ALS que responde las consultas de equivalencia de parametros (Ana Melendez,
+// laboratorio). Se configura con CONSULTA_PARAMETROS_USER_EMAIL.
+export const CONSULTA_USER_EMAIL = process.env.CONSULTA_PARAMETROS_USER_EMAIL || 'ana.melendez@alsglobal.com';
+
 // Cuando el sistema no puede decidir si dos nombres son el mismo parametro, deja una
-// consulta y la envia por correo al laboratorio. Una pareja ya consultada no se
-// vuelve a enviar (la respuesta se guarda y se usa en los siguientes analisis).
+// consulta y avisa en la bandeja de ALS (notificacion al usuario). Una pareja ya
+// consultada no vuelve a avisar: la respuesta se guarda y se usa en los siguientes analisis.
 export async function registerParameterConsultations(questions: ReturnType<typeof pendingNameQuestions>, quotationNumber: string) {
-    const to = process.env.CONSULTA_PARAMETROS_EMAIL;
+    if (!questions.length) return;
+    const recipient = await prisma.user.findFirst({
+        where: { email: { equals: CONSULTA_USER_EMAIL, mode: 'insensitive' }, isActive: true },
+        select: { id: true },
+    });
+    if (!recipient) console.warn(`[Consulta] No hay usuario activo ${CONSULTA_USER_EMAIL}: la consulta queda visible en Consultas de parámetros`);
+
     for (const q of questions) {
         const key = consultationKey(q.normParameter, q.quotedAs);
         if (await prisma.parameterConsultation.findUnique({ where: { key } })) continue;
-
-        let sentAt: Date | null = null;
-        let sentTo: string | null = null;
-        if (to) {
-            try {
-                const { sendPlainEmail } = await import('../services/email.service');
-                const subject = `[ALS] Consulta de equivalencia: "${q.normParameter}" / "${q.quotedAs}"`;
-                const html = `<p>Hola,</p>
-<p>Al revisar la cotización <strong>${quotationNumber}</strong> el sistema no puede decidir si estos dos nombres son el mismo parámetro:</p>
-<ul>
-  <li>Norma: <strong>${q.normParameter}</strong>${q.normReference ? ` (límite ${q.normReference})` : ''}</li>
-  <li>Cotización: <strong>${q.quotedAs}</strong></li>
-</ul>
-<p>¿Es el mismo parámetro? Responda <strong>SÍ</strong> o <strong>NO</strong>, y si puede, la forma en que el laboratorio lo nombra.</p>`;
-                await sendPlainEmail(to, subject, html);
-                sentAt = new Date();
-                sentTo = to;
-            } catch (error) {
-                console.error('[Consulta] No se pudo enviar el correo de consulta:', error);
-            }
-        } else {
-            console.warn('[Consulta] CONSULTA_PARAMETROS_EMAIL no configurado: la consulta se guarda sin enviar');
-        }
         try {
             await prisma.parameterConsultation.create({
-                data: { key, normParameter: q.normParameter, quotedAs: q.quotedAs, normReference: q.normReference || null, sentAt, sentTo },
+                data: {
+                    key,
+                    normParameter: q.normParameter,
+                    quotedAs: q.quotedAs,
+                    normReference: q.normReference || null,
+                    quotationNumber,
+                    notifiedUserId: recipient?.id || null,
+                    notifiedAt: recipient ? new Date() : null,
+                },
             });
         } catch (error) {
             // Dos analisis a la vez pueden crear la misma consulta: la segunda se ignora.
             console.warn('[Consulta] ya existia:', key);
+            continue;
+        }
+        if (recipient) {
+            await createNotification(
+                recipient.id,
+                'Consulta de parámetro',
+                `Cotización ${quotationNumber}: la norma pide «${q.normParameter}» y la cotización trae «${q.quotedAs}». ¿Es el mismo parámetro? Respóndala en Consultas de parámetros.`,
+                'WARNING',
+            );
         }
     }
 }
@@ -90,7 +95,7 @@ export const answerParameterConsultation = async (req: Request, res: Response) =
         const [updated] = await prisma.$transaction([
             prisma.parameterConsultation.update({
                 where: { id },
-                data: { status: 'RESPONDIDA', answerSame: same, answerNote: note ? String(note) : null, answeredAt: new Date() },
+                data: { status: 'RESPONDIDA', answerSame: same, answerNote: note ? String(note).slice(0, 500) : null, answeredAt: new Date() },
             }),
             prisma.parameterRule.upsert({
                 where: { nameA_nameB: { nameA: consultation.normParameter, nameB: consultation.quotedAs } },
@@ -458,7 +463,12 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
 
         const rules = await loadParameterRules();
         const unmatchedMatrix = applySystemChecks(checks, matrix.mismatches, extractedText, rules);
-        await registerParameterConsultations(pendingNameQuestions(checks), current?.quotationNumber || quotationId);
+        // La consulta al laboratorio es secundaria: si falla, no debe tumbar el veredicto.
+        try {
+            await registerParameterConsultations(pendingNameQuestions(checks), current?.quotationNumber || quotationId);
+        } catch (error) {
+            console.error('[Consulta] No se pudo registrar la consulta de parámetros:', error);
+        }
         const verdict = buildVerdict({ checks, unmatchedMatrix, comparedAgainst, warnings });
         const finalStatus = verdict.status;
         const complianceResult = {

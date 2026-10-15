@@ -30,6 +30,7 @@ import TemplateTestsPage from '@/pages/TemplateTestsPage';
 import ClientsPage from '@/pages/ClientsPage';
 import ServicesPage from '@/pages/ServicesPage';
 import DistributionListsPage from '@/pages/DistributionListsPage';
+import ParameterConsultationsPage from '@/pages/ParameterConsultationsPage';
 
 function App() {
   return (
@@ -62,6 +63,7 @@ function App() {
             <Route path="clients" element={<ClientsPage />} />
             <Route path="services" element={<ServicesPage />} />
             <Route path="distribution-lists" element={<DistributionListsPage />} />
+            <Route path="parameter-consultations" element={<ParameterConsultationsPage />} />
             <Route path='template-tests' element={<TemplateTestsPage />} />
             <Route path='ai' element={<AIAssistantPage />} />
             <Route path="notifications" element={<NotificationsPage />} />

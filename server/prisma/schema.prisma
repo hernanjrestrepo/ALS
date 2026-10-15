@@ -333,16 +333,17 @@ model ParameterRule {
 }
 
 // Consulta al laboratorio cuando el sistema no puede decidir si dos nombres son el
-// mismo parametro. Se envia por correo y la respuesta queda aqui.
+// mismo parametro. Llega a la bandeja de ALS (notificacion) y la respuesta queda aqui.
 model ParameterConsultation {
   id            String    @id @default(uuid())
   key           String    @unique
   normParameter String
   quotedAs      String
   normReference String?
+  quotationNumber String?  // primera cotizacion que genero la duda
   status        String    @default("PENDIENTE") // PENDIENTE | RESPONDIDA
-  sentAt        DateTime?
-  sentTo        String?
+  notifiedUserId String?  // usuario de ALS al que llego la notificacion (bandeja)
+  notifiedAt    DateTime?
   answerSame    Boolean?
   answerNote    String?
   createdAt     DateTime  @default(now())

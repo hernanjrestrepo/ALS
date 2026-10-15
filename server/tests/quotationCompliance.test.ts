@@ -321,3 +321,14 @@ describe('equivalencias confirmadas y consultas', () => {
         expect(isAITimeout(new Error('connect ECONNREFUSED'))).toBe(false);
     });
 });
+
+describe('regla "no es el mismo parametro" (respuesta del laboratorio)', () => {
+    it('una pareja marcada como distinta es parametro incorrecto (critico), no una duda', () => {
+        const rules = { equivalent: [] as Array<[string, string]>, nonEquivalent: [['Cloruros', 'Cloro residual']] as Array<[string, string]> };
+        const checks = normalizeParameterChecks([{ normParameter: 'Cloruros', quotedAs: 'Cloro residual', problems: [] }]);
+        applySystemChecks(checks, [], '', rules);
+        expect(kinds(checks)).toEqual({ 'Cloruros': 'PARAMETRO_INCORRECTO' });
+        expect(pendingNameQuestions(checks)).toEqual([]);
+        expect(buildVerdict({ checks }).status).toBe('NON_COMPLIANT');
+    });
+});

@@ -19,7 +19,8 @@ import {
     Building2,
     Beaker,
     ChevronDown,
-    Mail
+    Mail,
+    HelpCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -47,6 +48,8 @@ const getNavigationGroups = (userRole?: string) => {
             { icon: Beaker, label: 'Servicios', href: '/services' },
             { icon: Receipt, label: 'Cotizaciones', href: '/quotations' },
             { icon: Mail, label: 'Listas de Distribución', href: '/distribution-lists' },
+            // Respuestas de equivalencias de parámetros: solo quien puede registrarlas (ADMIN o SUPER_ADMIN)
+            ...(userRole === 'ADMIN' || userRole === 'SUPER_ADMIN' ? [{ icon: HelpCircle, label: 'Consultas de parámetros', href: '/parameter-consultations' }] : []),
         ] },
         { title: 'Operación', items: [
             { icon: FileText, label: 'OITs', href: '/oits' },
