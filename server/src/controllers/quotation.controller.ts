@@ -2,8 +2,32 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
+import {
+    extractQuotationNumber, parseComparisonTargets, buildArticleBlocks, describeTarget,
+    detectMatrixMismatches, normalizeParameterChecks, applySystemChecks, buildVerdict,
+    buildCompliancePrompt, recomputeStoredVerdict, COMPLIANCE_SYSTEM_PROMPT,
+    ParameterCheck,
+} from '../services/quotationCompliance';
 
 const prisma = new PrismaClient();
+
+// FormData manda "true"/"false" como texto.
+const parseBool = (v: unknown) => v === true || v === 'true';
+
+// El numero real (SIACOT-...) se lee del PDF al subirlo, sin esperar a la IA:
+// antes solo aparecia al terminar el analisis y la pantalla mostraba COT-<hora>.
+async function quotationNumberFromPdf(filePath: string): Promise<string | null> {
+    try {
+        const { pdfService } = require('../services/pdf.service');
+        const found = extractQuotationNumber(await pdfService.extractText(filePath));
+        if (!found) return null;
+        const clash = await prisma.quotation.findUnique({ where: { quotationNumber: found } });
+        return clash ? null : found;
+    } catch (error) {
+        console.warn('[Quotation] No se pudo leer el numero del PDF al subirlo:', error);
+        return null;
+    }
+}
 
 // Get all quotations
 export const getQuotations = async (req: Request, res: Response) => {
@@ -54,11 +78,13 @@ export const getQuotation = async (req: Request, res: Response) => {
 // Create new quotation
 export const createQuotation = async (req: Request, res: Response) => {
     try {
-        const { quotationNumber, description, clientName, clientId, serviceId } = req.body;
+        const { quotationNumber, description, clientName, clientId, serviceId, clientScopeOnly } = req.body;
         const file = req.file;
 
-        // Generate quotation number if not provided
-        const finalQuotationNumber = quotationNumber || `COT-${Date.now()}`;
+        const pdfNumber = !quotationNumber && file && /\.pdf$/i.test(file.originalname)
+            ? await quotationNumberFromPdf(file.path)
+            : null;
+        const finalQuotationNumber = quotationNumber || pdfNumber || `COT-${Date.now()}`;
 
         // Store file URL with /uploads/ prefix for consistency
         const fileUrl = file ? `/uploads/${file.filename}` : undefined;
@@ -71,6 +97,7 @@ export const createQuotation = async (req: Request, res: Response) => {
                 clientId: clientId || undefined,
                 serviceId: serviceId || undefined,
                 fileUrl,
+                clientScopeOnly: parseBool(clientScopeOnly),
                 status: file ? 'ANALYZING' : 'PENDING'
             }
         });
@@ -93,7 +120,7 @@ export const createQuotation = async (req: Request, res: Response) => {
 export const updateQuotation = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { quotationNumber, description, clientName, clientId, serviceId, status } = req.body;
+        const { quotationNumber, description, clientName, clientId, serviceId, status, clientScopeOnly } = req.body;
         const file = req.file;
 
         const data: any = {};
@@ -112,6 +139,26 @@ export const updateQuotation = async (req: Request, res: Response) => {
             // el re-analisis termine (si no, quedaria "aprobada" con un archivo distinto).
             data.approvedForOit = false;
             shouldReanalyze = true;
+        }
+
+        // "El cliente solo pidió estos parámetros": cambia el veredicto, asi que se
+        // rearma de una vez con la revision guardada (sin IA). Si el resultado es de
+        // antes de este formato, se vuelve a analizar.
+        if (clientScopeOnly !== undefined) {
+            data.clientScopeOnly = parseBool(clientScopeOnly);
+            const current = await prisma.quotation.findUnique({ where: { id }, select: { status: true, complianceResult: true } });
+            if (!file && current && current.status !== 'ANALYZING') {
+                const recomputed = recomputeStoredVerdict(current.complianceResult, data.clientScopeOnly);
+                if (recomputed) {
+                    data.status = recomputed.verdict.status;
+                    data.complianceResult = JSON.stringify(recomputed.complianceResult);
+                    data.approvedForOit = recomputed.verdict.status === 'COMPLIANT';
+                } else if (current.complianceResult) {
+                    data.status = 'ANALYZING';
+                    data.approvedForOit = false;
+                    shouldReanalyze = true;
+                }
+            }
         }
 
         const quotation = await prisma.quotation.update({
@@ -206,20 +253,6 @@ export const analyzeQuotation = async (req: Request, res: Response) => {
     }
 };
 
-// Extrae numeros de norma citados en el propio documento (ej. "Resolucion 0699",
-// "Decreto 1076") de forma deterministica, sin IA. Mismo principio que el filtrado
-// por categoria que ya usa el motor de OITs (compliance.service.ts): no le pasamos
-// a la IA normas que el documento ni siquiera menciona.
-function extractCitedStandardNumbers(text: string): Set<string> {
-    const regex = /(?:resoluci[oó]n|decreto|res\.?)\s*(?:n[°º]?\.?\s*)?0*(\d{2,4})\b/gi;
-    const numbers = new Set<string>();
-    let match;
-    while ((match = regex.exec(text)) !== null) {
-        numbers.add(match[1].replace(/^0+/, ''));
-    }
-    return numbers;
-}
-
 // Cotizacion no trae numero real de Sistema Serambiente en ningun campo del
 // formulario (hallazgo de la reunion 2026-10-05) - se extrae del propio PDF en
 // el mismo analisis que ya se corre al subir el archivo, en vez de agregar un
@@ -272,114 +305,84 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
             extractedText = 'Error al extraer texto del documento';
         }
 
-        // Filtrar normas: solo las que el documento realmente cita por numero.
-        // Si no cita ninguna (o ninguna hace match en la BD), se cae a revisar
-        // contra las 29 disponibles - pero siempre con el prompt riguroso, nunca
-        // con el sesgo de "mejor no reportar nada" que tenia antes.
+        // Solo se compara contra el ARTICULO que la cotizacion pide ("Artículo de la
+        // norma a comparar"), no contra el comienzo de la norma: el 2026-10-15 la IA
+        // recibio los primeros 8000 caracteres del Decreto 1076 y comparo contra el
+        // art. 2.2.3.3.9.3 cuando la cotizacion pedia el 2.2.3.3.9.7.
+        const current = await prisma.quotation.findUnique({
+            where: { id: quotationId },
+            select: { quotationNumber: true, clientScopeOnly: true },
+        });
+        const clientScopeOnly = !!current?.clientScopeOnly;
         const allStandards = await prisma.standard.findMany({ orderBy: { createdAt: 'desc' } });
-        const citedNumbers = extractCitedStandardNumbers(extractedText);
-        let standards = citedNumbers.size > 0
-            ? allStandards.filter(s => {
-                const titleNumbers = extractCitedStandardNumbers(s.title);
-                return [...titleNumbers].some(n => citedNumbers.has(n));
-            })
-            : [];
-        const usedFallbackAllStandards = standards.length === 0;
-        if (usedFallbackAllStandards) {
-            standards = allStandards;
+        const targets = parseComparisonTargets(extractedText);
+        const { blocks, notFound } = buildArticleBlocks(allStandards, targets);
+        const warnings: Array<{ category: string; description: string; recommendation?: string }> = [];
+
+        if (!targets.length) {
+            warnings.push({
+                category: 'Sin artículo a comparar',
+                description: 'La cotización no indica el "Artículo de la norma a comparar", así que no se comparó contra ninguna norma.',
+                recommendation: 'Indicar en la cotización la norma y el artículo a comparar, y volver a analizar.',
+            });
+        }
+        for (const t of notFound) {
+            warnings.push({
+                category: 'Artículo no encontrado',
+                description: `La cotización pide comparar con el ${describeTarget(t)} de la norma ${t.normNumber || '(sin número)'}, pero ese artículo no está en las normas cargadas en Xmart.`,
+                recommendation: 'Revisar manualmente, o cargar en Normas la versión que trae ese artículo.',
+            });
         }
 
-        console.log(`[Quotation] Normas citadas detectadas: ${[...citedNumbers].join(', ') || 'ninguna'}. Usando ${standards.length} de ${allStandards.length} normas${usedFallbackAllStandards ? ' (fallback: sin match, se usan todas)' : ''}.`);
+        const comparedAgainst = blocks.map(b => `${b.standardTitle} — ${describeTarget(b.target)}`);
+        const matrix = detectMatrixMismatches(extractedText);
+        console.log(`[Quotation] Artículos a comparar: ${targets.map(t => `${t.normNumber}/${describeTarget(t)}`).join('; ') || 'ninguno'}. Encontrados: ${comparedAgainst.join('; ') || 'ninguno'}. Muestra: ${matrix.sampleMatrix || '?'}, matriz distinta: ${matrix.mismatches.map(m => m.parameter).join(', ') || 'ninguna'}`);
 
-        // Truncar cada norma a 8000 caracteres para no saturar el contexto -
-        // igual que hace compliance.service.ts para las OITs.
-        const standardsContent = standards.map(s => {
-            const content = (s.content || s.description || 'Sin contenido').substring(0, 8000);
-            return `### NORMA: ${s.title} (categoría: ${s.category || 'general'})\n${content}`;
-        }).join('\n---\n');
-
-        // Auditor riguroso, sin sesgo hacia "mejor 0 errores que inventar" - ese
-        // sesgo era la causa real de que cotizaciones con errores reales salieran
-        // aprobadas al 100% (hallazgo de la reunion 2026-10-05 con Ana Melendez).
-        const systemPrompt = `Eres un auditor técnico riguroso de cotizaciones ambientales. Tu trabajo es encontrar discrepancias reales, no evitarlas.
-
-REGLAS:
-- Compara, parámetro por parámetro, lo que la COTIZACIÓN ofrece contra lo que exigen las NORMAS citadas.
-- NO asumas conformidad por defecto. Marca "compliant": true SOLO si verificaste explícitamente que cada parámetro/límite exigido está cubierto.
-- Si un parámetro, límite de cuantificación o alcance exigido por la norma no está claramente cubierto en la cotización, es una discrepancia real y debes reportarla en "issues".
-- No inventes normas ni parámetros que no existan en los documentos proporcionados - pero tampoco ocultes errores reales por evitar un falso positivo.`;
-
-        const prompt = `
-## DOCUMENTO A ANALIZAR (COTIZACIÓN)
-${extractedText}
-
-## NORMAS APLICABLES
-${standardsContent || 'Sin normas disponibles para comparar.'}
-
-## INSTRUCCIONES
-1. Identifica qué parámetros/ensayos ofrece la cotización.
-2. Para cada norma arriba, identifica qué parámetros/límites exige.
-3. Reporta en "issues" cada parámetro exigido que NO esté cubierto por la cotización, citando la norma y el parámetro específico.
-4. Si además encuentras en el documento un número de cotización propio de Sistema Serambiente (ej. "Cotización No. 27065", "COT-27065"), extráelo tal cual aparece.
-
-## RESPONDE SOLO JSON:
-{
-  "compliant": <true o false, según lo que realmente encontraste>,
-  "score": <0 a 100>,
-  "summary": "<resumen de 2-3 líneas de tu comparación real>",
-  "appliedStandards": ${JSON.stringify(standards.map(s => s.title))},
-  "issues": ["<cada discrepancia real encontrada, con norma y parámetro específico>"],
-  "recommendations": ["<recomendaciones si aplica>"],
-  "quotationNumberFound": "<número de cotización encontrado en el documento, o vacío si no aparece>"
-}`;
-
-        // Run AI compliance check
-        console.log(`[Quotation] Running AI compliance check...`);
-        let complianceResult: any;
-
-        try {
-            const aiResponse = await aiService.chat(prompt, undefined, systemPrompt, AIService.DETERMINISTIC);
-
-            // Parse JSON response
-            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-            const jsonStr = jsonMatch ? jsonMatch[0] : aiResponse;
-            complianceResult = JSON.parse(jsonStr);
-        } catch (parseError) {
-            console.error('[Quotation] Error parsing AI compliance response:', parseError);
-            complianceResult = {
-                compliant: false,
-                score: 0,
-                summary: 'Error al analizar la respuesta de la IA.',
-                issues: [{
-                    severity: 'WARNING',
+        let checks: ParameterCheck[] = [];
+        let aiNumber = '';
+        if (blocks.length) {
+            const prompt = buildCompliancePrompt(
+                extractedText,
+                blocks.map(b => ({ label: `${b.standardTitle} — ${describeTarget(b.target)}`, text: b.text })),
+            );
+            console.log(`[Quotation] Running AI compliance check...`);
+            try {
+                const aiResponse = await aiService.chat(prompt, undefined, COMPLIANCE_SYSTEM_PROMPT, AIService.DETERMINISTIC);
+                const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+                const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
+                checks = normalizeParameterChecks(parsed.parameters);
+                aiNumber = String(parsed.quotationNumberFound || '').trim();
+            } catch (parseError) {
+                console.error('[Quotation] Error parsing AI compliance response:', parseError);
+            }
+            if (!checks.length) {
+                warnings.push({
                     category: 'Sistema',
-                    description: 'No se pudo completar el análisis automático',
-                    recommendation: 'Revisar manualmente la cotización'
-                }],
-                recommendations: ['Verificar manualmente el cumplimiento normativo']
-            };
+                    description: 'La IA no devolvió la revisión por parámetro del artículo.',
+                    recommendation: 'Volver a analizar, o revisar manualmente.',
+                });
+            }
         }
 
-        // Ensure required fields
-        complianceResult.appliedStandards = complianceResult.appliedStandards || standards.map(s => s.title);
-        complianceResult.issues = complianceResult.issues || [];
-        complianceResult.analyzedAt = new Date().toISOString();
-        complianceResult.standardsCount = standards.length;
-
-        // Determine final status
-        let finalStatus = 'REVIEW_REQUIRED';
-        if (complianceResult.compliant === true && complianceResult.score >= 80) {
-            finalStatus = 'COMPLIANT';
-        } else if (complianceResult.compliant === false || complianceResult.score < 50) {
-            finalStatus = 'NON_COMPLIANT';
-        }
+        const unmatchedMatrix = applySystemChecks(checks, matrix.mismatches, extractedText);
+        const verdict = buildVerdict({ checks, unmatchedMatrix, clientScopeOnly, comparedAgainst, warnings });
+        const finalStatus = verdict.status;
+        const complianceResult = {
+            ...verdict,
+            appliedStandards: [...new Set(blocks.map(b => b.standardTitle))],
+            comparedAgainst,
+            sampleMatrix: matrix.sampleMatrix,
+            parameterChecks: checks,
+            unmatchedMatrix,
+            warnings,
+            clientScopeOnly,
+            analyzedAt: new Date().toISOString(),
+            standardsCount: blocks.length,
+        };
 
         // Also run general document analysis for additional info
         const generalAnalysis = await aiService.analyzeDocument(extractedText);
 
-        // Si el documento trae su propio numero de cotizacion y el actual es el
-        // autogenerado (COT-<timestamp>), se reemplaza por el real - nunca se
-        // pisa un numero que alguien ya haya puesto a mano.
         const updateData: any = {
             status: finalStatus,
             extractedText: extractedText.substring(0, 10000),
@@ -391,17 +394,18 @@ ${standardsContent || 'Sin normas disponibles para comparar.'}
             approvedForOit: finalStatus === 'COMPLIANT'
         };
 
-        const foundNumber = String(complianceResult.quotationNumberFound || '').trim();
-        if (foundNumber) {
-            const current = await prisma.quotation.findUnique({ where: { id: quotationId }, select: { quotationNumber: true } });
-            if (current && AUTO_GENERATED_NUMBER.test(current.quotationNumber)) {
-                const clash = await prisma.quotation.findUnique({ where: { quotationNumber: foundNumber } });
-                if (!clash) {
-                    updateData.quotationNumber = foundNumber;
-                    console.log(`[Quotation] Numero real detectado en el PDF: "${foundNumber}" (reemplaza el autogenerado)`);
-                } else {
-                    console.warn(`[Quotation] Numero "${foundNumber}" detectado en el PDF ya existe en otra cotizacion - se mantiene el autogenerado`);
-                }
+        // Si el documento trae su propio numero de cotizacion y el actual es el
+        // autogenerado (COT-<timestamp>), se reemplaza por el real - nunca se
+        // pisa un numero que alguien ya haya puesto a mano. Primero el SIACOT del
+        // encabezado; la IA solo si el documento no lo trae.
+        const foundNumber = extractQuotationNumber(extractedText) || aiNumber;
+        if (foundNumber && current && AUTO_GENERATED_NUMBER.test(current.quotationNumber)) {
+            const clash = await prisma.quotation.findUnique({ where: { quotationNumber: foundNumber } });
+            if (!clash) {
+                updateData.quotationNumber = foundNumber;
+                console.log(`[Quotation] Numero real detectado en el PDF: "${foundNumber}" (reemplaza el autogenerado)`);
+            } else {
+                console.warn(`[Quotation] Numero "${foundNumber}" detectado en el PDF ya existe en otra cotizacion - se mantiene el autogenerado`);
             }
         }
 
@@ -413,7 +417,7 @@ ${standardsContent || 'Sin normas disponibles para comparar.'}
             data: updateData
         });
 
-        console.log(`[Quotation] Compliance check complete for ${quotationId}.Status: ${finalStatus}, Score: ${complianceResult.score}/100`);
+        console.log(`[Quotation] Compliance check complete for ${quotationId}.Status: ${finalStatus}, Score: ${complianceResult.score}/100, hallazgos: ${verdict.issues.length}`);
 
     } catch (error: any) {
         console.error(`[Quotation] Analysis failed for ${quotationId}:`, error);

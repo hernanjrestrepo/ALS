@@ -114,6 +114,9 @@ model Quotation {
   // (compliant=true o compliant=null en matrices sin norma aplicable), nunca
   // por defecto - antes el chequeo era solo informativo y no bloqueaba nada.
   approvedForOit    Boolean   @default(false)
+  // "El cliente solo pidió estos parámetros" (pedido de Ana Lucía, 2026-10-15):
+  // los parámetros del artículo que no se cotizaron no cuentan como incumplimiento.
+  clientScopeOnly   Boolean   @default(false)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   linkedOITs        OIT[]     // OITs that use this quotation

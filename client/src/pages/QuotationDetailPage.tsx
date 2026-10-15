@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     FileText, Building2, Calendar, Download, Link2,
     Sparkles, Loader2, DollarSign, CheckCircle2,
-    Clock, Hash, AlertTriangle, XCircle, Info
+    Clock, Hash, AlertTriangle, XCircle, Info, RefreshCw
 } from 'lucide-react';
 import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackModal';
 import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
@@ -25,10 +26,31 @@ interface Quotation {
     status: string;
     aiData?: string;
     complianceResult?: string;
+    clientScopeOnly?: boolean;
     createdAt: string;
     updatedAt: string;
     linkedOITs?: { id: string; oitNumber: string; status: string; description?: string }[];
 }
+
+// Resultados de antes del 2026-10-15 traen los hallazgos como texto suelto (por
+// eso se veian tarjetas "INFO" vacias); los nuevos traen objetos.
+const normalizeIssue = (issue: any) => typeof issue === 'string'
+    ? { severity: 'WARNING', category: 'Observación', description: issue }
+    : issue;
+
+const SEVERITY_LABEL: Record<string, string> = { CRITICAL: 'INCUMPLE', WARNING: 'REVISAR', INFO: 'INFO' };
+
+const PROBLEM_LABEL: Record<string, string> = {
+    FALTANTE: 'Faltante',
+    PARAMETRO_INCORRECTO: 'Parámetro incorrecto',
+    NOMBRE_DISTINTO: 'Nombre por confirmar',
+    MATRIZ: 'Matriz distinta a la muestra',
+    LIMITE_CUANTIFICACION: 'Límite de cuantificación',
+    OTRO: 'Observación',
+};
+
+// Numero temporal mientras el analisis lee el SIACOT del documento.
+const isProvisionalNumber = (q: Quotation) => /^COT-\d+$/.test(q.quotationNumber) && q.status === 'ANALYZING';
 
 export default function QuotationDetailPage() {
     const { id } = useParams();
@@ -36,6 +58,7 @@ export default function QuotationDetailPage() {
     const [quotation, setQuotation] = useState<Quotation | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isSavingScope, setIsSavingScope] = useState(false);
 
     // Feedback Modal State
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
@@ -51,22 +74,31 @@ export default function QuotationDetailPage() {
         setFeedbackModalOpen(true);
     };
 
-    useEffect(() => {
-        if (id) fetchQuotation();
-    }, [id]);
-
-    const fetchQuotation = async () => {
+    const fetchQuotation = useCallback(async (silent = false) => {
         try {
             const response = await api.get(`/quotations/${id}`);
             setQuotation(response.data);
         } catch (error) {
             console.error('Error fetching quotation:', error);
+            if (silent) return;
             toast.error('No se pudo cargar la cotización');
             navigate('/quotations');
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [id, navigate]);
+
+    useEffect(() => {
+        if (id) fetchQuotation();
+    }, [id, fetchQuotation]);
+
+    // Mientras analiza, la pantalla se actualiza sola: el 2026-10-15 el analisis
+    // termino en 74 s y la pantalla siguio en "Analizando" hasta recargar (2 h).
+    useEffect(() => {
+        if (quotation?.status !== 'ANALYZING') return;
+        const timer = setInterval(() => fetchQuotation(true), 4000);
+        return () => clearInterval(timer);
+    }, [quotation?.status, fetchQuotation]);
 
     const handleAnalyze = async () => {
         setIsAnalyzing(true);
@@ -79,6 +111,22 @@ export default function QuotationDetailPage() {
             toast.error('Error al iniciar análisis');
         } finally {
             setIsAnalyzing(false);
+        }
+    };
+
+    const handleScopeChange = async (checked: boolean) => {
+        setIsSavingScope(true);
+        try {
+            const response = await api.put(`/quotations/${id}`, { clientScopeOnly: checked });
+            setQuotation(prev => prev ? { ...prev, ...response.data } : response.data);
+            toast.success(checked
+                ? 'Los parámetros que el cliente no pidió ya no cuentan como incumplimiento'
+                : 'Se vuelven a exigir todos los parámetros del artículo');
+        } catch (error: any) {
+            console.error('Error saving client scope:', error);
+            toast.error(error.response?.data?.error || 'No se pudo guardar el alcance');
+        } finally {
+            setIsSavingScope(false);
         }
     };
 
@@ -137,6 +185,8 @@ export default function QuotationDetailPage() {
 
     const aiData = parseAIData();
     const complianceResult = parseComplianceResult();
+    const issues: any[] = Array.isArray(complianceResult?.issues) ? complianceResult.issues.map(normalizeIssue) : [];
+    const parameterChecks: any[] = Array.isArray(complianceResult?.parameterChecks) ? complianceResult.parameterChecks : [];
 
     return (
         <div className="min-h-screen bg-slate-50/50 pb-12">
@@ -149,6 +199,9 @@ export default function QuotationDetailPage() {
                                 <h1 className="text-3xl font-bold tracking-tight text-slate-900 font-display">
                                     {quotation.quotationNumber}
                                 </h1>
+                                {isProvisionalNumber(quotation) && (
+                                    <span className="text-xs text-slate-500">(número provisional, se reemplaza por el del documento)</span>
+                                )}
                                 <Badge variant={quotation.status === 'ANALYZING' ? 'secondary' : 'default'} className="text-xs px-2.5 py-0.5 font-medium">
                                     {quotation.status === 'ANALYZING' && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
                                     {getStatusLabel(quotation.status)}
@@ -200,7 +253,7 @@ export default function QuotationDetailPage() {
                         </div>
                         <div>
                             <p className="font-semibold text-blue-900">Analizando cotización...</p>
-                            <p className="text-sm text-blue-700 mt-0.5">La IA está extrayendo información. Esto puede tomar unos momentos.</p>
+                            <p className="text-sm text-blue-700 mt-0.5">La IA está extrayendo información. Esto puede tomar unos momentos; la pantalla se actualiza sola al terminar.</p>
                         </div>
                     </div>
                 )}
@@ -237,6 +290,9 @@ export default function QuotationDetailPage() {
                                         <div className="space-y-1">
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Número de Cotización</strong>
                                             <p className="text-lg font-medium text-slate-900">{quotation.quotationNumber}</p>
+                                            {isProvisionalNumber(quotation) && (
+                                                <p className="text-xs text-slate-500">Provisional: se reemplaza por el número del documento al terminar el análisis.</p>
+                                            )}
                                         </div>
                                         <div className="space-y-1">
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</strong>
@@ -598,6 +654,41 @@ export default function QuotationDetailPage() {
 
                     {/* Compliance Tab */}
                     <TabsContent value="compliance" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Alcance pedido por el cliente (Ana Lucia, 2026-10-15) */}
+                        {quotation.fileUrl && (
+                            <Card className="border-slate-200 shadow-sm">
+                                <CardContent className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div className="flex items-start gap-3">
+                                        <Checkbox
+                                            id="clientScopeOnly"
+                                            checked={!!quotation.clientScopeOnly}
+                                            disabled={isSavingScope || quotation.status === 'ANALYZING'}
+                                            onCheckedChange={(v) => handleScopeChange(v === true)}
+                                            className="mt-0.5"
+                                        />
+                                        <label htmlFor="clientScopeOnly" className="text-sm cursor-pointer">
+                                            <span className="font-medium text-slate-900">El cliente solicitó solo los parámetros cotizados</span>
+                                            <span className="block text-slate-500 mt-0.5">
+                                                Los parámetros del artículo que no están en la cotización salen como información y no como incumplimiento.
+                                                Lo que sí se cotizó se sigue revisando: nombre, matriz y límite de cuantificación.
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleAnalyze}
+                                        disabled={isAnalyzing || quotation.status === 'ANALYZING'}
+                                        className="shrink-0"
+                                    >
+                                        {isAnalyzing || quotation.status === 'ANALYZING'
+                                            ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            : <RefreshCw className="mr-2 h-4 w-4" />}
+                                        Volver a analizar
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
                         {complianceResult ? (
                             <div className="space-y-6">
                                 {/* Score & Status Banner */}
@@ -638,7 +729,14 @@ export default function QuotationDetailPage() {
                                                     Verificado: {complianceResult.analyzedAt ?
                                                         new Date(complianceResult.analyzedAt).toLocaleString('es-ES') : 'N/A'}
                                                 </p>
-                                                {complianceResult.standardsCount !== undefined && (
+                                                {Array.isArray(complianceResult.comparedAgainst) ? (
+                                                    <p className="text-xs text-slate-500">
+                                                        Comparada contra: {complianceResult.comparedAgainst.length
+                                                            ? complianceResult.comparedAgainst.join('; ')
+                                                            : 'ningún artículo (ver hallazgos)'}
+                                                        {complianceResult.sampleMatrix && ` · Muestra: ${complianceResult.sampleMatrix}`}
+                                                    </p>
+                                                ) : complianceResult.standardsCount !== undefined && (
                                                     <p className="text-xs text-slate-500">
                                                         Normas verificadas: {complianceResult.standardsCount}
                                                     </p>
@@ -670,16 +768,21 @@ export default function QuotationDetailPage() {
                                 </div>
 
                                 {/* Issues List - Detailed */}
-                                {complianceResult.issues && complianceResult.issues.length > 0 && (
+                                {issues.length > 0 && (
                                     <Card className="border-red-200 shadow-sm">
                                         <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50">
                                             <CardTitle className="text-base flex items-center gap-2 text-red-900">
                                                 <XCircle className="h-5 w-5" />
-                                                Incumplimientos Detectados ({complianceResult.issues.length})
+                                                Hallazgos ({issues.length})
                                             </CardTitle>
+                                            <CardDescription>
+                                                {issues.filter((i: any) => i.severity === 'CRITICAL').length} incumplimientos
+                                                {' · '}{issues.filter((i: any) => i.severity === 'WARNING').length} por revisar
+                                                {' · '}{issues.filter((i: any) => i.severity !== 'CRITICAL' && i.severity !== 'WARNING').length} informativos
+                                            </CardDescription>
                                         </CardHeader>
                                         <CardContent className="pt-4 space-y-3">
-                                            {complianceResult.issues.map((issue: any, idx: number) => (
+                                            {issues.map((issue: any, idx: number) => (
                                                 <div key={idx} className={`p-4 rounded-lg border ${issue.severity === 'CRITICAL' ? 'bg-red-50 border-red-200' :
                                                     issue.severity === 'WARNING' ? 'bg-amber-50 border-amber-200' :
                                                         'bg-blue-50 border-blue-200'
@@ -689,7 +792,7 @@ export default function QuotationDetailPage() {
                                                             issue.severity === 'WARNING' ? 'bg-amber-500 text-white' :
                                                                 'bg-blue-500 text-white'
                                                             }`}>
-                                                            {issue.severity || 'INFO'}
+                                                            {SEVERITY_LABEL[issue.severity] || 'INFO'}
                                                         </span>
                                                         {issue.category && (
                                                             <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{issue.category}</span>
@@ -718,6 +821,53 @@ export default function QuotationDetailPage() {
                                                     )}
                                                 </div>
                                             ))}
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Revision por parametro del articulo comparado */}
+                                {parameterChecks.length > 0 && (
+                                    <Card className="border-slate-200 shadow-sm">
+                                        <CardHeader className="bg-slate-50">
+                                            <CardTitle className="text-base text-slate-800">
+                                                Parámetros del artículo ({parameterChecks.length})
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-4 overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b">
+                                                        <th className="py-2 pr-3">Parámetro (norma)</th>
+                                                        <th className="py-2 pr-3">Límite norma</th>
+                                                        <th className="py-2 pr-3">Cotizado como</th>
+                                                        <th className="py-2 pr-3">Lím. cuantificación</th>
+                                                        <th className="py-2">Resultado</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {parameterChecks.map((c: any, idx: number) => (
+                                                        <tr key={idx} className="border-b last:border-0 align-top">
+                                                            <td className="py-2 pr-3 font-medium text-slate-900">{c.normParameter}</td>
+                                                            <td className="py-2 pr-3 text-slate-600">{c.normLimit || '-'}</td>
+                                                            <td className="py-2 pr-3 text-slate-600">{c.quotedAs || '—'}</td>
+                                                            <td className="py-2 pr-3 text-slate-600">{c.quotedLoq || '-'}</td>
+                                                            <td className="py-2">
+                                                                {(c.problems || []).length === 0 ? (
+                                                                    <span className="inline-flex items-center gap-1 text-green-700">
+                                                                        <CheckCircle2 className="h-4 w-4" /> Correcto
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-slate-800">
+                                                                        {(c.problems || []).map((p: any) => p.type === 'FALTANTE' && complianceResult.clientScopeOnly
+                                                                            ? 'No pedido por el cliente'
+                                                                            : PROBLEM_LABEL[p.type] || p.type).join(', ')}
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </CardContent>
                                     </Card>
                                 )}
