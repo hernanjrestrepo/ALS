@@ -96,19 +96,3 @@ export async function sendReportWithAttachments(
 
     await sesClient.send(command);
 }
-
-// Correo simple (HTML) para consultas automaticas. Destinatario explicito: nunca
-// sale a una lista generica.
-export async function sendPlainEmail(toEmail: string, subject: string, htmlBody: string): Promise<void> {
-    const command = new SendEmailCommand({
-        FromEmailAddress: SENDER,
-        Destination: { ToAddresses: [toEmail] },
-        Content: {
-            Simple: {
-                Subject: { Data: subject, Charset: 'UTF-8' },
-                Body: { Html: { Data: `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:24px;">${htmlBody}${PARADIXE_FOOTER}</div>`, Charset: 'UTF-8' } },
-            },
-        },
-    });
-    await sesClient.send(command);
-}
