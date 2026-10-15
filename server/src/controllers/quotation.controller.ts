@@ -4,15 +4,106 @@ import fs from 'fs';
 import path from 'path';
 import {
     extractQuotationNumber, parseComparisonTargets, buildArticleBlocks, describeTarget,
-    detectMatrixMismatches, normalizeParameterChecks, applySystemChecks, buildVerdict,
-    buildCompliancePrompt, recomputeStoredVerdict, COMPLIANCE_SYSTEM_PROMPT,
+    detectMatrixMismatches, normalizeParameterChecks, applySystemChecks, buildVerdict, isAITimeout,
+    buildCompliancePrompt, COMPLIANCE_SYSTEM_PROMPT, BUILTIN_RULES, ParameterRules,
+    pendingNameQuestions, consultationKey,
     ParameterCheck,
 } from '../services/quotationCompliance';
 
 const prisma = new PrismaClient();
 
-// FormData manda "true"/"false" como texto.
-const parseBool = (v: unknown) => v === true || v === 'true';
+// Reglas aprendidas por consulta al laboratorio (ParameterRule) + listas fijas.
+export async function loadParameterRules(): Promise<ParameterRules> {
+    const rows = await prisma.parameterRule.findMany();
+    const pair = (r: { nameA: string; nameB: string }) => [r.nameA, r.nameB] as [string, string];
+    return {
+        equivalent: [...BUILTIN_RULES.equivalent, ...rows.filter(r => r.sameParameter).map(pair)],
+        nonEquivalent: [...BUILTIN_RULES.nonEquivalent, ...rows.filter(r => !r.sameParameter).map(pair)],
+    };
+}
+
+// Cuando el sistema no puede decidir si dos nombres son el mismo parametro, deja una
+// consulta y la envia por correo al laboratorio. Una pareja ya consultada no se
+// vuelve a enviar (la respuesta se guarda y se usa en los siguientes analisis).
+export async function registerParameterConsultations(questions: ReturnType<typeof pendingNameQuestions>, quotationNumber: string) {
+    const to = process.env.CONSULTA_PARAMETROS_EMAIL;
+    for (const q of questions) {
+        const key = consultationKey(q.normParameter, q.quotedAs);
+        if (await prisma.parameterConsultation.findUnique({ where: { key } })) continue;
+
+        let sentAt: Date | null = null;
+        let sentTo: string | null = null;
+        if (to) {
+            try {
+                const { sendPlainEmail } = await import('../services/email.service');
+                const subject = `[ALS] Consulta de equivalencia: "${q.normParameter}" / "${q.quotedAs}"`;
+                const html = `<p>Hola,</p>
+<p>Al revisar la cotización <strong>${quotationNumber}</strong> el sistema no puede decidir si estos dos nombres son el mismo parámetro:</p>
+<ul>
+  <li>Norma: <strong>${q.normParameter}</strong>${q.normReference ? ` (límite ${q.normReference})` : ''}</li>
+  <li>Cotización: <strong>${q.quotedAs}</strong></li>
+</ul>
+<p>¿Es el mismo parámetro? Responda <strong>SÍ</strong> o <strong>NO</strong>, y si puede, la forma en que el laboratorio lo nombra.</p>`;
+                await sendPlainEmail(to, subject, html);
+                sentAt = new Date();
+                sentTo = to;
+            } catch (error) {
+                console.error('[Consulta] No se pudo enviar el correo de consulta:', error);
+            }
+        } else {
+            console.warn('[Consulta] CONSULTA_PARAMETROS_EMAIL no configurado: la consulta se guarda sin enviar');
+        }
+        try {
+            await prisma.parameterConsultation.create({
+                data: { key, normParameter: q.normParameter, quotedAs: q.quotedAs, normReference: q.normReference || null, sentAt, sentTo },
+            });
+        } catch (error) {
+            // Dos analisis a la vez pueden crear la misma consulta: la segunda se ignora.
+            console.warn('[Consulta] ya existia:', key);
+        }
+    }
+}
+
+// Consultas al laboratorio (pendientes y respondidas).
+export const listParameterConsultations = async (req: Request, res: Response) => {
+    try {
+        const rows = await prisma.parameterConsultation.findMany({ orderBy: [{ status: 'asc' }, { createdAt: 'desc' }] });
+        res.json(rows);
+    } catch (error) {
+        console.error('Error listing parameter consultations:', error);
+        res.status(500).json({ error: 'Error al listar consultas' });
+    }
+};
+
+// Registra la respuesta del laboratorio. Si son el mismo parametro (o no lo son), la
+// pareja queda como regla y los siguientes analisis ya no preguntan.
+export const answerParameterConsultation = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { same, note } = req.body || {};
+        if (typeof same !== 'boolean') {
+            return res.status(400).json({ error: 'Falta "same": true o false' });
+        }
+        const consultation = await prisma.parameterConsultation.findUnique({ where: { id } });
+        if (!consultation) return res.status(404).json({ error: 'Consulta no encontrada' });
+
+        const [updated] = await prisma.$transaction([
+            prisma.parameterConsultation.update({
+                where: { id },
+                data: { status: 'RESPONDIDA', answerSame: same, answerNote: note ? String(note) : null, answeredAt: new Date() },
+            }),
+            prisma.parameterRule.upsert({
+                where: { nameA_nameB: { nameA: consultation.normParameter, nameB: consultation.quotedAs } },
+                create: { nameA: consultation.normParameter, nameB: consultation.quotedAs, sameParameter: same, source: `consulta ${id}` },
+                update: { sameParameter: same, source: `consulta ${id}` },
+            }),
+        ]);
+        res.json(updated);
+    } catch (error) {
+        console.error('Error answering parameter consultation:', error);
+        res.status(500).json({ error: 'Error al registrar la respuesta' });
+    }
+};
 
 // El numero real (SIACOT-...) se lee del PDF al subirlo, sin esperar a la IA:
 // antes solo aparecia al terminar el analisis y la pantalla mostraba COT-<hora>.
@@ -78,7 +169,7 @@ export const getQuotation = async (req: Request, res: Response) => {
 // Create new quotation
 export const createQuotation = async (req: Request, res: Response) => {
     try {
-        const { quotationNumber, description, clientName, clientId, serviceId, clientScopeOnly } = req.body;
+        const { quotationNumber, description, clientName, clientId, serviceId } = req.body;
         const file = req.file;
 
         const pdfNumber = !quotationNumber && file && /\.pdf$/i.test(file.originalname)
@@ -97,7 +188,6 @@ export const createQuotation = async (req: Request, res: Response) => {
                 clientId: clientId || undefined,
                 serviceId: serviceId || undefined,
                 fileUrl,
-                clientScopeOnly: parseBool(clientScopeOnly),
                 status: file ? 'ANALYZING' : 'PENDING'
             }
         });
@@ -120,7 +210,7 @@ export const createQuotation = async (req: Request, res: Response) => {
 export const updateQuotation = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { quotationNumber, description, clientName, clientId, serviceId, status, clientScopeOnly } = req.body;
+        const { quotationNumber, description, clientName, clientId, serviceId, status } = req.body;
         const file = req.file;
 
         const data: any = {};
@@ -139,26 +229,6 @@ export const updateQuotation = async (req: Request, res: Response) => {
             // el re-analisis termine (si no, quedaria "aprobada" con un archivo distinto).
             data.approvedForOit = false;
             shouldReanalyze = true;
-        }
-
-        // "El cliente solo pidió estos parámetros": cambia el veredicto, asi que se
-        // rearma de una vez con la revision guardada (sin IA). Si el resultado es de
-        // antes de este formato, se vuelve a analizar.
-        if (clientScopeOnly !== undefined) {
-            data.clientScopeOnly = parseBool(clientScopeOnly);
-            const current = await prisma.quotation.findUnique({ where: { id }, select: { status: true, complianceResult: true } });
-            if (!file && current && current.status !== 'ANALYZING') {
-                const recomputed = recomputeStoredVerdict(current.complianceResult, data.clientScopeOnly);
-                if (recomputed) {
-                    data.status = recomputed.verdict.status;
-                    data.complianceResult = JSON.stringify(recomputed.complianceResult);
-                    data.approvedForOit = recomputed.verdict.status === 'COMPLIANT';
-                } else if (current.complianceResult) {
-                    data.status = 'ANALYZING';
-                    data.approvedForOit = false;
-                    shouldReanalyze = true;
-                }
-            }
         }
 
         const quotation = await prisma.quotation.update({
@@ -311,10 +381,9 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
         // art. 2.2.3.3.9.3 cuando la cotizacion pedia el 2.2.3.3.9.7.
         const current = await prisma.quotation.findUnique({
             where: { id: quotationId },
-            select: { quotationNumber: true, clientScopeOnly: true },
+            select: { quotationNumber: true },
         });
-        const clientScopeOnly = !!current?.clientScopeOnly;
-        const allStandards = await prisma.standard.findMany({ orderBy: { createdAt: 'desc' } });
+                const allStandards = await prisma.standard.findMany({ orderBy: { createdAt: 'desc' } });
         const targets = parseComparisonTargets(extractedText);
         const { blocks, notFound } = buildArticleBlocks(allStandards, targets);
         const warnings: Array<{ category: string; description: string; recommendation?: string }> = [];
@@ -346,26 +415,51 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
                 blocks.map(b => ({ label: `${b.standardTitle} — ${describeTarget(b.target)}`, text: b.text })),
             );
             console.log(`[Quotation] Running AI compliance check...`);
-            try {
-                const aiResponse = await aiService.chat(prompt, undefined, COMPLIANCE_SYSTEM_PROMPT, AIService.DETERMINISTIC);
-                const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-                const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
-                checks = normalizeParameterChecks(parsed.parameters);
-                aiNumber = String(parsed.quotationNumberFound || '').trim();
-            } catch (parseError) {
-                console.error('[Quotation] Error parsing AI compliance response:', parseError);
+            // La IA local atiende una peticion a la vez: si hay analisis de laboratorio
+            // en curso, esta espera detras de ellos. Un timeout se reintenta una vez y,
+            // si vuelve a fallar, se dice con claridad (no como "la IA no respondio").
+            let aiResponse: string | null = null;
+            let timedOut = false;
+            for (let attempt = 1; attempt <= 2 && aiResponse === null; attempt++) {
+                try {
+                    aiResponse = await aiService.chat(prompt, undefined, COMPLIANCE_SYSTEM_PROMPT, AIService.DETERMINISTIC);
+                } catch (error) {
+                    timedOut = isAITimeout(error);
+                    console.error(`[Quotation] Intento ${attempt} de la IA fallido${timedOut ? ' (timeout)' : ''}:`, (error as Error)?.message);
+                    if (!timedOut) break;
+                    // Espera antes de reintentar: si el analisis de laboratorio sigue en curso, el reintento inmediato vuelve a expirar.
+                    if (attempt === 1) await new Promise(resolve => setTimeout(resolve, 90_000));
+                }
+            }
+            if (aiResponse !== null) {
+                try {
+                    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+                    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
+                    checks = normalizeParameterChecks(parsed.parameters);
+                    aiNumber = String(parsed.quotationNumberFound || '').trim();
+                } catch (parseError) {
+                    console.error('[Quotation] Error parsing AI compliance response:', parseError);
+                }
             }
             if (!checks.length) {
-                warnings.push({
-                    category: 'Sistema',
-                    description: 'La IA no devolvió la revisión por parámetro del artículo.',
-                    recommendation: 'Volver a analizar, o revisar manualmente.',
-                });
+                warnings.push(timedOut && aiResponse === null
+                    ? {
+                        category: 'IA ocupada',
+                        description: 'La IA tardó más de lo esperado en revisar la cotización (suele pasar cuando hay análisis de laboratorio en curso). No se revisó parámetro por parámetro.',
+                        recommendation: 'Volver a analizar en unos minutos.',
+                    }
+                    : {
+                        category: 'Sistema',
+                        description: 'La IA respondió, pero no se pudo leer la revisión por parámetro del artículo.',
+                        recommendation: 'Volver a analizar, o revisar manualmente.',
+                    });
             }
         }
 
-        const unmatchedMatrix = applySystemChecks(checks, matrix.mismatches, extractedText);
-        const verdict = buildVerdict({ checks, unmatchedMatrix, clientScopeOnly, comparedAgainst, warnings });
+        const rules = await loadParameterRules();
+        const unmatchedMatrix = applySystemChecks(checks, matrix.mismatches, extractedText, rules);
+        await registerParameterConsultations(pendingNameQuestions(checks), current?.quotationNumber || quotationId);
+        const verdict = buildVerdict({ checks, unmatchedMatrix, comparedAgainst, warnings });
         const finalStatus = verdict.status;
         const complianceResult = {
             ...verdict,
@@ -375,7 +469,6 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
             parameterChecks: checks,
             unmatchedMatrix,
             warnings,
-            clientScopeOnly,
             analyzedAt: new Date().toISOString(),
             standardsCount: blocks.length,
         };

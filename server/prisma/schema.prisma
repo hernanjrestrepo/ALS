@@ -317,3 +317,34 @@ model DistributionList {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// Base de conocimiento de nombres de parametros (queja de Ana Lucia, 2026-10-15).
+// Cada regla la confirma el laboratorio por consulta; se usa en el cumplimiento de
+// cotizaciones junto con las listas fijas de quotationCompliance.ts.
+model ParameterRule {
+  id            String   @id @default(uuid())
+  nameA         String
+  nameB         String
+  sameParameter Boolean
+  source        String   // quien la confirmo (ej. "Ana Lucia 2026-10-15")
+  createdAt     DateTime @default(now())
+
+  @@unique([nameA, nameB])
+}
+
+// Consulta al laboratorio cuando el sistema no puede decidir si dos nombres son el
+// mismo parametro. Se envia por correo y la respuesta queda aqui.
+model ParameterConsultation {
+  id            String    @id @default(uuid())
+  key           String    @unique
+  normParameter String
+  quotedAs      String
+  normReference String?
+  status        String    @default("PENDIENTE") // PENDIENTE | RESPONDIDA
+  sentAt        DateTime?
+  sentTo        String?
+  answerSame    Boolean?
+  answerNote    String?
+  createdAt     DateTime  @default(now())
+  answeredAt    DateTime?
+}

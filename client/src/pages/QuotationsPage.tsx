@@ -16,7 +16,6 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import api from '@/lib/api';
 import { toast } from 'sonner';
@@ -54,7 +53,6 @@ export default function QuotationsPage() {
     const [serviceId, setServiceId] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<File | null>(null);
-    const [clientScopeOnly, setClientScopeOnly] = useState(false);
     const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
     const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
 
@@ -137,7 +135,6 @@ export default function QuotationsPage() {
             if (selectedClient) formData.append('clientName', selectedClient.name);
             if (serviceId) formData.append('serviceId', serviceId);
             if (description) formData.append('description', description);
-            if (clientScopeOnly) formData.append('clientScopeOnly', 'true');
 
             await api.post('/quotations', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
@@ -161,7 +158,6 @@ export default function QuotationsPage() {
         setServiceId('');
         setDescription('');
         setFile(null);
-        setClientScopeOnly(false);
     };
 
     const getStatusBadge = (status: string) => {
@@ -269,21 +265,6 @@ export default function QuotationsPage() {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                            </div>
-
-                            <div className="flex items-start gap-3">
-                                <Checkbox
-                                    id="newClientScopeOnly"
-                                    checked={clientScopeOnly}
-                                    onCheckedChange={(v) => setClientScopeOnly(v === true)}
-                                    className="mt-0.5"
-                                />
-                                <label htmlFor="newClientScopeOnly" className="text-sm cursor-pointer">
-                                    <span className="font-medium text-slate-900">El cliente solicitó solo los parámetros cotizados</span>
-                                    <span className="block text-slate-500 mt-0.5">
-                                        Los parámetros del artículo que no se cotizaron no cuentan como incumplimiento. Se puede cambiar después.
-                                    </span>
-                                </label>
                             </div>
 
                             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">

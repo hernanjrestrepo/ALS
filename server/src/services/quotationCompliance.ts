@@ -242,11 +242,32 @@ export const NON_EQUIVALENT_PARAMETERS: Array<[string, string]> = [
     ['Fenoles', 'Compuestos fenólicos'],
 ];
 
-// Pares que el laboratorio confirmo que SI son el mismo parametro. Vacio a
-// proposito: mientras no se confirmen, un nombre distinto sale "por confirmar".
-export const EQUIVALENT_PARAMETERS: Array<[string, string]> = [];
+// Pares que el laboratorio confirmo que SI son el mismo parametro (Ana Lucia,
+// 2026-10-15: "efectivamente coliformes termotolerantes y fecales es lo mismo y
+// detergentes SAAM y tensoactivos también es lo mismo"). Las nuevas parejas se
+// confirman por consulta y quedan en la tabla ParameterRule.
+export const EQUIVALENT_PARAMETERS: Array<[string, string]> = [
+    ['Coliformes fecales', 'Coliformes termotolerantes'],
+    ['Tensoactivos', 'Detergentes (SAAM)'],
+];
+
+export interface ParameterRules {
+    equivalent: Array<[string, string]>;
+    nonEquivalent: Array<[string, string]>;
+}
+
+export const BUILTIN_RULES: ParameterRules = {
+    equivalent: EQUIVALENT_PARAMETERS,
+    nonEquivalent: NON_EQUIVALENT_PARAMETERS,
+};
 
 // --- Prompt -------------------------------------------------------------------
+
+// Timeout de la llamada a Ollama (axios): la IA estaba ocupada, no la respuesta mala.
+export function isAITimeout(error: unknown): boolean {
+    const e = error as { code?: string; message?: string };
+    return e?.code === 'ECONNABORTED' || /timeout/i.test(e?.message || '');
+}
 
 export const COMPLIANCE_SYSTEM_PROMPT = `Eres un auditor técnico riguroso de cotizaciones de laboratorio ambiental. Comparas lo que ofrece la cotización contra el artículo de la norma que la propia cotización pide comparar. No asumes conformidad por defecto, no inventas parámetros y no usas artículos distintos a los que se te entregan.`;
 
@@ -424,7 +445,7 @@ function parseQuantity(s?: string): { value: number; unit: string } | null {
 // dicho si son sinonimos, no reconocio "E. Coli" ni "Ph" y escribio en ingles.
 // Aqui se descartan esos juicios y se recalculan con reglas fijas; correrlo dos
 // veces da lo mismo.
-export function applySystemChecks(checks: ParameterCheck[], mismatches: MatrixMismatch[], quotationText = '') {
+export function applySystemChecks(checks: ParameterCheck[], mismatches: MatrixMismatch[], quotationText = '', rules: ParameterRules = BUILTIN_RULES) {
     for (const c of checks) {
         if (c.normLimit) c.normLimit = c.normLimit.replace(/^(\s*-\s+)+/, '').trim();
         if (c.quotedAs) c.quotedAs = c.quotedAs.replace(/^aguas\s+/i, '').trim();
@@ -461,9 +482,9 @@ export function applySystemChecks(checks: ParameterCheck[], mismatches: MatrixMi
         }
         // Si la IA asigno un analisis, el parametro no esta faltante.
         c.problems = c.problems.filter(p => p.type !== 'FALTANTE');
-        if (inPairs(NON_EQUIVALENT_PARAMETERS, c.normParameter, c.quotedAs)) {
+        if (inPairs(rules.nonEquivalent, c.normParameter, c.quotedAs)) {
             c.problems.unshift({ type: 'PARAMETRO_INCORRECTO', detail: `La norma pide «${c.normParameter}» y se cotizó «${c.quotedAs}», que no es el mismo parámetro.` });
-        } else if (!sameParameter(c.normParameter, c.quotedAs) && !inPairs(EQUIVALENT_PARAMETERS, c.normParameter, c.quotedAs)) {
+        } else if (!sameParameter(c.normParameter, c.quotedAs) && !inPairs(rules.equivalent, c.normParameter, c.quotedAs)) {
             c.problems.unshift({ type: 'NOMBRE_DISTINTO', detail: `La norma pide «${c.normParameter}» y se cotizó «${c.quotedAs}». Confirmar si es el mismo parámetro.` });
         }
     }
@@ -483,7 +504,6 @@ export function applySystemChecks(checks: ParameterCheck[], mismatches: MatrixMi
 export interface VerdictInput {
     checks: ParameterCheck[];
     unmatchedMatrix?: MatrixMismatch[];
-    clientScopeOnly?: boolean;
     comparedAgainst?: string[];
     warnings?: Array<{ category: string; description: string; recommendation?: string }>;
 }
@@ -496,29 +516,27 @@ export interface Verdict {
     issues: QuotationIssue[];
 }
 
-function isOnlyMissing(c: ParameterCheck) {
-    return c.problems.length > 0 && c.problems.every(p => p.type === 'FALTANTE');
-}
-
 export function buildVerdict(input: VerdictInput): Verdict {
-    const { checks, unmatchedMatrix = [], clientScopeOnly = false, comparedAgainst = [], warnings = [] } = input;
+    const { checks, unmatchedMatrix = [], comparedAgainst = [], warnings = [] } = input;
     const issues: QuotationIssue[] = [];
     const counts = new Map<string, number>();
 
+    // Un parametro de la norma que la cotizacion no ofrece es una SUGERENCIA: la
+    // norma lo pide, pero lo que el cliente solicito es lo cotizado (Hernan, 2026-10-15).
     for (const c of checks) {
         for (const p of c.problems) {
+            const isMissing = p.type === 'FALTANTE';
             const info = PROBLEM_INFO[p.type];
-            const notRequested = clientScopeOnly && p.type === 'FALTANTE';
-            const label = notRequested ? 'No cotizado (el cliente no lo pidió)' : info.label;
+            const label = isMissing ? 'Sugerido por la norma (no cotizado)' : info.label;
             counts.set(label, (counts.get(label) || 0) + 1);
             const quoted = c.quotedAs ? ` Cotizado como: «${c.quotedAs}»${c.quotedLoq ? `, límite de cuantificación ${c.quotedLoq}` : ''}.` : '';
             issues.push({
-                severity: notRequested ? 'INFO' : info.severity,
+                severity: isMissing ? 'INFO' : info.severity,
                 category: label,
                 parameter: c.normParameter,
                 description: `${p.detail || label}${quoted}`.trim(),
                 normReference: [comparedAgainst.join('; '), c.normLimit ? `límite ${c.normLimit}` : ''].filter(Boolean).join(' — ') || undefined,
-                recommendation: notRequested ? undefined : info.action,
+                recommendation: isMissing ? 'Confirmar con el cliente si necesita este parámetro.' : info.action,
             });
         }
     }
@@ -539,16 +557,15 @@ export function buildVerdict(input: VerdictInput): Verdict {
     const order = { CRITICAL: 0, WARNING: 1, INFO: 2 };
     issues.sort((a, b) => order[a.severity] - order[b.severity]);
 
-    const evaluated = checks.filter(c => !(clientScopeOnly && isOnlyMissing(c)));
-    const ok = evaluated.filter(c => !c.problems.some(p => PROBLEM_INFO[p.type].severity === 'CRITICAL' && !(clientScopeOnly && p.type === 'FALTANTE')));
-    const score = evaluated.length ? Math.round((100 * ok.length) / evaluated.length) : 0;
+    const ok = checks.filter(c => !c.problems.some(p => p.type !== 'FALTANTE' && PROBLEM_INFO[p.type].severity === 'CRITICAL'));
+    const score = checks.length ? Math.round((100 * ok.length) / checks.length) : 0;
 
     let status: Verdict['status'];
     let compliant: boolean | undefined;
     if (issues.some(i => i.severity === 'CRITICAL')) {
         status = 'NON_COMPLIANT';
         compliant = false;
-    } else if (issues.some(i => i.severity === 'WARNING') || !evaluated.length) {
+    } else if (issues.some(i => i.severity === 'WARNING') || !checks.length) {
         status = 'REVIEW_REQUIRED';
     } else {
         status = 'COMPLIANT';
@@ -557,33 +574,9 @@ export function buildVerdict(input: VerdictInput): Verdict {
 
     const against = comparedAgainst.length ? `Comparada contra ${comparedAgainst.join('; ')}` : 'Sin artículo de norma para comparar';
     const detail = [...counts].map(([label, n]) => `${label.toLowerCase()}: ${n}`).join(', ');
-    const summary = `${against} (${checks.length} parámetro${checks.length === 1 ? '' : 's'} del artículo). ${detail ? `Hallazgos — ${detail}.` : 'Sin hallazgos.'}${clientScopeOnly ? ' Alcance definido por el cliente: los parámetros no cotizados no cuentan como incumplimiento.' : ''}`;
+    const summary = `${against} (${checks.length} parámetro${checks.length === 1 ? '' : 's'} del artículo). ${detail ? `Hallazgos — ${detail}.` : 'Sin hallazgos.'}`;
 
     return { status, compliant, score, summary, issues };
-}
-
-// Marcar o desmarcar "el cliente solo pidió estos parámetros" no necesita la IA:
-// el veredicto se rearma con la revision por parametro ya guardada. Devuelve null
-// si el resultado es anterior a este formato (hay que volver a analizar).
-export function recomputeStoredVerdict(stored: string | null | undefined, clientScopeOnly: boolean) {
-    let r: any;
-    try {
-        r = JSON.parse(stored || '');
-    } catch {
-        return null;
-    }
-    if (!r || !Array.isArray(r.parameterChecks)) return null;
-    const verdict = buildVerdict({
-        checks: normalizeParameterChecks(r.parameterChecks),
-        unmatchedMatrix: Array.isArray(r.unmatchedMatrix) ? r.unmatchedMatrix : [],
-        clientScopeOnly,
-        comparedAgainst: Array.isArray(r.comparedAgainst) ? r.comparedAgainst : [],
-        warnings: Array.isArray(r.warnings) ? r.warnings : [],
-    });
-    return {
-        verdict,
-        complianceResult: { ...r, ...verdict, clientScopeOnly },
-    };
 }
 
 // Resultados guardados antes de este cambio traen issues como texto suelto; la
@@ -593,4 +586,17 @@ export function normalizeIssues(issues: unknown): QuotationIssue[] {
     return issues.map((i: any) => typeof i === 'string'
         ? { severity: 'WARNING', category: 'Observación', description: i }
         : { ...i, description: i?.description || i?.detail || JSON.stringify(i) });
+}
+
+// Parametros con nombre distinto que el sistema no puede decidir: cada uno es una
+// consulta para el laboratorio (se guarda la respuesta para no volver a preguntar).
+export function pendingNameQuestions(checks: ParameterCheck[]): Array<{ normParameter: string; quotedAs: string; normReference: string }> {
+    return checks
+        .filter(c => c.quotedAs && c.problems.some(p => p.type === 'NOMBRE_DISTINTO'))
+        .map(c => ({ normParameter: c.normParameter, quotedAs: c.quotedAs as string, normReference: c.normLimit || '' }));
+}
+
+// Clave estable de una pareja de nombres (independiente del orden y de la matriz).
+export function consultationKey(normParameter: string, quotedAs: string): string {
+    return [baseName(normParameter), baseName(quotedAs)].sort().join(' | ');
 }

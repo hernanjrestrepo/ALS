@@ -8,7 +8,9 @@ import {
     deleteQuotation,
     analyzeQuotation,
     processEmailRequest,
-    pollMailbox
+    pollMailbox,
+    listParameterConsultations,
+    answerParameterConsultation
 } from '../controllers/quotation.controller';
 
 import { upload } from '../config/multer';
@@ -19,6 +21,9 @@ router.use(authMiddleware);
 
 // CRUD routes
 router.get('/', getQuotations);
+// Antes de /:id para que no se tome como id de cotizacion.
+router.get('/parameter-consultations', requireAdmin, listParameterConsultations);
+router.post('/parameter-consultations/:id/answer', requireAdmin, answerParameterConsultation);
 router.get('/:id', getQuotation);
 router.post('/', requireAdmin, upload.single('file'), createQuotation);
 router.put('/:id', requireAdmin, upload.single('file'), updateQuotation);

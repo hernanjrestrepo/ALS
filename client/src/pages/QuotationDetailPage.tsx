@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     FileText, Building2, Calendar, Download, Link2,
     Sparkles, Loader2, DollarSign, CheckCircle2,
@@ -26,7 +25,6 @@ interface Quotation {
     status: string;
     aiData?: string;
     complianceResult?: string;
-    clientScopeOnly?: boolean;
     createdAt: string;
     updatedAt: string;
     linkedOITs?: { id: string; oitNumber: string; status: string; description?: string }[];
@@ -41,7 +39,7 @@ const normalizeIssue = (issue: any) => typeof issue === 'string'
 const SEVERITY_LABEL: Record<string, string> = { CRITICAL: 'INCUMPLE', WARNING: 'REVISAR', INFO: 'INFO' };
 
 const PROBLEM_LABEL: Record<string, string> = {
-    FALTANTE: 'Faltante',
+    FALTANTE: 'Sugerido (no cotizado)',
     PARAMETRO_INCORRECTO: 'Parámetro incorrecto',
     NOMBRE_DISTINTO: 'Nombre por confirmar',
     MATRIZ: 'Matriz distinta a la muestra',
@@ -58,7 +56,6 @@ export default function QuotationDetailPage() {
     const [quotation, setQuotation] = useState<Quotation | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isSavingScope, setIsSavingScope] = useState(false);
 
     // Feedback Modal State
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
@@ -111,22 +108,6 @@ export default function QuotationDetailPage() {
             toast.error('Error al iniciar análisis');
         } finally {
             setIsAnalyzing(false);
-        }
-    };
-
-    const handleScopeChange = async (checked: boolean) => {
-        setIsSavingScope(true);
-        try {
-            const response = await api.put(`/quotations/${id}`, { clientScopeOnly: checked });
-            setQuotation(prev => prev ? { ...prev, ...response.data } : response.data);
-            toast.success(checked
-                ? 'Los parámetros que el cliente no pidió ya no cuentan como incumplimiento'
-                : 'Se vuelven a exigir todos los parámetros del artículo');
-        } catch (error: any) {
-            console.error('Error saving client scope:', error);
-            toast.error(error.response?.data?.error || 'No se pudo guardar el alcance');
-        } finally {
-            setIsSavingScope(false);
         }
     };
 
@@ -654,40 +635,13 @@ export default function QuotationDetailPage() {
 
                     {/* Compliance Tab */}
                     <TabsContent value="compliance" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* Alcance pedido por el cliente (Ana Lucia, 2026-10-15) */}
-                        {quotation.fileUrl && (
-                            <Card className="border-slate-200 shadow-sm">
-                                <CardContent className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div className="flex items-start gap-3">
-                                        <Checkbox
-                                            id="clientScopeOnly"
-                                            checked={!!quotation.clientScopeOnly}
-                                            disabled={isSavingScope || quotation.status === 'ANALYZING'}
-                                            onCheckedChange={(v) => handleScopeChange(v === true)}
-                                            className="mt-0.5"
-                                        />
-                                        <label htmlFor="clientScopeOnly" className="text-sm cursor-pointer">
-                                            <span className="font-medium text-slate-900">El cliente solicitó solo los parámetros cotizados</span>
-                                            <span className="block text-slate-500 mt-0.5">
-                                                Los parámetros del artículo que no están en la cotización salen como información y no como incumplimiento.
-                                                Lo que sí se cotizó se sigue revisando: nombre, matriz y límite de cuantificación.
-                                            </span>
-                                        </label>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleAnalyze}
-                                        disabled={isAnalyzing || quotation.status === 'ANALYZING'}
-                                        className="shrink-0"
-                                    >
-                                        {isAnalyzing || quotation.status === 'ANALYZING'
-                                            ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            : <RefreshCw className="mr-2 h-4 w-4" />}
-                                        Volver a analizar
-                                    </Button>
-                                </CardContent>
-                            </Card>
+                        {quotation.fileUrl && quotation.status !== 'ANALYZING' && (
+                            <div className="flex justify-end">
+                                <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={isAnalyzing}>
+                                    {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                    Volver a analizar
+                                </Button>
+                            </div>
                         )}
                         {complianceResult ? (
                             <div className="space-y-6">
@@ -858,9 +812,7 @@ export default function QuotationDetailPage() {
                                                                     </span>
                                                                 ) : (
                                                                     <span className="text-slate-800">
-                                                                        {(c.problems || []).map((p: any) => p.type === 'FALTANTE' && complianceResult.clientScopeOnly
-                                                                            ? 'No pedido por el cliente'
-                                                                            : PROBLEM_LABEL[p.type] || p.type).join(', ')}
+                                                                        {(c.problems || []).map((p: any) => PROBLEM_LABEL[p.type] || p.type).join(', ')}
                                                                     </span>
                                                                 )}
                                                             </td>

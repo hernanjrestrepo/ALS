@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import {
+    isAITimeout, pendingNameQuestions, consultationKey,
     extractQuotationNumber, parseComparisonTargets, buildArticleBlocks, detectMatrixMismatches,
     normalizeParameterChecks, applySystemChecks, buildVerdict, normalizeIssues,
 } from '../src/services/quotationCompliance';
@@ -115,12 +116,12 @@ describe('applySystemChecks', () => {
         const unmatched = applySystemChecks(checks, detectMatrixMismatches(fx.siacot20938).mismatches, fx.siacot20938);
         expect(unmatched).toEqual([]);
         expect(kinds(checks)).toEqual({
-            'Coliformes fecales': 'NOMBRE_DISTINTO,MATRIZ', // termotolerantes = fecales: pendiente de Ana
+            'Coliformes fecales': 'MATRIZ', // termotolerantes = fecales: confirmado por Ana (2026-10-15)
             'Coliformes totales': 'MATRIZ',
             'Compuestos Fenólicos': 'PARAMETRO_INCORRECTO,LIMITE_CUANTIFICACION', // Ana: fenoles no es compuestos fenolicos
             'Oxígeno disuelto': 'FALTANTE',
             'pH': 'FALTANTE',
-            'Tensoactivos': 'NOMBRE_DISTINTO', // detergentes SAAM = tensoactivos: pendiente de Ana; sin "(Agua Potable)"
+            'Tensoactivos': '', // detergentes SAAM = tensoactivos: confirmado por Ana; sin "(Agua Potable)"
             'Grasas y aceites flotantes': 'FALTANTE',
             'Materiales flotantes': 'FALTANTE',
         });
@@ -229,24 +230,23 @@ describe('buildVerdict', () => {
         expect(cats).toContain('CRITICAL:Matriz distinta a la muestra:Coliformes fecales');
         expect(cats).toContain('CRITICAL:Matriz distinta a la muestra:Coliformes totales');
         expect(cats).toContain('CRITICAL:Parámetro incorrecto:Compuestos Fenólicos');
-        expect(cats).toContain('CRITICAL:Parámetro faltante:pH');
-        expect(cats).toContain('WARNING:Nombre por confirmar:Tensoactivos');
+        expect(cats).toContain('INFO:Sugerido por la norma (no cotizado):pH');
+        expect(cats).not.toContain('WARNING:Nombre por confirmar:Tensoactivos');
         expect(cats.filter(c => c.includes('Matriz'))).toHaveLength(2);
         // Ninguna tarjeta vacia: todas traen texto
         expect(v.issues.every(i => i.description && i.description.length > 5)).toBe(true);
-        expect(v.score).toBe(13); // 1 de 8 sin problema grave (tensoactivos)
+        expect(v.score).toBe(63); // 5 de 8 sin problema critico (los faltantes son sugeridos)
         expect(v.summary).toContain('Decreto 1076 de 2015 — artículo 2.2.3.3.9.7');
     });
 
-    it('con "el cliente solo pidio estos parametros" los faltantes pasan a informativos', () => {
+    it('un parametro que la norma pide y la cotizacion no ofrece es sugerido (INFO), no incumplimiento', () => {
         const checks = anaChecks();
         applySystemChecks(checks, detectMatrixMismatches(fx.siacot20938).mismatches, fx.siacot20938);
-        const v = buildVerdict({ checks, clientScopeOnly: true, comparedAgainst: against });
+        const v = buildVerdict({ checks, comparedAgainst: against });
         const missing = v.issues.filter(i => i.parameter === 'pH');
-        expect(missing).toEqual([expect.objectContaining({ severity: 'INFO', category: 'No cotizado (el cliente no lo pidió)' })]);
-        // Los errores de lo que si se cotizo se siguen marcando
+        expect(missing).toEqual([expect.objectContaining({ severity: 'INFO', category: 'Sugerido por la norma (no cotizado)' })]);
+        // Lo que si se cotizo mal sigue siendo incumplimiento
         expect(v.status).toBe('NON_COMPLIANT');
-        expect(v.score).toBe(25); // 1 de 4 cotizados sin problema grave
     });
 
     it('con alcance del cliente y lo cotizado correcto queda conforme', () => {
@@ -254,12 +254,12 @@ describe('buildVerdict', () => {
             { normParameter: 'Coliformes totales', quotedAs: 'Coliformes Totales', problems: [] },
             { normParameter: 'pH', problems: [{ type: 'FALTANTE' }] },
         ]);
-        expect(buildVerdict({ checks, clientScopeOnly: true }).status).toBe('COMPLIANT');
-        expect(buildVerdict({ checks }).status).toBe('NON_COMPLIANT');
+        // lo que falta es sugerido: no cambia el veredicto
+        expect(buildVerdict({ checks }).status).toBe('COMPLIANT');
     });
 
     it('solo nombres por confirmar -> requiere revision, no se aprueba sola', () => {
-        const checks = normalizeParameterChecks([{ normParameter: 'Tensoactivos', quotedAs: 'Detergentes (Saam)', problems: [] }]);
+        const checks = normalizeParameterChecks([{ normParameter: 'Nitrógeno Total (N)', quotedAs: 'Nitrógeno Kjeldahl', problems: [] }]);
         applySystemChecks(checks, []);
         const v = buildVerdict({ checks });
         expect(v.status).toBe('REVIEW_REQUIRED');
@@ -286,5 +286,38 @@ describe('normalizeIssues', () => {
         expect(normalizeIssues(['Decreto 1076 de 2015: Arsénico'])).toEqual([
             { severity: 'WARNING', category: 'Observación', description: 'Decreto 1076 de 2015: Arsénico' },
         ]);
+    });
+});
+
+describe('equivalencias confirmadas y consultas', () => {
+    it('termotolerantes = fecales y SAAM = tensoactivos (confirmado por Ana, 2026-10-15)', () => {
+        const checks = normalizeParameterChecks([
+            { normParameter: 'Coliformes fecales', quotedAs: 'Coliformes Termotolerantes', problems: [] },
+            { normParameter: 'Tensoactivos', quotedAs: 'Detergentes (Saam)', problems: [] },
+        ]);
+        applySystemChecks(checks, []);
+        expect(checks.every(c => c.problems.length === 0)).toBe(true);
+        expect(pendingNameQuestions(checks)).toEqual([]);
+    });
+
+    it('una regla aprendida (base de datos) se usa en lugar de consultar otra vez', () => {
+        const rules = { equivalent: [['Nitrógeno Total', 'Nitrógeno Kjeldahl']] as Array<[string, string]>, nonEquivalent: [] };
+        const checks = normalizeParameterChecks([{ normParameter: 'Nitrógeno Total (N)', quotedAs: 'Nitrógeno Kjeldahl', problems: [] }]);
+        applySystemChecks(checks, [], '', rules);
+        expect(checks[0].problems).toEqual([]);
+    });
+
+    it('nombre no resuelto genera una consulta con clave estable', () => {
+        const checks = normalizeParameterChecks([{ normParameter: 'Nitrógeno Total (N)', normLimit: '20 mg/L', quotedAs: 'Nitrógeno Kjeldahl', problems: [] }]);
+        applySystemChecks(checks, []);
+        const q = pendingNameQuestions(checks);
+        expect(q).toEqual([{ normParameter: 'Nitrógeno Total (N)', quotedAs: 'Nitrógeno Kjeldahl', normReference: '20 mg/L' }]);
+        expect(consultationKey('Nitrógeno Total (N)', 'Nitrógeno Kjeldahl')).toBe(consultationKey('Nitrógeno Kjeldahl', 'Nitrógeno Total (N)'));
+    });
+
+    it('reconoce el timeout de la IA y no lo confunde con otros errores', () => {
+        expect(isAITimeout({ code: 'ECONNABORTED', message: 'timeout of 180000ms exceeded' })).toBe(true);
+        expect(isAITimeout(new Error('timeout of 180000ms exceeded'))).toBe(true);
+        expect(isAITimeout(new Error('connect ECONNREFUSED'))).toBe(false);
     });
 });
