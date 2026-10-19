@@ -10,7 +10,9 @@ import {
     processEmailRequest,
     pollMailbox,
     listParameterConsultations,
-    answerParameterConsultation
+    answerParameterConsultation,
+    reviewFinding,
+    resolveMissingElement
 } from '../controllers/quotation.controller';
 
 import { upload } from '../config/multer';
@@ -31,6 +33,10 @@ router.delete('/:id', requireAdmin, deleteQuotation);
 
 // Analysis route
 router.post('/:id/analyze', requireAdmin, analyzeQuotation);
+
+// Decision de Ana por hallazgo y elementos faltantes subsanados en pantalla
+router.put('/:id/findings', requireAdmin, reviewFinding);
+router.put('/:id/missing', requireAdmin, resolveMissingElement);
 
 // Correo automatico -> resumen (requiere ADMIN+ por ahora; se puede abrir como
 // webhook publico, como /oits/from-url, una vez se conecte un buzon real)

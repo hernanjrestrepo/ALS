@@ -5,7 +5,9 @@ import {
     isAITimeout, pendingNameQuestions, consultationKey,
     extractQuotationNumber, parseComparisonTargets, buildArticleBlocks, detectMatrixMismatches,
     normalizeParameterChecks, applySystemChecks, buildVerdict, normalizeIssues,
+    complianceScore, normCoverage, issueKey, applyFindingReviews, FindingReviews,
 } from '../src/services/quotationCompliance';
+import { pickQuotation, baseQuotationNumber } from '../src/services/quotationLink';
 
 // Fragmentos reales: cotizaciones de produccion (sin el bloque del destinatario) y
 // renglones de las normas Excel cargadas en Xmart.
@@ -235,7 +237,8 @@ describe('buildVerdict', () => {
         expect(cats.filter(c => c.includes('Matriz'))).toHaveLength(2);
         // Ninguna tarjeta vacia: todas traen texto
         expect(v.issues.every(i => i.description && i.description.length > 5)).toBe(true);
-        expect(v.score).toBe(63); // 5 de 8 sin problema critico (los faltantes son sugeridos)
+        // De lo cotizado, cuanto esta sin observaciones (los sugeridos no entran): 1 de 4
+        expect(v.score).toBe(25);
         expect(v.summary).toContain('Decreto 1076 de 2015 — artículo 2.2.3.3.9.7');
     });
 
@@ -330,5 +333,84 @@ describe('regla "no es el mismo parametro" (respuesta del laboratorio)', () => {
         expect(kinds(checks)).toEqual({ 'Cloruros': 'PARAMETRO_INCORRECTO' });
         expect(pendingNameQuestions(checks)).toEqual([]);
         expect(buildVerdict({ checks }).status).toBe('NON_COMPLIANT');
+    });
+});
+
+// SIACOT-20857-10-2026_V1 (19-oct): 32 parametros del articulo, 12 cotizados, 2 con
+// nombre por confirmar y 20 sugeridos. Mostraba puntuacion 100 con 22 hallazgos.
+function siacot20857Checks() {
+    const quoted = Array.from({ length: 10 }, (_, i) => ({ normParameter: `Cotizado ${i + 1}`, quotedAs: `Cotizado ${i + 1}`, problems: [] }));
+    const names = [
+        { normParameter: 'Nitratos + Nitritos', quotedAs: 'AguasNitratos', problems: [{ type: 'NOMBRE_DISTINTO' }] },
+        { normParameter: 'Nitrito', quotedAs: 'AguasNitritos', problems: [{ type: 'NOMBRE_DISTINTO' }] },
+    ];
+    const suggested = Array.from({ length: 20 }, (_, i) => ({ normParameter: `Sugerido ${i + 1}`, problems: [{ type: 'FALTANTE' }] }));
+    return normalizeParameterChecks([...quoted, ...names, ...suggested]);
+}
+
+describe('puntuacion y decisiones de Ana (19-oct)', () => {
+    it('la puntuacion cuenta lo cotizado con observaciones; ya no da 100 con nombres por confirmar', () => {
+        const checks = siacot20857Checks();
+        const v = buildVerdict({ checks });
+        expect(v.status).toBe('REVIEW_REQUIRED');
+        expect(v.score).toBe(83); // 10 de 12 cotizados sin observaciones
+        expect(normCoverage(checks)).toEqual({ quoted: 12, total: 32 });
+        expect(complianceScore(checks, new Set(['Nitrito', 'Nitratos + Nitritos']))).toBe(100);
+    });
+
+    const resultOf = (checks: ReturnType<typeof siacot20857Checks>) => ({ ...buildVerdict({ checks }), parameterChecks: checks });
+    const review = (decision: any) => ({ decision, comment: 'ok', userName: 'Ana', at: '2026-10-19T15:00:00Z' });
+
+    it('sin decisiones queda en revision y no habilita OIT', () => {
+        const e = applyFindingReviews(resultOf(siacot20857Checks()), {});
+        expect(e).toMatchObject({ status: 'REVIEW_REQUIRED', approvedForOit: false, pendingDecisions: 2, score: 83 });
+    });
+
+    it('Ana acepta los dos con justificacion -> conforme y habilitada para OIT', () => {
+        const result = resultOf(siacot20857Checks());
+        const keys = result.issues.filter(i => i.severity !== 'INFO').map(issueKey);
+        expect(keys).toHaveLength(2);
+        const reviews: FindingReviews = Object.fromEntries(keys.map(k => [k, review('ACEPTADO')]));
+        expect(applyFindingReviews(result, reviews)).toMatchObject({ status: 'COMPLIANT', compliant: true, approvedForOit: true, score: 100, pendingDecisions: 0 });
+    });
+
+    it('uno aceptado y otro en revision sigue en revision; uno rechazado es no conforme', () => {
+        const result = resultOf(siacot20857Checks());
+        const [a, b] = result.issues.filter(i => i.severity !== 'INFO').map(issueKey);
+        expect(applyFindingReviews(result, { [a]: review('ACEPTADO'), [b]: review('EN_REVISION') }))
+            .toMatchObject({ status: 'REVIEW_REQUIRED', approvedForOit: false, pendingDecisions: 1, score: 92 });
+        expect(applyFindingReviews(result, { [a]: review('ACEPTADO'), [b]: review('RECHAZADO') }))
+            .toMatchObject({ status: 'NON_COMPLIANT', compliant: false, approvedForOit: false });
+    });
+
+    it('la clave del hallazgo no cambia si la IA redacta distinto al volver a analizar', () => {
+        const a = { category: 'Nombre por confirmar', parameter: 'Nitrito', description: 'Texto uno' };
+        const b = { category: 'Nombre por confirmar', parameter: 'Nitrito', description: 'Otro texto' };
+        expect(issueKey(a)).toBe(issueKey(b));
+    });
+
+    it('un analisis con error no se puede aprobar con decisiones', () => {
+        const e = applyFindingReviews({ error: 'Archivo no encontrado', issues: [{ severity: 'CRITICAL', category: 'Sistema', description: 'x' }] }, {});
+        expect(e).toMatchObject({ status: 'REVIEW_REQUIRED', approvedForOit: false });
+    });
+});
+
+describe('vinculo automatico OIT -> cotizacion', () => {
+    const qs = [
+        { id: 'v1', quotationNumber: 'SIACOT-20857-10-2026_V1' },
+        { id: 'v2', quotationNumber: 'SIACOT-20857-10-2026_V2' },
+        { id: 'x', quotationNumber: 'SIACOT-19445-11-2025' },
+    ];
+    it('prefiere el numero exacto', () => {
+        expect(pickQuotation('SIACOT-20857-10-2026_V1', qs)?.id).toBe('v1');
+        expect(pickQuotation('siacot-19445-11-2025', qs)?.id).toBe('x');
+    });
+    it('si la OIT cita otra version, toma la mas reciente del mismo numero', () => {
+        expect(pickQuotation('SIACOT-20857-10-2026', qs)?.id).toBe('v2');
+        expect(pickQuotation('SIACOT-20857-10-2026_V3', qs)?.id).toBe('v2');
+    });
+    it('no vincula a un numero distinto', () => {
+        expect(pickQuotation('SIACOT-20858-10-2026', qs)).toBeNull();
+        expect(baseQuotationNumber('SIACOT-20466-07-2026_V1')).toBe('SIACOT-20466-07-2026');
     });
 });

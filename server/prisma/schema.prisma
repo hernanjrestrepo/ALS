@@ -33,6 +33,7 @@ model OIT {
   oitFileUrl            String?
   quotationFileUrl      String?        // DEPRECATED: Use quotationId instead
   quotationId           String?        // Link to independent Quotation
+  quotationRef          String?        // Numero SIACOT que trae el documento de la OIT (vinculo automatico)
   quotation             Quotation?     @relation(fields: [quotationId], references: [id])
   samplingReportUrl     String?        // Generated sampling report
   labResultsUrl         String?        // Uploaded lab analysis
@@ -117,6 +118,10 @@ model Quotation {
   // "El cliente solo pidió estos parámetros" (pedido de Ana Lucía, 2026-10-15):
   // los parámetros del artículo que no se cotizaron no cuentan como incumplimiento.
   clientScopeOnly   Boolean   @default(false)
+  // Decision de Ana por hallazgo (2026-10-19): { [issueKey]: { decision, comment, userName, at, history } }
+  findingReviews    String?
+  // Elementos faltantes del analisis subsanados en pantalla: { [elemento]: { value, userName, at } }
+  missingResolutions String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   linkedOITs        OIT[]     // OITs that use this quotation

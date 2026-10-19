@@ -10,8 +10,10 @@ import {
     detectMatrixMismatches, normalizeParameterChecks, applySystemChecks, buildVerdict, isAITimeout,
     buildCompliancePrompt, COMPLIANCE_SYSTEM_PROMPT, BUILTIN_RULES, ParameterRules,
     pendingNameQuestions, consultationKey,
-    ParameterCheck,
+    ParameterCheck, applyFindingReviews, normCoverage, issueKey, normalizeIssues,
+    FINDING_DECISIONS, FindingDecision, FindingReviews,
 } from '../services/quotationCompliance';
+import { linkOitsToQuotation } from '../services/quotationLink';
 
 const prisma = new PrismaClient();
 
@@ -127,6 +129,111 @@ async function quotationNumberFromPdf(filePath: string): Promise<string | null> 
     }
 }
 
+function parseJson<T>(raw: string | null | undefined): T | null {
+    if (!raw) return null;
+    try { return JSON.parse(raw) as T; } catch { return null; }
+}
+
+// La pantalla recibe la puntuacion y el estado ya con las decisiones de Ana aplicadas,
+// tambien para resultados guardados antes de la regla nueva de puntuacion.
+export function withEffectiveCompliance(rawResult: string | null, rawReviews: string | null): string | null {
+    const result = parseJson<any>(rawResult);
+    if (!result) return rawResult;
+    const effective = applyFindingReviews(result, parseJson<FindingReviews>(rawReviews) || {});
+    const checks: ParameterCheck[] = Array.isArray(result.parameterChecks) ? result.parameterChecks : [];
+    return JSON.stringify({
+        ...result,
+        score: effective.score,
+        coverage: checks.length ? normCoverage(checks) : undefined,
+        effectiveStatus: effective.status,
+        effectiveCompliant: effective.compliant,
+        pendingDecisions: effective.pendingDecisions,
+        issues: normalizeIssues(result.issues).map(i => ({ ...i, key: issueKey(i) })),
+    });
+}
+
+async function reviewerOf(req: Request) {
+    const userId = (req as any).user?.userId as string | undefined;
+    const user = userId ? await prisma.user.findUnique({ where: { id: userId }, select: { name: true } }) : null;
+    return { userId, userName: user?.name || 'Usuario' };
+}
+
+// Decision sobre un hallazgo por revisar o un incumplimiento. Siempre con comentario:
+// queda la justificacion de la excepcion (ACEPTADO), lo que se esta verificando
+// (EN_REVISION) o por que no procede (RECHAZADO). Recalcula estado y aprobacion para OIT.
+export const reviewFinding = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { key, decision, comment } = req.body || {};
+        if (!key || typeof key !== 'string') return res.status(400).json({ error: 'Falta el hallazgo' });
+        if (!FINDING_DECISIONS.includes(decision)) return res.status(400).json({ error: 'Decisión no válida' });
+        const text = String(comment || '').trim();
+        if (text.length < 3) return res.status(400).json({ error: 'Escribe el comentario de la decisión' });
+
+        const quotation = await prisma.quotation.findUnique({ where: { id } });
+        if (!quotation) return res.status(404).json({ error: 'Cotización no encontrada' });
+        if (quotation.status === 'ANALYZING') return res.status(409).json({ error: 'La cotización se está analizando; espera a que termine' });
+        const result = parseJson<any>(quotation.complianceResult);
+        const issue = normalizeIssues(result?.issues).find(i => issueKey(i) === key);
+        if (!issue) return res.status(404).json({ error: 'Ese hallazgo ya no está en el último análisis' });
+        if (issue.severity === 'INFO') return res.status(400).json({ error: 'Los hallazgos informativos no requieren decisión' });
+
+        const reviews = parseJson<FindingReviews>(quotation.findingReviews) || {};
+        const previous = reviews[key];
+        const { userId, userName } = await reviewerOf(req);
+        reviews[key] = {
+            decision: decision as FindingDecision,
+            comment: text.slice(0, 1000),
+            userId, userName, at: new Date().toISOString(),
+            history: previous
+                ? [...(previous.history || []), { decision: previous.decision, comment: previous.comment, userId: previous.userId, userName: previous.userName, at: previous.at }]
+                : [],
+        };
+        const effective = applyFindingReviews(result, reviews);
+        const updated = await prisma.quotation.update({
+            where: { id },
+            data: { findingReviews: JSON.stringify(reviews), status: effective.status, approvedForOit: effective.approvedForOit },
+            include: { linkedOITs: { select: { id: true, oitNumber: true, status: true, description: true } } },
+        });
+        res.json({ ...updated, complianceResult: withEffectiveCompliance(updated.complianceResult, updated.findingReviews) });
+    } catch (error) {
+        console.error('Error reviewing finding:', error);
+        res.status(500).json({ error: 'Error al registrar la decisión' });
+    }
+};
+
+// Elemento faltante del analisis subsanado en pantalla (escribir y Enter). Un valor
+// vacio lo vuelve a dejar pendiente.
+export const resolveMissingElement = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const item = String(req.body?.item || '').trim();
+        const value = String(req.body?.value ?? '').trim();
+        if (!item) return res.status(400).json({ error: 'Falta el elemento' });
+        const quotation = await prisma.quotation.findUnique({ where: { id }, select: { aiData: true, missingResolutions: true } });
+        if (!quotation) return res.status(404).json({ error: 'Cotización no encontrada' });
+        const missing: unknown[] = parseJson<any>(quotation.aiData)?.missing || [];
+        if (!missing.map(m => String(m).trim()).includes(item)) return res.status(404).json({ error: 'Ese elemento no está en el análisis' });
+
+        const resolutions = parseJson<Record<string, any>>(quotation.missingResolutions) || {};
+        if (value) {
+            const { userId, userName } = await reviewerOf(req);
+            resolutions[item] = { value: value.slice(0, 500), userId, userName, at: new Date().toISOString() };
+        } else {
+            delete resolutions[item];
+        }
+        const updated = await prisma.quotation.update({
+            where: { id },
+            data: { missingResolutions: JSON.stringify(resolutions) },
+            include: { linkedOITs: { select: { id: true, oitNumber: true, status: true, description: true } } },
+        });
+        res.json({ ...updated, complianceResult: withEffectiveCompliance(updated.complianceResult, updated.findingReviews) });
+    } catch (error) {
+        console.error('Error resolving missing element:', error);
+        res.status(500).json({ error: 'Error al guardar el dato' });
+    }
+};
+
 // Get all quotations
 export const getQuotations = async (req: Request, res: Response) => {
     try {
@@ -166,7 +273,7 @@ export const getQuotation = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Cotización no encontrada' });
         }
 
-        res.json(quotation);
+        res.json({ ...quotation, complianceResult: withEffectiveCompliance(quotation.complianceResult, quotation.findingReviews) });
     } catch (error) {
         console.error('Error fetching quotation:', error);
         res.status(500).json({ error: 'Error al obtener cotización' });
@@ -200,6 +307,8 @@ export const createQuotation = async (req: Request, res: Response) => {
         });
 
         res.status(201).json(quotation);
+
+        linkOitsToQuotation(quotation).catch(err => console.error('[Vinculo] Error vinculando OIT a la cotizacion:', err));
 
         // Trigger analysis in background if file was uploaded
         if (file && fileUrl) {
@@ -385,7 +494,7 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
         // art. 2.2.3.3.9.3 cuando la cotizacion pedia el 2.2.3.3.9.7.
         const current = await prisma.quotation.findUnique({
             where: { id: quotationId },
-            select: { quotationNumber: true },
+            select: { quotationNumber: true, findingReviews: true },
         });
                 const allStandards = await prisma.standard.findMany({ orderBy: { createdAt: 'desc' } });
         const targets = parseComparisonTargets(extractedText);
@@ -514,10 +623,20 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
         // Update quotation with results. approvedForOit es el bloqueo real pedido en
         // la reunion del 2026-09-18: solo una cotizacion COMPLIANT puede usarse para
         // crear una OIT (createOITAsync lo verifica) - antes esto era solo informativo.
-        await prisma.quotation.update({
+        // Las decisiones de Ana sobre los hallazgos sobreviven a volver a analizar
+        // (misma clave = mismo hallazgo); si ya los habia decidido todos, sigue aprobada.
+        const reviews = parseJson<FindingReviews>(current?.findingReviews) || {};
+        if (Object.keys(reviews).length) {
+            const effective = applyFindingReviews(complianceResult, reviews);
+            updateData.status = effective.status;
+            updateData.approvedForOit = effective.approvedForOit;
+        }
+
+        const saved = await prisma.quotation.update({
             where: { id: quotationId },
             data: updateData
         });
+        await linkOitsToQuotation(saved).catch(err => console.error('[Vinculo] Error vinculando OIT a la cotizacion:', err));
 
         console.log(`[Quotation] Compliance check complete for ${quotationId}.Status: ${finalStatus}, Score: ${complianceResult.score}/100, hallazgos: ${verdict.issues.length}`);
 

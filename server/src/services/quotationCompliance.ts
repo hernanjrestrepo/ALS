@@ -557,8 +557,7 @@ export function buildVerdict(input: VerdictInput): Verdict {
     const order = { CRITICAL: 0, WARNING: 1, INFO: 2 };
     issues.sort((a, b) => order[a.severity] - order[b.severity]);
 
-    const ok = checks.filter(c => !c.problems.some(p => p.type !== 'FALTANTE' && PROBLEM_INFO[p.type].severity === 'CRITICAL'));
-    const score = checks.length ? Math.round((100 * ok.length) / checks.length) : 0;
+    const score = complianceScore(checks);
 
     let status: Verdict['status'];
     let compliant: boolean | undefined;
@@ -577,6 +576,74 @@ export function buildVerdict(input: VerdictInput): Verdict {
     const summary = `${against} (${checks.length} parámetro${checks.length === 1 ? '' : 's'} del artículo). ${detail ? `Hallazgos — ${detail}.` : 'Sin hallazgos.'}`;
 
     return { status, compliant, score, summary, issues };
+}
+
+// Puntuacion = de lo COTIZADO, que porcentaje esta sin observaciones. Antes solo
+// restaban los incumplimientos graves y SIACOT-20857 mostraba 100 con 2 nombres por
+// confirmar (Hernan, 2026-10-19). Lo sugerido por la norma no cotizado no entra: no
+// es incumplimiento, va en "cobertura". Un hallazgo que Ana acepto cuenta como bien.
+export function complianceScore(checks: ParameterCheck[], acceptedParameters: Set<string> = new Set()): number {
+    const quoted = checks.filter(c => !c.problems.length || c.problems.some(p => p.type !== 'FALTANTE'));
+    if (!quoted.length) return 0;
+    const ok = quoted.filter(c => acceptedParameters.has(c.normParameter) || !c.problems.some(p => p.type !== 'FALTANTE'));
+    return Math.round((100 * ok.length) / quoted.length);
+}
+
+// Cuantos parametros del articulo se cotizaron (los demas son sugeridos).
+export function normCoverage(checks: ParameterCheck[]): { quoted: number; total: number } {
+    return { quoted: checks.filter(c => !c.problems.some(p => p.type === 'FALTANTE')).length, total: checks.length };
+}
+
+// Decision de Ana sobre un hallazgo por revisar o un incumplimiento (2026-10-19:
+// "yo no apruebo, Ana aprueba"). Queda con quien, cuando y por que.
+export type FindingDecision = 'ACEPTADO' | 'EN_REVISION' | 'RECHAZADO';
+export const FINDING_DECISIONS: FindingDecision[] = ['ACEPTADO', 'EN_REVISION', 'RECHAZADO'];
+export interface FindingReview {
+    decision: FindingDecision;
+    comment: string;
+    userId?: string;
+    userName?: string;
+    at: string;
+    history?: Array<Omit<FindingReview, 'history'>>;
+}
+export type FindingReviews = Record<string, FindingReview>;
+
+// Clave estable de un hallazgo: sobrevive a volver a analizar (la descripcion de la
+// IA puede cambiar de palabras; categoria + parametro no).
+export function issueKey(issue: Pick<QuotationIssue, 'category' | 'parameter' | 'description'>): string {
+    const norm = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+    return `${norm(issue.category)}|${issue.parameter ? norm(issue.parameter) : norm(issue.description).slice(0, 120)}`;
+}
+
+export interface EffectiveCompliance {
+    status: Verdict['status'];
+    compliant?: boolean;
+    score: number;
+    approvedForOit: boolean;
+    pendingDecisions: number;
+}
+
+// Veredicto despues de las decisiones de Ana: todo hallazgo por revisar o
+// incumplimiento aceptado -> conforme (con excepcion) y habilitada para OIT; uno
+// rechazado -> no conforme; mientras quede alguno sin decidir o en revision -> revisar.
+export function applyFindingReviews(result: any, reviews: FindingReviews = {}): EffectiveCompliance {
+    const issues: QuotationIssue[] = normalizeIssues(result?.issues);
+    const checks: ParameterCheck[] = Array.isArray(result?.parameterChecks) ? result.parameterChecks : [];
+    const actionable = issues.filter(i => i.severity !== 'INFO');
+    const decisionOf = (i: QuotationIssue) => reviews[issueKey(i)]?.decision;
+    const accepted = new Set(actionable.filter(i => i.parameter && decisionOf(i) === 'ACEPTADO').map(i => i.parameter as string));
+    // Un parametro con varios hallazgos solo cuenta como bien si se aceptaron todos.
+    for (const i of actionable) if (i.parameter && decisionOf(i) !== 'ACEPTADO') accepted.delete(i.parameter);
+    const score = result?.error ? 0 : complianceScore(checks, accepted);
+    const pendingDecisions = actionable.filter(i => decisionOf(i) !== 'ACEPTADO' && decisionOf(i) !== 'RECHAZADO').length;
+
+    // Un error del analisis (archivo no encontrado, IA caida) no se puede aceptar.
+    if (result?.error) return { status: 'REVIEW_REQUIRED', score, approvedForOit: false, pendingDecisions };
+    if (!checks.length && !actionable.length) return { status: 'REVIEW_REQUIRED', score, approvedForOit: false, pendingDecisions };
+    if (actionable.some(i => decisionOf(i) === 'RECHAZADO')) return { status: 'NON_COMPLIANT', compliant: false, score, approvedForOit: false, pendingDecisions };
+    if (actionable.every(i => decisionOf(i) === 'ACEPTADO')) return { status: 'COMPLIANT', compliant: true, score, approvedForOit: true, pendingDecisions: 0 };
+    const original = result?.status as Verdict['status'];
+    return { status: original === 'NON_COMPLIANT' ? 'NON_COMPLIANT' : 'REVIEW_REQUIRED', compliant: original === 'NON_COMPLIANT' ? false : undefined, score, approvedForOit: false, pendingDecisions };
 }
 
 // Resultados guardados antes de este cambio traen issues como texto suelto; la

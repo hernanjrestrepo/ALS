@@ -10,6 +10,7 @@ import axios from 'axios';
 import { errorMessage, logError, logWarning } from '../utils/errors';
 import { readIntegrationPayload, fromUrlAction } from '../utils/integrationPayload';
 import { getOrAssignConsecutive } from '../services/consecutive.service';
+import { linkOitFromText } from '../services/quotationLink';
 
 const prisma = new PrismaClient();
 
@@ -1134,6 +1135,15 @@ export function enqueueLegacyOIT(oitId: string, oitNumber: string, filePath: str
     return legacyQueue;
 }
 
+// El vinculo con la cotizacion es secundario: si falla, la OIT sigue su curso.
+async function linkQuotationQuietly(oitId: string, text: string) {
+    try {
+        await linkOitFromText(oitId, text);
+    } catch (e) {
+        logError(`OIT ${oitId}: no se pudo vincular la cotizacion`, e);
+    }
+}
+
 async function processLegacyOIT(oitId: string, oitNumber: string, filePath: string): Promise<void> {
     try {
         const { pdfService } = require('../services/pdf.service');
@@ -1176,6 +1186,7 @@ async function processLegacyOIT(oitId: string, oitNumber: string, filePath: stri
                 location: location || undefined,
             }
         });
+        await linkQuotationQuietly(oitId, text);
         console.log(`[Legacy API] OIT ${oitNumber} processed successfully.`);
     } catch (err) {
         console.error('[Legacy API] Error processing background task:', err);
@@ -1267,6 +1278,7 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
             const pdfData = await pdfParse(dataBuffer);
             const oitText = pdfData.text;
 
+            await linkQuotationQuietly(oitId, oitText);
             const oitAnalysis = await aiService.analyzeDocument(oitText);
             aiDataContent.oit = oitAnalysis;
 

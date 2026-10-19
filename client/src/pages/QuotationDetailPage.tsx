@@ -14,6 +14,11 @@ import {
 } from 'lucide-react';
 import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackModal';
 import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
+import { useAuthStore } from '@/features/auth/authStore';
+import {
+    MissingElementsCard, FindingDecisionPanel, InformativeFindingsTable,
+    type FindingReview, type MissingResolution,
+} from '@/components/quotations/QuotationReview';
 
 interface Quotation {
     id: string;
@@ -28,7 +33,15 @@ interface Quotation {
     createdAt: string;
     updatedAt: string;
     linkedOITs?: { id: string; oitNumber: string; status: string; description?: string }[];
+    approvedForOit?: boolean;
+    findingReviews?: string;
+    missingResolutions?: string;
 }
+
+const parseJsonField = <T,>(raw?: string): T | null => {
+    if (!raw) return null;
+    try { return JSON.parse(raw) as T; } catch { return null; }
+};
 
 // Resultados de antes del 2026-10-15 traen los hallazgos como texto suelto (por
 // eso se veian tarjetas "INFO" vacias); los nuevos traen objetos.
@@ -56,6 +69,11 @@ export default function QuotationDetailPage() {
     const [quotation, setQuotation] = useState<Quotation | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const { user } = useAuthStore();
+    // Mismo permiso que el servidor (requireAdmin): Ana decide; los demas ven.
+    const canReview = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+    // Las respuestas de guardar no traen cliente/servicio: se conserva lo ya cargado.
+    const onSaved = (updated: any) => setQuotation(prev => prev ? { ...prev, ...updated } : updated);
 
     // Feedback Modal State
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
@@ -168,6 +186,23 @@ export default function QuotationDetailPage() {
     const complianceResult = parseComplianceResult();
     const issues: any[] = Array.isArray(complianceResult?.issues) ? complianceResult.issues.map(normalizeIssue) : [];
     const parameterChecks: any[] = Array.isArray(complianceResult?.parameterChecks) ? complianceResult.parameterChecks : [];
+    const findingReviews = parseJsonField<Record<string, FindingReview>>(quotation.findingReviews) || {};
+    const missingResolutions = parseJsonField<Record<string, MissingResolution>>(quotation.missingResolutions) || {};
+    const actionableIssues = issues.filter((i: any) => i.severity === 'CRITICAL' || i.severity === 'WARNING');
+    const informativeIssues = issues.filter((i: any) => i.severity !== 'CRITICAL' && i.severity !== 'WARNING');
+    // Veredicto con las decisiones de Ana aplicadas (lo calcula el servidor).
+    const verdict: boolean | null | undefined = complianceResult?.effectiveStatus
+        ? complianceResult.effectiveStatus === 'COMPLIANT' ? true
+            : complianceResult.effectiveStatus === 'NON_COMPLIANT' ? false
+                : complianceResult.compliant === null && !actionableIssues.length ? null : undefined
+        : complianceResult?.compliant;
+    const withException = verdict === true && actionableIssues.some((i: any) => findingReviews[i.key]?.decision === 'ACEPTADO');
+    const missingItems: string[] = Array.isArray(aiData?.missing) ? aiData.missing.map((m: any) => String(m).trim()) : [];
+    const missingPending = missingItems.filter(m => !missingResolutions[m]).length;
+    // Con los faltantes subsanados en pantalla, el documento queda completo.
+    const docStatus = aiData?.status === 'error' && missingItems.length && !missingPending
+        ? ((aiData.alerts || []).length ? 'warning' : 'check')
+        : aiData?.status;
 
     return (
         <div className="min-h-screen bg-slate-50/50 pb-12">
@@ -379,36 +414,36 @@ export default function QuotationDetailPage() {
                                     />
                                 </div>
                                 {/* Status Banner */}
-                                <div className={`rounded-xl p-6 border ${aiData.status === 'check' ? 'bg-green-50 border-green-200' :
-                                    aiData.status === 'error' ? 'bg-red-50 border-red-200' :
+                                <div className={`rounded-xl p-6 border ${docStatus === 'check' ? 'bg-green-50 border-green-200' :
+                                    docStatus === 'error' ? 'bg-red-50 border-red-200' :
                                         'bg-amber-50 border-amber-200'
                                     }`}>
                                     <div className="flex items-center gap-4">
-                                        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${aiData.status === 'check' ? 'bg-green-100' :
-                                            aiData.status === 'error' ? 'bg-red-100' :
+                                        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${docStatus === 'check' ? 'bg-green-100' :
+                                            docStatus === 'error' ? 'bg-red-100' :
                                                 'bg-amber-100'
                                             }`}>
-                                            {aiData.status === 'check' ? (
+                                            {docStatus === 'check' ? (
                                                 <CheckCircle2 className="h-6 w-6 text-green-600" />
                                             ) : (
-                                                <Sparkles className={`h-6 w-6 ${aiData.status === 'error' ? 'text-red-600' : 'text-amber-600'}`} />
+                                                <Sparkles className={`h-6 w-6 ${docStatus === 'error' ? 'text-red-600' : 'text-amber-600'}`} />
                                             )}
                                         </div>
                                         <div>
-                                            <h3 className={`text-lg font-semibold ${aiData.status === 'check' ? 'text-green-900' :
-                                                aiData.status === 'error' ? 'text-red-900' :
+                                            <h3 className={`text-lg font-semibold ${docStatus === 'check' ? 'text-green-900' :
+                                                docStatus === 'error' ? 'text-red-900' :
                                                     'text-amber-900'
                                                 }`}>
-                                                {aiData.status === 'check' ? 'Documento Completo' :
-                                                    aiData.status === 'error' ? 'Requiere Revisión' :
+                                                {docStatus === 'check' ? 'Documento Completo' :
+                                                    docStatus === 'error' ? 'Requiere Revisión' :
                                                         'Atención Requerida'}
                                             </h3>
-                                            <p className={`text-sm ${aiData.status === 'check' ? 'text-green-700' :
-                                                aiData.status === 'error' ? 'text-red-700' :
+                                            <p className={`text-sm ${docStatus === 'check' ? 'text-green-700' :
+                                                docStatus === 'error' ? 'text-red-700' :
                                                     'text-amber-700'
                                                 }`}>
-                                                {aiData.status === 'check' ? 'El análisis no encontró problemas críticos' :
-                                                    aiData.status === 'error' ? 'Se detectaron elementos faltantes importantes' :
+                                                {docStatus === 'check' ? (missingItems.length && !missingPending ? 'Los elementos faltantes ya se subsanaron' : 'El análisis no encontró problemas críticos') :
+                                                    docStatus === 'error' ? 'Se detectaron elementos faltantes importantes' :
                                                         'Hay algunos elementos que requieren atención'}
                                             </p>
                                         </div>
@@ -575,22 +610,14 @@ export default function QuotationDetailPage() {
                                                 </CardContent>
                                             </Card>
                                         )}
-                                        {aiData.missing && aiData.missing.length > 0 && (
-                                            <Card className="border-red-200 shadow-sm">
-                                                <CardHeader className="bg-red-50">
-                                                    <CardTitle className="text-base text-red-900">❌ Elementos Faltantes</CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="pt-4">
-                                                    <ul className="space-y-2">
-                                                        {aiData.missing.map((item: string, idx: number) => (
-                                                            <li key={idx} className="flex items-start gap-2 text-sm text-red-800">
-                                                                <span className="text-red-500 mt-0.5">•</span>
-                                                                {item}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </CardContent>
-                                            </Card>
+                                        {missingItems.length > 0 && (
+                                            <MissingElementsCard
+                                                quotationId={quotation.id}
+                                                missing={missingItems}
+                                                resolutions={missingResolutions}
+                                                canEdit={canReview}
+                                                onSaved={onSaved}
+                                            />
                                         )}
                                     </div>
                                 )}
@@ -646,37 +673,37 @@ export default function QuotationDetailPage() {
                         {complianceResult ? (
                             <div className="space-y-6">
                                 {/* Score & Status Banner */}
-                                <div className={`rounded-xl p-6 border ${complianceResult.compliant === true ? 'bg-green-50 border-green-200' :
-                                    complianceResult.compliant === false ? 'bg-red-50 border-red-200' :
-                                        complianceResult.compliant === null ? 'bg-slate-50 border-slate-200' :
+                                <div className={`rounded-xl p-6 border ${verdict === true ? 'bg-green-50 border-green-200' :
+                                    verdict === false ? 'bg-red-50 border-red-200' :
+                                        verdict === null ? 'bg-slate-50 border-slate-200' :
                                             'bg-amber-50 border-amber-200'
                                     }`}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            <div className={`h-16 w-16 rounded-full flex items-center justify-center ${complianceResult.compliant === true ? 'bg-green-100' :
-                                                complianceResult.compliant === false ? 'bg-red-100' :
-                                                    complianceResult.compliant === null ? 'bg-slate-100' :
+                                            <div className={`h-16 w-16 rounded-full flex items-center justify-center ${verdict === true ? 'bg-green-100' :
+                                                verdict === false ? 'bg-red-100' :
+                                                    verdict === null ? 'bg-slate-100' :
                                                         'bg-amber-100'
                                                 }`}>
-                                                {complianceResult.compliant === true ? (
+                                                {verdict === true ? (
                                                     <CheckCircle2 className="h-8 w-8 text-green-600" />
-                                                ) : complianceResult.compliant === false ? (
+                                                ) : verdict === false ? (
                                                     <XCircle className="h-8 w-8 text-red-600" />
-                                                ) : complianceResult.compliant === null ? (
+                                                ) : verdict === null ? (
                                                     <Info className="h-8 w-8 text-slate-600" />
                                                 ) : (
                                                     <AlertTriangle className="h-8 w-8 text-amber-600" />
                                                 )}
                                             </div>
                                             <div>
-                                                <h3 className={`text-xl font-bold ${complianceResult.compliant === true ? 'text-green-900' :
-                                                    complianceResult.compliant === false ? 'text-red-900' :
-                                                        complianceResult.compliant === null ? 'text-slate-900' :
+                                                <h3 className={`text-xl font-bold ${verdict === true ? 'text-green-900' :
+                                                    verdict === false ? 'text-red-900' :
+                                                        verdict === null ? 'text-slate-900' :
                                                             'text-amber-900'
                                                     }`}>
-                                                    {complianceResult.compliant === true ? 'CONFORME' :
-                                                        complianceResult.compliant === false ? 'NO CONFORME' :
-                                                            complianceResult.compliant === null ? 'SIN VEREDICTO NORMATIVO (matriz descriptiva)' :
+                                                    {verdict === true ? (withException ? 'CONFORME CON EXCEPCIÓN APROBADA' : 'CONFORME') :
+                                                        verdict === false ? 'NO CONFORME' :
+                                                            verdict === null ? 'SIN VEREDICTO NORMATIVO (matriz descriptiva)' :
                                                                 'REQUIERE REVISIÓN'}
                                                 </h3>
                                                 <p className="text-sm text-slate-600 mt-1">
@@ -710,9 +737,26 @@ export default function QuotationDetailPage() {
                                                         }`}>{complianceResult.score}</span>
                                                 </div>
                                                 <p className="text-xs text-slate-500 mt-1">Puntuación</p>
+                                                {complianceResult.coverage && (
+                                                    <p className="text-[11px] text-slate-500" title="Parámetros del artículo que se cotizaron">
+                                                        Cotizados {complianceResult.coverage.quoted} de {complianceResult.coverage.total}
+                                                    </p>
+                                                )}
                                             </div>
                                         )}
                                     </div>
+                                    {complianceResult.coverage && (
+                                        <p className="mt-3 text-xs text-slate-500">
+                                            La puntuación mide lo cotizado: de los parámetros cotizados, cuántos están sin observaciones (un hallazgo aceptado cuenta como resuelto). Los sugeridos por la norma no cotizados no restan.
+                                        </p>
+                                    )}
+                                    {actionableIssues.length > 0 && (
+                                        <p className={`mt-2 text-sm font-medium ${complianceResult.pendingDecisions ? 'text-amber-800' : 'text-green-800'}`}>
+                                            {complianceResult.pendingDecisions
+                                                ? `${complianceResult.pendingDecisions} de ${actionableIssues.length} hallazgo(s) sin decisión final (pendientes o en revisión). La cotización queda habilitada para OIT cuando todos estén aceptados.`
+                                                : quotation.approvedForOit ? 'Todos los hallazgos tienen decisión. Habilitada para OIT.' : 'Todos los hallazgos tienen decisión.'}
+                                        </p>
+                                    )}
                                     {/* Summary */}
                                     {complianceResult.summary && (
                                         <p className="mt-4 text-sm text-slate-700 bg-white/50 p-3 rounded-lg">
@@ -722,21 +766,21 @@ export default function QuotationDetailPage() {
                                 </div>
 
                                 {/* Issues List - Detailed */}
-                                {issues.length > 0 && (
+                                {actionableIssues.length > 0 && (
                                     <Card className="border-red-200 shadow-sm">
                                         <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50">
                                             <CardTitle className="text-base flex items-center gap-2 text-red-900">
                                                 <XCircle className="h-5 w-5" />
-                                                Hallazgos ({issues.length})
+                                                Hallazgos que requieren decisión ({actionableIssues.length})
                                             </CardTitle>
                                             <CardDescription>
                                                 {issues.filter((i: any) => i.severity === 'CRITICAL').length} incumplimientos
                                                 {' · '}{issues.filter((i: any) => i.severity === 'WARNING').length} por revisar
-                                                {' · '}{issues.filter((i: any) => i.severity !== 'CRITICAL' && i.severity !== 'WARNING').length} informativos
+                                                {' · '}{informativeIssues.length} informativos (en el cuadro de abajo)
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="pt-4 space-y-3">
-                                            {issues.map((issue: any, idx: number) => (
+                                            {actionableIssues.map((issue: any, idx: number) => (
                                                 <div key={idx} className={`p-4 rounded-lg border ${issue.severity === 'CRITICAL' ? 'bg-red-50 border-red-200' :
                                                     issue.severity === 'WARNING' ? 'bg-amber-50 border-amber-200' :
                                                         'bg-blue-50 border-blue-200'
@@ -773,10 +817,24 @@ export default function QuotationDetailPage() {
                                                             💡 <strong>Acción:</strong> {issue.recommendation}
                                                         </p>
                                                     )}
+                                                    {issue.key && complianceResult.effectiveStatus && !complianceResult.error && (
+                                                        <FindingDecisionPanel
+                                                            key={`${issue.key}-${findingReviews[issue.key]?.at || ''}`}
+                                                            quotationId={quotation.id}
+                                                            issueKey={issue.key}
+                                                            review={findingReviews[issue.key]}
+                                                            canEdit={canReview && quotation.status !== 'ANALYZING'}
+                                                            onSaved={onSaved}
+                                                        />
+                                                    )}
                                                 </div>
                                             ))}
                                         </CardContent>
                                     </Card>
+                                )}
+
+                                {informativeIssues.length > 0 && (
+                                    <InformativeFindingsTable issues={informativeIssues} parameterChecks={parameterChecks} />
                                 )}
 
                                 {/* Revision por parametro del articulo comparado */}
@@ -943,10 +1001,16 @@ export default function QuotationDetailPage() {
                                     OITs Vinculadas
                                 </CardTitle>
                                 <CardDescription>
-                                    Órdenes de inspección y trabajo que utilizan esta cotización
+                                    Se vinculan solas: cuando llega una OIT del Sistema Serambiente que trae este número de cotización.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
+                                {!!quotation.linkedOITs?.length && !quotation.approvedForOit && (
+                                    <div className="mb-4 flex items-start gap-2 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                        <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                        Ya hay OIT creadas con esta cotización, pero la cotización todavía no está aprobada contra la norma (ver pestaña Cumplimiento).
+                                    </div>
+                                )}
                                 {quotation.linkedOITs && quotation.linkedOITs.length > 0 ? (
                                     <div className="grid gap-3">
                                         {quotation.linkedOITs.map(oit => (
