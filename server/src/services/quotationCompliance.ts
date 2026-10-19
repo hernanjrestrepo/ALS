@@ -21,8 +21,9 @@ export function extractCitedStandardNumbers(text: string): Set<string> {
 
 // Numero de Sistema Serambiente impreso en el encabezado de cada pagina de la
 // oferta (ej. SIACOT-20938-10-2026, SIACOT-17822-04-2025_V2). Se toma el que mas
-// se repite por si el documento menciona otra cotizacion.
-const SIACOT_NUMBER = /\bSIACOT-\d+-\d{1,2}-\d{4}(?:_V\d+)?\b/gi;
+// se repite por si el documento menciona otra cotizacion. Sin corte de palabra al
+// inicio: el PDF de la OIT trae el rotulo pegado ("No. COTIZACIÓNSIACOT-20896-10-2026").
+const SIACOT_NUMBER = /(?<![\d-])SIACOT-\d+-\d{1,2}-\d{4}(?:_V\d+)?\b/gi;
 
 export function extractQuotationNumber(text: string): string | null {
     const counts = new Map<string, number>();

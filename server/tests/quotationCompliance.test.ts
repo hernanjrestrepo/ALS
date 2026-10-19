@@ -22,6 +22,10 @@ describe('extractQuotationNumber', () => {
     it('conserva la version', () => {
         expect(extractQuotationNumber('No. COTIZACIÓN   SIACOT-17822-04-2025_V2   DÍA')).toBe('SIACOT-17822-04-2025_V2');
     });
+    it('lo lee del PDF de la OIT, donde el rotulo sale pegado al numero (OIT 14927)', () => {
+        expect(extractQuotationNumber('2026-06-22\nNo. COTIZACIÓNSIACOT-20896-10-2026\nFECHA:')).toBe('SIACOT-20896-10-2026');
+        expect(extractQuotationNumber('No. COTIZACIÓNSIACOT-20466-07-2026_V1\nFECHA')).toBe('SIACOT-20466-07-2026_V1');
+    });
     it('sin SIACOT no inventa numero', () => {
         expect(extractQuotationNumber('Cotización de prueba sin numero')).toBeNull();
     });
