@@ -202,7 +202,8 @@ export default function QuotationDetailPage() {
     // Con los faltantes subsanados en pantalla, el documento queda completo.
     const docStatus = aiData?.status === 'error' && missingItems.length && !missingPending
         ? ((aiData.alerts || []).length ? 'warning' : 'check')
-        : aiData?.status;
+        // La IA a veces marca "completo" y a la vez lista faltantes (SIACOT-20857).
+        : aiData?.status === 'check' && missingPending ? 'warning' : aiData?.status;
 
     return (
         <div className="min-h-screen bg-slate-50/50 pb-12">
