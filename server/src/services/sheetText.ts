@@ -29,15 +29,21 @@ export interface ReadSheetOptions {
 
 export async function readSheetText(filePath: string, filename = path.basename(filePath), opts: ReadSheetOptions = {}): Promise<SheetText> {
     const plain = await readSheetTextPlain(filePath, filename);
-    if (!opts.ocr || (plain.status !== 'IMAGEN' && plain.status !== 'ESCANEADO')) return plain;
+    // Un PDF cuyo texto no se puede extraer (escaneado o mal formado) se intenta por vision.
+    const isPdf = path.extname(filename).toLowerCase() === '.pdf';
+    const needsOcr = plain.status === 'IMAGEN' || plain.status === 'ESCANEADO' || (plain.status === 'ERROR' && isPdf);
+    if (!opts.ocr || !needsOcr) return plain;
     const transcribe = opts.transcribe || (sheetReaderEnabled() ? transcribeImages : null);
     if (!transcribe) return plain;
     try {
         const ext = path.extname(filename).toLowerCase();
         const images = ext === '.pdf'
-            ? (await (opts.renderPdf || pdfPagesToImages)(filePath)).slice(0, 6)
+            ? await (opts.renderPdf || (p => pdfPagesToImages(p, 24)))(filePath)
             : [fs.readFileSync(filePath).toString('base64')];
-        const text = (await transcribe(images)).trim();
+        // Todas las paginas, de a 6 por llamada.
+        const parts: string[] = [];
+        for (let i = 0; i < images.length; i += 6) parts.push((await transcribe(images.slice(i, i + 6))).trim());
+        const text = parts.filter(Boolean).join('\n\n');
         if (!text) return { ...plain, reason: `${plain.reason} La IA de visión no encontró texto.` };
         return { filename, status: 'LEIDO', text, reason: 'Leído con IA de visión (revisar).' };
     } catch (error) {

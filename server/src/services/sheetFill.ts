@@ -25,12 +25,14 @@ export interface SheetFillDeps {
 }
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+// Imagenes por llamada al modelo de vision y paginas maximas por lectura.
 const MAX_VISION_IMAGES = 6;
+export const MAX_PDF_PAGES = 24;
 const MAX_FIELD_DOUBTS = 15;
 
 const defaultDeps: SheetFillDeps = {
     readText: (p, n) => readSheetText(p, n),
-    renderPdf: p => pdfPagesToImages(p),
+    renderPdf: p => pdfPagesToImages(p, MAX_PDF_PAGES),
     imageToBase64: p => require('fs').readFileSync(p).toString('base64'),
     vision: readFieldSheet,
     text: readFieldsFromText,
@@ -52,7 +54,7 @@ export async function readFieldsFromFiles(files: SheetFile[], fields: SheetField
         if (read.status === 'LEIDO') {
             texts.push(`=== ${f.name} ===\n${read.text}`);
             sources.push({ name: f.name, via: 'TEXTO' });
-        } else if (read.status === 'ESCANEADO' && ext === '.pdf') {
+        } else if ((read.status === 'ESCANEADO' || read.status === 'ERROR') && ext === '.pdf') {
             try {
                 const pages = await deps.renderPdf(f.path);
                 if (!pages.length) throw new Error('el PDF no tiene páginas');
@@ -73,14 +75,16 @@ export async function readFieldsFromFiles(files: SheetFile[], fields: SheetField
     // descarga de la GPU. Lo que trae la foto no pisa lo leido del documento.
     let values: Record<string, string> = {};
     if (texts.length) values = { ...(await deps.text(texts.join('\n\n'), fields)) };
-    if (images.length) {
-        const fromImages = await deps.vision(images.slice(0, MAX_VISION_IMAGES), fields);
+    // Todas las paginas, en tandas (la PM 2223 de la reunion del 23-oct tiene 12 paginas;
+    // antes solo se leian las primeras).
+    for (let i = 0; i < images.length; i += MAX_VISION_IMAGES) {
+        const fromImages = await deps.vision(images.slice(i, i + MAX_VISION_IMAGES), fields);
         for (const [k, v] of Object.entries(fromImages)) if (!values[k]) values[k] = v;
     }
 
     const doubts: string[] = [];
     for (const s of sources) if (s.via === 'NO_LEIDO') doubts.push(`No se pudo leer «${s.name}»: ${s.reason}`);
-    if (images.length > MAX_VISION_IMAGES) doubts.push(`Solo se leyeron las primeras ${MAX_VISION_IMAGES} páginas o fotos; adjunte el resto por separado.`);
+    if (images.length >= MAX_PDF_PAGES) doubts.push(`Se leyeron ${MAX_PDF_PAGES} páginas o fotos; si hay más, adjunte el resto por separado.`);
     if (sources.some(s => s.via !== 'NO_LEIDO')) {
         const missing = fields.filter(f => !values[f.key]);
         for (const f of missing.slice(0, MAX_FIELD_DOUBTS)) doubts.push(`¿Cuál es el valor de «${f.label}»${f.unit ? ` (${f.unit})` : ''}? No aparece en la planilla.`);

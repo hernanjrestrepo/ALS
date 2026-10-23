@@ -87,11 +87,36 @@ describe('readFieldsFromFiles: cualquier archivo llena el formulario', () => {
         expect(r.doubts[15]).toContain('15 campo(s) más');
     });
 
-    it('solo se mandan hasta 6 imagenes a la vision y se avisa', async () => {
-        const d = deps({ renderPdf: vi.fn(async () => Array.from({ length: 8 }, (_, i) => `P${i}`)) });
+    it('un PDF escaneado de 12 paginas se lee completo, en tandas de 6 (PM 2223)', async () => {
+        const vision = vi.fn()
+            .mockResolvedValueOnce({ '3.ph': '7,0' })
+            .mockResolvedValueOnce({ '3.ph': '9,9', '3.temp': '25' });
+        const d = deps({ renderPdf: vi.fn(async () => Array.from({ length: 12 }, (_, i) => `P${i}`)), vision });
         const r = await readFieldsFromFiles([{ path: '/x/escaneado.pdf', name: 'escaneado.pdf' }], fields, d);
-        expect((d.vision as any).mock.calls[0][0]).toHaveLength(6);
-        expect(r.doubts.some(x => x.includes('primeras 6'))).toBe(true);
+        expect(vision).toHaveBeenCalledTimes(2);
+        expect(vision.mock.calls[0][0]).toEqual(['P0', 'P1', 'P2', 'P3', 'P4', 'P5']);
+        expect(vision.mock.calls[1][0]).toEqual(['P6', 'P7', 'P8', 'P9', 'P10', 'P11']);
+        expect(r.values).toEqual({ '3.ph': '7,0', '3.temp': '25' }); // la primera lectura no se pisa
+        expect(r.doubts.some(x => x.includes('adjunte el resto'))).toBe(false);
+    });
+
+    it('si llega al tope de paginas, se avisa', async () => {
+        const d = deps({ renderPdf: vi.fn(async () => Array.from({ length: 24 }, (_, i) => `P${i}`)) });
+        const r = await readFieldsFromFiles([{ path: '/x/escaneado.pdf', name: 'escaneado.pdf' }], fields, d);
+        expect((d.vision as any).mock.calls).toHaveLength(4);
+        expect(r.doubts.some(x => x.includes('24 páginas'))).toBe(true);
+    });
+
+    it('el analisis de la OIT transcribe todas las paginas del escaneado', async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-'));
+        const pdf = path.join(dir, 'escaneado.pdf');
+        // PDF valido de una pagina sin texto (como un escaneado)
+        fs.writeFileSync(pdf, '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
+        const transcribe = vi.fn(async (imgs: string[]) => `tanda de ${imgs.length}`);
+        const r = await readSheetText(pdf, 'escaneado.pdf', { ocr: true, transcribe, renderPdf: async () => Array.from({ length: 9 }, (_, i) => `P${i}`) });
+        expect(transcribe).toHaveBeenCalledTimes(2);
+        expect(r.text).toBe('tanda de 6\n\ntanda de 3');
+        fs.rmSync(dir, { recursive: true, force: true });
     });
 });
 
