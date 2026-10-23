@@ -9,6 +9,7 @@ export interface AuthenticatedRequest extends Request {
         userId: string;
         role: string;
         mustChangePassword: boolean;
+        email?: string;
     };
 }
 
@@ -32,7 +33,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         // Get user role from database
         const user = await prisma.user.findUnique({
             where: { id: decoded.userId },
-            select: { id: true, role: true, isActive: true, mustChangePassword: true }
+            select: { id: true, role: true, isActive: true, mustChangePassword: true, email: true }
         });
 
         if (!user) {
@@ -46,7 +47,8 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         (req as AuthenticatedRequest).user = {
             userId: user.id,
             role: user.role,
-            mustChangePassword: user.mustChangePassword
+            mustChangePassword: user.mustChangePassword,
+            email: user.email
         };
 
         if (user.mustChangePassword) {

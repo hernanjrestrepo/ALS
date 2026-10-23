@@ -25,3 +25,13 @@ export const PERSONAL_MONITOREO: Array<{ nombre: string; cargo: string; correo: 
 ];
 
 export const CORREOS_MONITOREO = new Set(PERSONAL_MONITOREO.map(p => p.correo.toLowerCase()));
+
+// Jefe, coordinadores, supervisores y planeador de Operaciones ven todas las OIT aunque
+// su rol sea ingeniero (2026-10-23: Josue, jefe de Operaciones, no veia las OIT porque
+// los ingenieros solo ven las asignadas). Escribir en una OIT sigue pidiendo asignacion.
+const CARGO_SUPERVISA = /jefe|coordinador|supervisor|planeador/i;
+const CORREOS_SUPERVISAN = new Set(PERSONAL_MONITOREO.filter(p => CARGO_SUPERVISA.test(p.cargo)).map(p => p.correo.toLowerCase()));
+
+export function supervisaOperaciones(email?: string | null): boolean {
+    return !!email && CORREOS_SUPERVISAN.has(email.toLowerCase());
+}
