@@ -7,11 +7,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import api from '@/lib/api';
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin, ShieldCheck, ArrowRight, Navigation, ChevronLeft } from 'lucide-react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, FileText, Calendar, Beaker, FileBarChart, Clock, Hash, Users, Download, MoreVertical, RefreshCcw, Sparkles, MapPin, ArrowRight, Navigation } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { SamplingStep } from '@/components/SamplingStep';
 import { FileDown } from 'lucide-react';
 import { Plus, X } from 'lucide-react';
 import { ReportGenerator } from '@/components/oit/ReportGenerator';
@@ -41,6 +40,7 @@ import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
 
 
 import { QuotationLinker } from '@/components/oit/QuotationLinker';
+import { SamplingForm } from '@/components/sampling/SamplingForm';
 import { getSuggestedDate, formatLocalDateLong, parseLocalDate, bogotaDateTimeToISO, toBogotaDateTimeInputs, formatBogotaDate, formatBogotaTime } from '@/lib/serviceDate';
 
 // Service schedule structure for enhanced scheduling
@@ -71,7 +71,6 @@ export default function OITDetailPage() {
     const [serviceDates, setServiceDates] = useState<Record<string, ServiceSchedule>>({});
     const [isManualScheduling, setIsManualScheduling] = useState(false);
     const [isLocationVerified, setIsLocationVerified] = useState(false);
-    const [verificationMsg, setVerificationMsg] = useState('');
     const [isInitialLoad, setIsInitialLoad] = useState(true); // Track first load to avoid clearing storage
     const [selectedServiceForSampling, setSelectedServiceForSampling] = useState<any>(null); // ServiceSchedule | null
     // Lectura GPS tomada al verificar las condiciones de inicio (llena "Coordenadas del Punto").
@@ -360,133 +359,26 @@ export default function OITDetailPage() {
 
 
 
-    const handleSaveStep = async (data: any) => {
-        try {
-            let serverFilenames = data.files || [];
-
-            // 1. Upload files if present
-            if (data.rawFiles && data.rawFiles.length > 0) {
-                const uploadedPaths: string[] = [];
-                for (const file of data.rawFiles) {
-                    const formData = new FormData();
-                    formData.append('file', file);
-
-                    const response = await api.post('/files/upload', formData, {
-                        headers: { 'Content-Type': 'multipart/form-data' }
-                    });
-
-                    if (response.data && response.data.filename) {
-                        uploadedPaths.push(response.data.filename);
-                    }
-                }
-                serverFilenames = uploadedPaths;
-                // Don't modify the original data object directly to avoid side effects if reused
-            }
-
-            // 2. Prepare the final data to store
-            const finalData = {
-                ...data,
-                files: serverFilenames,
-                rawFiles: undefined // Remove raw files before storing
-            };
-
-            // 3. Update local state
-            const updatedValidations = {
-                ...stepValidations,
-                [data.stepIndex]: {
-                    validated: true,
-                    data: finalData,
-                    timestamp: new Date().toISOString()
-                }
-            };
-            setStepValidations(updatedValidations);
-
-            // 4. Save to localStorage
-            if (id) {
-                localStorage.setItem(`sampling_session_${id}`, JSON.stringify({
-                    validations: updatedValidations,
-                    selectedService: selectedServiceForSampling,
-                    isLocationVerified: isLocationVerified,
-                    startGps
-                }));
-            }
-        } catch (error) {
-            console.error('Error in handleSaveStep:', error);
-            toast.error('Error al guardar el paso o subir archivos');
-            throw error; // Let the component handle the error UI
-        }
+    // Fecha, hora e ingenieros vigentes del servicio (la copia guardada en el navegador
+    // puede ser de antes de reprogramar).
+    const liveScheduleFor = (svc: any): Partial<ServiceSchedule> => {
+        if (!svc) return {};
+        const live = serviceDates[svc.id] || serviceDates[(svc.templateIds || [])[0]] || {};
+        return { date: live.date || svc.date, time: live.time || svc.time, engineerIds: live.engineerIds || svc.engineerIds || [] };
     };
 
-    // Datos que ya trae la OIT y la Agenda: los pasos de la plantilla los preguntaban de
-    // nuevo (cliente, numero OT, responsable, fecha). Llegan escritos y se pueden cambiar
-    // explicando el motivo (Hernan, 2026-10-23).
-    const oitPrefillFor = (step: any): { value: string; source: string; locked?: boolean } | undefined => {
-        if (!oit || step?.type !== 'INPUT') return undefined;
-        const title = String(step.title || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-        const live: Partial<ServiceSchedule> = selectedServiceForSampling
-            ? (serviceDates[selectedServiceForSampling.id] || serviceDates[(selectedServiceForSampling.templateIds || [])[0]] || {})
-            : {};
-        // Cliente y numero son de la OIT: fijos, no se cambian en campo.
-        if (title === 'cliente' && oit.clientName) return { value: oit.clientName, source: 'la OIT', locked: true };
-        if (/^numero (de )?(ot|oit)$/.test(title) && oit.oitNumber) return { value: String(oit.oitNumber), source: 'la OIT', locked: true };
-        if (title === 'responsable en campo') {
-            const ids: string[] = live.engineerIds || [];
-            const pool = [...availableEngineers, ...((oit.assignedEngineers || []) as any[]).map((a: any) => a.user)];
-            const names = ids.map(i => pool.find((e: any) => e?.id === i)?.name).filter(Boolean);
-            if (names.length) return { value: [...new Set(names)].join(', '), source: 'la Agenda' };
+    // Pasos de la plantilla del servicio, con su posicion en la lista global.
+    const stepsForService = (svc: any) => {
+        let allowed = (svc?.templateIds || []).map(String);
+        if (!allowed.length && aiData?.data?.services) {
+            const match = aiData.data.services.find((s: any) => s.name === svc?.name);
+            allowed = (match?.templates || []).map((t: any) => String(t.id));
         }
-        if (/^coordenadas/.test(title) && startGps) {
-            return { value: `${startGps.lat.toFixed(6)}, ${startGps.lng.toFixed(6)}`, source: 'el GPS al iniciar el muestreo' };
-        }
-        if (title === 'fecha de inicio' && step.inputType === 'datetime-local' && live.date) {
-            return { value: `${live.date}T${live.time || '09:00'}`, source: 'la Agenda' };
-        }
-        return undefined;
+        return templateSteps
+            .map((step: any, index: number) => ({ step, index }))
+            .filter(({ step }) => !allowed.length || (step.templateIds || [step.templateId]).map(String).some((id: string) => allowed.includes(id)));
     };
 
-    const handleFinalizeSampling = async () => {
-        if (!id) return;
-
-        const isOffline = !navigator.onLine;
-
-        if (isOffline) {
-            toast.warning('Estás offline. Los datos se guardaron localmente y se enviarán cuando tengas conexión.');
-            // We could just leave it pending in localStorage. 
-            // The user will need to press "Finalize" again when online, or we implement auto-sync.
-            // For now, simple manual retry.
-            return;
-        }
-
-        try {
-            setIsProcessing(true);
-
-            // Prepare Payload
-            const payload = {
-                steps: templateSteps.map((s, i) => ({
-                    description: s.description || s.title,
-                    ...stepValidations[i]?.data
-                })),
-                completedAt: new Date(),
-                location: isLocationVerified ? oit.location : 'Ubicación no verificada'
-            };
-
-            const response = await api.post(`/oits/${id}/submit-sampling`, payload);
-
-            toast.success(response.data.message || 'Muestreo enviado exitosamente');
-
-            // Clear local storage
-            localStorage.removeItem(`sampling_session_${id}`);
-
-            // Refresh OIT
-            const oitRes = await api.get(`/oits/${id}`);
-            setOit(oitRes.data);
-        } catch (error) {
-            console.error('Error finalizing:', error);
-            toast.error('Error al enviar el muestreo. Intenta nuevamente.');
-        } finally {
-            setIsProcessing(false);
-        }
-    };
 
     const handleDownloadReport = async () => {
         if (!id) return;
@@ -1858,8 +1750,6 @@ export default function OITDetailPage() {
                                     );
                                 }
                             }
-                            // 0. Verification of Conditions (Time & Location)
-                            const isStarted = oit.status === 'IN_PROGRESS' || oit.status === 'COMPLETED';
 
                             // CASE 1: No Service Selected -> Show List
                             if (!selectedServiceForSampling) {
@@ -1972,193 +1862,6 @@ export default function OITDetailPage() {
                                 );
                             }
 
-                            // CASE 2: Service Selected -> Show Verification Card
-                            // La seleccion queda guardada en el navegador con la fecha y hora de
-                            // ese momento; si luego se reprograma en Agenda, aqui seguia la vieja
-                            // (OIT 14824, 23-oct: Agenda 23/10 10:30, Muestreo 30/10 09:00). La
-                            // fecha, hora e ingenieros se leen siempre de la programacion vigente.
-                            const liveSchedule = serviceDates[selectedServiceForSampling.id]
-                                || serviceDates[(selectedServiceForSampling.templateIds || [])[0]]
-                                || {};
-                            const schedule = {
-                                ...selectedServiceForSampling,
-                                ...(liveSchedule.date ? { date: liveSchedule.date, time: liveSchedule.time } : {}),
-                                ...(liveSchedule.engineerIds ? { engineerIds: liveSchedule.engineerIds } : {}),
-                            };
-                            if (!isLocationVerified && !isStarted) {
-                                return (
-                                    <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/50 shadow-lg shadow-indigo-100/50 mb-8 max-w-2xl mx-auto">
-                                        <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                                            <ShieldCheck className="h-40 w-40 text-indigo-500" />
-                                        </div>
-
-                                        {/* Back Button */}
-                                        <div className="absolute top-4 left-4 z-20">
-                                            <Button variant="ghost" size="sm" onClick={() => setSelectedServiceForSampling(null)} className="text-indigo-600 hover:bg-indigo-50">
-                                                <ChevronLeft className="h-4 w-4 mr-1" /> Volver a lista
-                                            </Button>
-                                        </div>
-
-                                        <div className="p-8 relative z-10 mt-6">
-                                            <div className="flex items-center gap-3 mb-6">
-                                                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center shadow-inner">
-                                                    <ShieldCheck className="h-6 w-6 text-indigo-600" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-xl font-bold text-slate-900">Verificando: {schedule.name}</h3>
-                                                    <p className="text-sm text-slate-500">Valida condiciones para este servicio específico</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid md:grid-cols-2 gap-4 mb-8">
-                                                {/* Time Info */}
-                                                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-indigo-50 shadow-sm flex flex-col justify-between">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-2 text-indigo-600 font-medium text-sm">
-                                                            <Clock className="h-4 w-4" />
-                                                            <span>Horario Servicio</span>
-                                                        </div>
-                                                        <div className="text-2xl font-bold text-slate-800">
-                                                            {schedule.time}
-                                                        </div>
-                                                        <div className="text-xs text-slate-500 mt-1">
-                                                            {parseLocalDate(schedule.date).toLocaleDateString()}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Location Info */}
-                                                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-indigo-50 shadow-sm flex flex-col justify-between">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-2 text-indigo-600 font-medium text-sm">
-                                                            <MapPin className="h-4 w-4" />
-                                                            <span>Ubicación Objetivo</span>
-                                                        </div>
-
-                                                        <div className="text-sm font-semibold text-slate-800 line-clamp-2 leading-tight min-h-[2.5rem]">
-                                                            {oit.location || 'Sin ubicación registrada'}
-                                                        </div>
-                                                        <div className="text-xs text-slate-500 mt-2">
-                                                            Radio permitido: 200m
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {verificationMsg && (
-                                                <div className={`mb-6 p-4 rounded-xl flex items-start gap-3 border animate-in fade-in slide-in-from-bottom-2 ${verificationMsg.includes('Exitoso')
-                                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-100'
-                                                    : 'bg-rose-50 text-rose-800 border-rose-100'
-                                                    }`}>
-                                                    {verificationMsg.includes('Exitoso') ? (
-                                                        <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
-                                                    ) : (
-                                                        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                                                    )}
-                                                    <div>
-                                                        <p className="font-semibold text-sm">
-                                                            {verificationMsg.includes('Exitoso') ? '¡Verificación Completada!' : 'Verificación Fallida'}
-                                                        </p>
-                                                        <p className="text-sm opacity-90 mt-0.5">{verificationMsg}</p>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <Button
-                                                className={`w-full h-12 text-base font-semibold shadow-lg transition-all ${verificationMsg?.includes('Verificando')
-                                                    ? 'bg-indigo-100 text-indigo-700'
-                                                    : 'bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white hover:shadow-indigo-200/50'
-                                                    }`}
-                                                size="lg"
-                                                disabled={verificationMsg?.includes('Verificando')}
-                                                onClick={() => {
-                                                    setVerificationMsg('Verificando condiciones...');
-
-                                                    // Artificial delay for UX
-                                                    setTimeout(() => {
-                                                        // Sin bloqueo por hora: las condiciones de inicio se pueden
-                                                        // verificar en cualquier momento (Hernan, 2026-10-23). Antes no
-                                                        // dejaba hasta 30 min antes de la hora programada.
-                                                        if (!navigator.geolocation) {
-                                                            setVerificationMsg('Error: Geolocalización no soportada.');
-                                                            return;
-                                                        }
-
-                                                        navigator.geolocation.getCurrentPosition(
-                                                            (pos) => {
-                                                                const currentLat = pos.coords.latitude;
-                                                                const currentLng = pos.coords.longitude;
-                                                                setStartGps({ lat: currentLat, lng: currentLng });
-                                                                let distanceInfo = '';
-
-                                                                // oit.location es la direccion en texto que extrae la IA ("Calle 65c # 78
-                                                                // D - 33, Bogotá..."), nunca "lat, lng" - por eso esta condicion nunca
-                                                                // se cumplia y el radio de 200m nunca se evaluaba: cualquier GPS
-                                                                // encendido, en cualquier parte, marcaba "Verificación Exitosa - Estás
-                                                                // en el sitio correcto". Sin coordenadas reales no hay como calcular
-                                                                // la distancia, asi que ahora se dice eso en vez de fingir que se
-                                                                // verifico la cercania al sitio.
-                                                                const locParts = (oit.location || '').split(',').map((s: string) => s.trim());
-                                                                let hasCoordinates = false;
-                                                                if (locParts.length === 2 && !isNaN(parseFloat(locParts[0])) && !isNaN(parseFloat(locParts[1]))) {
-                                                                    hasCoordinates = true;
-                                                                    const targetLat = parseFloat(locParts[0]);
-                                                                    const targetLng = parseFloat(locParts[1]);
-
-                                                                    // Haversine
-                                                                    const R = 6371;
-                                                                    const dLat = (targetLat - currentLat) * Math.PI / 180;
-                                                                    const dLon = (targetLng - currentLng) * Math.PI / 180;
-                                                                    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(currentLat * Math.PI / 180) * Math.cos(targetLat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                                                                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                                                                    const distKm = R * c;
-
-                                                                    if (distKm > 0.2) {
-                                                                        const distM = (distKm * 1000).toFixed(0);
-                                                                        setVerificationMsg(`FUERA DE RANGO: Estás a ${distM}m del sitio. Acércate más.`);
-                                                                        return;
-                                                                    }
-                                                                    distanceInfo = `Distancia: ${(distKm * 1000).toFixed(0)}m`;
-                                                                }
-
-                                                                setIsLocationVerified(true);
-                                                                if (hasCoordinates) {
-                                                                    setVerificationMsg(`Verificación Exitosa ${distanceInfo ? '- ' + distanceInfo : ''}`);
-                                                                    toast.success('¡Estás en el sitio correcto!');
-                                                                } else {
-                                                                    setVerificationMsg('GPS registrado. No se pudo verificar la distancia al sitio (esta OIT no tiene coordenadas, solo dirección de texto).');
-                                                                    toast.info('GPS registrado, pero no se pudo confirmar la cercanía al sitio.');
-                                                                }
-                                                            },
-                                                            (err) => {
-                                                                console.error(err);
-                                                                let errMsg = 'No se pudo obtener ubicación GPS.';
-                                                                if (err.code === 1) errMsg = 'Permiso GPS denegado.';
-                                                                if (!window.isSecureContext) errMsg += ' (Requiere HTTPS).';
-                                                                setVerificationMsg(errMsg);
-                                                            },
-                                                            { enableHighAccuracy: true, timeout: 10000 }
-                                                        );
-                                                    }, 800);
-                                                }}
-                                            >
-                                                {verificationMsg?.includes('Verificando') ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                                        Validando Satélites...
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2">
-                                                        <span>Verificar Condiciones de Inicio</span>
-                                                        <ArrowRight className="h-4 w-4" />
-                                                    </div>
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                );
-                            }
-
                             // Check if planning has been accepted (or at least Scheduled)
                             if (!oit.planningAccepted && !oit.scheduledDate) {
                                 return (
@@ -2199,125 +1902,20 @@ export default function OITDetailPage() {
 
                             return (
                                 <div className="space-y-6">
-                                    <Card className="border-indigo-200 bg-indigo-50/50">
-                                        <CardContent className="pt-6">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                                                        <Sparkles className="h-5 w-5 text-indigo-600" />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-semibold text-indigo-900">
-                                                            Servicio: {selectedServiceForSampling?.name || 'General'}
-                                                        </h4>
-                                                        <p className="text-sm text-indigo-700">Completa cada paso secuencialmente. La IA validará tus datos.</p>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="border-indigo-200 text-indigo-700 hover:bg-indigo-100"
-                                                    onClick={() => {
-                                                        setSelectedServiceForSampling(null);
-                                                        setIsLocationVerified(false);
-                                                        setVerificationMsg('');
-                                                    }}
-                                                >
-                                                    Cambiar Servicio
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    <div className="max-w-3xl mx-auto space-y-4">
-                                        {(() => {
-                                            // Filter steps based on selected service
-                                            let visibleSteps = templateSteps;
-
-                                            // Only filter if a specific service is selected
-                                            if (selectedServiceForSampling) {
-                                                // Convert to string for safe comparison
-                                                const allowedIds = (selectedServiceForSampling.templateIds || []).map(String);
-
-                                                if (allowedIds.length > 0) {
-                                                    visibleSteps = templateSteps.filter(step => {
-                                                        // After deduplication, steps have templateIds array
-                                                        const stepIds = (step.templateIds || [step.templateId]).map(String);
-                                                        // Check if any of the step's templateIds are in the allowed list
-                                                        return stepIds.some((id: string) => allowedIds.includes(id));
-                                                    });
-                                                } else if (aiData?.data?.services) {
-                                                    // Legacy fallback by name
-                                                    const serviceName = selectedServiceForSampling.name;
-                                                    const matchedService = aiData.data.services.find((s: any) => s.name === serviceName);
-
-                                                    if (matchedService && matchedService.templates) {
-                                                        const fallbackIds = matchedService.templates.map((t: any) => String(t.id));
-                                                        visibleSteps = templateSteps.filter(step => {
-                                                            const stepIds = (step.templateIds || [step.templateId]).map(String);
-                                                            return stepIds.some((id: string) => fallbackIds.includes(id));
-                                                        });
-                                                    }
-                                                }
-                                            }
-
-                                            if (visibleSteps.length === 0 && templateSteps.length > 0) {
-                                                return (
-                                                    <div className="text-center py-12 text-slate-500 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
-                                                        <p>No se encontraron pasos de muestreo específicos para este servicio.</p>
-                                                        <p className="text-xs mt-2">Es posible que la plantilla no esté asignada correctamente.</p>
-                                                    </div>
-                                                );
-                                            }
-
-                                            return visibleSteps.length > 0 ? (
-                                                visibleSteps.map((step: any, index: number) => {
-                                                    // Find the original index in the global list for data storage
-                                                    const originalIndex = templateSteps.indexOf(step);
-
-                                                    // Locking Logic: Depends on the PREVIOUS VISIBLE step being validated
-                                                    // If it's the first visible step, it's unlocked (unless global editing is disabled)
-                                                    const prevStep = index > 0 ? visibleSteps[index - 1] : null;
-                                                    const prevOriginalIndex = prevStep ? templateSteps.indexOf(prevStep) : -1;
-
-                                                    const isLocked = (index > 0 && !stepValidations[prevOriginalIndex]?.validated) || !canEdit;
-
-                                                    return (
-                                                        <SamplingStep
-                                                            key={originalIndex} // Stable key based on global index
-                                                            step={step}
-                                                            stepIndex={originalIndex} // Pass original index for consistent storage
-                                                            isLocked={isLocked}
-                                                            validation={stepValidations[originalIndex]}
-                                                            onValidationComplete={(data) => handleSaveStep({ ...data, stepIndex: originalIndex })}
-                                                            prefill={oitPrefillFor(step)}
-                                                        />
-                                                    );
-                                                })
-                                            ) : (
-                                                <div className="text-center py-12 text-slate-500">
-                                                    <p>Cargando pasos de la plantilla...</p>
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
+                                    <SamplingForm
+                                        key={selectedServiceForSampling.id}
+                                        oit={oit}
+                                        service={selectedServiceForSampling}
+                                        schedule={liveScheduleFor(selectedServiceForSampling)}
+                                        steps={stepsForService(selectedServiceForSampling)}
+                                        engineers={[...availableEngineers, ...((oit.assignedEngineers || []) as any[]).map((a: any) => a.user).filter(Boolean)]}
+                                        canEdit={canEdit}
+                                        onChangeService={() => setSelectedServiceForSampling(null)}
+                                        onSubmitted={fetchOIT}
+                                    />
 
                                     {/* Final Actions */}
                                     <div className="flex flex-col items-center gap-4 py-6">
-                                        {!finalAnalysis && templateSteps.length > 0 &&
-                                            Object.keys(stepValidations).length >= templateSteps.length &&
-                                            Object.values(stepValidations).every((v: any) => v.validated) && (
-                                                <Button
-                                                    size="lg"
-                                                    onClick={handleFinalizeSampling}
-                                                    disabled={isProcessing}
-                                                    className="bg-green-600 hover:bg-green-700"
-                                                >
-                                                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
-                                                    Finalizar Muestreo y Generar Análisis
-                                                </Button>
-                                            )}
-
                                         {finalAnalysis && (
                                             <div className="w-full space-y-4 animate-in fade-in">
                                                 {/* Show Analysis Card for Everyone who can view this (Admins & Assigned Engineer) */}

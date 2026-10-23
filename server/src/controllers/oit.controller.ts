@@ -189,22 +189,89 @@ export const saveSamplingData = async (req: Request, res: Response) => {
 };
 
 // Submit Final Sampling
+const parseJsonSafe = (raw: string | null | undefined): any => {
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+};
+
+// Junta el envio de un servicio con lo ya guardado de los demas servicios.
+export function mergeServiceSampling(previousRaw: string | null, submission: any): any {
+    const previous = parseJsonSafe(previousRaw) || {};
+    const key = String(submission?.serviceKey || 'general');
+    const services: Record<string, any> = { ...(previous.services || {}) };
+    // Un envio viejo sin "services" (formato anterior) se conserva como "general".
+    if (!previous.services && Array.isArray(previous.steps) && previous.steps.length && key !== 'general') {
+        services.general = { steps: previous.steps, completedAt: previous.completedAt, serviceName: 'General' };
+    }
+    services[key] = submission;
+    const entries = Object.values(services);
+    const multiple = entries.length > 1;
+    return {
+        ...submission,
+        services,
+        steps: entries.flatMap((s: any) => (Array.isArray(s.steps) ? s.steps : []).map((step: any) => (
+            multiple && s.serviceName ? { ...step, description: `[${s.serviceName}] ${step.description || step.title || ''}` } : step
+        ))),
+        warnings: entries.flatMap((s: any) => (Array.isArray(s.warnings) ? s.warnings.map((w: any) => ({ ...w, service: s.serviceName })) : [])),
+        completedAt: submission?.completedAt || previous.completedAt,
+    };
+}
+
+// Servicios con plantilla que todavia no tienen muestreo enviado.
+export function pendingSamplingServices(aiDataRaw: string | null, samplingData: any): string[] {
+    const ai = parseJsonSafe(aiDataRaw);
+    const services: any[] = ai?.data?.services || ai?.data?.oit?.services || [];
+    const done = samplingData?.services || {};
+    return services
+        .map((s: any, idx: number) => ({ key: `ai-service-${idx}`, name: String(s.name || ''), templates: s.templates || [] }))
+        .filter(s => s.templates.length && !done[s.key])
+        .map(s => s.name);
+}
+
+// Las alertas de campo (sin GPS, lejos del sitio, llegada fuera de hora) no bloquean:
+// se reportan a los administradores (Hernan, 2026-10-23).
+async function notifyFieldWarnings(oitId: string, oitNumber: string, submission: any) {
+    const warnings: any[] = Array.isArray(submission?.warnings) ? submission.warnings : [];
+    if (!warnings.length) return;
+    const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] }, isActive: true }, select: { id: true } });
+    const message = `${submission.serviceName ? `${submission.serviceName}: ` : ''}${warnings.map(w => w.message).join(' · ')}`.substring(0, 400);
+    for (const a of admins) {
+        await createNotification(a.id, `Alerta de campo — OIT ${oitNumber}`, message, 'WARNING', oitId);
+    }
+}
+
 export const submitSampling = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const samplingData = req.body; // Full JSON of all steps
+        const current = await prisma.oIT.findUnique({ where: { id }, select: { samplingData: true, aiData: true } });
+        if (!current) return res.status(404).json({ error: 'OIT no encontrada' });
 
-        // 1. Update OIT with raw data
+        // Cada servicio de la OIT se guarda aparte: antes cada envio reemplazaba el
+        // anterior y en una OIT con varios servicios solo quedaba el ultimo (2026-10-23).
+        // "steps" sigue siendo la lista completa que leen el informe, la IA y el asistente.
+        const samplingData = mergeServiceSampling(current.samplingData, req.body);
+        const pendingServices = pendingSamplingServices(current.aiData, samplingData);
+
         const oit = await prisma.oIT.update({
             where: { id },
             data: {
                 samplingData: JSON.stringify(samplingData),
-                status: 'ANALYZING', // Temporary status while AI runs
+                status: pendingServices.length ? 'IN_PROGRESS' : 'ANALYZING',
                 pendingSync: false
             }
         });
 
-        res.json({ success: true, message: 'Muestreo recibido. Analizando...', oit });
+        res.json({
+            success: true,
+            message: pendingServices.length
+                ? `Muestreo del servicio recibido. Falta: ${pendingServices.join(', ')}.`
+                : 'Muestreo recibido. Analizando...',
+            pendingServices,
+            oit,
+        });
+
+        await notifyFieldWarnings(id, oit.oitNumber, req.body).catch(err => logError(`OIT ${id}: no se pudieron avisar las alertas de campo`, err));
+        if (pendingServices.length) return;
 
         // 2. Trigger async AI analysis
         (async () => {
