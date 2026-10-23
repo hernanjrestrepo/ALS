@@ -1906,7 +1906,18 @@ export default function OITDetailPage() {
                             }
 
                             // CASE 2: Service Selected -> Show Verification Card
-                            const schedule = selectedServiceForSampling;
+                            // La seleccion queda guardada en el navegador con la fecha y hora de
+                            // ese momento; si luego se reprograma en Agenda, aqui seguia la vieja
+                            // (OIT 14824, 23-oct: Agenda 23/10 10:30, Muestreo 30/10 09:00). La
+                            // fecha, hora e ingenieros se leen siempre de la programacion vigente.
+                            const liveSchedule = serviceDates[selectedServiceForSampling.id]
+                                || serviceDates[(selectedServiceForSampling.templateIds || [])[0]]
+                                || {};
+                            const schedule = {
+                                ...selectedServiceForSampling,
+                                ...(liveSchedule.date ? { date: liveSchedule.date, time: liveSchedule.time } : {}),
+                                ...(liveSchedule.engineerIds ? { engineerIds: liveSchedule.engineerIds } : {}),
+                            };
                             if (!isLocationVerified && !isStarted) {
                                 return (
                                     <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/50 shadow-lg shadow-indigo-100/50 mb-8 max-w-2xl mx-auto">
@@ -1998,18 +2009,9 @@ export default function OITDetailPage() {
 
                                                     // Artificial delay for UX
                                                     setTimeout(() => {
-                                                        // VERIFY AGAINST SELECTED SCHEDULE
-                                                        const serviceDate = new Date(schedule.date + 'T' + schedule.time);
-                                                        const now = new Date();
-                                                        // Allow start 30 mins before
-                                                        const startWindow = new Date(serviceDate.getTime() - 30 * 60000);
-
-                                                        if (now < startWindow) {
-                                                            const waitMin = Math.ceil((startWindow.getTime() - now.getTime()) / 60000);
-                                                            setVerificationMsg(`Muy temprano. Podrás iniciar en ${waitMin} minutos.`);
-                                                            return;
-                                                        }
-
+                                                        // Sin bloqueo por hora: las condiciones de inicio se pueden
+                                                        // verificar en cualquier momento (Hernan, 2026-10-23). Antes no
+                                                        // dejaba hasta 30 min antes de la hora programada.
                                                         if (!navigator.geolocation) {
                                                             setVerificationMsg('Error: Geolocalización no soportada.');
                                                             return;
