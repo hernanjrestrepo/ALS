@@ -12,6 +12,7 @@ import { readIntegrationPayload, fromUrlAction } from '../utils/integrationPaylo
 import { getOrAssignConsecutive } from '../services/consecutive.service';
 import { linkOitFromText } from '../services/quotationLink';
 import { autoAssignTemplates } from '../services/templateAssignment';
+import { readSheetText, combineSheetTexts, SheetText } from '../services/sheetText';
 
 const prisma = new PrismaClient();
 
@@ -2170,49 +2171,25 @@ async function processSamplingSheetsAsync(oitId: string, filenames: string[], gr
         console.log(`[SAMPLING_SHEETS] Starting analysis for OIT ${oitId}, Group: ${group} with ${filenames.length} files`);
         const { pdfService } = require('../services/pdf.service');
         const path = require('path');
-        let fullCombinedText = '';
-
+        const sheetTexts: SheetText[] = [];
         for (const filename of filenames) {
             const filePath = path.join(__dirname, '../../uploads', filename);
-
             if (!fs.existsSync(filePath)) {
                 console.warn(`[SAMPLING_SHEETS] File not found: ${filePath}`);
+                sheetTexts.push({ filename, status: 'ERROR', text: '', reason: 'El archivo no está en el servidor.' });
                 continue;
             }
-
-            let extractedText = '';
-            try {
-                console.log(`[SAMPLING_SHEETS] Processing file: ${filename}`);
-                if (filename.endsWith('.pdf')) {
-                    extractedText = await pdfService.extractText(filePath);
-                } else if (filename.match(/\.(xlsx|xls)$/i)) {
-                    // Parse Excel file
-                    const xlsx = require('xlsx');
-                    const workbook = xlsx.readFile(filePath);
-
-                    // Convert all sheets to text representation
-                    let allSheetsText = "";
-                    workbook.SheetNames.forEach((sheetName: string) => {
-                        const sheet = workbook.Sheets[sheetName];
-                        const csvData = xlsx.utils.sheet_to_csv(sheet);
-                        allSheetsText += `\n--- HOJA: ${sheetName} ---\n${csvData}\n`;
-                    });
-                    extractedText = allSheetsText;
-                } else {
-                    extractedText = "[Contenido no legible directamente]";
-                }
-            } catch (readErr) {
-                logError(`OIT ${oitId}: no se pudo extraer texto de la planilla de muestreo ${filename}`, readErr);
-                extractedText = `[Error al leer planilla de muestreo: ${errorMessage(readErr)}]`;
-            }
-
-            fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
+            console.log(`[SAMPLING_SHEETS] Processing file: ${filename}`);
+            sheetTexts.push(await readSheetText(filePath, filename));
         }
+        const { combined: fullCombinedText, unreadable } = combineSheetTexts(sheetTexts);
 
         const oit = await prisma.oIT.findUnique({ where: { id: oitId }, select: { description: true, samplingSheetAnalysis: true } });
         const oitContext = oit?.description || '';
 
         const analysis = await aiService.analyzeSamplingSheets(fullCombinedText, oitContext);
+        // Lo que no se pudo leer se muestra en la OIT (no se analiza en silencio).
+        (analysis as any).unreadableFiles = unreadable;
 
         // Update grouped internal analysis
         let currentAnalyses: Record<string, any> = {};
