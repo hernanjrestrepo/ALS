@@ -11,6 +11,7 @@ import { errorMessage, logError, logWarning } from '../utils/errors';
 import { readIntegrationPayload, fromUrlAction } from '../utils/integrationPayload';
 import { getOrAssignConsecutive } from '../services/consecutive.service';
 import { linkOitFromText } from '../services/quotationLink';
+import { autoAssignTemplates } from '../services/templateAssignment';
 
 const prisma = new PrismaClient();
 
@@ -1147,6 +1148,15 @@ async function linkQuotationQuietly(oitId: string, text: string) {
     }
 }
 
+// Las plantillas salen de los servicios de la OIT; si falla, se eligen a mano.
+async function assignTemplatesQuietly(oitId: string) {
+    try {
+        await autoAssignTemplates(oitId);
+    } catch (e) {
+        logError(`OIT ${oitId}: no se pudieron asignar las plantillas`, e);
+    }
+}
+
 async function processLegacyOIT(oitId: string, oitNumber: string, filePath: string): Promise<void> {
     try {
         const { pdfService } = require('../services/pdf.service');
@@ -1190,6 +1200,7 @@ async function processLegacyOIT(oitId: string, oitNumber: string, filePath: stri
             }
         });
         await linkQuotationQuietly(oitId, text);
+        await assignTemplatesQuietly(oitId);
         console.log(`[Legacy API] OIT ${oitNumber} processed successfully.`);
     } catch (err) {
         console.error('[Legacy API] Error processing background task:', err);
@@ -1353,6 +1364,7 @@ async function runOITAnalysis(oitId: string, oitFilePath: string | null, quotati
                 resources: aiDataContent.resources ? JSON.stringify(aiDataContent.resources) : undefined
             }
         });
+        await assignTemplatesQuietly(oitId);
 
         // Replace the temporary OIT-<timestamp> placeholder with the real number,
         // once we have it. Separate update because a duplicate real number must not
