@@ -2062,6 +2062,28 @@ export default function OITDetailPage() {
                                 </div>
                             )}
 
+                            {/* Planillas que la IA no pudo leer como texto: se avisa para que no se asuma que tiene sus datos */}
+                            {(() => {
+                                const analyses = (() => {
+                                    if (!oit.samplingSheetAnalysis) return {} as Record<string, any>;
+                                    if (typeof oit.samplingSheetAnalysis === 'object') return oit.samplingSheetAnalysis as Record<string, any>;
+                                    try { return JSON.parse(oit.samplingSheetAnalysis) as Record<string, any>; } catch { return {} as Record<string, any>; }
+                                })();
+                                const unreadable = Object.values(analyses).flatMap((a: any) => (Array.isArray(a?.unreadableFiles) ? a.unreadableFiles : []));
+                                if (unreadable.length === 0) return null;
+                                return (
+                                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                                        <p className="font-semibold">Planillas que no se pudieron leer como texto ({unreadable.length})</p>
+                                        <ul className="mt-2 list-disc pl-5 space-y-1">
+                                            {unreadable.map((u: any, i: number) => (
+                                                <li key={i}><span className="font-medium">{u.filename}</span>: {u.reason}</li>
+                                            ))}
+                                        </ul>
+                                        <p className="mt-2 text-xs text-amber-800">La IA no tiene los datos de estas planillas. Use la lectura por foto en el formulario de muestreo o revise el archivo manualmente.</p>
+                                    </div>
+                                );
+                            })()}
+
                             {!selectedServiceForReport && (
                                 <div className="flex flex-col items-center justify-center py-16 bg-white/40 border border-dashed border-slate-200 rounded-2xl">
                                     <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
