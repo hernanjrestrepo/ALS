@@ -24,6 +24,9 @@ interface SamplingStepProps {
     isLocked: boolean;
     validation?: ValidationResult;
     onValidationComplete: (data: any) => void;
+    // Dato que ya trae la OIT (cliente, numero, responsable, fecha): llega escrito; si
+    // se cambia hay que explicar por que y queda guardado (Hernan, 2026-10-23).
+    prefill?: { value: string; source: string };
 }
 
 export function SamplingStep({
@@ -31,9 +34,12 @@ export function SamplingStep({
     stepIndex,
     isLocked,
     validation,
-    onValidationComplete
+    onValidationComplete,
+    prefill
 }: SamplingStepProps) {
-    const [value, setValue] = useState<any>('');
+    const [value, setValue] = useState<any>(prefill?.value ?? '');
+    const [changeReason, setChangeReason] = useState('');
+    const changedFromOit = !!prefill && String(value ?? '').trim() !== String(prefill.value).trim();
     const [files, setFiles] = useState<File[]>([]);
     const [comment, setComment] = useState('');
     const [isValidating, setIsValidating] = useState(false);
@@ -59,15 +65,25 @@ export function SamplingStep({
             setLocalError('Este campo es obligatorio para continuar.');
             return;
         }
+        if (changedFromOit && changeReason.trim().length < 3) {
+            setLocalError('Cambiaste el dato que trae la OIT: explica el motivo del cambio.');
+            return;
+        }
 
         try {
             setIsValidating(true);
 
+            const changeNote = changedFromOit
+                ? `Cambio respecto a la OIT (decía «${prefill!.value}»): ${changeReason.trim()}`
+                : '';
             const payload = {
                 value,
                 files: files.map(f => f.name),
                 rawFiles: files, // Pass raw files for actual upload
-                comment,
+                comment: [changeNote, comment].filter(Boolean).join(' | '),
+                ...(prefill ? {
+                    fromOit: { source: prefill.source, originalValue: prefill.value, changed: changedFromOit, reason: changedFromOit ? changeReason.trim() : undefined },
+                } : {}),
                 stepId: step.id,
                 stepType: step.type,
                 stepIndex
@@ -142,6 +158,13 @@ export function SamplingStep({
                         <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-sm text-slate-700">
                             {typeof value === 'boolean' ? (value ? 'Sí' : 'No') : value}
                         </div>
+                        {validation?.data?.fromOit && (
+                            <p className={`mt-1.5 text-xs ${validation.data.fromOit.changed ? 'text-amber-800' : 'text-emerald-700'}`}>
+                                {validation.data.fromOit.changed
+                                    ? `Cambiado respecto a ${validation.data.fromOit.source} (decía «${validation.data.fromOit.originalValue}»). Motivo: ${validation.data.fromOit.reason}`
+                                    : `Tomado de ${validation.data.fromOit.source}.`}
+                            </p>
+                        )}
 
                         {/* AI Insight Section */}
                         {validation?.feedback && (
@@ -186,6 +209,25 @@ export function SamplingStep({
                                 </div>
                             )}
                         </div>
+                        {prefill && !changedFromOit && (
+                            <p className="text-xs text-emerald-700">Tomado de {prefill.source}. Si no es correcto, cámbialo y explica el motivo.</p>
+                        )}
+                        {changedFromOit && (
+                            <div className="space-y-1.5 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                                <p className="text-xs text-amber-900">
+                                    {prefill!.source} dice «{prefill!.value}». Escribe por qué lo cambias:
+                                </p>
+                                <Textarea
+                                    value={changeReason}
+                                    onChange={(e) => setChangeReason(e.target.value)}
+                                    placeholder="Motivo del cambio (obligatorio)"
+                                    className="min-h-[60px] text-sm bg-white"
+                                />
+                                <button type="button" className="text-xs text-amber-800 underline" onClick={() => { setValue(prefill!.value); setChangeReason(''); }}>
+                                    Volver al dato de la OIT
+                                </button>
+                            </div>
+                        )}
                     </div>
                 );
 

@@ -412,6 +412,29 @@ export default function OITDetailPage() {
         }
     };
 
+    // Datos que ya trae la OIT y la Agenda: los pasos de la plantilla los preguntaban de
+    // nuevo (cliente, numero OT, responsable, fecha). Llegan escritos y se pueden cambiar
+    // explicando el motivo (Hernan, 2026-10-23).
+    const oitPrefillFor = (step: any): { value: string; source: string } | undefined => {
+        if (!oit || step?.type !== 'INPUT') return undefined;
+        const title = String(step.title || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+        const live: Partial<ServiceSchedule> = selectedServiceForSampling
+            ? (serviceDates[selectedServiceForSampling.id] || serviceDates[(selectedServiceForSampling.templateIds || [])[0]] || {})
+            : {};
+        if (title === 'cliente' && oit.clientName) return { value: oit.clientName, source: 'la OIT' };
+        if (/^numero (de )?(ot|oit)$/.test(title) && oit.oitNumber) return { value: String(oit.oitNumber), source: 'la OIT' };
+        if (title === 'responsable en campo') {
+            const ids: string[] = live.engineerIds || [];
+            const pool = [...availableEngineers, ...((oit.assignedEngineers || []) as any[]).map((a: any) => a.user)];
+            const names = ids.map(i => pool.find((e: any) => e?.id === i)?.name).filter(Boolean);
+            if (names.length) return { value: [...new Set(names)].join(', '), source: 'la Agenda' };
+        }
+        if (title === 'fecha de inicio' && step.inputType === 'datetime-local' && live.date) {
+            return { value: `${live.date}T${live.time || '09:00'}`, source: 'la Agenda' };
+        }
+        return undefined;
+    };
+
     const handleFinalizeSampling = async () => {
         if (!id) return;
 
@@ -2257,6 +2280,7 @@ export default function OITDetailPage() {
                                                             isLocked={isLocked}
                                                             validation={stepValidations[originalIndex]}
                                                             onValidationComplete={(data) => handleSaveStep({ ...data, stepIndex: originalIndex })}
+                                                            prefill={oitPrefillFor(step)}
                                                         />
                                                     );
                                                 })
