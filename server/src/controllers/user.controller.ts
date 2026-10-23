@@ -1,3 +1,4 @@
+import { CORREOS_MONITOREO } from '../data/personal-monitoreo';
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -106,8 +107,12 @@ export const updateUserRole = async (req: Request, res: Response) => {
 // Get all engineers + admins (assignable to an OIT for sampling)
 export const getEngineers = async (req: Request, res: Response) => {
     try {
+        // Solo el personal de monitoreo (listado de Operaciones): nadie mas aparece al asignar.
         const engineers = await prisma.user.findMany({
-            where: { role: { in: [ROLES.ENGINEER, ROLES.ADMIN, ROLES.SUPER_ADMIN] } },
+            where: {
+                role: { in: [ROLES.ENGINEER, ROLES.ADMIN, ROLES.SUPER_ADMIN] },
+                email: { in: [...CORREOS_MONITOREO] },
+            },
             select: {
                 id: true,
                 email: true,
