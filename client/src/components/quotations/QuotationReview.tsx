@@ -55,18 +55,35 @@ function errorText(error: any, fallback: string) {
 
 // ---------------------------------------------------------------- Faltantes
 
+// Un faltante que es una fecha se llena con calendario (Hernan, 2026-10-23).
+const isDateItem = (item: string) => /\b(fecha|date)\b/i.test(item);
+
+// La IA a veces deja el faltante en ingles ("proposed execution date"); se muestra en
+// espanol. La clave guardada sigue siendo el texto original.
+const ITEM_ES: Array<[RegExp, string]> = [
+    [/proposed (execution|start|service) date/i, 'Fecha propuesta de ejecución'],
+    [/sampling (site )?address|exact address/i, 'Dirección exacta del sitio de muestreo'],
+    [/contact (person|name)/i, 'Persona de contacto'],
+    [/delivery date/i, 'Fecha de entrega'],
+];
+const itemLabel = (item: string) => ITEM_ES.find(([re]) => re.test(item))?.[1] || item;
+const dateLabel = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v)
+    ? new Date(`${v}T12:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
+    : v;
+
 function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
     quotationId: string; item: string; resolution?: MissingResolution; canEdit: boolean; onSaved: (q: any) => void;
 }) {
     const [value, setValue] = useState(resolution?.value || '');
     const [editing, setEditing] = useState(!resolution);
     const [saving, setSaving] = useState(false);
+    const isDate = isDateItem(item);
 
-    const save = async () => {
-        if (!value.trim()) return;
+    const save = async (raw = value) => {
+        if (!raw.trim()) return;
         setSaving(true);
         try {
-            const { data } = await api.put(`/quotations/${quotationId}/missing`, { item, value: value.trim() });
+            const { data } = await api.put(`/quotations/${quotationId}/missing`, { item, value: raw.trim() });
             onSaved(data);
             setEditing(false);
             toast.success('Elemento subsanado');
@@ -82,8 +99,8 @@ function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
             <li className="flex items-start gap-2 text-sm p-2 rounded-lg bg-green-50 border border-green-200">
                 <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                    <p className="text-slate-500 line-through decoration-slate-300">{item}</p>
-                    <p className="font-medium text-green-900 break-words">{resolution.value}</p>
+                    <p className="text-slate-500 line-through decoration-slate-300">{itemLabel(item)}</p>
+                    <p className="font-medium text-green-900 break-words">{isDate ? dateLabel(resolution.value) : resolution.value}</p>
                     <p className="text-xs text-green-700">Subsanado por {resolution.userName || 'usuario'} · {when(resolution.at)}</p>
                 </div>
                 {canEdit && (
@@ -97,17 +114,29 @@ function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
 
     return (
         <li className="text-sm p-2 rounded-lg border border-red-200 bg-white space-y-1.5">
-            <p className="text-red-800 flex items-start gap-2"><span className="text-red-500 mt-0.5">•</span>{item}</p>
+            <p className="text-red-800 flex items-start gap-2"><span className="text-red-500 mt-0.5">•</span>{itemLabel(item)}</p>
             {canEdit && (
                 <div className="flex gap-2">
-                    <Input
-                        value={value}
-                        onChange={e => setValue(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
-                        placeholder="Escribe el dato y presiona Enter"
-                        className="h-8 text-sm"
-                        disabled={saving}
-                    />
+                    {isDate ? (
+                        <Input
+                            type="date"
+                            value={value}
+                            // Al elegir el dia en el calendario queda guardado.
+                            onChange={e => { setValue(e.target.value); if (e.target.value) save(e.target.value); }}
+                            onClick={e => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                            className="h-8 text-sm w-48 cursor-pointer"
+                            disabled={saving}
+                        />
+                    ) : (
+                        <Input
+                            value={value}
+                            onChange={e => setValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
+                            placeholder="Escribe el dato y presiona Enter"
+                            className="h-8 text-sm"
+                            disabled={saving}
+                        />
+                    )}
                     {saving && <Loader2 className="h-4 w-4 animate-spin text-slate-400 self-center" />}
                 </div>
             )}
