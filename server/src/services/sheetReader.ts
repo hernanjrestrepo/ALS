@@ -69,3 +69,72 @@ function rewarmTextModel() {
         model: TEXT_MODEL, prompt: 'ok', stream: false, keep_alive: -1, options: { num_ctx: 16384, num_predict: 1 },
     }, { timeout: 300_000 }).catch(err => console.warn('[Planilla] No se pudo recargar el modelo de texto:', err?.message));
 }
+
+// --- Transcripcion y lectura de cualquier archivo (Hernan, 23-oct: "debe poder leer todo
+// tipo de archivo... no esta transcribiendo la informacion del archivo") ------------------
+
+// Texto completo de una planilla fotografiada o escaneada, para el analisis de la OIT.
+export async function transcribeImages(imagesBase64: string[]): Promise<string> {
+    const model = sheetReaderModel();
+    if (!model) throw Object.assign(new Error('La lectura de planillas por foto no está activada.'), { status: 503 });
+    const response = await axios.post(`${OLLAMA_URL}/api/chat`, {
+        model,
+        stream: false,
+        keep_alive: 0,
+        options: { temperature: 0, num_ctx: 8192 },
+        messages: [{
+            role: 'user',
+            content: 'Transcribe todo el texto de esta planilla de muestreo ambiental, tal como está escrito (puede ser a mano). Escribe cada dato como "campo: valor", una línea por dato, y las tablas fila por fila. No inventes nada; si algo no se lee escribe [ilegible].',
+            images: imagesBase64,
+        }],
+    }, { timeout: 300_000 }).finally(() => rewarmTextModel());
+    return String(response.data?.message?.content || '').trim();
+}
+
+export function buildTextSheetPrompt(text: string, fields: SheetField[]): string {
+    const list = fields.map(f => `- "${f.key}": ${f.label}${f.unit ? ` (${f.unit})` : ''}${f.hint ? ` — ${f.hint}` : ''}`).join('\n');
+    return `Eres un asistente de laboratorio ambiental. Abajo está el TEXTO de una planilla de campo de muestreo (sacado de un Word, PDF o Excel).
+Devuelve SOLO un objeto JSON con los valores que aparezcan en el texto para estos campos:
+${list}
+
+REGLAS:
+- Usa exactamente las claves de la lista. Omite el campo si no aparece en el texto. NUNCA adivines ni inventes.
+- Copia el valor como está escrito (números con su separador decimal, sin agregar unidades que no estén).
+- Si un campo tiene varias lecturas, sepáralas con "; ".
+- Responde solo el JSON, sin texto adicional.
+
+TEXTO DE LA PLANILLA:
+${text.substring(0, 12000)}`;
+}
+
+// Llena campos desde el texto de un documento con el modelo de texto (ya cargado en la GPU).
+export async function readFieldsFromText(text: string, fields: SheetField[]): Promise<Record<string, string>> {
+    const response = await axios.post(`${OLLAMA_URL}/api/generate`, {
+        model: TEXT_MODEL,
+        prompt: buildTextSheetPrompt(text, fields),
+        stream: false,
+        // Extraer datos no necesita razonar mucho: gpt-oss en nivel alto tardo 225 s en una cotizacion.
+        think: 'low',
+        options: { num_ctx: 16384, temperature: 0, seed: 42 },
+    }, { timeout: 300_000 });
+    return cleanSheetValues(parseJsonObject(response.data?.response || ''), fields);
+}
+
+// Paginas de un PDF escaneado como imagenes PNG (poppler-utils: pdftoppm).
+export async function pdfPagesToImages(pdfPath: string, maxPages = 4): Promise<string[]> {
+    const { execFile } = require('child_process');
+    const os = require('os');
+    const fsMod = require('fs');
+    const pathMod = require('path');
+    const dir = fsMod.mkdtempSync(pathMod.join(os.tmpdir(), 'planilla-'));
+    try {
+        await new Promise<void>((resolve, reject) => {
+            execFile('pdftoppm', ['-png', '-r', '150', '-l', String(maxPages), pdfPath, pathMod.join(dir, 'p')], { timeout: 120_000 },
+                (err: Error | null) => (err ? reject(err) : resolve()));
+        });
+        return fsMod.readdirSync(dir).filter((f: string) => f.endsWith('.png')).sort()
+            .map((f: string) => fsMod.readFileSync(pathMod.join(dir, f)).toString('base64'));
+    } finally {
+        fsMod.rmSync(dir, { recursive: true, force: true });
+    }
+}

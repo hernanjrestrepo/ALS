@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { CHAT_MESSAGE_EVENT } from '@/components/shared/ChatWidget';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -339,6 +340,8 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
 
     // ------------------------------------------------------------ foto de la planilla
     const SHEET_INDEX = -1; // fotos de la planilla guardadas en el telefono (evidencia)
+    // Dudas de la ultima lectura (lo que no se encontro o no se pudo leer); tambien se preguntan en el chat.
+    const [sheetDoubts, setSheetDoubts] = useState<string[]>([]);
     const readSheet = async (files: FileList | null) => {
         if (!files?.length) return;
         const stored = await storePhotos(SHEET_INDEX, files);
@@ -360,12 +363,27 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             form.append('fields', JSON.stringify(fields));
             const { data } = await api.post(`/oits/${oit.id}/read-sheet`, form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 360000 });
             const values: Record<string, string> = data?.values || {};
+            const doubts: string[] = Array.isArray(data?.doubts) ? data.doubts : [];
+            setSheetDoubts(doubts);
+            if (doubts.length) {
+                window.dispatchEvent(new CustomEvent(CHAT_MESSAGE_EVENT, {
+                    detail: {
+                        content: [
+                            `Leí la planilla y tengo ${doubts.length === 1 ? 'una duda' : `${doubts.length} dudas`}:`,
+                            '',
+                            ...doubts.map(d => `- ${d}`),
+                            '',
+                            'Puedes completar esos datos en el formulario.',
+                        ].join('\n'),
+                    },
+                }));
+            }
             const { skipped } = applySheetValues(draft, values, []);
             setDraft(d => applySheetValues(d, values, data?.files || []).next);
             // La foto ya quedo en el servidor como evidencia: se quita de los pendientes del telefono.
             for (const p of stored) await removePhoto(p.id);
             const filled = Object.keys(values).length - skipped;
-            if (!Object.keys(values).length) toast.warning('No se leyeron datos de la planilla. Prueba con una foto más clara y de frente.');
+            if (!Object.keys(values).length) toast.warning('No se leyeron datos de la planilla. Prueba con una foto más clara y de frente, o adjunta el archivo original (PDF, Word o Excel).');
             else toast.success(`${filled} dato(s) leídos de la planilla${skipped ? `; ${skipped} no se cambiaron porque ya estaban escritos` : ''}. Revisa los marcados en azul.`);
         } catch (error: any) {
             toast.error(error?.response?.data?.error || 'No se pudo leer la planilla. La foto quedó guardada como evidencia.');
@@ -618,9 +636,17 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                     <ScanText className="h-5 w-5 text-indigo-600 shrink-0" />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-indigo-900">Leer la planilla de campo</p>
-                        <p className="text-[11px] text-indigo-800">Toma o adjunta la foto y se llenan los campos. Revisa lo leído (en azul).</p>
+                        <p className="text-[11px] text-indigo-800">Toma la foto o adjunta la planilla (foto, PDF, Word o Excel) y se llenan los campos. Revisa lo leído (en azul).</p>
                     </div>
-                    {busy === 'sheet' ? <Loader2 className="h-5 w-5 animate-spin text-indigo-600" /> : <PhotoButtons onFiles={readSheet} disabled={!!busy} />}
+                    {busy === 'sheet' ? <Loader2 className="h-5 w-5 animate-spin text-indigo-600" /> : <PhotoButtons onFiles={readSheet} disabled={!!busy} accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.txt,image/*" />}
+                </div>
+            )}
+            {sheetDoubts.length > 0 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <p className="font-semibold">Dudas de la planilla ({sheetDoubts.length})</p>
+                    <ul className="mt-1 list-disc pl-5 space-y-0.5 text-[13px]">
+                        {sheetDoubts.map((d, i) => <li key={i}>{d}</li>)}
+                    </ul>
                 </div>
             )}
             {sheetPhotos.length > 0 && (

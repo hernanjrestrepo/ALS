@@ -2180,7 +2180,7 @@ async function processSamplingSheetsAsync(oitId: string, filenames: string[], gr
                 continue;
             }
             console.log(`[SAMPLING_SHEETS] Processing file: ${filename}`);
-            sheetTexts.push(await readSheetText(filePath, filename));
+            sheetTexts.push(await readSheetText(filePath, filename, { ocr: true }));
         }
         const { combined: fullCombinedText, unreadable } = combineSheetTexts(sheetTexts);
 

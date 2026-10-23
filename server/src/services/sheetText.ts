@@ -5,6 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import { pdfService } from './pdf.service';
+import { sheetReaderEnabled, transcribeImages, pdfPagesToImages } from './sheetReader';
 
 export type SheetReadStatus = 'LEIDO' | 'ESCANEADO' | 'IMAGEN' | 'NO_SOPORTADO' | 'ERROR';
 
@@ -18,7 +19,34 @@ export interface SheetText {
 // Un PDF con menos texto que esto se considera escaneado (solo imagen).
 const MIN_PDF_TEXT = 20;
 
-export async function readSheetText(filePath: string, filename = path.basename(filePath)): Promise<SheetText> {
+export interface ReadSheetOptions {
+    // Transcribe fotos y PDF escaneados con el modelo de vision (GPU propia).
+    ocr?: boolean;
+    // Inyectable para pruebas.
+    transcribe?: (images: string[]) => Promise<string>;
+    renderPdf?: (pdfPath: string) => Promise<string[]>;
+}
+
+export async function readSheetText(filePath: string, filename = path.basename(filePath), opts: ReadSheetOptions = {}): Promise<SheetText> {
+    const plain = await readSheetTextPlain(filePath, filename);
+    if (!opts.ocr || (plain.status !== 'IMAGEN' && plain.status !== 'ESCANEADO')) return plain;
+    const transcribe = opts.transcribe || (sheetReaderEnabled() ? transcribeImages : null);
+    if (!transcribe) return plain;
+    try {
+        const ext = path.extname(filename).toLowerCase();
+        const images = ext === '.pdf'
+            ? (await (opts.renderPdf || pdfPagesToImages)(filePath)).slice(0, 6)
+            : [fs.readFileSync(filePath).toString('base64')];
+        const text = (await transcribe(images)).trim();
+        if (!text) return { ...plain, reason: `${plain.reason} La IA de visión no encontró texto.` };
+        return { filename, status: 'LEIDO', text, reason: 'Leído con IA de visión (revisar).' };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { ...plain, reason: `${plain.reason} La IA de visión falló: ${message}` };
+    }
+}
+
+async function readSheetTextPlain(filePath: string, filename: string): Promise<SheetText> {
     const ext = path.extname(filename).toLowerCase();
     try {
         if (ext === '.pdf') {

@@ -27,6 +27,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
 import { canManageUsers } from '@/types/auth';
+import { allowedMenuHrefs } from '@/lib/areaMenus';
+import api from '@/lib/api';
 
 // Menus en el orden del proceso de una orden y agrupados por funcion:
 // lo comercial ocurre antes de la OIT, la operacion es la OIT en curso, la base tecnica es
@@ -83,7 +85,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     const unreadCount = useUnreadNotifications();
 
     // Grupos plegables: se recuerda cuales dejo cerrados cada persona en su navegador.
-    const groups = getNavigationGroups(user?.role);
+    // Area del listado de personal (la da el servidor): define el menu que se ve.
+    const [area, setArea] = useState<string | null>(null);
+    useEffect(() => {
+        if (!user || user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') return;
+        api.get('/users/profile').then(r => setArea(r.data?.area || null)).catch(() => setArea(null));
+    }, [user?.id, user?.role]);
+    const allowed = allowedMenuHrefs(user?.role, area);
+    const groups = getNavigationGroups(user?.role)
+        .map(g => ({ ...g, items: allowed ? g.items.filter(i => allowed.has(i.href)) : g.items }))
+        .filter(g => g.items.length > 0);
     const isItemActive = (href: string) => href === '/' ? location.pathname === '/' : (location.pathname === href || location.pathname.startsWith(href + '/'));
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
         try { return JSON.parse(localStorage.getItem(COLLAPSED_KEY) || '{}'); } catch { return {}; }

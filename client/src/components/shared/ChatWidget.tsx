@@ -13,6 +13,8 @@ interface Message {
     isError?: boolean;
 }
 
+export const CHAT_MESSAGE_EVENT = 'als:chat-message';
+
 export function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
@@ -29,6 +31,19 @@ export function ChatWidget() {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    // Otra pantalla (p. ej. la lectura de la planilla de muestreo) puede abrir el chat con
+    // un mensaje de la IA: window.dispatchEvent(new CustomEvent(CHAT_MESSAGE_EVENT, { detail: { content } })).
+    useEffect(() => {
+        const onMessage = (e: Event) => {
+            const content = (e as CustomEvent<{ content?: string }>).detail?.content;
+            if (!content) return;
+            setMessages(prev => [...prev, { role: 'assistant', content }]);
+            setIsOpen(true);
+        };
+        window.addEventListener(CHAT_MESSAGE_EVENT, onMessage);
+        return () => window.removeEventListener(CHAT_MESSAGE_EVENT, onMessage);
+    }, []);
 
     const sendMessage = async () => {
         if (!input.trim() || isLoading) return;

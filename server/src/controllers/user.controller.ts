@@ -1,4 +1,5 @@
 import { CORREOS_MONITOREO } from '../data/personal-monitoreo';
+import { areaDeCorreo } from '../data/personal-als';
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -159,7 +160,8 @@ export const getProfile = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }
 
-        res.json(user);
+        // Area del listado de personal: define el menu que ve (perfiles por area).
+        res.json({ ...user, area: areaDeCorreo(user.email) });
     } catch (error) {
         console.error('Error fetching profile:', error);
         res.status(500).json({ error: 'Error al obtener perfil' });
