@@ -55,8 +55,11 @@ self.addEventListener('fetch', (event) => {
 
     if (isAppShellOrApi) return; // deja pasar directo a la red
 
+    // Sin red, la peticion falla limpio (Response.error) en vez de dejar una promesa rechazada.
     event.respondWith(
-        caches.match(request).then((response) => response || fetch(request))
+        caches.match(request)
+            .then((response) => response || fetch(request))
+            .catch(() => Response.error())
     );
 });
 

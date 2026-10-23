@@ -54,3 +54,18 @@ export function parseJsonOrDefault<T>(raw: string | null | undefined, fallback: 
         return fallback;
     }
 }
+
+// Respuesta HTTP para un error que escapo de un handler. Los errores de subida (multer)
+// se explican en espanol en vez de un 500 generico.
+export function httpErrorFor(err: { status?: number; message?: string; code?: string; name?: string } | null | undefined, maxUploadMb = 100): { status: number; message: string } {
+    if (err?.name === 'MulterError') {
+        if (err.code === 'LIMIT_FILE_SIZE') return { status: 413, message: `El archivo supera el tamaño máximo de ${maxUploadMb} MB.` };
+        if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') return { status: 400, message: 'Se enviaron más archivos de los permitidos. Adjunte hasta 6 a la vez.' };
+        return { status: 400, message: `No se pudo recibir el archivo: ${err.message}` };
+    }
+    if (err?.message && /Only PDF, DOC, DOCX/.test(err.message)) {
+        return { status: 400, message: 'Formato de archivo no permitido. Use PDF, Word, Excel, CSV, texto o imagen (JPG/PNG).' };
+    }
+    const status = typeof err?.status === 'number' ? err.status : 500;
+    return { status, message: status < 500 && err?.message ? err.message : 'Error interno del servidor' };
+}

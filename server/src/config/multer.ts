@@ -36,10 +36,14 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
     }
 };
 
+export const MAX_UPLOAD_MB = 100;
+
 export const upload = multer({
     storage,
     fileFilter,
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit
+        // Igual que nginx (client_max_body_size 100M). Con 10 MB un documento de planilla
+        // de 2026-10-23 fallo con 500 'File too large'.
+        fileSize: MAX_UPLOAD_MB * 1024 * 1024,
     },
 });

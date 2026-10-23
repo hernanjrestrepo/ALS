@@ -5,7 +5,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 import routes from './routes';
-import { logError } from './utils/errors';
+import { logError, httpErrorFor } from './utils/errors';
+import { MAX_UPLOAD_MB } from './config/multer';
 import { sessionOrBearer } from './middleware/auth.middleware';
 
 dotenv.config();
@@ -39,8 +40,7 @@ app.use('/api', (req, res) => {
 app.use((err: Error & { status?: number }, req: Request, res: Response, next: NextFunction) => {
     logError(`Unhandled error on ${req.method} ${req.originalUrl}`, err);
     if (res.headersSent) return next(err);
-    const status = typeof err?.status === 'number' ? err.status : 500;
-    const message = status < 500 && err?.message ? err.message : 'Error interno del servidor';
+    const { status, message } = httpErrorFor(err as any, MAX_UPLOAD_MB);
     res.status(status).json({ error: message });
 });
 
