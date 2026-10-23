@@ -37,12 +37,15 @@ import {
     receiveLabResultsFromUrl
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
+import { readSheet, sheetReaderStatus } from '../controllers/sheet.controller';
 import { authMiddleware, requireAdmin, requireOperational, requireEngineerAssignment } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // Read endpoints: any authenticated role, including read-only USER
 router.get('/', authMiddleware, getAllOITs);
+// Antes de /:id para que no se tome como id de OIT
+router.get('/sheet-reader/status', authMiddleware, sheetReaderStatus);
 router.get('/:id', authMiddleware, getOITById);
 
 // Creating/editing/deleting an OIT is a planning decision: ADMIN+ only
@@ -81,6 +84,8 @@ router.put('/:id/service-dates', authMiddleware, requireAdmin, updateServiceDate
 
 // Sampling data endpoints: ADMIN+ always, ENGINEER only if assigned to this OIT, USER blocked
 router.post('/:id/sampling-data', authMiddleware, requireOperational, requireEngineerAssignment, saveSamplingData);
+// Lectura de la planilla de campo por foto (llena el formulario de muestreo)
+router.post('/:id/read-sheet', authMiddleware, requireOperational, requireEngineerAssignment, upload.array('images', 6), readSheet);
 router.get('/:id/sampling-data', authMiddleware, getSamplingData);
 
 // Lab results and final report

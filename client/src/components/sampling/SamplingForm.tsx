@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,21 +7,25 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { savePhoto, deletePhoto, listPhotos, clearPhotos, type StoredPhoto } from '@/lib/samplingPhotos';
 import {
-    MapPin, LogIn, LogOut, Camera, X, Loader2, CheckCircle2, AlertTriangle, Lock, Pencil, CloudOff, Send, ArrowLeft,
+    MapPin, LogIn, LogOut, Camera, Paperclip, X, Loader2, CheckCircle2, AlertTriangle, Lock, Pencil, CloudOff, Send, ArrowLeft,
+    ScanText, MessageSquarePlus,
 } from 'lucide-react';
 
 // Formulario de muestreo (rediseno pedido por Hernan, 2026-10-23: "pesimo ese
-// formulario, dificil de diligenciar"). Antes: un paso a la vez, bloqueados en orden,
+// formulario, dificil de diligenciar"; "lo van a registrar desde un celular... veo
+// demasiado espacio desperdiciado"). Antes: un paso a la vez, bloqueados en orden,
 // "Guardar y Validar" en cada campo y volver a escribir lo que ya trae la OIT.
 // Ahora:
 //  - Datos de la OIT arriba, fijos (cliente, OT, servicio, sitio, fecha programada).
 //    Solo el responsable se puede cambiar, explicando el motivo.
-//  - "Llegué al sitio" / "Salgo del sitio" por jornada: GPS + fecha y hora real. Un
+//  - "Llegue al sitio" / "Salgo del sitio" por jornada: GPS + fecha y hora real. Un
 //    muestreo de varios dias tiene varias jornadas. Fecha de fin = al terminar.
 //  - Alertas (sin GPS, lejos del sitio, fuera de hora) no bloquean: se reportan.
-//  - Las secciones de la plantilla, todas a la vista, en cualquier orden, con fotos
-//    opcionales; se guarda solo en el telefono y funciona sin senal.
-//  - La IA revisa todo una sola vez al enviar (en el servidor).
+//  - Secciones de la plantilla a la vista, en cualquier orden. Cuando un paso tiene
+//    varios parametros (pH, conductividad, temperatura...), cada uno tiene su campo.
+//  - Foto de la planilla de campo -> la IA (en la GPU del servidor) llena los campos.
+//  - Fotos opcionales por seccion (camara o clip); se guarda solo en el telefono y
+//    funciona sin senal. La IA revisa todo una sola vez al enviar.
 // El envio conserva la forma de OIT.samplingData.steps que leen el informe y la IA.
 
 export interface SamplingFormStep { step: any; index: number }
@@ -36,6 +39,8 @@ interface Draft {
     values: Record<number, any>;
     comments: Record<number, string>;
     responsable?: { value: string; reason: string };
+    fromSheet?: string[]; // claves de campos llenados desde la foto de la planilla
+    sheetFiles?: string[]; // fotos de la planilla ya subidas (evidencia)
     pendingSubmit?: boolean;
     endAt?: string;
 }
@@ -65,6 +70,46 @@ function headerKind(step: any): HeaderKind | null {
     return null;
 }
 
+// ------------------------------------------------------------ varios parametros por paso
+interface SubField { key: string; label: string; unit?: string; numeric: boolean }
+
+const UNITS: Array<[RegExp, string, boolean]> = [
+    [/^ph$/, 'unid.', true],
+    [/conductividad/, 'µS/cm', true],
+    [/temperatura/, '°C', true],
+    [/oxigeno disuelto|^od$/, 'mg/L', true],
+    [/turbiedad|turbidez/, 'NTU', true],
+    [/solidos disueltos|^tds$/, 'mg/L', true],
+    [/humedad/, '%', true],
+    [/viento/, 'm/s', true],
+    [/presion/, 'hPa', true],
+    [/profundidad/, 'cm', true],
+    [/caudal/, 'L/s', true],
+    [/lluvia|precipitacion/, '', false],
+];
+
+// "pH, conductividad, temperatura, oxígeno disuelto" o "Registrar clima (Lluvia, Viento,
+// Humedad)" -> un campo por parametro. Solo si hay una lista real (al menos una coma).
+export function subFieldsFor(step: any): SubField[] | null {
+    if (step?.type && !['INPUT', 'TEXT_INPUT'].includes(step.type) && step.type !== undefined) return null;
+    const desc = String(step?.description || '');
+    const inParens = /\(([^)]*,[^)]*)\)/.exec(desc)?.[1];
+    const list = inParens || (desc.includes(',') ? desc : '');
+    if (!list) return null;
+    const items = list.split(/,|\s+y\s+/).map(s => s.trim()).filter(Boolean);
+    if (items.length < 2 || items.some(i => i.length > 32 || i.split(/\s+/).length > 4)) return null;
+    return items.map((label, i) => {
+        const f = fold(label);
+        const unit = UNITS.find(([re]) => re.test(f));
+        return { key: `p${i}`, label: label.charAt(0).toUpperCase() + label.slice(1), unit: unit?.[1] || undefined, numeric: !!unit?.[2] };
+    });
+}
+
+const subText = (subs: SubField[], value: any) => subs
+    .filter(s => String(value?.[s.key] ?? '').trim())
+    .map(s => `${s.label}: ${String(value[s.key]).trim()}${s.unit ? ` ${s.unit}` : ''}`).join('; ');
+
+// ------------------------------------------------------------ utilidades
 const fmt = (iso?: string) => iso
     ? new Date(iso).toLocaleString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : '—';
@@ -129,7 +174,66 @@ function writeJson(key: string, value: unknown) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* sin espacio: se mantiene en memoria */ }
 }
 
-const hasValue = (v: unknown) => v !== undefined && v !== null && v !== '' && v !== false;
+const hasValue = (v: unknown): boolean => {
+    if (v && typeof v === 'object') return Object.values(v as Record<string, unknown>).some(x => String(x ?? '').trim() !== '');
+    return v !== undefined && v !== null && v !== '' && v !== false;
+};
+
+// Fotos del celular: a JPEG de maximo 1600 px (menos datos en campo; el servidor acepta JPG/PNG).
+async function toJpeg(file: File, max = 1600): Promise<File> {
+    if (!file.type.startsWith('image/')) return file;
+    try {
+        const bitmap = await createImageBitmap(file);
+        const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(bitmap.width * scale);
+        canvas.height = Math.round(bitmap.height * scale);
+        canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        const blob: Blob | null = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
+        return blob ? new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file;
+    } catch {
+        return file;
+    }
+}
+
+// Valores leidos de la planilla: llenan solo lo vacio (nunca pisan lo escrito a mano) y
+// quedan marcados para revisar. Funcion pura: React puede llamarla dos veces.
+function applySheetValues(d: Draft, values: Record<string, string>, files: string[]) {
+    const next: Draft = { ...d, values: { ...d.values }, fromSheet: [...(d.fromSheet || [])], sheetFiles: [...(d.sheetFiles || []), ...files] };
+    let skipped = 0;
+    for (const [key, val] of Object.entries(values)) {
+        const [idxText, sub] = key.split('.');
+        const idx = Number(idxText);
+        if (sub) {
+            const cur = next.values[idx] && typeof next.values[idx] === 'object' ? { ...next.values[idx] } : {};
+            if (String(cur[sub] ?? '').trim()) { skipped++; continue; }
+            cur[sub] = val;
+            next.values[idx] = cur;
+        } else {
+            if (hasValue(next.values[idx])) { skipped++; continue; }
+            next.values[idx] = val;
+        }
+        next.fromSheet!.push(key);
+    }
+    return { next, skipped };
+}
+
+// Boton de camara + clip (Hernan: "puede ser un boton para fotos o un clip").
+function PhotoButtons({ onFiles, accept = 'image/*', disabled, small }: { onFiles: (f: FileList | null) => void; accept?: string; disabled?: boolean; small?: boolean }) {
+    const cls = `inline-flex items-center justify-center rounded-full text-indigo-700 bg-indigo-50 hover:bg-indigo-100 ${small ? 'h-8 w-8' : 'h-9 w-9'} ${disabled ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`;
+    return (
+        <div className="flex items-center gap-1.5 shrink-0">
+            <label className={cls} title="Tomar foto">
+                <Camera className="h-4 w-4" />
+                <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => { onFiles(e.target.files); e.target.value = ''; }} />
+            </label>
+            <label className={cls} title="Adjuntar desde el teléfono">
+                <Paperclip className="h-4 w-4" />
+                <input type="file" accept={accept} multiple className="hidden" onChange={e => { onFiles(e.target.files); e.target.value = ''; }} />
+            </label>
+        </div>
+    );
+}
 
 export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit, onChangeService, onSubmitted }: Props) {
     const draftKey = `sampling_form_${oit.id}_${service.id}`;
@@ -152,33 +256,41 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         const values: Record<number, any> = {}, comments: Record<number, string> = {};
         for (const s of submitted?.steps || []) {
             if (typeof s.stepIndex !== 'number' || s.synthetic) continue;
-            if (hasValue(s.value)) values[s.stepIndex] = s.value;
+            const v = s.measurementsRaw ?? s.value;
+            if (hasValue(v)) values[s.stepIndex] = v;
             if (s.comment) comments[s.stepIndex] = s.comment;
         }
         return { values, comments };
     });
     const [visits, setVisits] = useState<Visit[]>(() => readJson<Visit[]>(visitsKey, []));
     const [photos, setPhotos] = useState<StoredPhoto[]>([]);
-    const [busy, setBusy] = useState<'' | 'arrival' | 'departure' | 'submit'>('');
+    const [busy, setBusy] = useState<'' | 'arrival' | 'departure' | 'submit' | 'sheet'>('');
     const [editingResponsable, setEditingResponsable] = useState(false);
     const [missing, setMissing] = useState<number[]>([]);
     const [online, setOnline] = useState(navigator.onLine);
+    const [sheetEnabled, setSheetEnabled] = useState(false);
 
     useEffect(() => { writeJson(draftKey, draft); }, [draftKey, draft]);
     useEffect(() => { writeJson(visitsKey, visits); }, [visitsKey, visits]);
     useEffect(() => { listPhotos(photoGroup).then(setPhotos).catch(() => setPhotos([])); }, [photoGroup]);
+    useEffect(() => { api.get('/oits/sheet-reader/status').then(r => setSheetEnabled(!!r.data?.enabled)).catch(() => setSheetEnabled(false)); }, []);
 
     const responsable = draft.responsable?.value ?? plannedEngineers;
     const responsableChanged = !!draft.responsable && draft.responsable.value.trim() !== plannedEngineers.trim();
 
-    const headerSteps = steps.filter(s => headerKind(s.step));
     const sections = steps.filter(s => !headerKind(s.step));
+    const subsByIndex = useMemo(() => Object.fromEntries(sections.map(s => [s.index, subFieldsFor(s.step)])) as Record<number, SubField[] | null>, [sections]);
     const openVisit = visits.length && !visits[visits.length - 1].departure ? visits[visits.length - 1] : null;
     const firstArrival = visits[0]?.arrival;
     const allWarnings = visits.flatMap(v => v.warnings);
     const planned = scheduledInstant(schedule.date, schedule.time);
+    const fromSheet = new Set(draft.fromSheet || []);
 
-    const setValue = (index: number, value: any) => setDraft(d => ({ ...d, values: { ...d.values, [index]: value } }));
+    const unmark = (key: string) => fromSheet.has(key) ? (draft.fromSheet || []).filter(k => k !== key) : draft.fromSheet;
+    const setValue = (index: number, value: any) => setDraft(d => ({ ...d, values: { ...d.values, [index]: value }, fromSheet: unmark(String(index)) }));
+    const setSubValue = (index: number, key: string, value: string) => setDraft(d => ({
+        ...d, values: { ...d.values, [index]: { ...(d.values[index] && typeof d.values[index] === 'object' ? d.values[index] : {}), [key]: value } }, fromSheet: unmark(`${index}.${key}`),
+    }));
     const setComment = (index: number, value: string) => setDraft(d => ({ ...d, comments: { ...d.comments, [index]: value } }));
 
     // ------------------------------------------------------------ jornadas
@@ -209,18 +321,57 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
     };
 
     // ------------------------------------------------------------ fotos
-    const addPhotos = async (index: number, files: FileList | null) => {
-        if (!files?.length) return;
+    const storePhotos = async (index: number, files: FileList | File[] | null) => {
+        const list = files ? Array.from(files) : [];
         const added: StoredPhoto[] = [];
-        for (const f of Array.from(files)) {
+        for (const original of list) {
+            const f = await toJpeg(original);
             const p: StoredPhoto = { id: `${photoGroup}:${index}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`, group: photoGroup, stepIndex: index, name: f.name, type: f.type, blob: f, takenAt: new Date().toISOString() };
             try { await savePhoto(p); added.push(p); } catch { toast.error('No se pudo guardar la foto en el teléfono'); }
         }
         setPhotos(ps => [...ps, ...added]);
+        return added;
     };
     const removePhoto = async (id: string) => {
         await deletePhoto(id).catch(() => undefined);
         setPhotos(ps => ps.filter(p => p.id !== id));
+    };
+
+    // ------------------------------------------------------------ foto de la planilla
+    const SHEET_INDEX = -1; // fotos de la planilla guardadas en el telefono (evidencia)
+    const readSheet = async (files: FileList | null) => {
+        if (!files?.length) return;
+        const stored = await storePhotos(SHEET_INDEX, files);
+        if (!navigator.onLine) {
+            toast.warning('Sin señal: la foto de la planilla quedó guardada. Vuelve a leerla cuando haya conexión.');
+            return;
+        }
+        const fields = sections.flatMap(s => {
+            const subs = subsByIndex[s.index];
+            if (subs) return subs.map(sf => ({ key: `${s.index}.${sf.key}`, label: `${s.step.title} — ${sf.label}`, unit: sf.unit }));
+            if (s.step.type === 'IMAGE' || s.step.type === 'DOCUMENT' || s.step.type === 'TEXT' || s.step.type === 'CHECKBOX') return [];
+            return [{ key: String(s.index), label: s.step.title, unit: s.step.unit, hint: s.step.description }];
+        });
+        if (!fields.length) return;
+        setBusy('sheet');
+        try {
+            const form = new FormData();
+            stored.forEach(p => form.append('images', new File([p.blob], p.name, { type: p.type })));
+            form.append('fields', JSON.stringify(fields));
+            const { data } = await api.post(`/oits/${oit.id}/read-sheet`, form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 360000 });
+            const values: Record<string, string> = data?.values || {};
+            const { skipped } = applySheetValues(draft, values, []);
+            setDraft(d => applySheetValues(d, values, data?.files || []).next);
+            // La foto ya quedo en el servidor como evidencia: se quita de los pendientes del telefono.
+            for (const p of stored) await removePhoto(p.id);
+            const filled = Object.keys(values).length - skipped;
+            if (!Object.keys(values).length) toast.warning('No se leyeron datos de la planilla. Prueba con una foto más clara y de frente.');
+            else toast.success(`${filled} dato(s) leídos de la planilla${skipped ? `; ${skipped} no se cambiaron porque ya estaban escritos` : ''}. Revisa los marcados en azul.`);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.error || 'No se pudo leer la planilla. La foto quedó guardada como evidencia.');
+        } finally {
+            setBusy('');
+        }
     };
 
     // ------------------------------------------------------------ envio
@@ -251,7 +402,20 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                     fromOit,
                 };
             }
-            return { ...base, value: draft.values[index] ?? '', comment: draft.comments[index] || '', files: files[index] || [] };
+            const subs = subsByIndex[index];
+            const raw = draft.values[index];
+            const readKeys = (draft.fromSheet || []).filter(k => k === String(index) || k.startsWith(`${index}.`));
+            return {
+                ...base,
+                value: subs ? subText(subs, raw) : (raw ?? ''),
+                ...(subs ? {
+                    measurements: subs.map(sf => ({ name: sf.label, value: String(raw?.[sf.key] ?? '').trim(), unit: sf.unit || '' })).filter(m => m.value),
+                    measurementsRaw: raw,
+                } : {}),
+                comment: draft.comments[index] || '',
+                files: files[index] || [],
+                ...(readKeys.length ? { fromSheet: true } : {}),
+            };
         });
         const warnings = closedVisits.flatMap(v => v.warnings);
         list.push(
@@ -259,6 +423,8 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             { description: 'Jornadas en sitio', value: closedVisits.map((v, i) => `${i + 1}) ${fmt(v.arrival.at)} → ${fmt(v.departure?.at)}`).join('; ') || 'Sin registro', synthetic: true },
             { description: 'Alertas de campo', value: warnings.length ? warnings.map(w => w.message).join(' · ') : 'Sin alertas', synthetic: true },
         );
+        const sheetFiles = [...(draft.sheetFiles || []), ...(files[SHEET_INDEX] || [])];
+        if (sheetFiles.length) list.push({ description: 'Planilla de campo (foto)', value: `${sheetFiles.length} foto(s)`, files: sheetFiles, synthetic: true });
         return { list, warnings };
     };
 
@@ -348,147 +514,157 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
     }, [draftKey]);
 
     const filledCount = sections.filter(sectionFilled).length;
+    const sheetPhotos = photos.filter(p => p.stepIndex === SHEET_INDEX);
 
     // ------------------------------------------------------------ pantalla
     return (
-        <div className="max-w-3xl mx-auto space-y-4 pb-28">
+        <div className="max-w-2xl mx-auto space-y-2.5 pb-24 -mx-1 sm:mx-auto">
             <div className="flex items-center justify-between gap-2">
-                <Button variant="ghost" size="sm" onClick={onChangeService} className="text-indigo-700 px-2">
+                <button onClick={onChangeService} className="inline-flex items-center text-sm text-indigo-700 py-1">
                     <ArrowLeft className="h-4 w-4 mr-1" /> Servicios
-                </Button>
+                </button>
                 {!online && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-800 bg-amber-100 rounded-full px-3 py-1">
-                        <CloudOff className="h-3.5 w-3.5" /> Sin señal: todo se guarda en el teléfono
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-100 rounded-full px-2 py-0.5">
+                        <CloudOff className="h-3 w-3" /> Sin señal: se guarda en el teléfono
                     </span>
                 )}
             </div>
 
             {draft.pendingSubmit && (
-                <div className="flex items-start gap-2 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <CloudOff className="h-4 w-4 mt-0.5 shrink-0" />
-                    Muestreo terminado y pendiente de envío. Se envía solo cuando haya conexión.
-                    {online && <Button size="sm" variant="outline" className="ml-auto h-7" onClick={() => submit()} disabled={!!busy}>Enviar ahora</Button>}
+                <div className="flex items-center gap-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                    <CloudOff className="h-4 w-4 shrink-0" />
+                    <span className="flex-1">Terminado y pendiente de envío; se envía solo al tener conexión.</span>
+                    {online && <Button size="sm" variant="outline" className="h-7" onClick={() => submit()} disabled={!!busy}>Enviar</Button>}
                 </div>
             )}
             {submitted && !draft.pendingSubmit && (
-                <div className="flex items-start gap-2 text-sm text-green-900 bg-green-50 border border-green-200 rounded-lg p-3">
-                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                    Este servicio ya se envió el {fmt(submitted.completedAt)}. Si lo envías de nuevo, reemplaza el envío anterior.
+                <div className="flex items-center gap-2 text-xs text-green-900 bg-green-50 border border-green-200 rounded-lg p-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    Enviado el {fmt(submitted.completedAt)}. Si lo envías de nuevo, reemplaza el anterior.
                 </div>
             )}
 
             {/* Datos de la OIT */}
-            <Card className="border-indigo-100 shadow-sm">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-base text-slate-900">{service.name}</CardTitle>
-                    <p className="text-xs text-slate-500">Datos de la OIT y la Agenda. No se diligencian.</p>
-                </CardHeader>
-                <CardContent className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                    <Fixed label="Cliente" value={oit.clientName || 'No viene en la OIT'} />
-                    <Fixed label="Número OT" value={oit.oitNumber} />
-                    <Fixed label="Sitio" value={oit.location || '—'} />
-                    <Fixed label="Fecha de inicio (programada)" value={planned ? fmt(planned.toISOString()) : 'Sin programar'} />
-                    <div className="sm:col-span-2">
-                        <p className="text-xs text-slate-500">Responsable en campo</p>
+            <div className="rounded-xl border border-indigo-100 bg-white p-3">
+                <p className="font-semibold text-slate-900 text-sm leading-tight">{service.name}</p>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 text-xs">
+                    <Fixed label="Cliente" value={oit.clientName || 'No viene en la OIT'} wide />
+                    <Fixed label="OT" value={oit.oitNumber} />
+                    <Fixed label="Inicio programado" value={planned ? fmt(planned.toISOString()) : 'Sin programar'} />
+                    <Fixed label="Sitio" value={oit.location || '—'} wide />
+                    <div className="col-span-2">
+                        <p className="text-[11px] text-slate-500">Responsable en campo</p>
                         {!editingResponsable ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                                 <p className="font-medium text-slate-900">{responsable || 'Sin asignar en la Agenda'}</p>
-                                {canEdit && <button className="text-slate-400 hover:text-indigo-600" title="Cambiar responsable" onClick={() => setEditingResponsable(true)}><Pencil className="h-3.5 w-3.5" /></button>}
+                                {canEdit && <button className="text-slate-400 hover:text-indigo-600 p-1" title="Cambiar responsable" onClick={() => setEditingResponsable(true)}><Pencil className="h-3.5 w-3.5" /></button>}
                             </div>
                         ) : (
-                            <div className="space-y-2 mt-1">
-                                <Input value={responsable} onChange={e => setDraft(d => ({ ...d, responsable: { value: e.target.value, reason: d.responsable?.reason || '' } }))} />
+                            <div className="space-y-1.5 mt-1">
+                                <Input value={responsable} className="h-9 text-sm" onChange={e => setDraft(d => ({ ...d, responsable: { value: e.target.value, reason: d.responsable?.reason || '' } }))} />
                                 {responsableChanged && (
                                     <Textarea
                                         value={draft.responsable?.reason || ''}
                                         onChange={e => setDraft(d => ({ ...d, responsable: { value: d.responsable?.value ?? plannedEngineers, reason: e.target.value } }))}
                                         placeholder={`Motivo del cambio (la Agenda dice «${plannedEngineers || 'sin asignar'}»)`}
-                                        className="min-h-[56px] text-sm"
+                                        className="min-h-[48px] text-sm"
                                     />
                                 )}
                                 <div className="flex gap-2">
-                                    <Button size="sm" variant="outline" onClick={() => setEditingResponsable(false)}>Listo</Button>
-                                    <Button size="sm" variant="ghost" onClick={() => { setDraft(d => ({ ...d, responsable: undefined })); setEditingResponsable(false); }}>Volver al de la Agenda</Button>
+                                    <Button size="sm" variant="outline" className="h-7" onClick={() => setEditingResponsable(false)}>Listo</Button>
+                                    <Button size="sm" variant="ghost" className="h-7" onClick={() => { setDraft(d => ({ ...d, responsable: undefined })); setEditingResponsable(false); }}>Volver al de la Agenda</Button>
                                 </div>
                             </div>
                         )}
-                        {responsableChanged && !editingResponsable && <p className="text-xs text-amber-700">Cambiado respecto a la Agenda. Motivo: {draft.responsable?.reason || '(falta escribirlo)'}</p>}
+                        {responsableChanged && !editingResponsable && <p className="text-[11px] text-amber-700">Cambiado. Motivo: {draft.responsable?.reason || '(falta escribirlo)'}</p>}
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Jornadas en sitio */}
-            <Card className="shadow-sm">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-base text-slate-900 flex items-center gap-2"><MapPin className="h-4 w-4 text-indigo-600" /> En sitio</CardTitle>
-                    <p className="text-xs text-slate-500">Al llegar y al salir se registran la ubicación GPS, la fecha y la hora real. Si el muestreo dura varios días, márcalo cada día.</p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    {visits.map((v, i) => (
-                        <div key={i} className="text-sm border border-slate-200 rounded-lg p-3 space-y-1">
-                            <p className="font-medium text-slate-800">Jornada {i + 1}</p>
-                            <p className="text-slate-700"><LogIn className="inline h-3.5 w-3.5 mr-1 text-green-600" />Llegada {fmt(v.arrival.at)} · <span className="text-slate-500">{fmtGps(v.arrival.gps)}</span></p>
-                            <p className="text-slate-700"><LogOut className="inline h-3.5 w-3.5 mr-1 text-slate-500" />{v.departure ? <>Salida {fmt(v.departure.at)} · <span className="text-slate-500">{fmtGps(v.departure.gps)}</span></> : <span className="text-indigo-700">En sitio</span>}</p>
-                            {v.warnings.map((w, j) => (
-                                <p key={j} className="text-xs text-amber-800 flex items-start gap-1"><AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />{w.message}</p>
-                            ))}
-                        </div>
-                    ))}
-                    {canEdit && (
-                        openVisit ? (
-                            <Button variant="outline" className="w-full h-12" onClick={registerDeparture} disabled={!!busy}>
-                                {busy === 'departure' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogOut className="h-4 w-4 mr-2" />}
-                                Salgo del sitio (fin de la jornada)
-                            </Button>
-                        ) : (
-                            <Button className="w-full h-12 bg-indigo-600 hover:bg-indigo-700" onClick={registerArrival} disabled={!!busy}>
-                                {busy === 'arrival' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogIn className="h-4 w-4 mr-2" />}
-                                {visits.length ? 'Llegué al sitio (nueva jornada)' : 'Llegué al sitio'}
-                            </Button>
-                        )
-                    )}
-                    {firstArrival && <p className="text-xs text-slate-500">Fecha y hora real: {fmt(firstArrival.at)}</p>}
-                </CardContent>
-            </Card>
+            <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 text-indigo-600" />
+                    <p className="font-semibold text-sm text-slate-900">En sitio</p>
+                    {firstArrival && <span className="ml-auto text-[11px] text-slate-500">Hora real: {fmt(firstArrival.at)}</span>}
+                </div>
+                {visits.map((v, i) => (
+                    <div key={i} className="text-xs border border-slate-100 bg-slate-50 rounded-lg px-2 py-1.5">
+                        <p className="text-slate-700"><span className="font-medium">Día {i + 1}</span> · <LogIn className="inline h-3 w-3 text-green-600" /> {fmt(v.arrival.at)} · {v.departure ? <><LogOut className="inline h-3 w-3" /> {fmt(v.departure.at)}</> : <span className="text-indigo-700">en sitio</span>}</p>
+                        <p className="text-[11px] text-slate-500">{fmtGps(v.arrival.gps)}</p>
+                        {v.warnings.map((w, j) => (
+                            <p key={j} className="text-[11px] text-amber-800 flex items-start gap-1"><AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />{w.message}</p>
+                        ))}
+                    </div>
+                ))}
+                {canEdit && (
+                    openVisit ? (
+                        <Button variant="outline" className="w-full h-10" onClick={registerDeparture} disabled={!!busy}>
+                            {busy === 'departure' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogOut className="h-4 w-4 mr-2" />}
+                            Salgo del sitio (fin del día)
+                        </Button>
+                    ) : (
+                        <Button className="w-full h-10 bg-indigo-600 hover:bg-indigo-700" onClick={registerArrival} disabled={!!busy}>
+                            {busy === 'arrival' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogIn className="h-4 w-4 mr-2" />}
+                            {visits.length ? 'Llegué al sitio (otro día)' : 'Llegué al sitio'}
+                        </Button>
+                    )
+                )}
+            </div>
+
+            {/* Foto de la planilla */}
+            {canEdit && sheetEnabled && (
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 flex items-center gap-3">
+                    <ScanText className="h-5 w-5 text-indigo-600 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-indigo-900">Leer la planilla de campo</p>
+                        <p className="text-[11px] text-indigo-800">Toma o adjunta la foto y se llenan los campos. Revisa lo leído (en azul).</p>
+                    </div>
+                    {busy === 'sheet' ? <Loader2 className="h-5 w-5 animate-spin text-indigo-600" /> : <PhotoButtons onFiles={readSheet} disabled={!!busy} />}
+                </div>
+            )}
+            {sheetPhotos.length > 0 && (
+                <Thumbs photos={sheetPhotos} onRemove={canEdit ? removePhoto : undefined} label="Planilla guardada en el teléfono (sin leer aún)" />
+            )}
 
             {/* Secciones de la plantilla */}
-            <div className="flex items-center justify-between px-1">
-                <h3 className="text-sm font-semibold text-slate-700">Registro del muestreo</h3>
-                <span className="text-xs text-slate-500">{filledCount} de {sections.length} con datos</span>
+            <div className="flex items-center justify-between px-1 pt-1">
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Registro</p>
+                <span className="text-[11px] text-slate-500">{filledCount} de {sections.length} con datos</span>
             </div>
             {sections.map(s => (
                 <Section
                     key={s.index}
                     item={s}
+                    subs={subsByIndex[s.index]}
                     value={draft.values[s.index]}
                     comment={draft.comments[s.index] || ''}
                     photos={photos.filter(p => p.stepIndex === s.index)}
+                    fromSheet={fromSheet}
                     isMissing={missing.includes(s.index) && !sectionFilled(s)}
                     disabled={!canEdit}
                     onValue={v => setValue(s.index, v)}
+                    onSubValue={(k, v) => setSubValue(s.index, k, v)}
                     onComment={v => setComment(s.index, v)}
-                    onAddPhotos={files => addPhotos(s.index, files)}
+                    onAddPhotos={files => storePhotos(s.index, files)}
                     onRemovePhoto={removePhoto}
                 />
             ))}
-            {headerSteps.length === 0 && sections.length === 0 && (
-                <p className="text-center text-sm text-slate-500 py-8">Esta plantilla no tiene pasos.</p>
-            )}
 
             {allWarnings.length > 0 && (
-                <div className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
+                <div className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-0.5">
                     <p className="font-semibold">Alertas que se reportan al enviar ({allWarnings.length})</p>
                     {allWarnings.map((w, i) => <p key={i}>• {w.message}</p>)}
                 </div>
             )}
 
             {canEdit && (
-                <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 p-3 pr-24 sm:pr-28">
-                    <div className="max-w-3xl mx-auto flex items-center gap-3">
-                        <p className="text-xs text-slate-500 flex-1">Se guarda solo en el teléfono. Al terminar se registra la fecha de fin y la IA revisa todo.</p>
-                        <Button className="h-11 bg-green-600 hover:bg-green-700" onClick={finish} disabled={!!busy}>
-                            {busy === 'submit' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                            Terminar muestreo
+                <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 px-3 py-2 pr-20 sm:pr-28">
+                    <div className="max-w-2xl mx-auto flex items-center gap-2">
+                        <p className="text-[11px] leading-tight text-slate-500 flex-1">Guardado en el teléfono. Al terminar se toma la fecha de fin y la IA revisa todo.</p>
+                        <Button className="h-10 bg-green-600 hover:bg-green-700 px-3" onClick={finish} disabled={!!busy}>
+                            {busy === 'submit' ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Send className="h-4 w-4 mr-1.5" />}
+                            Terminar
                         </Button>
                     </div>
                 </div>
@@ -497,98 +673,123 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
     );
 }
 
-function Fixed({ label, value }: { label: string; value: any }) {
+function Fixed({ label, value, wide }: { label: string; value: any; wide?: boolean }) {
     return (
-        <div>
-            <p className="text-xs text-slate-500 flex items-center gap-1"><Lock className="h-3 w-3" />{label}</p>
-            <p className="font-medium text-slate-900 break-words">{value}</p>
+        <div className={wide ? 'col-span-2' : ''}>
+            <p className="text-[11px] text-slate-500 flex items-center gap-1"><Lock className="h-2.5 w-2.5" />{label}</p>
+            <p className="font-medium text-slate-900 break-words leading-snug">{value}</p>
         </div>
     );
 }
 
-function Section({ item, value, comment, photos, isMissing, disabled, onValue, onComment, onAddPhotos, onRemovePhoto }: {
-    item: SamplingFormStep; value: any; comment: string; photos: StoredPhoto[]; isMissing: boolean; disabled: boolean;
-    onValue: (v: any) => void; onComment: (v: string) => void; onAddPhotos: (f: FileList | null) => void; onRemovePhoto: (id: string) => void;
+function Thumbs({ photos, onRemove, label }: { photos: StoredPhoto[]; onRemove?: (id: string) => void; label?: string }) {
+    const ids = photos.map(p => p.id).join('|');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const urls = useMemo(() => photos.map(p => ({ id: p.id, url: URL.createObjectURL(p.blob), image: (p.type || '').startsWith('image/') })), [ids]);
+    useEffect(() => () => urls.forEach(u => URL.revokeObjectURL(u.url)), [urls]);
+    return (
+        <div>
+            {label && <p className="text-[11px] text-slate-500 mb-1">{label}</p>}
+            <div className="flex flex-wrap gap-1.5">
+                {urls.map(u => (
+                    <div key={u.id} className="relative h-14 w-14 rounded-md overflow-hidden border border-slate-200 bg-slate-50">
+                        {u.image ? <img src={u.url} alt="" className="h-full w-full object-cover" /> : <span className="text-[10px] p-1 block">Archivo</span>}
+                        {onRemove && <button className="absolute top-0.5 right-0.5 bg-white/90 rounded-full p-0.5" onClick={() => onRemove(u.id)} title="Quitar"><X className="h-3 w-3" /></button>}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function Section({ item, subs, value, comment, photos, fromSheet, isMissing, disabled, onValue, onSubValue, onComment, onAddPhotos, onRemovePhoto }: {
+    item: SamplingFormStep; subs: SubField[] | null; value: any; comment: string; photos: StoredPhoto[]; fromSheet: Set<string>; isMissing: boolean; disabled: boolean;
+    onValue: (v: any) => void; onSubValue: (k: string, v: string) => void; onComment: (v: string) => void; onAddPhotos: (f: FileList | null) => void; onRemovePhoto: (id: string) => void;
 }) {
     const { step, index } = item;
     const inputId = `campo-${index}`;
     const filled = hasValue(value) || photos.length > 0;
     const [showComment, setShowComment] = useState(!!comment);
-    const photoIds = photos.map(p => p.id).join('|');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const urls = useMemo(() => photos.map(p => ({ id: p.id, url: URL.createObjectURL(p.blob), image: (p.type || '').startsWith('image/') })), [photoIds]);
-    useEffect(() => () => urls.forEach(u => URL.revokeObjectURL(u.url)), [urls]);
+    const sheetCls = (key: string) => fromSheet.has(key) ? 'border-sky-400 bg-sky-50 ring-1 ring-sky-200' : '';
 
     const field = () => {
+        if (subs) {
+            const v = value && typeof value === 'object' ? value : {};
+            return (
+                <div className="grid grid-cols-2 gap-2">
+                    {subs.map(sf => (
+                        <label key={sf.key} className="block">
+                            <span className="text-[11px] text-slate-600">{sf.label}</span>
+                            <div className="relative">
+                                <Input type="text" inputMode={sf.numeric ? 'decimal' : 'text'} value={v[sf.key] ?? ''} disabled={disabled}
+                                    onChange={e => onSubValue(sf.key, e.target.value)}
+                                    className={`h-10 text-base ${sf.unit ? 'pr-12' : ''} ${sheetCls(`${index}.${sf.key}`)}`} />
+                                {sf.unit && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-500">{sf.unit}</span>}
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            );
+        }
         switch (step.type) {
-            case 'INPUT':
+            case 'INPUT': {
+                const isDate = ['date', 'time', 'datetime-local'].includes(step.inputType);
                 return (
                     <div className="relative">
-                        <Input id={inputId} type={step.inputType || 'text'} inputMode={step.inputType === 'number' ? 'decimal' : undefined}
-                            value={value ?? ''} onChange={e => onValue(e.target.value)} placeholder={step.placeholder || ''} disabled={disabled} className="h-11 text-base" />
-                        {step.unit && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">{step.unit}</span>}
+                        <Input id={inputId} type={isDate ? step.inputType : 'text'} inputMode={step.inputType === 'number' ? 'decimal' : undefined}
+                            value={value ?? ''} onChange={e => onValue(e.target.value)} placeholder={step.placeholder || ''} disabled={disabled}
+                            className={`h-10 text-base ${step.unit ? 'pr-12' : ''} ${sheetCls(String(index))}`} />
+                        {step.unit && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-slate-500">{step.unit}</span>}
                     </div>
                 );
+            }
             case 'CHECKBOX':
                 return (
-                    <label className="flex items-center gap-3 text-sm text-slate-800">
+                    <label className="flex items-center gap-2.5 text-sm text-slate-800">
                         <Checkbox checked={!!value} onCheckedChange={c => onValue(!!c)} disabled={disabled} />
-                        {step.label || step.description || 'Realizado'}
+                        {step.label || 'Realizado'}
                     </label>
                 );
             case 'TEXT':
-                return <p className="text-sm text-slate-600 whitespace-pre-wrap">{step.content || step.description}</p>;
+                return <p className="text-xs text-slate-600 whitespace-pre-wrap">{step.content || step.description}</p>;
             case 'IMAGE':
             case 'DOCUMENT':
-                return null; // la evidencia es la foto/archivo
+                return photos.length ? null : <p className="text-xs text-slate-500">Toma o adjunta la evidencia.</p>;
             default:
                 return (
                     <Textarea id={inputId} value={value ?? ''} onChange={e => onValue(e.target.value)} disabled={disabled}
-                        placeholder="Qué se hizo y qué se encontró" className="min-h-[72px] text-base" />
+                        placeholder="Qué se hizo y qué se encontró" rows={2} className={`min-h-[44px] text-base py-2 ${sheetCls(String(index))}`} />
                 );
         }
     };
 
     return (
-        <Card id={`seccion-${index}`} className={`shadow-sm ${isMissing ? 'border-red-300 ring-1 ring-red-200' : filled ? 'border-green-200' : 'border-slate-200'}`}>
-            <CardContent className="pt-4 space-y-3">
-                <div className="flex items-start gap-2">
-                    {filled ? <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" /> : <span className="h-5 w-5 rounded-full border-2 border-slate-300 shrink-0" />}
-                    <div className="min-w-0">
-                        <label htmlFor={inputId} className="font-semibold text-slate-900">
-                            {step.title}{step.required && <span className="text-red-500 ml-1">*</span>}
-                        </label>
-                        {step.description && step.type !== 'TEXT' && <p className="text-xs text-slate-500">{step.description}</p>}
-                        {isMissing && <p className="text-xs text-red-600 font-medium">Dato obligatorio</p>}
-                    </div>
+        <div id={`seccion-${index}`} className={`rounded-xl border bg-white p-3 space-y-2 ${isMissing ? 'border-red-300 ring-1 ring-red-200' : filled ? 'border-green-200' : 'border-slate-200'}`}>
+            <div className="flex items-start gap-2">
+                {filled ? <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 shrink-0" /> : <span className="h-4 w-4 mt-0.5 rounded-full border-2 border-slate-300 shrink-0" />}
+                <div className="min-w-0 flex-1">
+                    <label htmlFor={inputId} className="block font-semibold text-sm text-slate-900 leading-tight">
+                        {step.title}{step.required && <span className="text-red-500 ml-0.5">*</span>}
+                    </label>
+                    {step.description && !subs && step.type !== 'TEXT' && <p className="text-[11px] text-slate-500 leading-tight">{step.description}</p>}
+                    {isMissing && <p className="text-[11px] text-red-600 font-medium">Dato obligatorio</p>}
                 </div>
-                {field()}
-                {urls.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                        {urls.map(u => (
-                            <div key={u.id} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-                                {u.image ? <img src={u.url} alt="" className="h-full w-full object-cover" /> : <span className="text-[10px] p-1 block">Archivo</span>}
-                                {!disabled && <button className="absolute top-0.5 right-0.5 bg-white/90 rounded-full p-0.5" onClick={() => onRemovePhoto(u.id)} title="Quitar"><X className="h-3 w-3" /></button>}
-                            </div>
-                        ))}
-                    </div>
-                )}
                 {!disabled && (
-                    <div className="flex flex-wrap gap-2">
-                        <label className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-full px-3 py-1.5 cursor-pointer">
-                            <Camera className="h-3.5 w-3.5" /> {step.type === 'DOCUMENT' ? 'Adjuntar archivo' : 'Agregar fotos'}{step.type === 'IMAGE' || step.type === 'DOCUMENT' ? '' : ' (opcional)'}
-                            <input type="file" multiple className="hidden" accept={step.type === 'DOCUMENT' ? '.pdf,.doc,.docx,.xlsx,image/*' : 'image/*'}
-                                capture={step.type === 'DOCUMENT' ? undefined : 'environment'} onChange={e => { onAddPhotos(e.target.files); e.target.value = ''; }} />
-                        </label>
+                    <div className="flex items-center gap-1.5">
                         {!showComment && (
-                            <button className="text-xs text-slate-500 hover:text-slate-800 px-2" onClick={() => setShowComment(true)}>+ Observación</button>
+                            <button className="h-8 w-8 inline-flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100" title="Agregar observación" onClick={() => setShowComment(true)}>
+                                <MessageSquarePlus className="h-4 w-4" />
+                            </button>
                         )}
+                        <PhotoButtons small onFiles={onAddPhotos} accept={step.type === 'DOCUMENT' ? '.pdf,.doc,.docx,.xlsx,image/*' : 'image/*'} />
                     </div>
                 )}
-                {showComment && (
-                    <Textarea value={comment} onChange={e => onComment(e.target.value)} disabled={disabled} placeholder="Observación (opcional)" className="min-h-[56px] text-sm" />
-                )}
-            </CardContent>
-        </Card>
+            </div>
+            {field()}
+            {photos.length > 0 && <Thumbs photos={photos} onRemove={disabled ? undefined : onRemovePhoto} />}
+            {showComment && (
+                <Textarea value={comment} onChange={e => onComment(e.target.value)} disabled={disabled} placeholder="Observación (opcional)" rows={2} className="min-h-[40px] text-sm py-2" />
+            )}
+        </div>
     );
 }
