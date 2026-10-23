@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -96,6 +96,7 @@ export default function OITDetailPage() {
 
     // Auth for permissions
     const { user } = useAuthStore();
+    const navigate = useNavigate();
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
     // Open feedback modal helper
@@ -741,7 +742,36 @@ export default function OITDetailPage() {
                                                 </DropdownMenu>
                                             )}
                                         </div>
-                                        {oit.quotationFileUrl ? (
+                                        {oit.quotation ? (
+                                            <div className="flex items-center justify-between w-full">
+                                                <div className="min-w-0">
+                                                    <strong className="block text-xs font-semibold text-slate-500 mb-1">Cotización</strong>
+                                                    <button
+                                                        onClick={() => navigate(`/quotations/${oit.quotation.id}`)}
+                                                        className="text-sm font-medium text-indigo-700 hover:underline truncate block max-w-full text-left"
+                                                    >
+                                                        {oit.quotation.quotationNumber}
+                                                    </button>
+                                                    <span className={`text-xs ${oit.quotation.approvedForOit ? 'text-green-700' : 'text-amber-700'}`}>
+                                                        {oit.quotation.approvedForOit ? 'Aprobada contra la norma' : 'Sin aprobar contra la norma'}
+                                                    </span>
+                                                </div>
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500">Cambiar</Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent>
+                                                        <DialogHeader>
+                                                            <DialogTitle>Cambiar Cotización</DialogTitle>
+                                                            <DialogDescription>
+                                                                Selecciona la cotización correcta para esta OIT.
+                                                            </DialogDescription>
+                                                        </DialogHeader>
+                                                        <QuotationLinker oitId={id!} onLinked={fetchOIT} />
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                        ) : oit.quotationFileUrl ? (
                                             <div className="flex items-center justify-between w-full">
                                                 <div>
                                                     <strong className="block text-xs font-semibold text-slate-500 mb-1">Cotización</strong>
@@ -770,6 +800,11 @@ export default function OITDetailPage() {
                                         ) : (
                                             <div className="w-full">
                                                 <strong className="block text-xs font-semibold text-slate-500 mb-1">Cotización</strong>
+                                                {oit.quotationRef && (
+                                                    <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
+                                                        La OIT trae la cotización <strong>{oit.quotationRef}</strong>, pero esa cotización no está cargada en Xmart. Al cargarla en Cotizaciones se vincula sola.
+                                                    </p>
+                                                )}
                                                 <Dialog>
                                                     <DialogTrigger asChild>
                                                         <Button variant="outline" size="sm" className="w-full h-8 text-xs border-dashed text-slate-500 hover:text-slate-900 border-slate-300">

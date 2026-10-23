@@ -983,7 +983,10 @@ export const getOITById = async (req: Request, res: Response) => {
                             select: { id: true, name: true, email: true }
                         }
                     }
-                }
+                },
+                // La pantalla solo miraba quotationFileUrl (legado) y mostraba "Link
+                // Cotización" aunque la OIT ya estuviera vinculada (2026-10-23).
+                quotation: { select: { id: true, quotationNumber: true, status: true, approvedForOit: true } }
             }
         });
 
