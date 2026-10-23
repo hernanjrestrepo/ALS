@@ -543,7 +543,8 @@ export default function OITDetailPage() {
             <div className="bg-slate-50/50 border-b border-slate-200">
                 <div className="container mx-auto py-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
+                        {/* min-w-0: sin esto la descripcion larga ensanchaba la pagina en el celular y cortaba el muestreo */}
+                        <div className="min-w-0 w-full md:w-auto md:flex-1">
                             <div className="flex items-center gap-3 mb-1">
                                 <h1 className="text-3xl font-bold tracking-tight text-slate-900 font-display">
                                     {oit.oitNumber || `OIT #${oit.id.slice(0, 8)}`}
@@ -553,6 +554,7 @@ export default function OITDetailPage() {
                                     {getStatusLabel(oit.status)}
                                 </Badge>
                             </div>
+                            {oit.clientName && <p className="text-slate-800 text-sm font-medium truncate">{oit.clientName}</p>}
                             <p className="text-slate-500 text-sm max-w-2xl truncate">
                                 {oit.status === 'ANALYZING' ? 'Análisis en curso...' : (oit.description || 'Sin descripción')}
                             </p>
