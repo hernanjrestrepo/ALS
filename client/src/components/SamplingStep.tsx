@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,7 +26,8 @@ interface SamplingStepProps {
     onValidationComplete: (data: any) => void;
     // Dato que ya trae la OIT (cliente, numero, responsable, fecha): llega escrito; si
     // se cambia hay que explicar por que y queda guardado (Hernan, 2026-10-23).
-    prefill?: { value: string; source: string };
+    // locked: dato fijo de la OIT (cliente, numero OT) que no se puede cambiar en campo.
+    prefill?: { value: string; source: string; locked?: boolean };
 }
 
 export function SamplingStep({
@@ -56,6 +57,17 @@ export function SamplingStep({
             }
         }
     }, [validation]);
+
+    // Un dato fijo de la OIT se confirma solo al llegar a ese paso: no hay nada que
+    // diligenciar ni que cambiar (Hernan, 2026-10-23).
+    const autoConfirmed = useRef(false);
+    useEffect(() => {
+        if (prefill?.locked && !isLocked && !validation?.validated && !autoConfirmed.current) {
+            autoConfirmed.current = true;
+            handleValidate();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [prefill?.locked, isLocked, validation?.validated]);
 
     const handleValidate = async () => {
         setLocalError(null);
@@ -200,7 +212,8 @@ export function SamplingStep({
                                 type={inputStep.inputType || 'text'}
                                 placeholder={inputStep.placeholder || 'Escriba aquí...'}
                                 value={value}
-                                onChange={(e) => setValue(e.target.value)}
+                                onChange={(e) => { if (!prefill?.locked) setValue(e.target.value); }}
+                                readOnly={!!prefill?.locked}
                                 className="pl-4 h-11 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 transition-all bg-slate-50/50 focus:bg-white text-base"
                             />
                             {inputStep.unit && (
@@ -210,7 +223,9 @@ export function SamplingStep({
                             )}
                         </div>
                         {prefill && !changedFromOit && (
-                            <p className="text-xs text-emerald-700">Tomado de {prefill.source}. Si no es correcto, cámbialo y explica el motivo.</p>
+                            <p className="text-xs text-emerald-700">
+                                {prefill.locked ? `Dato de ${prefill.source}; no se modifica en campo.` : `Tomado de ${prefill.source}. Si no es correcto, cámbialo y explica el motivo.`}
+                            </p>
                         )}
                         {changedFromOit && (
                             <div className="space-y-1.5 p-3 rounded-lg bg-amber-50 border border-amber-200">

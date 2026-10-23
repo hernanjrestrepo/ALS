@@ -74,6 +74,8 @@ export default function OITDetailPage() {
     const [verificationMsg, setVerificationMsg] = useState('');
     const [isInitialLoad, setIsInitialLoad] = useState(true); // Track first load to avoid clearing storage
     const [selectedServiceForSampling, setSelectedServiceForSampling] = useState<any>(null); // ServiceSchedule | null
+    // Lectura GPS tomada al verificar las condiciones de inicio (llena "Coordenadas del Punto").
+    const [startGps, setStartGps] = useState<{ lat: number; lng: number } | null>(null);
     const [selectedServiceForReport, setSelectedServiceForReport] = useState<any>(null); // ServiceSchedule | null
 
     // Engineer Scheduling State
@@ -239,6 +241,7 @@ export default function OITDetailPage() {
                     if (parsed.validations) setStepValidations(parsed.validations);
                     if (parsed.selectedService) setSelectedServiceForSampling(parsed.selectedService);
                     if (parsed.isLocationVerified) setIsLocationVerified(true);
+                    if (parsed.startGps) setStartGps(parsed.startGps);
                 } catch (e) {
                     console.error('Error loading local sampling data', e);
                 }
@@ -253,11 +256,12 @@ export default function OITDetailPage() {
             const sessionData = {
                 validations: stepValidations,
                 selectedService: selectedServiceForSampling,
-                isLocationVerified: isLocationVerified
+                isLocationVerified: isLocationVerified,
+                startGps
             };
             localStorage.setItem(`sampling_session_${id}`, JSON.stringify(sessionData));
         }
-    }, [id, stepValidations, selectedServiceForSampling, isLocationVerified, isInitialLoad]);
+    }, [id, stepValidations, selectedServiceForSampling, isLocationVerified, isInitialLoad, startGps]);
 
     // Fetch engineers
     useEffect(() => {
@@ -402,7 +406,8 @@ export default function OITDetailPage() {
                 localStorage.setItem(`sampling_session_${id}`, JSON.stringify({
                     validations: updatedValidations,
                     selectedService: selectedServiceForSampling,
-                    isLocationVerified: isLocationVerified
+                    isLocationVerified: isLocationVerified,
+                    startGps
                 }));
             }
         } catch (error) {
@@ -415,19 +420,23 @@ export default function OITDetailPage() {
     // Datos que ya trae la OIT y la Agenda: los pasos de la plantilla los preguntaban de
     // nuevo (cliente, numero OT, responsable, fecha). Llegan escritos y se pueden cambiar
     // explicando el motivo (Hernan, 2026-10-23).
-    const oitPrefillFor = (step: any): { value: string; source: string } | undefined => {
+    const oitPrefillFor = (step: any): { value: string; source: string; locked?: boolean } | undefined => {
         if (!oit || step?.type !== 'INPUT') return undefined;
         const title = String(step.title || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
         const live: Partial<ServiceSchedule> = selectedServiceForSampling
             ? (serviceDates[selectedServiceForSampling.id] || serviceDates[(selectedServiceForSampling.templateIds || [])[0]] || {})
             : {};
-        if (title === 'cliente' && oit.clientName) return { value: oit.clientName, source: 'la OIT' };
-        if (/^numero (de )?(ot|oit)$/.test(title) && oit.oitNumber) return { value: String(oit.oitNumber), source: 'la OIT' };
+        // Cliente y numero son de la OIT: fijos, no se cambian en campo.
+        if (title === 'cliente' && oit.clientName) return { value: oit.clientName, source: 'la OIT', locked: true };
+        if (/^numero (de )?(ot|oit)$/.test(title) && oit.oitNumber) return { value: String(oit.oitNumber), source: 'la OIT', locked: true };
         if (title === 'responsable en campo') {
             const ids: string[] = live.engineerIds || [];
             const pool = [...availableEngineers, ...((oit.assignedEngineers || []) as any[]).map((a: any) => a.user)];
             const names = ids.map(i => pool.find((e: any) => e?.id === i)?.name).filter(Boolean);
             if (names.length) return { value: [...new Set(names)].join(', '), source: 'la Agenda' };
+        }
+        if (/^coordenadas/.test(title) && startGps) {
+            return { value: `${startGps.lat.toFixed(6)}, ${startGps.lng.toFixed(6)}`, source: 'el GPS al iniciar el muestreo' };
         }
         if (title === 'fecha de inicio' && step.inputType === 'datetime-local' && live.date) {
             return { value: `${live.date}T${live.time || '09:00'}`, source: 'la Agenda' };
@@ -2079,6 +2088,7 @@ export default function OITDetailPage() {
                                                             (pos) => {
                                                                 const currentLat = pos.coords.latitude;
                                                                 const currentLng = pos.coords.longitude;
+                                                                setStartGps({ lat: currentLat, lng: currentLng });
                                                                 let distanceInfo = '';
 
                                                                 // oit.location es la direccion en texto que extrae la IA ("Calle 65c # 78
