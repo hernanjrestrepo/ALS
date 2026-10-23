@@ -483,7 +483,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             )}
 
             {canEdit && (
-                <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 p-3">
+                <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 p-3 pr-24 sm:pr-28">
                     <div className="max-w-3xl mx-auto flex items-center gap-3">
                         <p className="text-xs text-slate-500 flex-1">Se guarda solo en el teléfono. Al terminar se registra la fecha de fin y la IA revisa todo.</p>
                         <Button className="h-11 bg-green-600 hover:bg-green-700" onClick={finish} disabled={!!busy}>
