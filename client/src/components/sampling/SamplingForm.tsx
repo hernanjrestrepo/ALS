@@ -9,7 +9,7 @@ import api from '@/lib/api';
 import { savePhoto, deletePhoto, listPhotos, clearPhotos, type StoredPhoto } from '@/lib/samplingPhotos';
 import {
     MapPin, LogIn, LogOut, Camera, Paperclip, X, Loader2, CheckCircle2, AlertTriangle, Lock, Pencil, CloudOff, Send, ArrowLeft,
-    ScanText, MessageSquarePlus,
+    ScanText, MessageSquarePlus, Eye, Trash2, FileText,
 } from 'lucide-react';
 
 // Formulario de muestreo (rediseno pedido por Hernan, 2026-10-23: "pesimo ese
@@ -42,6 +42,7 @@ interface Draft {
     responsable?: { value: string; reason: string };
     fromSheet?: string[]; // claves de campos llenados desde la foto de la planilla
     sheetFiles?: string[]; // fotos de la planilla ya subidas (evidencia)
+    sheetFileNames?: Record<string, string>; // nombre original de cada archivo de planilla (para verlo y quitarlo)
     pendingSubmit?: boolean;
     endAt?: string;
 }
@@ -199,8 +200,10 @@ async function toJpeg(file: File, max = 1600): Promise<File> {
 
 // Valores leidos de la planilla: llenan solo lo vacio (nunca pisan lo escrito a mano) y
 // quedan marcados para revisar. Funcion pura: React puede llamarla dos veces.
-function applySheetValues(d: Draft, values: Record<string, string>, files: string[]) {
-    const next: Draft = { ...d, values: { ...d.values }, fromSheet: [...(d.fromSheet || [])], sheetFiles: [...(d.sheetFiles || []), ...files] };
+function applySheetValues(d: Draft, values: Record<string, string>, files: string[], names: string[] = []) {
+    const sheetFileNames = { ...(d.sheetFileNames || {}) };
+    files.forEach((f, i) => { if (names[i]) sheetFileNames[f] = names[i]; });
+    const next: Draft = { ...d, values: { ...d.values }, fromSheet: [...(d.fromSheet || [])], sheetFiles: [...(d.sheetFiles || []), ...files], sheetFileNames };
     let skipped = 0;
     for (const [key, val] of Object.entries(values)) {
         const [idxText, sub] = key.split('.');
@@ -217,6 +220,20 @@ function applySheetValues(d: Draft, values: Record<string, string>, files: strin
         next.fromSheet!.push(key);
     }
     return { next, skipped };
+}
+
+// Archivo de planilla ya en el servidor: Word se ve convertido (vista previa); fotos, PDF y
+// demas se abren tal cual (la sesion viaja en la cookie).
+function sheetFileUrl(file: string): string {
+    const base = (api.defaults.baseURL || '').replace(/\/api$/, '');
+    return /\.docx$/i.test(file) ? `${base}/api/files/preview/${encodeURIComponent(file)}` : `${base}/uploads/${encodeURIComponent(file)}`;
+}
+
+// Quitar un archivo de la planilla: no se envia con el muestreo. Los valores ya llenados se conservan.
+function removeSheetFile(d: Draft, file: string): Draft {
+    const sheetFileNames = { ...(d.sheetFileNames || {}) };
+    delete sheetFileNames[file];
+    return { ...d, sheetFiles: (d.sheetFiles || []).filter(f => f !== file), sheetFileNames };
 }
 
 // Boton de camara + clip (Hernan: "puede ser un boton para fotos o un clip").
@@ -379,7 +396,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                 }));
             }
             const { skipped } = applySheetValues(draft, values, []);
-            setDraft(d => applySheetValues(d, values, data?.files || []).next);
+            setDraft(d => applySheetValues(d, values, data?.files || [], data?.fileNames || []).next);
             // La foto ya quedo en el servidor como evidencia: se quita de los pendientes del telefono.
             for (const p of stored) await removePhoto(p.id);
             const filled = Object.keys(values).length - skipped;
@@ -639,6 +656,31 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                         <p className="text-[11px] text-indigo-800">Toma la foto o adjunta la planilla (foto, PDF, Word o Excel) y se llenan los campos. Revisa lo leído (en azul).</p>
                     </div>
                     {busy === 'sheet' ? <Loader2 className="h-5 w-5 animate-spin text-indigo-600" /> : <PhotoButtons onFiles={readSheet} disabled={!!busy} accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.txt,image/*" />}
+                </div>
+            )}
+            {(draft.sheetFiles?.length || 0) > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                    <p className="text-xs font-semibold text-slate-600 mb-2">Archivos de la planilla leídos ({draft.sheetFiles!.length})</p>
+                    <ul className="space-y-1.5">
+                        {draft.sheetFiles!.map(f => (
+                            <li key={f} className="flex items-center gap-2 text-sm">
+                                <FileText className="h-4 w-4 text-slate-400 shrink-0" />
+                                <span className="flex-1 min-w-0 truncate" title={draft.sheetFileNames?.[f] || f}>{draft.sheetFileNames?.[f] || f}</span>
+                                <a href={sheetFileUrl(f)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-50">
+                                    <Eye className="h-3.5 w-3.5" /> Ver
+                                </a>
+                                {canEdit && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { if (window.confirm('¿Quitar este archivo de la planilla? No se enviará con el muestreo (los datos ya llenados se conservan).')) setDraft(d => removeSheetFile(d, f)); }}
+                                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" /> Quitar
+                                    </button>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             )}
             {sheetDoubts.length > 0 && (

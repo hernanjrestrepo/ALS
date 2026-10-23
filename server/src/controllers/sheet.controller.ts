@@ -26,7 +26,8 @@ export const readSheet = async (req: Request, res: Response) => {
         const started = Date.now();
         const { values, sources, doubts } = await readFieldsFromFiles(files.map(f => ({ path: f.path, name: f.originalname })), fields);
         console.log(`[Planilla] OIT ${req.params.id}: ${Object.keys(values).length} de ${fields.length} campos leídos en ${((Date.now() - started) / 1000).toFixed(1)} s (${sources.map(s => `${s.name}:${s.via}`).join(', ')})`);
-        res.json({ values, files: files.map(f => f.filename), sources, doubts });
+        // fileNames: nombre original de cada archivo, para verlo y quitarlo en el formulario.
+        res.json({ values, files: files.map(f => f.filename), fileNames: files.map(f => f.originalname), sources, doubts });
     } catch (error: any) {
         logError(`OIT ${req.params.id}: no se pudo leer la planilla`, error);
         res.status(error?.status || 500).json({ error: error?.status === 503 ? error.message : 'No se pudo leer la planilla. Intenta con una foto más clara o diligencia a mano.' });
