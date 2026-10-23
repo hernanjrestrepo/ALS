@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,7 +47,16 @@ export default function OITsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOption, setSortOption] = useState('oitNumber-desc');
     const [sortBy, sortDir] = sortOption.split('-');
-    const { oits, isLoading, error } = useOITs(searchQuery, sortBy, sortDir);
+    // La lista se carga una vez y se filtra aqui mientras se escribe: antes cada tecla
+    // pedia la lista al servidor y una respuesta vieja (la de la caja vacia) podia
+    // llegar de ultima y mostrar todas (2026-10-23).
+    const { oits: allOits, isLoading, error } = useOITs(undefined, sortBy, sortDir);
+    const oits = useMemo(() => {
+        const fold = (v: unknown) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+        const term = fold(searchQuery.trim());
+        if (!term) return allOits;
+        return allOits.filter(o => [o.oitNumber, o.description, o.clientName, o.clientNit, o.quotationRef, o.location].some(v => fold(v).includes(term)));
+    }, [allOits, searchQuery]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const navigate = useNavigate();
@@ -277,7 +286,7 @@ export default function OITsPage() {
                         <div className="relative w-full sm:w-72">
                             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
-                                placeholder="Filtrar OITs..."
+                                placeholder="Buscar por número, cliente, NIT o cotización..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors w-full"
@@ -338,6 +347,7 @@ export default function OITsPage() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-slate-900 truncate">{oit.oitNumber || `OIT-${oit.id.slice(0, 8)}`}</p>
+                                            {oit.clientName && <p className="text-xs font-medium text-slate-700 truncate max-w-[200px] sm:max-w-[400px]">{oit.clientName}</p>}
                                             <p className="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-[400px]">{oit.description || 'Sin descripción'}</p>
                                         </div>
                                     </div>

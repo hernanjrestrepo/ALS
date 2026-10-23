@@ -418,3 +418,12 @@ describe('vinculo automatico OIT -> cotizacion', () => {
         expect(baseQuotationNumber('SIACOT-20466-07-2026_V1')).toBe('SIACOT-20466-07-2026');
     });
 });
+
+describe('cliente impreso en la OIT', () => {
+    it('lee NOMBRE EMPRESA y NIT del PDF de Serambiente (OIT 14824)', async () => {
+        const { extractOitClient } = await import('../src/services/quotationLink');
+        const text = 'INFORMACIÓN BÁSICA DEL CLIENTE\nNOMBRE EMPRESA:GREMCA AGRICULTURA Y ENERGIA SOSTENIBLE S.A.\nNIT:860031768-0\nDIRECCIÓN:CALLE 75 # 59 - 69';
+        expect(extractOitClient(text)).toEqual({ name: 'GREMCA AGRICULTURA Y ENERGIA SOSTENIBLE S.A.', nit: '860031768-0' });
+        expect(extractOitClient('sin datos')).toEqual({ name: null, nit: null });
+    });
+});

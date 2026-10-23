@@ -947,11 +947,13 @@ export const getAllOITs = async (req: Request, res: Response) => {
         // Filtro de busqueda real: antes el frontend mandaba "search" y el backend
         // lo ignoraba por completo (hallazgo reunion 2026-10-05, OIT 13715 "no
         // aparecia" porque el buscador nunca filtraba nada).
-        const term = (search || '').toString().trim().toLowerCase();
+        // Sin tildes y tambien por cliente, NIT, cotizacion y ubicacion (2026-10-23).
+        const fold = (s: unknown) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+        const term = fold((search || '').toString().trim());
         const filtered = term
             ? oits.filter((oit: any) =>
-                String(oit.oitNumber || '').toLowerCase().includes(term) ||
-                String(oit.description || '').toLowerCase().includes(term))
+                [oit.oitNumber, oit.description, oit.clientName, oit.clientNit, oit.quotationRef, oit.location]
+                    .some(v => fold(v).includes(term)))
             : oits;
 
         const sorted = sortOITs(filtered, String(sortBy || 'oitNumber'), String(sortDir || 'desc'));

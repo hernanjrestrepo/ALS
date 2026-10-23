@@ -30,9 +30,9 @@ interface OIT {
     scheduledDate: string;
     description?: string;
     status: string;
-    client?: {
-        name: string;
-    };
+    // Cliente leido del PDF de la OIT ("NOMBRE EMPRESA"). Antes se buscaba oit.client,
+    // que la OIT no tiene, y todo el calendario decia "Sin Cliente" (2026-10-23).
+    clientName?: string;
 }
 
 interface CalendarEvent {
@@ -93,10 +93,11 @@ export default function CalendarPage() {
         let result = oits;
 
         if (searchTerm) {
-            const lowerTerm = searchTerm.toLowerCase();
+            const fold = (v: unknown) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+            const lowerTerm = fold(searchTerm.trim());
             result = result.filter(oit =>
-                oit.oitNumber.toLowerCase().includes(lowerTerm) ||
-                oit.client?.name.toLowerCase().includes(lowerTerm)
+                fold(oit.oitNumber).includes(lowerTerm) ||
+                fold(oit.clientName).includes(lowerTerm)
             );
         }
 
@@ -115,7 +116,7 @@ export default function CalendarPage() {
 
         return {
             id: oit.id,
-            title: `${oit.oitNumber} - ${oit.client?.name || 'Sin Cliente'}`,
+            title: `${oit.oitNumber} - ${oit.clientName || 'Sin Cliente'}`,
             start: startDate,
             end: endDate,
             resource: oit,

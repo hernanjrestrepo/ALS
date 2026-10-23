@@ -34,6 +34,8 @@ model OIT {
   quotationFileUrl      String?        // DEPRECATED: Use quotationId instead
   quotationId           String?        // Link to independent Quotation
   quotationRef          String?        // Numero SIACOT que trae el documento de la OIT (vinculo automatico)
+  clientName            String?        // "NOMBRE EMPRESA" del PDF de la OIT (calendario, lista y busqueda)
+  clientNit             String?        // "NIT" del cliente en el PDF de la OIT
   quotation             Quotation?     @relation(fields: [quotationId], references: [id])
   samplingReportUrl     String?        // Generated sampling report
   labResultsUrl         String?        // Uploaded lab analysis

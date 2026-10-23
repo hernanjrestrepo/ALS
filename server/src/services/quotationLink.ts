@@ -24,9 +24,26 @@ export function pickQuotation<T extends { quotationNumber: string }>(ref: string
     return same.sort((a, b) => versionOf(b.quotationNumber) - versionOf(a.quotationNumber))[0] || null;
 }
 
+// Cliente impreso en la OIT de Serambiente ("INFORMACIÓN BÁSICA DEL CLIENTE / NOMBRE
+// EMPRESA:GREMCA ... / NIT:860031768-0"). El calendario mostraba "Sin Cliente" en todas
+// las OIT porque el nombre solo existia dentro de la descripcion de la IA (2026-10-23).
+export function extractOitClient(text: string): { name: string | null; nit: string | null } {
+    const name = /NOMBRE\s+EMPRESA\s*:\s*([^\n]+)/i.exec(text || '')?.[1]?.trim() || null;
+    const nit = /\bNIT\s*:\s*([0-9][0-9.\s-]*[0-9])/i.exec(text || '')?.[1]?.replace(/\s/g, '') || null;
+    return { name: name && name.length >= 2 ? name.slice(0, 200) : null, nit };
+}
+
+// Guarda el cliente de la OIT si el documento lo trae.
+export async function saveOitClientFromText(oitId: string, text: string) {
+    const { name, nit } = extractOitClient(text);
+    if (!name && !nit) return;
+    await prisma.oIT.update({ where: { id: oitId }, data: { clientName: name || undefined, clientNit: nit || undefined } });
+}
+
 // Lee el SIACOT del texto de la OIT, lo guarda y vincula si la cotizacion ya esta en
 // Xmart. Nunca reemplaza un vinculo que alguien puso a mano.
 export async function linkOitFromText(oitId: string, text: string): Promise<string | null> {
+    await saveOitClientFromText(oitId, text);
     const ref = extractQuotationNumber(text || '');
     if (!ref) return null;
     const oit = await prisma.oIT.findUnique({ where: { id: oitId }, select: { quotationId: true } });
