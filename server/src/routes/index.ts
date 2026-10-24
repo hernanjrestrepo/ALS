@@ -18,12 +18,14 @@ import signatureRoutes from './signature.routes';
 import clientRoutes from './client.routes';
 import serviceRoutes from './service.routes';
 import distributionListRoutes from './distribution-list.routes';
+import monitoringStaffRoutes from './monitoringStaff.routes';
 
 const router = Router();
 
 router.use('/files', filesRoutes);
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/monitoring-staff', monitoringStaffRoutes);
 router.use('/oits', oitRoutes);
 router.use('/resources', resourceRoutes);
 router.use('/ai', aiRoutes);

@@ -31,6 +31,7 @@ import ClientsPage from '@/pages/ClientsPage';
 import ServicesPage from '@/pages/ServicesPage';
 import DistributionListsPage from '@/pages/DistributionListsPage';
 import ParameterConsultationsPage from '@/pages/ParameterConsultationsPage';
+import MonitoringStaffPage from '@/pages/MonitoringStaffPage';
 
 function App() {
   return (
@@ -64,6 +65,7 @@ function App() {
             <Route path="services" element={<ServicesPage />} />
             <Route path="distribution-lists" element={<DistributionListsPage />} />
             <Route path="parameter-consultations" element={<ParameterConsultationsPage />} />
+            <Route path="monitoring-staff" element={<MonitoringStaffPage />} />
             <Route path='template-tests' element={<TemplateTestsPage />} />
             <Route path='ai' element={<AIAssistantPage />} />
             <Route path="notifications" element={<NotificationsPage />} />

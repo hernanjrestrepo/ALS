@@ -356,3 +356,16 @@ model ParameterConsultation {
   createdAt     DateTime  @default(now())
   answeredAt    DateTime?
 }
+
+// Personal de monitoreo (reunion del 2026-10-23: "les voy a dejar un espacio para que
+// ustedes puedan editar, quitar personas, meter personas"). Solo estas personas aparecen
+// al asignar ingenieros; el cargo define quien supervisa (ve todas las OIT).
+model MonitoringStaff {
+  id        String   @id @default(uuid())
+  nombre    String
+  cargo     String
+  correo    String   @unique
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

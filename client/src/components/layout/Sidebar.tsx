@@ -20,7 +20,8 @@ import {
     Beaker,
     ChevronDown,
     Mail,
-    HelpCircle
+    HelpCircle,
+    HardHat
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,6 +39,10 @@ const getNavigationGroups = (userRole?: string) => {
     // Gestion de usuarios solo para SUPER_ADMIN
     if (userRole && canManageUsers(userRole as any)) {
         admin.push({ icon: Users, label: 'Usuarios', href: '/users' });
+    }
+    // Personal de monitoreo: lo administra Operaciones (Raul, ADMIN) y la gerencia.
+    if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
+        admin.push({ icon: HardHat, label: 'Personal de monitoreo', href: '/monitoring-staff' });
     }
     admin.push({ icon: Settings, label: 'Configuración', href: '/settings' });
 

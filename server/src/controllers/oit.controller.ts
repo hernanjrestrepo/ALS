@@ -13,7 +13,7 @@ import { getOrAssignConsecutive } from '../services/consecutive.service';
 import { linkOitFromText } from '../services/quotationLink';
 import { autoAssignTemplates } from '../services/templateAssignment';
 import { readSheetText, combineSheetTexts, SheetText } from '../services/sheetText';
-import { supervisaOperaciones } from '../data/personal-monitoreo';
+import { isSupervisor } from '../services/monitoringStaff';
 
 const prisma = new PrismaClient();
 
@@ -985,7 +985,7 @@ export const getAllOITs = async (req: Request, res: Response) => {
         // If user is ENGINEER, only show OITs assigned to them
         let whereClause: any = {};
 
-        if (userRole === 'ENGINEER' && userId && !supervisaOperaciones(user?.email)) {
+        if (userRole === 'ENGINEER' && userId && !(await isSupervisor(user?.email))) {
             whereClause = {
                 assignedEngineers: {
                     some: {
@@ -1067,7 +1067,7 @@ export const getOITById = async (req: Request, res: Response) => {
         }
 
         // If user is ENGINEER, check if they are assigned (salvo jefes/supervisores de Operaciones)
-        if (user?.role === 'ENGINEER' && !supervisaOperaciones(user?.email)) {
+        if (user?.role === 'ENGINEER' && !(await isSupervisor(user?.email))) {
             const isAssigned = oit.assignedEngineers.some((a: any) => a.userId === user.userId);
             if (!isAssigned) {
                 return res.status(403).json({ message: 'No tienes acceso a esta OIT' });

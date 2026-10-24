@@ -1,4 +1,4 @@
-import { CORREOS_MONITOREO } from '../data/personal-monitoreo';
+import { staffEmails } from '../services/monitoringStaff';
 import { areaDeCorreo } from '../data/personal-als';
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
@@ -112,7 +112,7 @@ export const getEngineers = async (req: Request, res: Response) => {
         const engineers = await prisma.user.findMany({
             where: {
                 role: { in: [ROLES.ENGINEER, ROLES.ADMIN, ROLES.SUPER_ADMIN] },
-                email: { in: [...CORREOS_MONITOREO] },
+                email: { in: await staffEmails() },
             },
             select: {
                 id: true,
@@ -161,7 +161,9 @@ export const getProfile = async (req: Request, res: Response) => {
         }
 
         // Area del listado de personal: define el menu que ve (perfiles por area).
-        res.json({ ...user, area: areaDeCorreo(user.email) });
+        // Quien esta en la tabla de personal de monitoreo es de Operaciones aunque no figure en el listado.
+        const area = areaDeCorreo(user.email) || ((await staffEmails()).includes(user.email.toLowerCase()) ? 'Operaciones' : null);
+        res.json({ ...user, area });
     } catch (error) {
         console.error('Error fetching profile:', error);
         res.status(500).json({ error: 'Error al obtener perfil' });

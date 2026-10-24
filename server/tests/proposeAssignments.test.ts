@@ -4,13 +4,21 @@ const db = vi.hoisted(() => ({
     user: { findMany: vi.fn() },
     oIT: { findMany: vi.fn() },
     resource: { findMany: vi.fn() },
+    monitoringStaff: { findMany: vi.fn() },
 }));
 vi.mock('@prisma/client', () => ({ PrismaClient: class { constructor() { return db as any; } } }));
 
 import { buildAssignmentPlan, proposeAssignments } from '../src/controllers/planning.controller';
+import { invalidateStaffCache } from '../src/services/monitoringStaff';
 
 beforeEach(() => {
     vi.clearAllMocks();
+    invalidateStaffCache();
+    db.monitoringStaff.findMany.mockResolvedValue([
+        { id: '1', nombre: 'Armando', cargo: 'Ingeniero De Campo', correo: 'armandop2810@gmail.com', activo: true },
+        { id: '2', nombre: 'Alvaro', cargo: 'Ingeniero De Campo', correo: 'alvaroj.audivetc@gmail.com', activo: true },
+        { id: '3', nombre: 'Josue', cargo: 'Jefe De Operaciones', correo: 'josue.trespalacios@alsglobal.com', activo: true },
+    ]);
     db.user.findMany.mockResolvedValue([
         { id: 'arm', name: 'Armando Pumarejo Jimenez', email: 'armandop2810@gmail.com' },
         { id: 'alv', name: 'Alvaro Audivet Castro', email: 'alvaroj.audivetc@gmail.com' },

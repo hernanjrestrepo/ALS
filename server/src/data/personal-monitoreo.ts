@@ -1,5 +1,5 @@
 // Personal de monitoreo (organizacion Operaciones) del listado de personal del 14-sep-2026.
-// Solo estas personas aparecen al seleccionar ingenieros para una OIT (GET /users/engineers).
+// Semilla inicial de la tabla MonitoringStaff (editable en Personal de monitoreo).
 // Fuente: Listado de personal Operaciones 14.09.26.xlsx. Actualizar aqui si cambia el listado.
 export const PERSONAL_MONITOREO: Array<{ nombre: string; cargo: string; correo: string }> = [
     { nombre: "Eduardo Ibarra Trujillo", cargo: "Coordinador De Proyectos Biota", correo: "eduardo.ibarra@alsglobal.com" },
@@ -23,15 +23,3 @@ export const PERSONAL_MONITOREO: Array<{ nombre: string; cargo: string; correo: 
     { nombre: "Juan David Carreño", cargo: "Ingeniero De Campo", correo: "juandavidcd.fc@gmail.com" },
     { nombre: "Argelio Arroyo Siado", cargo: "Ingeniero De Campo", correo: "ing_arroyo@hotmail.com" },
 ];
-
-export const CORREOS_MONITOREO = new Set(PERSONAL_MONITOREO.map(p => p.correo.toLowerCase()));
-
-// Jefe, coordinadores, supervisores y planeador de Operaciones ven todas las OIT aunque
-// su rol sea ingeniero (2026-10-23: Josue, jefe de Operaciones, no veia las OIT porque
-// los ingenieros solo ven las asignadas). Escribir en una OIT sigue pidiendo asignacion.
-const CARGO_SUPERVISA = /jefe|coordinador|supervisor|planeador/i;
-const CORREOS_SUPERVISAN = new Set(PERSONAL_MONITOREO.filter(p => CARGO_SUPERVISA.test(p.cargo)).map(p => p.correo.toLowerCase()));
-
-export function supervisaOperaciones(email?: string | null): boolean {
-    return !!email && CORREOS_SUPERVISAN.has(email.toLowerCase());
-}

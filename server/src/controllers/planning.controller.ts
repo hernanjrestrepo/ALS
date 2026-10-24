@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import planningService from '../services/planning.service';
 import { PrismaClient } from '@prisma/client';
 import { planAssignments, serviceDays, ProposedService, Person } from '../services/planningAssign';
-import { CORREOS_MONITOREO, PERSONAL_MONITOREO, supervisaOperaciones } from '../data/personal-monitoreo';
+import { listActiveStaff, CARGO_SUPERVISA } from '../services/monitoringStaff';
 
 const prisma = new PrismaClient();
 
@@ -59,14 +59,16 @@ export const proposeAssignments = async (req: Request, res: Response) => {
 };
 
 export async function buildAssignmentPlan(oitId: string, services: ProposedService[]) {
+    const staff = await listActiveStaff();
+    const cargoPorCorreo = new Map(staff.map(p => [p.correo.toLowerCase(), p.cargo]));
     const users = await prisma.user.findMany({
-        where: { email: { in: [...CORREOS_MONITOREO] }, isActive: true, role: { in: ['ENGINEER', 'ADMIN'] } },
+        where: { email: { in: [...cargoPorCorreo.keys()] }, isActive: true, role: { in: ['ENGINEER', 'ADMIN'] } },
         select: { id: true, name: true, email: true },
     });
-    const cargoPorCorreo = new Map(PERSONAL_MONITOREO.map(p => [p.correo.toLowerCase(), p.cargo]));
-    const people: Person[] = users.map(u => ({
-        id: u.id, name: u.name, cargo: cargoPorCorreo.get(u.email.toLowerCase()) || '', supervises: supervisaOperaciones(u.email),
-    }));
+    const people: Person[] = users.map(u => {
+        const cargo = cargoPorCorreo.get(u.email.toLowerCase()) || '';
+        return { id: u.id, name: u.name, cargo, supervises: CARGO_SUPERVISA.test(cargo) };
+    });
 
     // Lo que cada persona ya tiene programado en otras OIT, por dia.
     const others = await prisma.oIT.findMany({ where: { id: { not: oitId }, serviceDates: { not: null } }, select: { serviceDates: true, status: true } });
