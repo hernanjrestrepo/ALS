@@ -423,7 +423,7 @@ describe('cliente impreso en la OIT', () => {
     it('lee NOMBRE EMPRESA y NIT del PDF de Serambiente (OIT 14824)', async () => {
         const { extractOitClient } = await import('../src/services/quotationLink');
         const text = 'INFORMACIÓN BÁSICA DEL CLIENTE\nNOMBRE EMPRESA:GREMCA AGRICULTURA Y ENERGIA SOSTENIBLE S.A.\nNIT:860031768-0\nDIRECCIÓN:CALLE 75 # 59 - 69';
-        expect(extractOitClient(text)).toEqual({ name: 'GREMCA AGRICULTURA Y ENERGIA SOSTENIBLE S.A.', nit: '860031768-0' });
-        expect(extractOitClient('sin datos')).toEqual({ name: null, nit: null });
+        expect(extractOitClient(text)).toMatchObject({ name: 'GREMCA AGRICULTURA Y ENERGIA SOSTENIBLE S.A.', nit: '860031768-0' });
+        expect(extractOitClient('sin datos')).toEqual({ name: null, nit: null, reportTo: null });
     });
 });
