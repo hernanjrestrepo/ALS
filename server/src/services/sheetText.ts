@@ -38,7 +38,7 @@ export async function readSheetText(filePath: string, filename = path.basename(f
     try {
         const ext = path.extname(filename).toLowerCase();
         const images = ext === '.pdf'
-            ? await (opts.renderPdf || (p => pdfPagesToImages(p, 24)))(filePath)
+            ? await (opts.renderPdf || (p => pdfPagesToImages(p)))(filePath)
             : [fs.readFileSync(filePath).toString('base64')];
         // Todas las paginas, de a 6 por llamada.
         const parts: string[] = [];

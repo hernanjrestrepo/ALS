@@ -411,7 +411,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             const form = new FormData();
             stored.forEach(p => form.append('images', new File([p.blob], p.name, { type: p.type })));
             form.append('fields', JSON.stringify(fields));
-            const { data } = await api.post(`/oits/${oit.id}/read-sheet`, form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 360000 });
+            const { data } = await api.post(`/oits/${oit.id}/read-sheet`, form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 900000 });
             const values: Record<string, string> = data?.values || {};
             const doubts: string[] = Array.isArray(data?.doubts) ? data.doubts : [];
             setSheetDoubts(doubts);

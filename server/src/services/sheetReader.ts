@@ -120,8 +120,9 @@ export async function readFieldsFromText(text: string, fields: SheetField[]): Pr
     return cleanSheetValues(parseJsonObject(response.data?.response || ''), fields);
 }
 
-// Paginas de un PDF escaneado como imagenes PNG (poppler-utils: pdftoppm).
-export async function pdfPagesToImages(pdfPath: string, maxPages = 4): Promise<string[]> {
+// Paginas de un PDF escaneado como imagenes PNG (poppler-utils: pdftoppm). Sin maxPages
+// se convierten todas (Hernan 2026-10-24: "24 o las que sean").
+export async function pdfPagesToImages(pdfPath: string, maxPages?: number): Promise<string[]> {
     const { execFile } = require('child_process');
     const os = require('os');
     const fsMod = require('fs');
@@ -129,7 +130,8 @@ export async function pdfPagesToImages(pdfPath: string, maxPages = 4): Promise<s
     const dir = fsMod.mkdtempSync(pathMod.join(os.tmpdir(), 'planilla-'));
     try {
         await new Promise<void>((resolve, reject) => {
-            execFile('pdftoppm', ['-png', '-r', '150', '-l', String(maxPages), pdfPath, pathMod.join(dir, 'p')], { timeout: 120_000 },
+            const limit = maxPages ? ['-l', String(maxPages)] : [];
+            execFile('pdftoppm', ['-png', '-r', '150', ...limit, pdfPath, pathMod.join(dir, 'p')], { timeout: 600_000 },
                 (err: Error | null) => (err ? reject(err) : resolve()));
         });
         return fsMod.readdirSync(dir).filter((f: string) => f.endsWith('.png')).sort()

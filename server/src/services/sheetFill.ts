@@ -27,12 +27,11 @@ export interface SheetFillDeps {
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 // Imagenes por llamada al modelo de vision y paginas maximas por lectura.
 const MAX_VISION_IMAGES = 6;
-export const MAX_PDF_PAGES = 24;
 const MAX_FIELD_DOUBTS = 15;
 
 const defaultDeps: SheetFillDeps = {
     readText: (p, n) => readSheetText(p, n),
-    renderPdf: p => pdfPagesToImages(p, MAX_PDF_PAGES),
+    renderPdf: p => pdfPagesToImages(p),
     imageToBase64: p => require('fs').readFileSync(p).toString('base64'),
     vision: readFieldSheet,
     text: readFieldsFromText,
@@ -84,7 +83,6 @@ export async function readFieldsFromFiles(files: SheetFile[], fields: SheetField
 
     const doubts: string[] = [];
     for (const s of sources) if (s.via === 'NO_LEIDO') doubts.push(`No se pudo leer «${s.name}»: ${s.reason}`);
-    if (images.length >= MAX_PDF_PAGES) doubts.push(`Se leyeron ${MAX_PDF_PAGES} páginas o fotos; si hay más, adjunte el resto por separado.`);
     if (sources.some(s => s.via !== 'NO_LEIDO')) {
         const missing = fields.filter(f => !values[f.key]);
         for (const f of missing.slice(0, MAX_FIELD_DOUBTS)) doubts.push(`¿Cuál es el valor de «${f.label}»${f.unit ? ` (${f.unit})` : ''}? No aparece en la planilla.`);

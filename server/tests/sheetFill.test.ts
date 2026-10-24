@@ -100,11 +100,13 @@ describe('readFieldsFromFiles: cualquier archivo llena el formulario', () => {
         expect(r.doubts.some(x => x.includes('adjunte el resto'))).toBe(false);
     });
 
-    it('si llega al tope de paginas, se avisa', async () => {
-        const d = deps({ renderPdf: vi.fn(async () => Array.from({ length: 24 }, (_, i) => `P${i}`)) });
+    it('lee todas las paginas aunque sean mas de 24, en tandas de 6', async () => {
+        const d = deps({ renderPdf: vi.fn(async () => Array.from({ length: 40 }, (_, i) => `P${i}`)) });
         const r = await readFieldsFromFiles([{ path: '/x/escaneado.pdf', name: 'escaneado.pdf' }], fields, d);
-        expect((d.vision as any).mock.calls).toHaveLength(4);
-        expect(r.doubts.some(x => x.includes('24 páginas'))).toBe(true);
+        const calls = (d.vision as any).mock.calls;
+        expect(calls).toHaveLength(7);
+        expect(calls[6][0]).toEqual(['P36', 'P37', 'P38', 'P39']);
+        expect(r.doubts.some(x => x.includes('adjunte el resto'))).toBe(false);
     });
 
     it('el analisis de la OIT transcribe todas las paginas del escaneado', async () => {
