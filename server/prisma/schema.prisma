@@ -36,6 +36,7 @@ model OIT {
   quotationRef          String?        // Numero SIACOT que trae el documento de la OIT (vinculo automatico)
   clientName            String?        // "NOMBRE EMPRESA" del PDF de la OIT (calendario, lista y busqueda)
   clientNit             String?        // "NIT" del cliente en el PDF de la OIT
+  reportTo              String?        // "INFORME A NOMBRE DE" del PDF de la OIT: a nombre de quien sale el informe
   quotation             Quotation?     @relation(fields: [quotationId], references: [id])
   samplingReportUrl     String?        // Generated sampling report
   labResultsUrl         String?        // Uploaded lab analysis

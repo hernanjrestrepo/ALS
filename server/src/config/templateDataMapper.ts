@@ -141,8 +141,10 @@ export class TemplateDataMapper {
 
     // ==================== DATA ACCESSORS ====================
 
+    // A nombre de quien sale el informe: lo que dice la OIT en "INFORME A NOMBRE DE" manda.
     private getClient(): string {
-        return this.parsedAI.cliente
+        return this.oit.reportTo
+            || this.parsedAI.cliente
             || this.oit.quotation?.clientName
             || this.oit.description?.split(':')[0]?.trim()
             || 'NOMBRE CLIENTE';

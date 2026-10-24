@@ -639,6 +639,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 text-xs">
                     <Fixed label="Cliente" value={oit.clientName || 'No viene en la OIT'} wide />
                     <Fixed label="OT" value={oit.oitNumber} />
+                    {oit.reportTo && oit.reportTo !== oit.clientName && <Fixed label="Informe a nombre de" value={oit.reportTo} />}
                     <Fixed label="Inicio programado" value={planned ? fmt(planned.toISOString()) : 'Sin programar'} />
                     {scheduleDays(schedule).length > 1 && <Fixed label="Días programados" value={formatDays(scheduleDays(schedule))} />}
                     <Fixed label="Sitio" value={oit.location || '—'} wide />
