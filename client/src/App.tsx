@@ -32,6 +32,9 @@ import ServicesPage from '@/pages/ServicesPage';
 import DistributionListsPage from '@/pages/DistributionListsPage';
 import ParameterConsultationsPage from '@/pages/ParameterConsultationsPage';
 import MonitoringStaffPage from '@/pages/MonitoringStaffPage';
+import AcademyPage from '@/pages/AcademyPage';
+import AcademyModulePage from '@/pages/AcademyModulePage';
+import AcademyPropuestasPage from '@/pages/AcademyPropuestasPage';
 
 function App() {
   return (
@@ -66,6 +69,9 @@ function App() {
             <Route path="distribution-lists" element={<DistributionListsPage />} />
             <Route path="parameter-consultations" element={<ParameterConsultationsPage />} />
             <Route path="monitoring-staff" element={<MonitoringStaffPage />} />
+            <Route path="academy" element={<AcademyPage />} />
+            <Route path="academy/propuestas" element={<AcademyPropuestasPage />} />
+            <Route path="academy/:key" element={<AcademyModulePage />} />
             <Route path='template-tests' element={<TemplateTestsPage />} />
             <Route path='ai' element={<AIAssistantPage />} />
             <Route path="notifications" element={<NotificationsPage />} />

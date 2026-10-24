@@ -8,58 +8,58 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(uuid())
-  email            String         @unique
-  password         String
-  name             String
-  role             String         @default("USER") // SUPER_ADMIN, ADMIN, ENGINEER, USER
-  isActive         Boolean        @default(true)
-  mustChangePassword Boolean      @default(false) // fuerza el flujo de cambio de clave al primer ingreso (cuentas creadas por un admin con clave temporal)
-  resetTokenHash    String?
-  resetTokenExpiry  DateTime?
-  pushSubscription String?        // JSON string with push subscription data
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  notifications    Notification[]
-  assignedOITs     OITAssignment[]
+  id                 String          @id @default(uuid())
+  email              String          @unique
+  password           String
+  name               String
+  role               String          @default("USER") // SUPER_ADMIN, ADMIN, ENGINEER, USER
+  isActive           Boolean         @default(true)
+  mustChangePassword Boolean         @default(false) // fuerza el flujo de cambio de clave al primer ingreso (cuentas creadas por un admin con clave temporal)
+  resetTokenHash     String?
+  resetTokenExpiry   DateTime?
+  pushSubscription   String? // JSON string with push subscription data
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  notifications      Notification[]
+  assignedOITs       OITAssignment[]
 }
 
 model OIT {
-  id                    String         @id @default(uuid())
-  oitNumber             String         @unique
+  id                    String          @id @default(uuid())
+  oitNumber             String          @unique
   description           String?
-  location              String?        // Sampling site address
-  status                String         @default("PENDING") // UPLOADING, ANALYZING, REVIEW_REQUIRED, SCHEDULED, IN_PROGRESS, COMPLETED
+  location              String? // Sampling site address
+  status                String          @default("PENDING") // UPLOADING, ANALYZING, REVIEW_REQUIRED, SCHEDULED, IN_PROGRESS, COMPLETED
   oitFileUrl            String?
-  quotationFileUrl      String?        // DEPRECATED: Use quotationId instead
-  quotationId           String?        // Link to independent Quotation
-  quotationRef          String?        // Numero SIACOT que trae el documento de la OIT (vinculo automatico)
-  clientName            String?        // "NOMBRE EMPRESA" del PDF de la OIT (calendario, lista y busqueda)
-  clientNit             String?        // "NIT" del cliente en el PDF de la OIT
-  reportTo              String?        // "INFORME A NOMBRE DE" del PDF de la OIT: a nombre de quien sale el informe
-  quotation             Quotation?     @relation(fields: [quotationId], references: [id])
-  samplingReportUrl     String?        // Generated sampling report
-  labResultsUrl         String?        // Uploaded lab analysis
-  finalReportUrl        String?        // Final AI-generated report
-  labResultsAnalysis    String?        // JSON string with AI analysis of lab results
-  aiData                String?        // JSON string
-  resources             String?        // JSON string
+  quotationFileUrl      String? // DEPRECATED: Use quotationId instead
+  quotationId           String? // Link to independent Quotation
+  quotationRef          String? // Numero SIACOT que trae el documento de la OIT (vinculo automatico)
+  clientName            String? // "NOMBRE EMPRESA" del PDF de la OIT (calendario, lista y busqueda)
+  clientNit             String? // "NIT" del cliente en el PDF de la OIT
+  reportTo              String? // "INFORME A NOMBRE DE" del PDF de la OIT: a nombre de quien sale el informe
+  quotation             Quotation?      @relation(fields: [quotationId], references: [id])
+  samplingReportUrl     String? // Generated sampling report
+  labResultsUrl         String? // Uploaded lab analysis
+  finalReportUrl        String? // Final AI-generated report
+  labResultsAnalysis    String? // JSON string with AI analysis of lab results
+  aiData                String? // JSON string
+  resources             String? // JSON string
   scheduledDate         DateTime?
-  samplingData          String?        // JSON with offline sampling data
-  pendingSync           Boolean        @default(false)
-  selectedTemplateIds   String?        // JSON array of selected template IDs
-  planningProposal      String?        // JSON with AI planning proposal
-  planningAccepted      Boolean        @default(false)
-  samplingProgress      String?        // JSON: { currentStep: number, completedSteps: number[] }
-  stepValidations       String?        // JSON: { [stepIndex]: { validated: bool, feedback: string, data: any } }
-  finalAnalysis         String?        // AI comprehensive analysis when sampling completes
-  serviceDates          String?        // JSON: { [templateId]: ISODateString }
-  fieldFormUrl          String?        // URL to uploaded field form (Planilla)
-  fieldFormAnalysis     String?        // JSON: Verification results from AI
-  samplingSheetUrl      String?        // URL to uploaded sampling sheets (planillas)
-  samplingSheetAnalysis String?        // JSON: Quality analysis from AI before final report
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  samplingData          String? // JSON with offline sampling data
+  pendingSync           Boolean         @default(false)
+  selectedTemplateIds   String? // JSON array of selected template IDs
+  planningProposal      String? // JSON with AI planning proposal
+  planningAccepted      Boolean         @default(false)
+  samplingProgress      String? // JSON: { currentStep: number, completedSteps: number[] }
+  stepValidations       String? // JSON: { [stepIndex]: { validated: bool, feedback: string, data: any } }
+  finalAnalysis         String? // AI comprehensive analysis when sampling completes
+  serviceDates          String? // JSON: { [templateId]: ISODateString }
+  fieldFormUrl          String? // URL to uploaded field form (Planilla)
+  fieldFormAnalysis     String? // JSON: Verification results from AI
+  samplingSheetUrl      String? // URL to uploaded sampling sheets (planillas)
+  samplingSheetAnalysis String? // JSON: Quality analysis from AI before final report
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
   notifications         Notification[]
   assignedEngineers     OITAssignment[]
   nonConformities       NonConformity[]
@@ -74,9 +74,9 @@ model Signature {
   oitId         String
   oit           OIT      @relation(fields: [oitId], references: [id], onDelete: Cascade)
   signerName    String
-  signerRole    String   // ALS o CLIENTE
-  signatureData String?  // PNG en base64 capturado en pantalla
-  documentUrl   String?  // alternativa: documento ya firmado, subido como respaldo
+  signerRole    String // ALS o CLIENTE
+  signatureData String? // PNG en base64 capturado en pantalla
+  documentUrl   String? // alternativa: documento ya firmado, subido como respaldo
   createdAt     DateTime @default(now())
 }
 
@@ -100,54 +100,54 @@ model NonConformity {
 }
 
 model Quotation {
-  id                String    @id @default(uuid())
-  quotationNumber   String    @unique
-  description       String?
-  clientName        String?   // legado: texto libre, se mantiene por compatibilidad con cotizaciones ya cargadas
-  clientId          String?
-  client            Client?   @relation(fields: [clientId], references: [id])
-  serviceId         String?
-  service           Service?  @relation(fields: [serviceId], references: [id])
-  fileUrl           String?
-  extractedText     String?   // Extracted text from PDF for AI analysis
-  status            String    @default("PENDING") // PENDING, ANALYZING, COMPLIANT, NON_COMPLIANT, REVIEW_REQUIRED
-  aiData            String?   // JSON with AI analysis
-  complianceResult  String?   // JSON with compliance check results
+  id                 String   @id @default(uuid())
+  quotationNumber    String   @unique
+  description        String?
+  clientName         String? // legado: texto libre, se mantiene por compatibilidad con cotizaciones ya cargadas
+  clientId           String?
+  client             Client?  @relation(fields: [clientId], references: [id])
+  serviceId          String?
+  service            Service? @relation(fields: [serviceId], references: [id])
+  fileUrl            String?
+  extractedText      String? // Extracted text from PDF for AI analysis
+  status             String   @default("PENDING") // PENDING, ANALYZING, COMPLIANT, NON_COMPLIANT, REVIEW_REQUIRED
+  aiData             String? // JSON with AI analysis
+  complianceResult   String? // JSON with compliance check results
   // Bloqueo real: una cotizacion NO puede usarse para crear una OIT hasta que
   // esto sea true. Se marca cuando complianceResult indica conformidad real
   // (compliant=true o compliant=null en matrices sin norma aplicable), nunca
   // por defecto - antes el chequeo era solo informativo y no bloqueaba nada.
-  approvedForOit    Boolean   @default(false)
+  approvedForOit     Boolean  @default(false)
   // "El cliente solo pidió estos parámetros" (pedido de Ana Lucía, 2026-10-15):
   // los parámetros del artículo que no se cotizaron no cuentan como incumplimiento.
-  clientScopeOnly   Boolean   @default(false)
+  clientScopeOnly    Boolean  @default(false)
   // Decision de Ana por hallazgo (2026-10-19): { [issueKey]: { decision, comment, userName, at, history } }
-  findingReviews    String?
+  findingReviews     String?
   // Elementos faltantes del analisis subsanados en pantalla: { [elemento]: { value, userName, at } }
   missingResolutions String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  linkedOITs        OIT[]     // OITs that use this quotation
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  linkedOITs         OIT[] // OITs that use this quotation
 }
 
 // Modulo de Clientes (WO reunion 2026-09-18): cada cliente debe existir con su
 // documentacion antes de que se le pueda generar una cotizacion - manual de
 // contratistas, procedimientos y politicas que el area operativa debe seguir.
 model Client {
-  id                   String      @id @default(uuid())
-  name                 String
-  nit                  String?     @unique
-  contactName          String?
-  contactEmail         String?
-  contactPhone         String?
-  address              String?
-  contractorManualUrl  String?     // Manual de contratistas
-  proceduresUrl        String?     // Procedimientos del cliente
-  policiesUrl          String?     // Politicas del cliente
-  notes                String?
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
-  quotations           Quotation[]
+  id                  String      @id @default(uuid())
+  name                String
+  nit                 String?     @unique
+  contactName         String?
+  contactEmail        String?
+  contactPhone        String?
+  address             String?
+  contractorManualUrl String? // Manual de contratistas
+  proceduresUrl       String? // Procedimientos del cliente
+  policiesUrl         String? // Politicas del cliente
+  notes               String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  quotations          Quotation[]
 }
 
 // Modulo de Servicios: catalogo de servicios ambientales que se pueden cotizar
@@ -157,7 +157,7 @@ model Service {
   id          String      @id @default(uuid())
   name        String
   description String?
-  oitType     String?     // Matriz ambiental asociada (Agua, Aire, Suelo, Biota, etc.)
+  oitType     String? // Matriz ambiental asociada (Agua, Aire, Suelo, Biota, etc.)
   active      Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -165,39 +165,39 @@ model Service {
 }
 
 model OITAssignment {
-  id          String   @id @default(uuid())
-  oitId       String
-  oit         OIT      @relation(fields: [oitId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignedAt  DateTime @default(now())
+  id         String   @id @default(uuid())
+  oitId      String
+  oit        OIT      @relation(fields: [oitId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
 
   @@unique([oitId, userId])
 }
 
 model Resource {
-  id                    String    @id @default(uuid())
-  name                  String    // Tipo equipo
-  type                  String    // Matriz (Calidad del aire, Agua, etc.)
-  code                  String?   @unique // Código Interno (H2S-001, etc.)
-  brand                 String?   // Marca
-  model                 String?   // Modelo
-  serial                String?   // Serial
-  location              String?   // Ubicación
-  maintenanceType       String?   // Tipo mantenimiento
-  maintenanceFrequency  String?   // Frecuencia mantenimiento
-  requiresCalibration   Boolean   @default(false)
-  calibrationFrequency  String?   
-  calibrationExpiry     DateTime? // Vigencia calibración
-  variable              String?   // Variable que mide
-  workRange             String?   // Rango de trabajo
-  resolution            String?   // Resolución
-  calibrationPoints     String?   // Puntos calibración
-  status                String    @default("AVAILABLE") // OPERATIVO, MANTENIMIENTO, FUERA_SERVICIO
-  observations          String?   // Observaciones
-  quantity              Int       @default(1)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                   String    @id @default(uuid())
+  name                 String // Tipo equipo
+  type                 String // Matriz (Calidad del aire, Agua, etc.)
+  code                 String?   @unique // Código Interno (H2S-001, etc.)
+  brand                String? // Marca
+  model                String? // Modelo
+  serial               String? // Serial
+  location             String? // Ubicación
+  maintenanceType      String? // Tipo mantenimiento
+  maintenanceFrequency String? // Frecuencia mantenimiento
+  requiresCalibration  Boolean   @default(false)
+  calibrationFrequency String?
+  calibrationExpiry    DateTime? // Vigencia calibración
+  variable             String? // Variable que mide
+  workRange            String? // Rango de trabajo
+  resolution           String? // Resolución
+  calibrationPoints    String? // Puntos calibración
+  status               String    @default("AVAILABLE") // OPERATIVO, MANTENIMIENTO, FUERA_SERVICIO
+  observations         String? // Observaciones
+  quantity             Int       @default(1)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 }
 
 model Notification {
@@ -217,10 +217,10 @@ model Standard {
   id          String   @id @default(uuid())
   title       String
   description String
-  type        String   // OIT, QUOTATION
-  fileUrl     String?  // URL to the uploaded standard document
-  content     String?  // Extracted text content from PDF/XLSX
-  category    String?  // agua_potable, vertimientos, piscina, ruido, aire, fuentes_fijas, etc.
+  type        String // OIT, QUOTATION
+  fileUrl     String? // URL to the uploaded standard document
+  content     String? // Extracted text content from PDF/XLSX
+  category    String? // agua_potable, vertimientos, piscina, ruido, aire, fuentes_fijas, etc.
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -247,32 +247,32 @@ model ConsecutiveCounter {
 }
 
 model SamplingTemplate {
-  id                  String   @id @default(uuid())
-  name                String
-  description         String
-  oitType             String   // Tipo de OIT al que aplica
-  steps               String   // JSON con los pasos del flujo
-  reportTemplateFile  String?  // Nombre del archivo .docx de plantilla de informe
-  startMessage        String?  // Rich text instruction shown at start
-  deletedAt           DateTime? // Soft-delete: papelera de reciclaje, recuperable 90 dias
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  name               String
+  description        String
+  oitType            String // Tipo de OIT al que aplica
+  steps              String // JSON con los pasos del flujo
+  reportTemplateFile String? // Nombre del archivo .docx de plantilla de informe
+  startMessage       String? // Rich text instruction shown at start
+  deletedAt          DateTime? // Soft-delete: papelera de reciclaje, recuperable 90 dias
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
 
 // Historial de versiones de SamplingTemplate. Se crea un snapshot cada vez que
 // el usuario guarda un cambio (updateTemplate); permite ver quien cambio que y
 // restaurar una version anterior sin perder el historial completo.
 model SamplingTemplateVersion {
-  id                  String   @id @default(uuid())
-  samplingTemplateId  String
-  versionNumber       Int
-  name                String
-  description         String
-  oitType             String
-  steps               String
-  reportTemplateFile  String?
-  startMessage        String?
-  createdAt           DateTime @default(now())
+  id                 String   @id @default(uuid())
+  samplingTemplateId String
+  versionNumber      Int
+  name               String
+  description        String
+  oitType            String
+  steps              String
+  reportTemplateFile String?
+  startMessage       String?
+  createdAt          DateTime @default(now())
 
   @@index([samplingTemplateId])
 }
@@ -284,9 +284,9 @@ model SamplingTemplateVersion {
 model OITReportVersion {
   id            String   @id @default(uuid())
   oitId         String
-  name          String   // ej. "Informe Agua", "Comunicado General"
-  url           String   // filename del docx/pdf generado
-  type          String   // 'docx' | 'pdf'
+  name          String // ej. "Informe Agua", "Comunicado General"
+  url           String // filename del docx/pdf generado
+  type          String // 'docx' | 'pdf'
   versionNumber Int
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
@@ -296,19 +296,19 @@ model OITReportVersion {
 
 // AI Feedback System - stores user corrections to improve AI outputs
 model AIFeedback {
-  id              String   @id @default(uuid())
-  oitId           String?  // Related OIT if applicable
-  category        String   // OIT_ANALYSIS, PROPOSAL, REPORT, TEMPLATE_MAPPING
-  aiOutput        String   // Original AI-generated content
-  userCorrection  String?  // User's corrected version
-  rating          Int      @default(0) // 1-5 stars
-  feedbackType    String   // CORRECT, PARTIAL, WRONG
-  fieldName       String?  // Specific field that was wrong (e.g., "var_34")
-  correctValue    String?  // What the correct value should be
-  notes           String?  // Additional user notes
-  applied         Boolean  @default(false) // Whether feedback was used to improve
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(uuid())
+  oitId          String? // Related OIT if applicable
+  category       String // OIT_ANALYSIS, PROPOSAL, REPORT, TEMPLATE_MAPPING
+  aiOutput       String // Original AI-generated content
+  userCorrection String? // User's corrected version
+  rating         Int      @default(0) // 1-5 stars
+  feedbackType   String // CORRECT, PARTIAL, WRONG
+  fieldName      String? // Specific field that was wrong (e.g., "var_34")
+  correctValue   String? // What the correct value should be
+  notes          String? // Additional user notes
+  applied        Boolean  @default(false) // Whether feedback was used to improve
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 // Modulo de Listas de Distribucion: a quien se le manda cada tipo de correo (factura,
@@ -316,14 +316,14 @@ model AIFeedback {
 // en la practica una factura o un informe van a varias personas (requeridas y opcionales,
 // igual que una invitacion de calendario).
 model DistributionList {
-  id          String   @id @default(uuid())
-  name        String   // ej. "Facturación - Oben Group"
-  purpose     String   // ej. "Factura", "Informes", "Cotizaciones"
-  clientId    String?  // enlace opcional al Cliente real, si ya existe en el catalogo
-  recipients  String   // JSON: [{ name, email, required: boolean }]
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String // ej. "Facturación - Oben Group"
+  purpose    String // ej. "Factura", "Informes", "Cotizaciones"
+  clientId   String? // enlace opcional al Cliente real, si ya existe en el catalogo
+  recipients String // JSON: [{ name, email, required: boolean }]
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // Base de conocimiento de nombres de parametros (queja de Ana Lucia, 2026-10-15).
@@ -334,7 +334,7 @@ model ParameterRule {
   nameA         String
   nameB         String
   sameParameter Boolean
-  source        String   // quien la confirmo (ej. "Ana Lucia 2026-10-15")
+  source        String // quien la confirmo (ej. "Ana Lucia 2026-10-15")
   createdAt     DateTime @default(now())
 
   @@unique([nameA, nameB])
@@ -343,19 +343,19 @@ model ParameterRule {
 // Consulta al laboratorio cuando el sistema no puede decidir si dos nombres son el
 // mismo parametro. Llega a la bandeja de ALS (notificacion) y la respuesta queda aqui.
 model ParameterConsultation {
-  id            String    @id @default(uuid())
-  key           String    @unique
-  normParameter String
-  quotedAs      String
-  normReference String?
-  quotationNumber String?  // primera cotizacion que genero la duda
-  status        String    @default("PENDIENTE") // PENDIENTE | RESPONDIDA
-  notifiedUserId String?  // usuario de ALS al que llego la notificacion (bandeja)
-  notifiedAt    DateTime?
-  answerSame    Boolean?
-  answerNote    String?
-  createdAt     DateTime  @default(now())
-  answeredAt    DateTime?
+  id              String    @id @default(uuid())
+  key             String    @unique
+  normParameter   String
+  quotedAs        String
+  normReference   String?
+  quotationNumber String? // primera cotizacion que genero la duda
+  status          String    @default("PENDIENTE") // PENDIENTE | RESPONDIDA
+  notifiedUserId  String? // usuario de ALS al que llego la notificacion (bandeja)
+  notifiedAt      DateTime?
+  answerSame      Boolean?
+  answerNote      String?
+  createdAt       DateTime  @default(now())
+  answeredAt      DateTime?
 }
 
 // Personal de monitoreo (reunion del 2026-10-23: "les voy a dejar un espacio para que
@@ -369,4 +369,33 @@ model MonitoringStaff {
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Xmart Academy (2026-10-24): preguntas que le hacen a Ana (para detectar las frecuentes)
+// y borradores de la IA para el entrenamiento, que solo se publican si Hernan los aprueba.
+model AssistantQuestion {
+  id        String   @id @default(uuid())
+  userId    String?
+  pregunta  String
+  ruta      String?
+  modulo    String? // modulo de Academy al que se refiere (por palabras clave)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model AcademyPropuesta {
+  id          String    @id @default(uuid())
+  modulo      String
+  tipo        String // NOVEDAD (cambio de codigo) | PREGUNTA (pregunta frecuente)
+  titulo      String
+  contenido   String // texto que vera el equipo (Markdown corto)
+  evidencia   String // de donde sale: commits o preguntas reales
+  origen      String    @unique // commit o conjunto de preguntas: evita proponer dos veces lo mismo
+  estado      String    @default("PENDIENTE") // PENDIENTE | APROBADA | RECHAZADA
+  decididoPor String?
+  decididoEn  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([modulo, estado])
 }

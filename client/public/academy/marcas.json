@@ -1,0 +1,206 @@
+{
+  "panel.png": [
+    {
+      "x": 6.7,
+      "y": 17.8,
+      "titulo": "Inicio",
+      "texto": "El resumen del día: OIT por estado, muestreos de hoy y alertas."
+    },
+    {
+      "x": 6.7,
+      "y": 22.4,
+      "titulo": "Academy",
+      "texto": "Este entrenamiento, siempre a un clic."
+    }
+  ],
+  "clientes.png": [
+    {
+      "x": 90.8,
+      "y": 16.8,
+      "titulo": "Crear cliente",
+      "texto": "Nombre, NIT y contacto."
+    },
+    {
+      "x": 31.1,
+      "y": 44.8,
+      "titulo": "Cada cliente",
+      "texto": "Edita o elimina desde su fila."
+    }
+  ],
+  "servicios.png": [
+    {
+      "x": 90.6,
+      "y": 16.8,
+      "titulo": "Crear servicio",
+      "texto": "Nombre y categoría."
+    },
+    {
+      "x": 29.9,
+      "y": 44.5,
+      "titulo": "Catálogo",
+      "texto": "Lo que presta ALS."
+    }
+  ],
+  "cotizaciones.png": [
+    {
+      "x": 91.2,
+      "y": 14.1,
+      "titulo": "Cargar cotización",
+      "texto": "Sube el PDF; la IA revisa la norma."
+    },
+    {
+      "x": 28.9,
+      "y": 47.3,
+      "titulo": "Resultado",
+      "texto": "Abre la cotización para ver cumplimiento y hallazgos."
+    }
+  ],
+  "consultas.png": [
+    {
+      "x": 29.9,
+      "y": 38.7,
+      "titulo": "Consulta pendiente",
+      "texto": "Parámetro de la norma y cómo se cotizó."
+    },
+    {
+      "x": 29.9,
+      "y": 42.6,
+      "titulo": "Responder",
+      "texto": "Sí o No, con nota opcional."
+    }
+  ],
+  "listas.png": [
+    {
+      "x": 91.4,
+      "y": 16.8,
+      "titulo": "Crear lista",
+      "texto": "Nombre y destinatarios."
+    }
+  ],
+  "oits.png": [
+    {
+      "x": 93.5,
+      "y": 14.1,
+      "titulo": "Cargar OIT",
+      "texto": "Sube el PDF; la IA extrae la información."
+    },
+    {
+      "x": 85.3,
+      "y": 3.8,
+      "titulo": "Buscar",
+      "texto": "Por número, cliente, NIT o cotización."
+    },
+    {
+      "x": 33.2,
+      "y": 40.6,
+      "titulo": "Cada OIT",
+      "texto": "Ábrela para ver sus pestañas."
+    }
+  ],
+  "agenda.png": [
+    {
+      "x": 89.6,
+      "y": 54.3,
+      "titulo": "Editar",
+      "texto": "Cambia días, hora o personal."
+    },
+    {
+      "x": 6.7,
+      "y": 36.3,
+      "titulo": "Días y alertas",
+      "texto": "Cada servicio con sus días y las banderas rojas."
+    }
+  ],
+  "muestreo.png": [
+    {
+      "x": 25,
+      "y": 84.1,
+      "titulo": "Llegada",
+      "texto": "Registra hora y ubicación."
+    },
+    {
+      "x": 32.6,
+      "y": 91.4,
+      "titulo": "Planilla",
+      "texto": "Foto, PDF, Word o Excel: llena los campos."
+    }
+  ],
+  "calendario.png": [
+    {
+      "x": 80.3,
+      "y": 34.1,
+      "titulo": "Vistas",
+      "texto": "Mes, semana, día o agenda."
+    },
+    {
+      "x": 39.3,
+      "y": 83.9,
+      "titulo": "Muestreo",
+      "texto": "Toca para abrir la OIT."
+    }
+  ],
+  "recursos.png": [
+    {
+      "x": 28.2,
+      "y": 38.8,
+      "titulo": "Equipo",
+      "texto": "Estado y calibración al día."
+    }
+  ],
+  "informe.png": [
+    {
+      "x": 33.5,
+      "y": 42.7,
+      "titulo": "Informes",
+      "texto": "Sube resultados y genera el informe por servicio."
+    }
+  ],
+  "plantillas.png": [
+    {
+      "x": 29.4,
+      "y": 38.9,
+      "titulo": "Plantilla",
+      "texto": "Pasos del formulario de campo."
+    }
+  ],
+  "normas.png": [
+    {
+      "x": 29.4,
+      "y": 39.4,
+      "titulo": "Norma",
+      "texto": "Contra esto revisa la IA."
+    }
+  ],
+  "analitica.png": [
+    {
+      "x": 6.7,
+      "y": 92,
+      "titulo": "Indicadores",
+      "texto": "OIT por estado, tendencias e informes."
+    }
+  ],
+  "ana.png": [
+    {
+      "x": 30.2,
+      "y": 90.4,
+      "titulo": "Pregunta",
+      "texto": "Escribe en lenguaje natural."
+    }
+  ],
+  "notificaciones.png": [
+    {
+      "x": 37.2,
+      "y": 24,
+      "titulo": "Aviso",
+      "texto": "Toca para ir al detalle."
+    }
+  ],
+  "personal.png": [
+    {
+      "x": 29.7,
+      "y": 73.9,
+      "titulo": "Persona",
+      "texto": "Nombre, cargo, correo y si está activa."
+    }
+  ]
+}

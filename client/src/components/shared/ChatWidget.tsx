@@ -14,6 +14,8 @@ interface Message {
 }
 
 export const CHAT_MESSAGE_EVENT = 'als:chat-message';
+// Abre el chat con una pregunta escrita para que la persona la complete y la envie (Xmart Academy).
+export const CHAT_DRAFT_EVENT = 'als:chat-draft';
 
 export function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false);
@@ -41,8 +43,15 @@ export function ChatWidget() {
             setMessages(prev => [...prev, { role: 'assistant', content }]);
             setIsOpen(true);
         };
+        const onDraft = (e: Event) => {
+            const text = (e as CustomEvent<{ text?: string }>).detail?.text;
+            if (!text) return;
+            setInput(text);
+            setIsOpen(true);
+        };
         window.addEventListener(CHAT_MESSAGE_EVENT, onMessage);
-        return () => window.removeEventListener(CHAT_MESSAGE_EVENT, onMessage);
+        window.addEventListener(CHAT_DRAFT_EVENT, onDraft);
+        return () => { window.removeEventListener(CHAT_MESSAGE_EVENT, onMessage); window.removeEventListener(CHAT_DRAFT_EVENT, onDraft); };
     }, []);
 
     const sendMessage = async () => {

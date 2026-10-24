@@ -2,13 +2,13 @@
 // menu funcionalmente"). Que rutas del menu ve cada area del listado de personal. Los
 // administradores ven todo. Es solo el menu: los permisos del servidor no cambian.
 export const AREA_MENUS: Record<string, string[]> = {
-    'Comercial': ['/', '/clients', '/services', '/quotations', '/distribution-lists', '/parameter-consultations', '/oits', '/calendar', '/ai', '/notifications', '/settings'],
-    'Operaciones': ['/', '/oits', '/calendar', '/resources', '/sampling-templates', '/standards', '/ai', '/notifications', '/settings'],
-    'Laboratorio': ['/', '/oits', '/calendar', '/standards', '/ai', '/notifications', '/settings'],
-    'Direccion Tecnica': ['/', '/quotations', '/oits', '/calendar', '/resources', '/sampling-templates', '/standards', '/analytics', '/ai', '/notifications', '/settings'],
-    'Consultoria': ['/', '/quotations', '/oits', '/calendar', '/sampling-templates', '/standards', '/analytics', '/ai', '/notifications', '/settings'],
-    'Sistema Integrado De Gestion': ['/', '/oits', '/standards', '/analytics', '/ai', '/notifications', '/settings'],
-    'Infraestructura Tecnologica': ['/', '/oits', '/calendar', '/resources', '/ai', '/notifications', '/settings'],
+    'Comercial': ['/', '/clients', '/services', '/quotations', '/distribution-lists', '/parameter-consultations', '/oits', '/calendar', '/ai', '/notifications', '/academy', '/settings'],
+    'Operaciones': ['/', '/oits', '/calendar', '/resources', '/sampling-templates', '/standards', '/ai', '/notifications', '/academy', '/settings'],
+    'Laboratorio': ['/', '/oits', '/calendar', '/standards', '/ai', '/notifications', '/academy', '/settings'],
+    'Direccion Tecnica': ['/', '/quotations', '/oits', '/calendar', '/resources', '/sampling-templates', '/standards', '/analytics', '/ai', '/notifications', '/academy', '/settings'],
+    'Consultoria': ['/', '/quotations', '/oits', '/calendar', '/sampling-templates', '/standards', '/analytics', '/ai', '/notifications', '/academy', '/settings'],
+    'Sistema Integrado De Gestion': ['/', '/oits', '/standards', '/analytics', '/ai', '/notifications', '/academy', '/settings'],
+    'Infraestructura Tecnologica': ['/', '/oits', '/calendar', '/resources', '/ai', '/notifications', '/academy', '/settings'],
 };
 
 // Rutas permitidas para el usuario; null = sin filtro (administrador o area desconocida).

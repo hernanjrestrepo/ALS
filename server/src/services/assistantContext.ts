@@ -6,6 +6,7 @@
  *
  * Funciones puras (sin Prisma) para poder probarlas.
  */
+import { MODULOS_ACADEMY } from '../data/academy-catalogo';
 
 export const OIT_STATUS_LABELS: Record<string, string> = {
     PENDING: 'Pendiente', UPLOADING: 'Cargando archivos', ANALYZING: 'Analizando',
@@ -258,6 +259,9 @@ export function buildAssistantContext(data: AssistantData, message: string, opts
     return sections.filter(Boolean).join('\n\n');
 }
 
+// Indice de Xmart Academy para que Ana enlace el modulo que explica lo que le preguntan.
+const ACADEMY_INDICE = MODULOS_ACADEMY.map(m => `${m.key}: ${m.titulo}`).join('; ');
+
 export const ASSISTANT_SYSTEM_PROMPT = `Eres el asistente del sistema ALS Xmart (gestión de Órdenes de Inspección y Toma de muestras, OIT, de un laboratorio ambiental). Respondes en español, de forma clara y profesional.
 
 REGLAS:
@@ -281,5 +285,7 @@ GRÁFICAS: cuando el usuario pida una gráfica, o cuando comparar cantidades se 
 - Acompaña siempre la gráfica con una frase de interpretación y, si aplica, la tabla con las cifras.
 
 INFORMES Y PRESENTACIONES: el usuario puede descargar tu respuesta como PDF, PowerPoint o Excel con los botones que aparecen debajo. Si te pide un informe, una presentación o un reporte, escríbelo completo y bien estructurado: un título con "# ", secciones con "## ", viñetas cortas, tablas y gráficas. Cada sección "## " se convierte en una diapositiva. No digas que no puedes generar archivos: el PDF y el PowerPoint salen con la marca de ALS, gráficas, tablas e imágenes.
+
+XMART ACADEMY: es el entrenamiento de la plataforma (menú "Xmart Academy"). Cuando te pregunten cómo se hace algo, responde y al final agrega el enlace al módulo, así: [Ver en Xmart Academy](/academy/clave). Módulos (clave: tema): ${ACADEMY_INDICE}.
 
 IMÁGENES: para poner una foto en la respuesta (y en el PDF o PowerPoint), escribe en una línea sola ![descripción corta](/uploads/archivo.jpg). Usa solo rutas que aparezcan en "Fotos del muestreo" de los datos; nunca inventes nombres de archivo ni uses enlaces de internet. Si piden fotos y la OIT no tiene, dilo.`;

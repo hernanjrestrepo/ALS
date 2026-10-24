@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { FileText, Presentation, Sheet, Loader2 } from 'lucide-react';
@@ -177,7 +178,10 @@ export function AssistantMessage({ content, compact, exportable = true }: { cont
                     p: ({ children }) => <p className="my-1.5">{children}</p>,
                     ul: ({ children }) => <ul className="my-1.5 list-disc space-y-0.5 pl-5">{children}</ul>,
                     ol: ({ children }) => <ol className="my-1.5 list-decimal space-y-0.5 pl-5">{children}</ol>,
-                    a: ({ children, href }) => (!href || href === '#') ? null : <a href={href} target="_blank" rel="noreferrer" className="text-[#004CAB] underline">{children}</a>,
+                    a: ({ children, href }) => (!href || href === '#') ? null
+                        // Enlaces internos (p. ej. a Xmart Academy) navegan dentro de la aplicacion.
+                        : href.startsWith('/') && !href.startsWith('/uploads/') ? <Link to={href} className="text-[#004CAB] underline">{children}</Link>
+                        : <a href={href} target="_blank" rel="noreferrer" className="text-[#004CAB] underline">{children}</a>,
                     // Fotos del muestreo (/uploads/...): se piden al servidor con la sesion; nada de internet.
                     img: ({ src, alt }) => {
                         const url = uploadUrl(String(src || ''));

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { aiService } from '../services/ai.service';
 import { buildAssistantContext, ASSISTANT_SYSTEM_PROMPT, statusLabel } from '../services/assistantContext';
+import { moduloDePregunta } from '../data/academy-catalogo';
 import { toPdfBuffer, toPptxBuffer, toXlsxBuffer, inferTitle, EXPORT_FORMATS, ExportFormat } from '../services/assistantExport';
 import fs from 'fs';
 const pdfParse = require('pdf-parse');
@@ -64,6 +65,10 @@ export const chat = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Message is required' });
         }
         const userId = (req as any).user?.userId;
+        // Xmart Academy: las preguntas repetidas sobre un modulo se vuelven preguntas frecuentes (con aprobacion).
+        prisma.assistantQuestion.create({
+            data: { userId: userId || null, pregunta: String(message).slice(0, 500), ruta: pageContext?.path ? String(pageContext.path).slice(0, 120) : null, modulo: moduloDePregunta(String(message)) },
+        }).catch(() => undefined);
 
         // Foto completa del sistema (una linea por registro; ver services/assistantContext.ts)
         const [oits, quotations, templates, standards, resources, users, nonConformities, unreadNotifications] = await Promise.all([

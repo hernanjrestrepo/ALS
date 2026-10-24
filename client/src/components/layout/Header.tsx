@@ -38,7 +38,14 @@ export function Header({ onMenuClick }: HeaderProps) {
         if (path.startsWith('/oits')) return ['Plataforma', 'OITs'];
         if (path.startsWith('/resources')) return ['Plataforma', 'Recursos'];
         if (path.startsWith('/settings')) return ['Plataforma', 'Configuración'];
-        return ['Plataforma', 'Página'];
+        const secciones: Array<[string, string]> = [
+            ['/academy', 'Xmart Academy'], ['/quotations', 'Cotizaciones'], ['/clients', 'Clientes'], ['/services', 'Servicios'],
+            ['/distribution-lists', 'Listas de Distribución'], ['/parameter-consultations', 'Consultas de parámetros'], ['/calendar', 'Calendario'],
+            ['/sampling-templates', 'Plantillas'], ['/standards', 'Normas'], ['/analytics', 'Analítica'], ['/ai', 'Asistente IA'],
+            ['/notifications', 'Notificaciones'], ['/monitoring-staff', 'Personal de monitoreo'], ['/users', 'Usuarios'],
+        ];
+        const hit = secciones.find(([p]) => path === p || path.startsWith(p + '/'));
+        return ['Plataforma', hit ? hit[1] : 'Página'];
     };
 
     const breadcrumbs = getBreadcrumbs();

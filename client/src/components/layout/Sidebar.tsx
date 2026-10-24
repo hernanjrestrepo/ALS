@@ -21,7 +21,8 @@ import {
     ChevronDown,
     Mail,
     HelpCircle,
-    HardHat
+    HardHat,
+    GraduationCap,
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -49,6 +50,7 @@ const getNavigationGroups = (userRole?: string) => {
     return [
         { title: 'Inicio', items: [
             { icon: LayoutDashboard, label: 'Panel de Control', href: '/' },
+            { icon: GraduationCap, label: 'Xmart Academy', href: '/academy' },
         ] },
         { title: 'Comercial', items: [
             { icon: Building2, label: 'Clientes', href: '/clients' },
