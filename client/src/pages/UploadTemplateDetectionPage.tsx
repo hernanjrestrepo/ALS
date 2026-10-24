@@ -26,6 +26,7 @@ import {
 import api from '@/lib/api';
 import { notify } from '@/lib/notify';
 
+import { tr } from '@/i18n';
 interface TagCandidate {
     id: string;
     phrase: string;
@@ -145,9 +146,9 @@ export default function UploadTemplateDetectionPage() {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Detección Automática de Tags</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">{tr("Detección Automática de Tags")}</h2>
                     <p className="text-slate-500">
-                        Sube un formato de informe sin tags y deja que la IA sugiera dónde van los marcadores de automatización.
+                        {tr("Sube un formato de informe sin tags y deja que la IA sugiera dónde van los marcadores de automatización.")}
                     </p>
                 </div>
             </div>
@@ -156,9 +157,9 @@ export default function UploadTemplateDetectionPage() {
                 <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                         <Upload className="h-4 w-4 text-slate-400" />
-                        1. Subir formato
+                        {tr("1. Subir formato")}
                     </CardTitle>
-                    <CardDescription>Archivo .docx sin tags de automatización</CardDescription>
+                    <CardDescription>{tr("Archivo .docx sin tags de automatización")}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center gap-3">
                     <Input
@@ -178,7 +179,7 @@ export default function UploadTemplateDetectionPage() {
                         ) : (
                             <Sparkles className="mr-2 h-4 w-4" />
                         )}
-                        Analizar con IA
+                        {tr("Analizar con IA")}
                     </Button>
                 </CardContent>
             </Card>
@@ -188,11 +189,10 @@ export default function UploadTemplateDetectionPage() {
                     <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                             <FileSearch className="h-4 w-4 text-slate-400" />
-                            2. Revisar candidatos
+                            {tr("2. Revisar candidatos")}
                         </CardTitle>
                         <CardDescription>
-                            {candidates.length} de {totalFromAI} candidatos sugeridos por la IA pasaron la validación
-                            (existen literalmente en el documento). Edita el nombre del tag o descártalos antes de aplicar.
+                            {candidates.length} de {totalFromAI} {tr("candidatos sugeridos por la IA pasaron la validación (existen literalmente en el documento). Edita el nombre del tag o descártalos antes de aplicar.")}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -201,10 +201,10 @@ export default function UploadTemplateDetectionPage() {
                                 <TableHeader className="bg-slate-50/50">
                                     <TableRow className="border-slate-100">
                                         <TableHead className="w-10 py-3 px-4"></TableHead>
-                                        <TableHead className="py-3 px-4 font-medium text-slate-500">Frase detectada</TableHead>
-                                        <TableHead className="py-3 px-4 font-medium text-slate-500">Nombre del tag</TableHead>
-                                        <TableHead className="py-3 px-4 font-medium text-slate-500">Fuente</TableHead>
-                                        <TableHead className="py-3 px-4 font-medium text-slate-500">Ocurrencias</TableHead>
+                                        <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Frase detectada")}</TableHead>
+                                        <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Nombre del tag")}</TableHead>
+                                        <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Fuente")}</TableHead>
+                                        <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Ocurrencias")}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody className="divide-y divide-slate-100">
@@ -235,11 +235,11 @@ export default function UploadTemplateDetectionPage() {
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="OIT">OIT</SelectItem>
-                                                        <SelectItem value="AI">AI</SelectItem>
-                                                        <SelectItem value="DATE">DATE</SelectItem>
-                                                        <SelectItem value="STATIC">STATIC</SelectItem>
-                                                        <SelectItem value="SYSTEM">SYSTEM</SelectItem>
+                                                        <SelectItem value="OIT">{tr("OIT")}</SelectItem>
+                                                        <SelectItem value="AI">{tr("AI")}</SelectItem>
+                                                        <SelectItem value="DATE">{tr("DATE")}</SelectItem>
+                                                        <SelectItem value="STATIC">{tr("STATIC")}</SelectItem>
+                                                        <SelectItem value="SYSTEM">{tr("SYSTEM")}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </TableCell>
@@ -262,7 +262,7 @@ export default function UploadTemplateDetectionPage() {
                                 ) : (
                                     <CheckCircle2 className="mr-2 h-4 w-4" />
                                 )}
-                                Aplicar tags seleccionados
+                                {tr("Aplicar tags seleccionados")}
                             </Button>
                         </div>
                     </CardContent>
@@ -274,23 +274,21 @@ export default function UploadTemplateDetectionPage() {
                     <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                            3. Resultado
+                            {tr("3. Resultado")}
                         </CardTitle>
                         <CardDescription>
-                            Este archivo aún no está conectado a ninguna Plantilla de Muestreo en producción —
-                            revísalo y, si está correcto, súbelo manualmente como plantilla de informe desde
-                            Plantillas de Muestreo.
+                            {tr("Este archivo aún no está conectado a ninguna Plantilla de Muestreo en producción — revísalo y, si está correcto, súbelo manualmente como plantilla de informe desde Plantillas de Muestreo.")}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                         <div className="flex items-center gap-2">
                             <Button variant="outline" className="border-slate-200" onClick={handlePreview}>
                                 <FileSearch className="mr-2 h-4 w-4" />
-                                Ver documento con tags
+                                {tr("Ver documento con tags")}
                             </Button>
                             <Button variant="outline" className="border-slate-200" onClick={handleDownload}>
                                 <Download className="mr-2 h-4 w-4" />
-                                Descargar .docx
+                                {tr("Descargar .docx")}
                             </Button>
                         </div>
                         <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
@@ -311,7 +309,7 @@ export default function UploadTemplateDetectionPage() {
                                     ) : (
                                         <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 shrink-0">
                                             <AlertTriangle className="h-3 w-3 mr-1" />
-                                            No encontrado
+                                            {tr("No encontrado")}
                                         </Badge>
                                     )}
                                 </div>

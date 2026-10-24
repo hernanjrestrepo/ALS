@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import api from '@/lib/api';
 
+import { tr } from '@/i18n';
 export default function ResourcesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const { resources, isLoading, error } = useResources(searchQuery);
@@ -64,11 +65,11 @@ export default function ResourcesPage() {
     const getStatusLabel = (status: string) => {
         switch (status) {
             case 'AVAILABLE':
-                return 'Disponible';
+                return tr("Disponible");
             case 'IN_USE':
-                return 'En uso';
+                return tr("En uso");
             case 'MAINTENANCE':
-                return 'Mantenimiento';
+                return tr("Mantenimiento");
             default:
                 return status;
         }
@@ -86,7 +87,7 @@ export default function ResourcesPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm('¿Estás seguro de que deseas eliminar este recurso?')) {
+        if (!window.confirm(tr("¿Estás seguro de que deseas eliminar este recurso?"))) {
             return;
         }
         try {
@@ -94,7 +95,7 @@ export default function ResourcesPage() {
             window.location.reload();
         } catch (error) {
             console.error('Error deleting resource:', error);
-            alert('Error al eliminar recurso');
+            alert(tr("Error al eliminar recurso"));
         }
     };
 
@@ -102,21 +103,21 @@ export default function ResourcesPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Recursos</h2>
-                    <p className="text-slate-500">Gestiona tu equipo e inventario.</p>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">{tr("Recursos")}</h2>
+                    <p className="text-slate-500">{tr("Gestiona tu equipo e inventario.")}</p>
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white">
                             <Plus className="mr-2 h-4 w-4" />
-                            Agregar Recurso
+                            {tr("Agregar Recurso")}
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Agregar Recursos</DialogTitle>
+                            <DialogTitle>{tr("Agregar Recursos")}</DialogTitle>
                             <DialogDescription>
-                                Agrega recursos individualmente o importa múltiples desde un archivo CSV.
+                                {tr("Agrega recursos individualmente o importa múltiples desde un archivo CSV.")}
                             </DialogDescription>
                         </DialogHeader>
 
@@ -129,7 +130,7 @@ export default function ResourcesPage() {
                                     : 'text-slate-600 hover:text-slate-900'
                                     }`}
                             >
-                                Manual
+                                {tr("Manual")}
                             </button>
                             <button
                                 onClick={() => setUploadMode('csv')}
@@ -138,32 +139,32 @@ export default function ResourcesPage() {
                                     : 'text-slate-600 hover:text-slate-900'
                                     }`}
                             >
-                                Importar CSV
+                                {tr("Importar CSV")}
                             </button>
                         </div>
 
                         {uploadMode === 'manual' ? (
                             <div className="grid gap-4 py-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="name">Nombre</Label>
+                                    <Label htmlFor="name">{tr("Nombre")}</Label>
                                     <Input
                                         id="name"
-                                        placeholder="Ej: Casco de Seguridad"
+                                        placeholder={tr("Ej: Casco de Seguridad")}
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="type">Tipo</Label>
+                                    <Label htmlFor="type">{tr("Tipo")}</Label>
                                     <Input
                                         id="type"
-                                        placeholder="Ej: Equipo de Protección"
+                                        placeholder={tr("Ej: Equipo de Protección")}
                                         value={formData.type}
                                         onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="quantity">Cantidad</Label>
+                                    <Label htmlFor="quantity">{tr("Cantidad")}</Label>
                                     <Input
                                         id="quantity"
                                         type="number"
@@ -173,18 +174,18 @@ export default function ResourcesPage() {
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="status">Estado</Label>
+                                    <Label htmlFor="status">{tr("Estado")}</Label>
                                     <Select
                                         value={formData.status}
                                         onValueChange={(value) => setFormData({ ...formData, status: value })}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona un estado" />
+                                            <SelectValue placeholder={tr("Selecciona un estado")} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="AVAILABLE">Disponible</SelectItem>
-                                            <SelectItem value="IN_USE">En Uso</SelectItem>
-                                            <SelectItem value="MAINTENANCE">Mantenimiento</SelectItem>
+                                            <SelectItem value="AVAILABLE">{tr("Disponible")}</SelectItem>
+                                            <SelectItem value="IN_USE">{tr("En Uso")}</SelectItem>
+                                            <SelectItem value="MAINTENANCE">{tr("Mantenimiento")}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -205,7 +206,7 @@ export default function ResourcesPage() {
                                             if (file && file.name.endsWith('.csv')) {
                                                 setCsvFile(file);
                                             } else {
-                                                alert('Por favor selecciona un archivo CSV válido');
+                                                alert(tr("Por favor selecciona un archivo CSV válido"));
                                             }
                                         }}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -215,26 +216,26 @@ export default function ResourcesPage() {
                                             <>
                                                 <CheckCircle2 className="h-16 w-16 text-emerald-600 mb-4" />
                                                 <p className="font-semibold text-emerald-900 text-lg mb-2">
-                                                    Archivo CSV Cargado
+                                                    {tr("Archivo CSV Cargado")}
                                                 </p>
                                                 <p className="text-sm text-emerald-700 break-all px-4">
                                                     {csvFile.name}
                                                 </p>
                                                 <p className="text-xs text-emerald-600 mt-2">
-                                                    {(csvFile.size / 1024).toFixed(2)} KB
+                                                    {(csvFile.size / 1024).toFixed(2)} {tr("KB")}
                                                 </p>
                                             </>
                                         ) : (
                                             <>
                                                 <FileSpreadsheet className="h-16 w-16 text-slate-400 mb-4" />
                                                 <p className="font-semibold text-slate-700 text-lg mb-2">
-                                                    Subir Archivo CSV
+                                                    {tr("Subir Archivo CSV")}
                                                 </p>
                                                 <p className="text-sm text-slate-500 mb-4">
-                                                    Click para seleccionar o arrastra aquí
+                                                    {tr("Click para seleccionar o arrastra aquí")}
                                                 </p>
                                                 <p className="text-xs text-slate-400">
-                                                    Formato: nombre,tipo,cantidad,estado
+                                                    {tr("Formato: nombre,tipo,cantidad,estado")}
                                                 </p>
                                             </>
                                         )}
@@ -247,10 +248,10 @@ export default function ResourcesPage() {
                                         <FileSpreadsheet className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                                         <div className="flex-1">
                                             <p className="text-sm font-semibold text-blue-900 mb-1">
-                                                Formato del CSV
+                                                {tr("Formato del CSV")}
                                             </p>
                                             <p className="text-sm text-blue-800 mb-2">
-                                                El archivo debe contener las columnas: <code className="bg-blue-100 px-1 rounded">nombre</code>, <code className="bg-blue-100 px-1 rounded">tipo</code>, <code className="bg-blue-100 px-1 rounded">cantidad</code>, <code className="bg-blue-100 px-1 rounded">estado</code>
+                                                {tr("El archivo debe contener las columnas:")}{' '}<code className="bg-blue-100 px-1 rounded">nombre</code>, <code className="bg-blue-100 px-1 rounded">tipo</code>, <code className="bg-blue-100 px-1 rounded">cantidad</code>, <code className="bg-blue-100 px-1 rounded">estado</code>
                                             </p>
                                             <Button
                                                 variant="outline"
@@ -266,7 +267,7 @@ export default function ResourcesPage() {
                                                     a.click();
                                                 }}
                                             >
-                                                Descargar Plantilla
+                                                {tr("Descargar Plantilla")}
                                             </Button>
                                         </div>
                                     </div>
@@ -284,7 +285,7 @@ export default function ResourcesPage() {
                                     setUploadMode('manual');
                                 }}
                             >
-                                Cancelar
+                                {tr("Cancelar")}
                             </Button>
                             {uploadMode === 'manual' ? (
                                 <Button
@@ -298,7 +299,7 @@ export default function ResourcesPage() {
                                             window.location.reload();
                                         } catch (error) {
                                             console.error('Error creating resource:', error);
-                                            alert('Error al crear recurso');
+                                            alert(tr("Error al crear recurso"));
                                         } finally {
                                             setIsCreating(false);
                                         }
@@ -306,13 +307,13 @@ export default function ResourcesPage() {
                                     disabled={isCreating || !formData.name || !formData.type}
                                     className="bg-[#004CAB] hover:bg-[#003b85]"
                                 >
-                                    {isCreating ? 'Creando...' : 'Crear Recurso'}
+                                    {isCreating ? tr("Creando...") : tr("Crear Recurso")}
                                 </Button>
                             ) : (
                                 <Button
                                     onClick={async () => {
                                         if (!csvFile) {
-                                            alert('Por favor selecciona un archivo CSV');
+                                            alert(tr("Por favor selecciona un archivo CSV"));
                                             return;
                                         }
                                         try {
@@ -327,7 +328,7 @@ export default function ResourcesPage() {
                                             window.location.reload();
                                         } catch (error) {
                                             console.error('Error uploading CSV:', error);
-                                            alert('Error al importar recursos desde CSV');
+                                            alert(tr("Error al importar recursos desde CSV"));
                                         } finally {
                                             setIsCreating(false);
                                         }
@@ -335,7 +336,7 @@ export default function ResourcesPage() {
                                     disabled={isCreating || !csvFile}
                                     className="bg-[#004CAB] hover:bg-[#003b85]"
                                 >
-                                    {isCreating ? 'Importando...' : 'Importar Recursos'}
+                                    {isCreating ? tr("Importando...") : tr("Importar Recursos")}
                                 </Button>
                             )}
                         </DialogFooter>
@@ -346,14 +347,14 @@ export default function ResourcesPage() {
                 <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Editar Recurso</DialogTitle>
+                            <DialogTitle>{tr("Editar Recurso")}</DialogTitle>
                             <DialogDescription>
-                                Actualiza la información del recurso.
+                                {tr("Actualiza la información del recurso.")}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-name">Nombre</Label>
+                                <Label htmlFor="edit-name">{tr("Nombre")}</Label>
                                 <Input
                                     id="edit-name"
                                     value={formData.name}
@@ -361,7 +362,7 @@ export default function ResourcesPage() {
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-type">Tipo</Label>
+                                <Label htmlFor="edit-type">{tr("Tipo")}</Label>
                                 <Input
                                     id="edit-type"
                                     value={formData.type}
@@ -369,7 +370,7 @@ export default function ResourcesPage() {
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-quantity">Cantidad</Label>
+                                <Label htmlFor="edit-quantity">{tr("Cantidad")}</Label>
                                 <Input
                                     id="edit-quantity"
                                     type="number"
@@ -378,7 +379,7 @@ export default function ResourcesPage() {
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-status">Estado</Label>
+                                <Label htmlFor="edit-status">{tr("Estado")}</Label>
                                 <Select
                                     value={formData.status}
                                     onValueChange={(value) => setFormData({ ...formData, status: value })}
@@ -387,16 +388,16 @@ export default function ResourcesPage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="AVAILABLE">Disponible</SelectItem>
-                                        <SelectItem value="IN_USE">En Uso</SelectItem>
-                                        <SelectItem value="MAINTENANCE">Mantenimiento</SelectItem>
+                                        <SelectItem value="AVAILABLE">{tr("Disponible")}</SelectItem>
+                                        <SelectItem value="IN_USE">{tr("En Uso")}</SelectItem>
+                                        <SelectItem value="MAINTENANCE">{tr("Mantenimiento")}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                                Cancelar
+                                {tr("Cancelar")}
                             </Button>
                             <Button
                                 onClick={async () => {
@@ -406,12 +407,12 @@ export default function ResourcesPage() {
                                         window.location.reload();
                                     } catch (error) {
                                         console.error('Error updating resource:', error);
-                                        alert('Error al actualizar recurso');
+                                        alert(tr("Error al actualizar recurso"));
                                     }
                                 }}
                                 className="bg-[#004CAB] hover:bg-[#003b85]"
                             >
-                                Guardar Cambios
+                                {tr("Guardar Cambios")}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -424,7 +425,7 @@ export default function ResourcesPage() {
                         <div className="relative w-72">
                             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
-                                placeholder="Buscar recursos..."
+                                placeholder={tr("Buscar recursos...")}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
@@ -432,7 +433,7 @@ export default function ResourcesPage() {
                         </div>
                         <Button variant="outline" size="sm" className="text-slate-600 border-slate-200">
                             <Filter className="mr-2 h-3.5 w-3.5" />
-                            Filtrar
+                            {tr("Filtrar")}
                         </Button>
                     </div>
                 </CardHeader>
@@ -441,11 +442,11 @@ export default function ResourcesPage() {
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50/50 text-slate-500 font-medium">
                                 <tr>
-                                    <th className="py-3 px-4">Nombre</th>
-                                    <th className="py-3 px-4">Tipo</th>
-                                    <th className="py-3 px-4">Cantidad</th>
-                                    <th className="py-3 px-4">Estado</th>
-                                    <th className="py-3 px-4 text-right">Acciones</th>
+                                    <th className="py-3 px-4">{tr("Nombre")}</th>
+                                    <th className="py-3 px-4">{tr("Tipo")}</th>
+                                    <th className="py-3 px-4">{tr("Cantidad")}</th>
+                                    <th className="py-3 px-4">{tr("Estado")}</th>
+                                    <th className="py-3 px-4 text-right">{tr("Acciones")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -468,7 +469,7 @@ export default function ResourcesPage() {
                                 ) : resources.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="text-center py-12 text-slate-500">
-                                            No se encontraron recursos
+                                            {tr("No se encontraron recursos")}
                                         </td>
                                     </tr>
                                 ) : (
@@ -486,16 +487,16 @@ export default function ResourcesPage() {
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-900">
-                                                            <span className="sr-only">Abrir menú</span>
+                                                            <span className="sr-only">{tr("Abrir menú")}</span>
                                                             <MoreHorizontal className="h-4 w-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                        <DropdownMenuItem onClick={() => handleEdit(resource)}>Editar recurso</DropdownMenuItem>
-                                                        <DropdownMenuItem>Ver detalles</DropdownMenuItem>
+                                                        <DropdownMenuLabel>{tr("Acciones")}</DropdownMenuLabel>
+                                                        <DropdownMenuItem onClick={() => handleEdit(resource)}>{tr("Editar recurso")}</DropdownMenuItem>
+                                                        <DropdownMenuItem>{tr("Ver detalles")}</DropdownMenuItem>
                                                         <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(resource.id)}>Eliminar recurso</DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(resource.id)}>{tr("Eliminar recurso")}</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </td>

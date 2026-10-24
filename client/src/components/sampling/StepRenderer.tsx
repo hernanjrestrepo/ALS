@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Camera, Upload, FileText } from 'lucide-react';
 import type { TemplateStep, StepData } from '@/types/sampling';
 
+import { tr } from '@/i18n';
 interface StepRendererProps {
     step: TemplateStep;
     onComplete: (data: StepData) => void;
@@ -49,7 +50,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                         <div dangerouslySetInnerHTML={{ __html: textStep.content || step.description }} />
                     </div>
                     <Button onClick={handleComplete} className="w-full">
-                        Continuar
+                        {tr("Continuar")}
                     </Button>
                 </div>
             );
@@ -86,7 +87,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                         disabled={step.required && !value}
                         className="w-full"
                     >
-                        Siguiente
+                        {tr("Siguiente")}
                     </Button>
                 </div>
             );
@@ -122,7 +123,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                                         }}
                                     >
                                         <Camera className="mr-2 h-4 w-4" />
-                                        Tomar Foto
+                                        {tr("Tomar Foto")}
                                     </Button>
                                     <Button
                                         type="button"
@@ -140,7 +141,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                                         }}
                                     >
                                         <Upload className="mr-2 h-4 w-4" />
-                                        Subir Imagen
+                                        {tr("Subir Imagen")}
                                     </Button>
                                 </div>
 
@@ -160,7 +161,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
 
                                 {imageStep.requireGPS && (
                                     <p className="text-xs text-slate-500">
-                                        📍 Se capturará la ubicación GPS
+                                        {tr("📍 Se capturará la ubicación GPS")}
                                     </p>
                                 )}
                             </div>
@@ -171,7 +172,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                         disabled={step.required && files.length === 0}
                         className="w-full"
                     >
-                        Siguiente
+                        {tr("Siguiente")}
                     </Button>
                 </div>
             );
@@ -204,7 +205,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                                     }}
                                 >
                                     <Upload className="mr-2 h-4 w-4" />
-                                    Seleccionar Archivo
+                                    {tr("Seleccionar Archivo")}
                                 </Button>
 
                                 {files.length > 0 && (
@@ -214,7 +215,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                                                 <FileText className="h-4 w-4" />
                                                 <span className="text-sm flex-1">{file.name}</span>
                                                 <span className="text-xs text-slate-500">
-                                                    {(file.size / 1024).toFixed(1)} KB
+                                                    {(file.size / 1024).toFixed(1)} {tr("KB")}
                                                 </span>
                                             </div>
                                         ))}
@@ -228,7 +229,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                         disabled={step.required && files.length === 0}
                         className="w-full"
                     >
-                        Siguiente
+                        {tr("Siguiente")}
                     </Button>
                 </div>
             );
@@ -253,7 +254,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
 
                     {checkStep.requiresComment && (
                         <div>
-                            <Label>Comentario</Label>
+                            <Label>{tr("Comentario")}</Label>
                             <Textarea
                                 value={comment}
                                 onChange={(e) => setComment(e.target.value)}
@@ -268,7 +269,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                         disabled={step.required && !value}
                         className="w-full"
                     >
-                        Siguiente
+                        {tr("Siguiente")}
                     </Button>
                 </div>
             );
@@ -287,17 +288,17 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                         <div className="border-2 border-slate-300 rounded-lg p-8 bg-slate-50">
                             <div className="text-center space-y-4">
                                 <p className="text-sm text-slate-600">
-                                    Firmante: {sigStep.signerName || 'N/A'}
+                                    {tr("Firmante:")}{' '}{sigStep.signerName || 'N/A'}
                                 </p>
                                 <Input
                                     type="text"
-                                    placeholder="Escriba su nombre completo"
+                                    placeholder={tr("Escriba su nombre completo")}
                                     value={value || ''}
                                     onChange={(e) => setValue(e.target.value)}
                                     className="text-center italic"
                                 />
                                 <p className="text-xs text-slate-500">
-                                    Al escribir su nombre, acepta firmar digitalmente este documento
+                                    {tr("Al escribir su nombre, acepta firmar digitalmente este documento")}
                                 </p>
                             </div>
                         </div>
@@ -307,7 +308,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
                         disabled={step.required && !value}
                         className="w-full"
                     >
-                        Firmar y Continuar
+                        {tr("Firmar y Continuar")}
                     </Button>
                 </div>
             );
@@ -315,7 +316,7 @@ export const StepRenderer: React.FC<StepRendererProps> = ({ step, onComplete }) 
         default:
             return (
                 <div className="text-center py-8">
-                    <p className="text-slate-500">Tipo de paso no soportado: {(step as TemplateStep).type}</p>
+                    <p className="text-slate-500">{tr("Tipo de paso no soportado:")}{' '}{(step as TemplateStep).type}</p>
                 </div>
             );
     }

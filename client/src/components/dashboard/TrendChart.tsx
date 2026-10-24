@@ -1,6 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+import { tr } from '@/i18n';
 interface TrendChartProps {
     data: { month: string; count: number }[];
 }
@@ -9,7 +10,7 @@ export function TrendChart({ data }: TrendChartProps) {
     return (
         <Card className="border-slate-200 shadow-sm bg-white">
             <CardHeader>
-                <CardTitle className="text-slate-900">OITs creadas por mes</CardTitle>
+                <CardTitle className="text-slate-900">{tr("OITs creadas por mes")}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="h-[240px]">

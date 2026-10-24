@@ -6,6 +6,7 @@ import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
+import { tr } from '@/i18n';
 let DefaultIcon = L.icon({
     iconUrl: icon,
     shadowUrl: iconShadow,
@@ -38,9 +39,9 @@ export default function LocationMap({ latitude, longitude, height = 300 }: Locat
                 />
                 <Marker position={position}>
                     <Popup>
-                        Ubicación del muestreo<br />
-                        Lat: {latitude.toFixed(6)}<br />
-                        Lng: {longitude.toFixed(6)}
+                        {tr("Ubicación del muestreo")}<br />
+                        {tr("Lat:")}{' '}{latitude.toFixed(6)}<br />
+                        {tr("Lng:")}{' '}{longitude.toFixed(6)}
                     </Popup>
                 </Marker>
             </MapContainer>

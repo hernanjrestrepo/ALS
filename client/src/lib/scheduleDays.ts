@@ -39,10 +39,11 @@ export function withDays<T extends DaysSchedule>(s: T, days: string[]): T {
 }
 
 // "27/10/2026" o "27/10, 28/10 y 30/10/2026"
-export function formatDays(days: string[]): string {
+// conjuncion: la "y" en el idioma elegido (la pantalla pasa tr('y')).
+export function formatDays(days: string[], conjuncion = 'y'): string {
     if (!days.length) return '';
     const short = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
     if (days.length === 1) return `${short(days[0])}/${days[0].slice(0, 4)}`;
     const last = days[days.length - 1];
-    return `${days.slice(0, -1).map(short).join(', ')} y ${short(last)}/${last.slice(0, 4)}`;
+    return `${days.slice(0, -1).map(short).join(', ')} ${conjuncion} ${short(last)}/${last.slice(0, 4)}`;
 }

@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import { toast } from 'sonner';
 import { CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
 
+import { tr } from '@/i18n';
 interface Consultation {
     id: string;
     normParameter: string;
@@ -33,7 +34,7 @@ export default function ParameterConsultationsPage() {
             setItems(response.data);
         } catch (error) {
             console.error('Error loading parameter consultations:', error);
-            toast.error('No se pudieron cargar las consultas');
+            toast.error(tr("No se pudieron cargar las consultas"));
         } finally {
             setIsLoading(false);
         }
@@ -52,7 +53,7 @@ export default function ParameterConsultationsPage() {
             await load();
         } catch (error: any) {
             console.error('Error answering consultation:', error);
-            toast.error(error.response?.data?.error || 'No se pudo registrar la respuesta');
+            toast.error(error.response?.data?.error || tr("No se pudo registrar la respuesta"));
         } finally {
             setSavingId(null);
         }
@@ -66,25 +67,25 @@ export default function ParameterConsultationsPage() {
             <CardContent className="pt-6 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                     {c.status === 'PENDIENTE'
-                        ? <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Pendiente</Badge>
+                        ? <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">{tr("Pendiente")}</Badge>
                         : c.answerSame
-                            ? <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Mismo parámetro</Badge>
-                            : <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Parámetro distinto</Badge>}
-                    {c.quotationNumber && <span className="text-xs text-slate-500">Cotización {c.quotationNumber}</span>}
+                            ? <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{tr("Mismo parámetro")}</Badge>
+                            : <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{tr("Parámetro distinto")}</Badge>}
+                    {c.quotationNumber && <span className="text-xs text-slate-500">{tr("Cotización")}{' '}{c.quotationNumber}</span>}
                 </div>
                 <div className="grid md:grid-cols-2 gap-3 text-sm">
                     <div>
-                        <p className="text-xs uppercase tracking-wider text-slate-500">La norma pide</p>
+                        <p className="text-xs uppercase tracking-wider text-slate-500">{tr("La norma pide")}</p>
                         <p className="font-medium text-slate-900">{c.normParameter}{c.normReference ? ` (límite ${c.normReference})` : ''}</p>
                     </div>
                     <div>
-                        <p className="text-xs uppercase tracking-wider text-slate-500">La cotización trae</p>
+                        <p className="text-xs uppercase tracking-wider text-slate-500">{tr("La cotización trae")}</p>
                         <p className="font-medium text-slate-900">{c.quotedAs}</p>
                     </div>
                 </div>
-                <p className="text-sm text-slate-700">¿Es el mismo parámetro?</p>
+                <p className="text-sm text-slate-700">{tr("¿Es el mismo parámetro?")}</p>
                 <Textarea
-                    placeholder="Nota opcional (cómo lo nombra el laboratorio, método, etc.)"
+                    placeholder={tr("Nota opcional (cómo lo nombra el laboratorio, método, etc.)")}
                     value={notes[c.id] ?? c.answerNote ?? ''}
                     onChange={(e) => setNotes(prev => ({ ...prev, [c.id]: e.target.value }))}
                     rows={2}
@@ -96,7 +97,7 @@ export default function ParameterConsultationsPage() {
                         disabled={savingId === c.id}
                         variant={c.answerSame === true ? 'default' : 'outline'}
                     >
-                        <CheckCircle2 className="mr-2 h-4 w-4" /> Sí, es el mismo
+                        <CheckCircle2 className="mr-2 h-4 w-4" /> {tr("Sí, es el mismo")}
                     </Button>
                     <Button
                         size="sm"
@@ -104,7 +105,7 @@ export default function ParameterConsultationsPage() {
                         disabled={savingId === c.id}
                         variant={c.answerSame === false ? 'destructive' : 'outline'}
                     >
-                        <XCircle className="mr-2 h-4 w-4" /> No, es distinto
+                        <XCircle className="mr-2 h-4 w-4" /> {tr("No, es distinto")}
                     </Button>
                 </div>
             </CardContent>
@@ -115,11 +116,10 @@ export default function ParameterConsultationsPage() {
         <div className="space-y-6">
             <div>
                 <h2 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                    <HelpCircle className="h-6 w-6 text-slate-500" /> Consultas de parámetros
+                    <HelpCircle className="h-6 w-6 text-slate-500" /> {tr("Consultas de parámetros")}
                 </h2>
                 <p className="text-slate-500">
-                    Cuando el sistema no puede decidir si dos nombres son el mismo parámetro, la pregunta llega aquí.
-                    Su respuesta se usa en los siguientes análisis de cotizaciones.
+                    {tr("Cuando el sistema no puede decidir si dos nombres son el mismo parámetro, la pregunta llega aquí. Su respuesta se usa en los siguientes análisis de cotizaciones.")}
                 </p>
             </div>
 
@@ -128,16 +128,16 @@ export default function ParameterConsultationsPage() {
             ) : (
                 <>
                     <section className="space-y-3">
-                        <h3 className="text-lg font-semibold text-slate-900">Pendientes ({pending.length})</h3>
+                        <h3 className="text-lg font-semibold text-slate-900">{tr("Pendientes (")}{pending.length})</h3>
                         {pending.length === 0 && (
-                            <Card className="border-slate-200"><CardHeader><CardDescription>No hay consultas pendientes.</CardDescription></CardHeader></Card>
+                            <Card className="border-slate-200"><CardHeader><CardDescription>{tr("No hay consultas pendientes.")}</CardDescription></CardHeader></Card>
                         )}
                         {pending.map(renderItem)}
                     </section>
 
                     {answered.length > 0 && (
                         <section className="space-y-3">
-                            <h3 className="text-lg font-semibold text-slate-900">Respondidas ({answered.length})</h3>
+                            <h3 className="text-lg font-semibold text-slate-900">{tr("Respondidas (")}{answered.length})</h3>
                             {answered.map(renderItem)}
                         </section>
                     )}

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Lock, Loader2, Camera, Upload, Sparkles, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { TemplateStep } from '@/types/sampling';
+import { tr } from '@/i18n';
 import { cn } from '@/lib/utils'; // Assuming this utility exists, if not I will use inline or template literals but standard shadcn uses it
 
 interface ValidationResult {
@@ -105,7 +106,7 @@ export function SamplingStep({
             await new Promise(r => setTimeout(r, 600));
 
             await onValidationComplete(payload);
-            toast.success('Dato validado correctamente');
+            toast.success(tr("Dato validado correctamente"));
 
         } catch (error) {
             console.error('Save error:', error);
@@ -120,7 +121,7 @@ export function SamplingStep({
             <div className="relative group">
                 <div className="absolute inset-0 bg-slate-100/50 backdrop-blur-[1px] z-10 rounded-xl flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
                     <span className="bg-white/90 px-3 py-1 rounded-full text-xs font-medium text-slate-500 shadow-sm border border-slate-200">
-                        Paso bloqueado
+                        {tr("Paso bloqueado")}
                     </span>
                 </div>
                 <Card className="bg-slate-50/50 border-slate-200/60 shadow-none opacity-60 grayscale-[0.5]">
@@ -129,7 +130,7 @@ export function SamplingStep({
                             <Lock className="h-4 w-4 text-slate-400" />
                         </div>
                         <div>
-                            <h4 className="font-medium text-slate-600 text-sm uppercase tracking-wide">Paso {stepIndex + 1}</h4>
+                            <h4 className="font-medium text-slate-600 text-sm uppercase tracking-wide">{tr("Paso")}{' '}{stepIndex + 1}</h4>
                             <p className="text-sm font-semibold text-slate-700">{step.title}</p>
                         </div>
                     </CardContent>
@@ -153,22 +154,22 @@ export function SamplingStep({
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-2 h-5 font-normal uppercase tracking-wider">
-                                        Completado
+                                        {tr("Completado")}
                                     </Badge>
-                                    <span className="text-xs text-slate-400">Paso {stepIndex + 1}</span>
+                                    <span className="text-xs text-slate-400">{tr("Paso")}{' '}{stepIndex + 1}</span>
                                 </div>
                                 <h4 className="font-bold text-slate-800 text-lg leading-tight">{step.title}</h4>
                             </div>
                         </div>
                         <Button variant="ghost" size="sm" className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0 hidden group-hover:flex" onClick={() => { }}>
-                            <span className="sr-only">Editar</span>
+                            <span className="sr-only">{tr("Editar")}</span>
                             {/* Edit icon could go here */}
                         </Button>
                     </div>
 
                     <div className="pl-[56px]">
                         <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-sm text-slate-700">
-                            {typeof value === 'boolean' ? (value ? 'Sí' : 'No') : value}
+                            {typeof value === 'boolean' ? (value ? tr("Sí") : tr("No")) : value}
                         </div>
                         {validation?.data?.fromOit && (
                             <p className={`mt-1.5 text-xs ${validation.data.fromOit.changed ? 'text-amber-800' : 'text-emerald-700'}`}>
@@ -183,7 +184,7 @@ export function SamplingStep({
                             <div className="mt-3 flex items-start gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100/50">
                                 <Sparkles className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
                                 <div>
-                                    <p className="text-xs font-semibold text-blue-700 mb-0.5">Análisis IA</p>
+                                    <p className="text-xs font-semibold text-blue-700 mb-0.5">{tr("Análisis IA")}</p>
                                     <p className="text-xs text-blue-600/90 leading-relaxed">
                                         {validation.feedback}
                                     </p>
@@ -204,8 +205,8 @@ export function SamplingStep({
                 return (
                     <div className="space-y-4">
                         <Label className="text-sm font-medium text-slate-700">
-                            {inputStep.description || 'Ingrese el valor'}
-                            {step.required && <span className="text-red-500 ml-1" title="Requerido">*</span>}
+                            {inputStep.description || tr("Ingrese el valor")}
+                            {step.required && <span className="text-red-500 ml-1" title={tr("Requerido")}>*</span>}
                         </Label>
                         <div className="relative group/input">
                             <Input
@@ -230,16 +231,16 @@ export function SamplingStep({
                         {changedFromOit && (
                             <div className="space-y-1.5 p-3 rounded-lg bg-amber-50 border border-amber-200">
                                 <p className="text-xs text-amber-900">
-                                    {prefill!.source} dice «{prefill!.value}». Escribe por qué lo cambias:
+                                    {prefill!.source} {tr("dice «")}{prefill!.value}{tr("». Escribe por qué lo cambias:")}
                                 </p>
                                 <Textarea
                                     value={changeReason}
                                     onChange={(e) => setChangeReason(e.target.value)}
-                                    placeholder="Motivo del cambio (obligatorio)"
+                                    placeholder={tr("Motivo del cambio (obligatorio)")}
                                     className="min-h-[60px] text-sm bg-white"
                                 />
                                 <button type="button" className="text-xs text-amber-800 underline" onClick={() => { setValue(prefill!.value); setChangeReason(''); }}>
-                                    Volver al dato de la OIT
+                                    {tr("Volver al dato de la OIT")}
                                 </button>
                             </div>
                         )}
@@ -259,18 +260,18 @@ export function SamplingStep({
                             />
                             <div className="space-y-1">
                                 <Label htmlFor={`step-${stepIndex}`} className="font-medium text-slate-800 text-base cursor-pointer leading-tight">
-                                    {checkStep.label || step.description || 'Confirmar acción'}
+                                    {checkStep.label || step.description || tr("Confirmar acción")}
                                 </Label>
-                                <p className="text-xs text-slate-500">Marque esta casilla para validar el paso.</p>
+                                <p className="text-xs text-slate-500">{tr("Marque esta casilla para validar el paso.")}</p>
                             </div>
                         </div>
                         {checkStep.requiresComment && value && (
                             <div className="pt-2 pl-7 animate-in fade-in slide-in-from-top-2">
-                                <Label className="text-xs text-slate-500 mb-1.5 block">Observaciones adicionales</Label>
+                                <Label className="text-xs text-slate-500 mb-1.5 block">{tr("Observaciones adicionales")}</Label>
                                 <Textarea
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
-                                    placeholder="Detalles importantes..."
+                                    placeholder={tr("Detalles importantes...")}
                                     className="min-h-[80px] text-sm resize-none bg-white border-slate-200 focus:border-indigo-500"
                                 />
                             </div>
@@ -283,7 +284,7 @@ export function SamplingStep({
                 return (
                     <div className="space-y-3">
                         <Label className="text-sm font-medium text-slate-700">
-                            {step.description || 'Evidencia requerida'}
+                            {step.description || tr("Evidencia requerida")}
                             {step.required && <span className="text-red-500 ml-1">*</span>}
                         </Label>
                         <div
@@ -312,7 +313,7 @@ export function SamplingStep({
                                 }
                             </div>
                             <h5 className="text-sm font-semibold text-slate-900 mb-1">
-                                {files.length > 0 ? files[0].name : (step.type === 'IMAGE' ? 'Tomar o subir foto' : 'Subir documento')}
+                                {files.length > 0 ? files[0].name : (step.type === 'IMAGE' ? tr("Tomar o subir foto") : tr("Subir documento"))}
                             </h5>
                             <p className="text-xs text-slate-500 mb-4 max-w-[200px] mx-auto">
                                 {files.length > 0 ? `${(files[0].size / 1024 / 1024).toFixed(2)} MB` : `Soporta ${step.type === 'IMAGE' ? 'JPG, PNG' : 'PDF, DOCX'}. Máx 10MB.`}
@@ -326,7 +327,7 @@ export function SamplingStep({
                                     document.getElementById(`file-input-${stepIndex}`)?.click();
                                 }}
                             >
-                                {files.length > 0 ? 'Cambiar archivo' : 'Seleccionar archivo'}
+                                {files.length > 0 ? tr("Cambiar archivo") : tr("Seleccionar archivo")}
                             </Button>
 
                             {files.length > 0 && (
@@ -340,7 +341,7 @@ export function SamplingStep({
                                         if (value === files[0].name) setValue('');
                                     }}
                                 >
-                                    Quitar archivo
+                                    {tr("Quitar archivo")}
                                 </Button>
                             )}
                         </div>
@@ -350,11 +351,11 @@ export function SamplingStep({
             default:
                 return (
                     <div className="space-y-3">
-                        <Label className="text-sm font-medium text-slate-700">{step.description || 'Respuesta'}</Label>
+                        <Label className="text-sm font-medium text-slate-700">{step.description || tr("Respuesta")}</Label>
                         <Textarea
                             value={value}
                             onChange={(e) => setValue(e.target.value)}
-                            placeholder="Escriba los detalles aquí..."
+                            placeholder={tr("Escriba los detalles aquí...")}
                             className="min-h-[120px] text-base leading-relaxed bg-slate-50/50 border-slate-200 focus:bg-white transition-colors"
                         />
                     </div>
@@ -373,11 +374,11 @@ export function SamplingStep({
                         <div>
                             <div className="flex items-center gap-2 mb-1">
                                 <Badge variant="secondary" className="bg-slate-100 text-slate-600 text-[10px] px-2 h-5 font-medium uppercase tracking-wider">
-                                    {step.type || 'General'}
+                                    {step.type || tr("General")}
                                 </Badge>
                                 {step.required && (
                                     <span className="text-[10px] font-semibold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
-                                        Requerido
+                                        {tr("Requerido")}
                                     </span>
                                 )}
                             </div>
@@ -399,7 +400,7 @@ export function SamplingStep({
                     <div className="flex items-start gap-3 p-4 bg-red-50/80 border border-red-100 text-red-800 rounded-xl text-sm animate-in shake">
                         <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
                         <div>
-                            <span className="font-bold block mb-0.5 text-red-900">Atención</span>
+                            <span className="font-bold block mb-0.5 text-red-900">{tr("Atención")}</span>
                             {localError}
                         </div>
                     </div>
@@ -420,12 +421,12 @@ export function SamplingStep({
                             <div className="flex items-center gap-2">
                                 <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
                                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500 font-bold">
-                                    Analizando...
+                                    {tr("Analizando...")}
                                 </span>
                             </div>
                         ) : (
                             <div className="flex items-center gap-2">
-                                <span>Guardar y Validar</span>
+                                <span>{tr("Guardar y Validar")}</span>
                                 <Sparkles className="h-4 w-4 text-indigo-300" />
                             </div>
                         )}

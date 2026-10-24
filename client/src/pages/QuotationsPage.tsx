@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search, Plus, FileText, Loader2, Receipt, Building2, Upload, CheckCircle2, AlertCircle, ShieldCheck, ShieldAlert } from 'lucide-react';
 
+import { tr } from '@/i18n';
 interface Quotation {
     id: string;
     quotationNumber: string;
@@ -83,7 +84,7 @@ export default function QuotationsPage() {
             setFilteredQuotations(response.data);
         } catch (error) {
             console.error('Error fetching quotations:', error);
-            toast.error('No se pudieron cargar las cotizaciones.');
+            toast.error(tr("No se pudieron cargar las cotizaciones."));
             setQuotations([]);
             setFilteredQuotations([]);
         } finally {
@@ -109,7 +110,7 @@ export default function QuotationsPage() {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
             if (selectedFile.type !== 'application/pdf') {
-                toast.error('Solo se permiten archivos PDF');
+                toast.error(tr("Solo se permiten archivos PDF"));
                 return;
             }
             setFile(selectedFile);
@@ -118,11 +119,11 @@ export default function QuotationsPage() {
 
     const handleCreate = async () => {
         if (!file) {
-            toast.error('Debes seleccionar un archivo PDF');
+            toast.error(tr("Debes seleccionar un archivo PDF"));
             return;
         }
         if (!clientId) {
-            toast.error('Debes seleccionar el cliente - según el flujo, el cliente debe existir antes de la cotización');
+            toast.error(tr("Debes seleccionar el cliente - según el flujo, el cliente debe existir antes de la cotización"));
             return;
         }
 
@@ -140,13 +141,13 @@ export default function QuotationsPage() {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            toast.success('Cotización creada exitosamente');
+            toast.success(tr("Cotización creada exitosamente"));
             setIsCreateOpen(false);
             resetForm();
             fetchQuotations();
         } catch (error: any) {
             console.error('Error creating quotation:', error);
-            toast.error(error.response?.data?.error || 'Error al crear cotización');
+            toast.error(error.response?.data?.error || tr("Error al crear cotización"));
         } finally {
             setIsCreating(false);
         }
@@ -162,18 +163,18 @@ export default function QuotationsPage() {
 
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
-            'PENDING': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-            'ANALYZING': 'bg-blue-50 text-blue-700 border-blue-200',
-            'COMPLIANT': 'bg-green-50 text-green-700 border-green-200',
-            'NON_COMPLIANT': 'bg-red-50 text-red-700 border-red-200',
-            'REVIEW_REQUIRED': 'bg-orange-50 text-orange-700 border-orange-200'
+            'PENDING': "bg-yellow-50 text-yellow-700 border-yellow-200",
+            'ANALYZING': "bg-blue-50 text-blue-700 border-blue-200",
+            'COMPLIANT': "bg-green-50 text-green-700 border-green-200",
+            'NON_COMPLIANT': "bg-red-50 text-red-700 border-red-200",
+            'REVIEW_REQUIRED': "bg-orange-50 text-orange-700 border-orange-200"
         };
         const labels: Record<string, string> = {
-            'PENDING': 'Pendiente',
-            'ANALYZING': 'Analizando',
-            'COMPLIANT': 'Conforme',
-            'NON_COMPLIANT': 'No Conforme',
-            'REVIEW_REQUIRED': 'Revisión'
+            'PENDING': tr("Pendiente"),
+            'ANALYZING': tr("Analizando"),
+            'COMPLIANT': tr("Conforme"),
+            'NON_COMPLIANT': tr("No Conforme"),
+            'REVIEW_REQUIRED': tr("Revisión")
         };
         return <Badge className={`${styles[status] || styles['PENDING']} hover:${styles[status]}`}>{labels[status] || status}</Badge>;
     };
@@ -182,9 +183,9 @@ export default function QuotationsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Cotizaciones</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">{tr("Cotizaciones")}</h2>
                     <p className="text-slate-500">
-                        Gestiona las cotizaciones y verifica su cumplimiento normativo.
+                        {tr("Gestiona las cotizaciones y verifica su cumplimiento normativo.")}
                     </p>
                 </div>
                 <Dialog open={isCreateOpen} onOpenChange={(open) => {
@@ -194,14 +195,14 @@ export default function QuotationsPage() {
                     <DialogTrigger asChild>
                         <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white">
                             <Plus className="mr-2 h-4 w-4" />
-                            Nueva Cotización
+                            {tr("Nueva Cotización")}
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Subir Cotización</DialogTitle>
+                            <DialogTitle>{tr("Subir Cotización")}</DialogTitle>
                             <DialogDescription>
-                                Sube una cotización para revisión y verificación de cumplimiento normativo.
+                                {tr("Sube una cotización para revisión y verificación de cumplimiento normativo.")}
                             </DialogDescription>
                         </DialogHeader>
 
@@ -222,16 +223,16 @@ export default function QuotationsPage() {
                                     {file ? (
                                         <>
                                             <CheckCircle2 className="h-12 w-12 text-emerald-600 mb-3" />
-                                            <p className="font-semibold text-emerald-900 mb-1">Cotización</p>
+                                            <p className="font-semibold text-emerald-900 mb-1">{tr("Cotización")}</p>
                                             <p className="text-sm text-emerald-700 break-all px-2">{file.name}</p>
-                                            <p className="text-xs text-emerald-600 mt-2">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                            <p className="text-xs text-emerald-600 mt-2">{(file.size / 1024 / 1024).toFixed(2)} {tr("MB")}</p>
                                         </>
                                     ) : (
                                         <>
                                             <Upload className="h-12 w-12 text-slate-400 mb-3" />
-                                            <p className="font-semibold text-slate-700 mb-1">Documento de Cotización *</p>
-                                            <p className="text-sm text-slate-500">Click para subir PDF</p>
-                                            <p className="text-xs text-slate-400 mt-2">Máx. 10MB</p>
+                                            <p className="font-semibold text-slate-700 mb-1">{tr("Documento de Cotización *")}</p>
+                                            <p className="text-sm text-slate-500">{tr("Click para subir PDF")}</p>
+                                            <p className="text-xs text-slate-400 mt-2">{tr("Máx. 10MB")}</p>
                                         </>
                                     )}
                                 </div>
@@ -239,7 +240,7 @@ export default function QuotationsPage() {
 
                             {/* Client Select */}
                             <div className="grid gap-2">
-                                <Label htmlFor="clientId">Cliente *</Label>
+                                <Label htmlFor="clientId">{tr("Cliente *")}</Label>
                                 <Select value={clientId} onValueChange={setClientId}>
                                     <SelectTrigger id="clientId">
                                         <SelectValue placeholder={clientOptions.length === 0 ? 'No hay clientes registrados - créalo primero en Clientes' : 'Selecciona un cliente'} />
@@ -254,10 +255,10 @@ export default function QuotationsPage() {
 
                             {/* Service Select */}
                             <div className="grid gap-2">
-                                <Label htmlFor="serviceId">Servicio (opcional)</Label>
+                                <Label htmlFor="serviceId">{tr("Servicio (opcional)")}</Label>
                                 <Select value={serviceId} onValueChange={setServiceId}>
                                     <SelectTrigger id="serviceId">
-                                        <SelectValue placeholder="Selecciona un servicio" />
+                                        <SelectValue placeholder={tr("Selecciona un servicio")} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {serviceOptions.map(s => (
@@ -271,9 +272,9 @@ export default function QuotationsPage() {
                                 <div className="flex gap-3">
                                     <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                                     <div>
-                                        <p className="text-sm font-semibold text-blue-900 mb-1">Revisión Automática</p>
+                                        <p className="text-sm font-semibold text-blue-900 mb-1">{tr("Revisión Automática")}</p>
                                         <p className="text-sm text-blue-800">
-                                            La cotización será analizada para verificar cumplimiento normativo. Podrás vincularla a OITs después.
+                                            {tr("La cotización será analizada para verificar cumplimiento normativo. Podrás vincularla a OITs después.")}
                                         </p>
                                     </div>
                                 </div>
@@ -281,14 +282,14 @@ export default function QuotationsPage() {
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
+                            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>{tr("Cancelar")}</Button>
                             <Button
                                 onClick={handleCreate}
                                 disabled={isCreating || !file}
                                 className="bg-[#004CAB] hover:bg-[#003b85]"
                             >
                                 {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                {isCreating ? 'Creando...' : 'Crear Cotización'}
+                                {isCreating ? tr("Creando...") : tr("Crear Cotización")}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -301,14 +302,14 @@ export default function QuotationsPage() {
                         <div className="relative w-72">
                             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
-                                placeholder="Buscar cotizaciones..."
+                                placeholder={tr("Buscar cotizaciones...")}
                                 className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <div className="text-sm text-slate-500">
-                            {filteredQuotations.length} cotización(es)
+                            {filteredQuotations.length} {tr("cotización(es)")}
                         </div>
                     </div>
                 </CardHeader>
@@ -317,12 +318,12 @@ export default function QuotationsPage() {
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="hover:bg-slate-50/50 border-slate-100">
-                                    <TableHead className="w-[180px] py-3 px-4 font-medium text-slate-500">Número</TableHead>
-                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Cliente</TableHead>
-                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Estado</TableHead>
-                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Aprobada para OIT</TableHead>
-                                    <TableHead className="py-3 px-4 font-medium text-slate-500">OITs Vinculadas</TableHead>
-                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Fecha</TableHead>
+                                    <TableHead className="w-[180px] py-3 px-4 font-medium text-slate-500">{tr("Número")}</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Cliente")}</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Estado")}</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Aprobada para OIT")}</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("OITs Vinculadas")}</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Fecha")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-100">
@@ -342,7 +343,7 @@ export default function QuotationsPage() {
                                         <TableCell colSpan={6} className="h-32 text-center text-slate-500">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 <Receipt className="h-8 w-8 text-slate-300" />
-                                                <p>No hay cotizaciones registradas</p>
+                                                <p>{tr("No hay cotizaciones registradas")}</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -361,7 +362,7 @@ export default function QuotationsPage() {
                                             <TableCell className="py-3 px-4">
                                                 <div className="flex items-center gap-2 text-slate-600">
                                                     <Building2 className="h-4 w-4 text-slate-400" />
-                                                    {q.client?.name || q.clientName || 'Sin cliente'}
+                                                    {q.client?.name || q.clientName || tr("Sin cliente")}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="py-3 px-4">
@@ -370,16 +371,16 @@ export default function QuotationsPage() {
                                             <TableCell className="py-3 px-4">
                                                 {q.approvedForOit ? (
                                                     <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                                                        <ShieldCheck className="h-3 w-3 mr-1" />Sí
+                                                        <ShieldCheck className="h-3 w-3 mr-1" />{tr("Sí")}
                                                     </Badge>
                                                 ) : (
                                                     <Badge className="bg-slate-100 text-slate-600 border-slate-200">
-                                                        <ShieldAlert className="h-3 w-3 mr-1" />No
+                                                        <ShieldAlert className="h-3 w-3 mr-1" />{tr("No")}
                                                     </Badge>
                                                 )}
                                             </TableCell>
                                             <TableCell className="py-3 px-4 text-slate-600">
-                                                {q.linkedOITs?.length || 0} OIT(s)
+                                                {q.linkedOITs?.length || 0} {tr("OIT(s)")}
                                             </TableCell>
                                             <TableCell className="py-3 px-4 text-slate-500 text-sm">
                                                 {new Date(q.createdAt).toLocaleDateString('es-ES')}

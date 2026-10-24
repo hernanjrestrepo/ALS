@@ -20,6 +20,7 @@ import {
     type FindingReview, type MissingResolution,
 } from '@/components/quotations/QuotationReview';
 
+import { tr } from '@/i18n';
 interface Quotation {
     id: string;
     quotationNumber: string;
@@ -52,12 +53,12 @@ const normalizeIssue = (issue: any) => typeof issue === 'string'
 const SEVERITY_LABEL: Record<string, string> = { CRITICAL: 'INCUMPLE', WARNING: 'REVISAR', INFO: 'INFO' };
 
 const PROBLEM_LABEL: Record<string, string> = {
-    FALTANTE: 'Sugerido (no cotizado)',
-    PARAMETRO_INCORRECTO: 'Parámetro incorrecto',
-    NOMBRE_DISTINTO: 'Nombre por confirmar',
-    MATRIZ: 'Matriz distinta a la muestra',
-    LIMITE_CUANTIFICACION: 'Límite de cuantificación',
-    OTRO: 'Observación',
+    FALTANTE: tr("Sugerido (no cotizado)"),
+    PARAMETRO_INCORRECTO: tr("Parámetro incorrecto"),
+    NOMBRE_DISTINTO: tr("Nombre por confirmar"),
+    MATRIZ: tr("Matriz distinta a la muestra"),
+    LIMITE_CUANTIFICACION: tr("Límite de cuantificación"),
+    OTRO: tr("Observación"),
 };
 
 // Numero temporal mientras el analisis lee el SIACOT del documento.
@@ -96,7 +97,7 @@ export default function QuotationDetailPage() {
         } catch (error) {
             console.error('Error fetching quotation:', error);
             if (silent) return;
-            toast.error('No se pudo cargar la cotización');
+            toast.error(tr("No se pudo cargar la cotización"));
             navigate('/quotations');
         } finally {
             setIsLoading(false);
@@ -119,11 +120,11 @@ export default function QuotationDetailPage() {
         setIsAnalyzing(true);
         try {
             await api.post(`/quotations/${id}/analyze`);
-            toast.success('Análisis iniciado');
+            toast.success(tr("Análisis iniciado"));
             fetchQuotation();
         } catch (error) {
             console.error('Error analyzing quotation:', error);
-            toast.error('Error al iniciar análisis');
+            toast.error(tr("Error al iniciar análisis"));
         } finally {
             setIsAnalyzing(false);
         }
@@ -131,11 +132,11 @@ export default function QuotationDetailPage() {
 
     const getStatusLabel = (status: string) => {
         const statusMap: Record<string, string> = {
-            'PENDING': 'Pendiente',
-            'ANALYZING': 'Analizando',
-            'COMPLIANT': 'Conforme',
-            'NON_COMPLIANT': 'No Conforme',
-            'REVIEW_REQUIRED': 'Revisión Requerida'
+            'PENDING': tr("Pendiente"),
+            'ANALYZING': tr("Analizando"),
+            'COMPLIANT': tr("Conforme"),
+            'NON_COMPLIANT': tr("No Conforme"),
+            'REVIEW_REQUIRED': tr("Revisión Requerida")
         };
         return statusMap[status] || status;
     };
@@ -179,7 +180,7 @@ export default function QuotationDetailPage() {
     }
 
     if (!quotation) {
-        return <div className="text-center text-slate-500 py-24">Cotización no encontrada</div>;
+        return <div className="text-center text-slate-500 py-24">{tr("Cotización no encontrada")}</div>;
     }
 
     const aiData = parseAIData();
@@ -217,7 +218,7 @@ export default function QuotationDetailPage() {
                                     {quotation.quotationNumber}
                                 </h1>
                                 {isProvisionalNumber(quotation) && (
-                                    <span className="text-xs text-slate-500">(número provisional, se reemplaza por el del documento)</span>
+                                    <span className="text-xs text-slate-500">{tr("(número provisional, se reemplaza por el del documento)")}</span>
                                 )}
                                 <Badge variant={quotation.status === 'ANALYZING' ? 'secondary' : 'default'} className="text-xs px-2.5 py-0.5 font-medium">
                                     {quotation.status === 'ANALYZING' && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
@@ -226,7 +227,7 @@ export default function QuotationDetailPage() {
                             </div>
                             <p className="text-slate-500 text-sm max-w-2xl truncate flex items-center gap-2">
                                 <Building2 className="h-4 w-4" />
-                                {quotation.clientName || 'Sin cliente asignado'}
+                                {quotation.clientName || tr("Sin cliente asignado")}
                             </p>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-slate-500">
@@ -241,7 +242,7 @@ export default function QuotationDetailPage() {
                             {quotation.status === 'PENDING' && (
                                 <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm" className="bg-indigo-600 hover:bg-indigo-700">
                                     {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                    Analizar con IA
+                                    {tr("Analizar con IA")}
                                 </Button>
                             )}
                             {quotation.fileUrl && (
@@ -252,7 +253,7 @@ export default function QuotationDetailPage() {
                                         rel="noopener noreferrer"
                                     >
                                         <Download className="mr-2 h-4 w-4" />
-                                        PDF
+                                        {tr("PDF")}
                                     </a>
                                 </Button>
                             )}
@@ -269,8 +270,8 @@ export default function QuotationDetailPage() {
                             <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
                         </div>
                         <div>
-                            <p className="font-semibold text-blue-900">Analizando cotización...</p>
-                            <p className="text-sm text-blue-700 mt-0.5">La IA está extrayendo información. Esto puede tomar unos momentos; la pantalla se actualiza sola al terminar.</p>
+                            <p className="font-semibold text-blue-900">{tr("Analizando cotización...")}</p>
+                            <p className="text-sm text-blue-700 mt-0.5">{tr("La IA está extrayendo información. Esto puede tomar unos momentos; la pantalla se actualiza sola al terminar.")}</p>
                         </div>
                     </div>
                 )}
@@ -280,16 +281,16 @@ export default function QuotationDetailPage() {
                     <div className="flex justify-center mb-8">
                         <TabsList className="grid w-full max-w-2xl grid-cols-2 sm:grid-cols-4 bg-white p-1 rounded-xl sm:rounded-full border border-slate-200 shadow-sm h-auto transition-all duration-300">
                             <TabsTrigger value="info" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                <FileText className="mr-2 h-4 w-4" /> Info
+                                <FileText className="mr-2 h-4 w-4" /> {tr("Info")}
                             </TabsTrigger>
                             <TabsTrigger value="analysis" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                <Sparkles className="mr-2 h-4 w-4" /> Análisis
+                                <Sparkles className="mr-2 h-4 w-4" /> {tr("Análisis")}
                             </TabsTrigger>
                             <TabsTrigger value="compliance" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                <CheckCircle2 className="mr-2 h-4 w-4" /> Cumplimiento
+                                <CheckCircle2 className="mr-2 h-4 w-4" /> {tr("Cumplimiento")}
                             </TabsTrigger>
                             <TabsTrigger value="linked" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                <Link2 className="mr-2 h-4 w-4" /> OITs
+                                <Link2 className="mr-2 h-4 w-4" /> {tr("OITs")}
                             </TabsTrigger>
                         </TabsList>
                     </div>
@@ -300,30 +301,30 @@ export default function QuotationDetailPage() {
                             {/* Main Info Card */}
                             <Card className="md:col-span-2 border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
                                 <CardHeader>
-                                    <CardTitle>Información General</CardTitle>
+                                    <CardTitle>{tr("Información General")}</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-1">
-                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Número de Cotización</strong>
+                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tr("Número de Cotización")}</strong>
                                             <p className="text-lg font-medium text-slate-900">{quotation.quotationNumber}</p>
                                             {isProvisionalNumber(quotation) && (
-                                                <p className="text-xs text-slate-500">Provisional: se reemplaza por el número del documento al terminar el análisis.</p>
+                                                <p className="text-xs text-slate-500">{tr("Provisional: se reemplaza por el número del documento al terminar el análisis.")}</p>
                                             )}
                                         </div>
                                         <div className="space-y-1">
-                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</strong>
+                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tr("Estado")}</strong>
                                             <p className="text-lg font-medium text-slate-900">{getStatusLabel(quotation.status)}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Cliente</strong>
+                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tr("Cliente")}</strong>
                                             <p className="text-lg font-medium text-slate-900 flex items-center gap-2">
                                                 <Building2 className="h-4 w-4 text-slate-400" />
                                                 {quotation.clientName || '-'}
                                             </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha de Creación</strong>
+                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tr("Fecha de Creación")}</strong>
                                             <p className="text-lg font-medium text-slate-900 flex items-center gap-2">
                                                 <Calendar className="h-4 w-4 text-slate-400" />
                                                 {new Date(quotation.createdAt).toLocaleDateString('es-ES')}
@@ -331,7 +332,7 @@ export default function QuotationDetailPage() {
                                         </div>
                                         {quotation.description && (
                                             <div className="col-span-2 space-y-1">
-                                                <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Descripción</strong>
+                                                <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tr("Descripción")}</strong>
                                                 <p className="text-slate-700 leading-relaxed">{quotation.description}</p>
                                             </div>
                                         )}
@@ -341,9 +342,9 @@ export default function QuotationDetailPage() {
                                         <div className="flex items-center gap-4 pt-6 border-t border-slate-100">
                                             <div className="flex-1 p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between group hover:border-slate-300 transition-colors">
                                                 <div>
-                                                    <strong className="block text-xs font-semibold text-slate-500 mb-1">Archivo</strong>
+                                                    <strong className="block text-xs font-semibold text-slate-500 mb-1">{tr("Archivo")}</strong>
                                                     <span className="text-sm text-slate-700 truncate block max-w-[150px]">
-                                                        Documento PDF cargado
+                                                        {tr("Documento PDF cargado")}
                                                     </span>
                                                 </div>
                                                 <Button variant="ghost" size="sm" asChild>
@@ -366,32 +367,32 @@ export default function QuotationDetailPage() {
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
                                         <DollarSign className="h-5 w-5 text-indigo-600" />
-                                        Resumen
+                                        {tr("Resumen")}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                                         <Link2 className="h-5 w-5 text-indigo-600 mt-0.5" />
                                         <div className="flex-1">
-                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">OITs Vinculadas</p>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr("OITs Vinculadas")}</p>
                                             <p className="text-lg font-medium text-slate-900 mt-1">{quotation.linkedOITs?.length || 0}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                                         <Sparkles className="h-5 w-5 text-indigo-600 mt-0.5" />
                                         <div className="flex-1">
-                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Análisis IA</p>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr("Análisis IA")}</p>
                                             <p className="text-sm font-medium text-slate-900 mt-1">
-                                                {aiData ? 'Completado' : 'Pendiente'}
+                                                {aiData ? tr("Completado") : tr("Pendiente")}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                                         <CheckCircle2 className="h-5 w-5 text-indigo-600 mt-0.5" />
                                         <div className="flex-1">
-                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cumplimiento</p>
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr("Cumplimiento")}</p>
                                             <p className="text-sm font-medium text-slate-900 mt-1">
-                                                {complianceResult ? 'Verificado' : 'Sin verificar'}
+                                                {complianceResult ? tr("Verificado") : tr("Sin verificar")}
                                             </p>
                                         </div>
                                     </div>
@@ -435,17 +436,17 @@ export default function QuotationDetailPage() {
                                                 docStatus === 'error' ? 'text-red-900' :
                                                     'text-amber-900'
                                                 }`}>
-                                                {docStatus === 'check' ? 'Documento Completo' :
-                                                    docStatus === 'error' ? 'Requiere Revisión' :
-                                                        'Atención Requerida'}
+                                                {docStatus === 'check' ? tr("Documento Completo") :
+                                                    docStatus === 'error' ? tr("Requiere Revisión") :
+                                                        tr("Atención Requerida")}
                                             </h3>
                                             <p className={`text-sm ${docStatus === 'check' ? 'text-green-700' :
                                                 docStatus === 'error' ? 'text-red-700' :
                                                     'text-amber-700'
                                                 }`}>
-                                                {docStatus === 'check' ? (missingItems.length && !missingPending ? 'Los elementos faltantes ya se subsanaron' : 'El análisis no encontró problemas críticos') :
-                                                    docStatus === 'error' ? 'Se detectaron elementos faltantes importantes' :
-                                                        'Hay algunos elementos que requieren atención'}
+                                                {docStatus === 'check' ? (missingItems.length && !missingPending ? tr("Los elementos faltantes ya se subsanaron") : tr("El análisis no encontró problemas críticos")) :
+                                                    docStatus === 'error' ? tr("Se detectaron elementos faltantes importantes") :
+                                                        tr("Hay algunos elementos que requieren atención")}
                                             </p>
                                         </div>
                                     </div>
@@ -461,43 +462,43 @@ export default function QuotationDetailPage() {
                                                     <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
                                                         <CardTitle className="text-base flex items-center gap-2">
                                                             <FileText className="h-4 w-4 text-indigo-600" />
-                                                            Información Extraída
+                                                            {tr("Información Extraída")}
                                                         </CardTitle>
                                                     </CardHeader>
                                                     <CardContent className="pt-4 space-y-3">
                                                         {rawData.offer_id && (
                                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                                <span className="text-sm text-slate-500">ID Oferta</span>
+                                                                <span className="text-sm text-slate-500">{tr("ID Oferta")}</span>
                                                                 <span className="font-medium text-slate-900">{rawData.offer_id}</span>
                                                             </div>
                                                         )}
                                                         {rawData.date && (
                                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                                <span className="text-sm text-slate-500">Fecha</span>
+                                                                <span className="text-sm text-slate-500">{tr("Fecha")}</span>
                                                                 <span className="font-medium text-slate-900">{rawData.date}</span>
                                                             </div>
                                                         )}
                                                         {rawData.sender && (
                                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                                <span className="text-sm text-slate-500">Remitente</span>
+                                                                <span className="text-sm text-slate-500">{tr("Remitente")}</span>
                                                                 <span className="font-medium text-slate-900">{rawData.sender}</span>
                                                             </div>
                                                         )}
                                                         {rawData.position && (
                                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                                <span className="text-sm text-slate-500">Cargo</span>
+                                                                <span className="text-sm text-slate-500">{tr("Cargo")}</span>
                                                                 <span className="font-medium text-slate-900">{rawData.position}</span>
                                                             </div>
                                                         )}
                                                         {rawData.contact_commercial?.name && (
                                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                                                <span className="text-sm text-slate-500">Ejecutivo Comercial</span>
+                                                                <span className="text-sm text-slate-500">{tr("Ejecutivo Comercial")}</span>
                                                                 <span className="font-medium text-slate-900">{rawData.contact_commercial.name}</span>
                                                             </div>
                                                         )}
                                                         {rawData.contact_info?.email_general && (
                                                             <div className="flex justify-between items-center py-2">
-                                                                <span className="text-sm text-slate-500">Email</span>
+                                                                <span className="text-sm text-slate-500">{tr("Email")}</span>
                                                                 <span className="font-medium text-slate-900 text-sm">{rawData.contact_info.email_general}</span>
                                                             </div>
                                                         )}
@@ -515,7 +516,7 @@ export default function QuotationDetailPage() {
                                             <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50">
                                                 <CardTitle className="text-base flex items-center gap-2">
                                                     <Calendar className="h-4 w-4 text-blue-600" />
-                                                    Servicios Detectados
+                                                    {tr("Servicios Detectados")}
                                                 </CardTitle>
                                             </CardHeader>
                                             <CardContent className="pt-4">
@@ -525,12 +526,12 @@ export default function QuotationDetailPage() {
                                                             <p className="font-medium text-slate-900">{service.name}</p>
                                                             {service.proposedDate && (
                                                                 <p className="text-sm text-slate-500 mt-1">
-                                                                    Fecha propuesta: {service.proposedDate}
+                                                                    {tr("Fecha propuesta:")}{' '}{service.proposedDate}
                                                                 </p>
                                                             )}
                                                             {service.duration && (
                                                                 <p className="text-sm text-slate-500">
-                                                                    Duración: {service.duration} día(s)
+                                                                    {tr("Duración:")}{' '}{service.duration} {tr("día(s)")}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -544,7 +545,7 @@ export default function QuotationDetailPage() {
                                             <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50">
                                                 <CardTitle className="text-base flex items-center gap-2">
                                                     <Sparkles className="h-4 w-4 text-indigo-600" />
-                                                    Comentarios del Análisis
+                                                    {tr("Comentarios del Análisis")}
                                                 </CardTitle>
                                             </CardHeader>
                                             <CardContent className="pt-4">
@@ -555,25 +556,25 @@ export default function QuotationDetailPage() {
                                                             <div className="space-y-3 text-sm text-slate-700">
                                                                 {rawData.decision_rule?.map((rule: any, idx: number) => (
                                                                     <div key={idx} className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                                                        <p className="font-medium text-blue-900 mb-1">📋 Regla de Decisión</p>
+                                                                        <p className="font-medium text-blue-900 mb-1">{tr("📋 Regla de Decisión")}</p>
                                                                         <p className="text-blue-800">{rule.description}</p>
                                                                     </div>
                                                                 ))}
                                                                 {rawData.confidentiality?.map((conf: any, idx: number) => (
                                                                     <div key={idx} className="p-3 bg-green-50 rounded-lg border border-green-100">
-                                                                        <p className="font-medium text-green-900 mb-1">🔒 Confidencialidad</p>
+                                                                        <p className="font-medium text-green-900 mb-1">{tr("🔒 Confidencialidad")}</p>
                                                                         <p className="text-green-800">{conf.description}</p>
                                                                     </div>
                                                                 ))}
                                                                 {rawData.equipment_availability?.map((eq: any, idx: number) => (
                                                                     <div key={idx} className="p-3 bg-amber-50 rounded-lg border border-amber-100">
-                                                                        <p className="font-medium text-amber-900 mb-1">🔧 Disponibilidad de Equipos</p>
+                                                                        <p className="font-medium text-amber-900 mb-1">{tr("🔧 Disponibilidad de Equipos")}</p>
                                                                         <p className="text-amber-800">{eq.description}</p>
                                                                     </div>
                                                                 ))}
                                                                 {!rawData.decision_rule && !rawData.confidentiality && !rawData.equipment_availability && (
                                                                     <p className="text-slate-600 italic">
-                                                                        El documento fue analizado correctamente. No se encontraron servicios específicos pero la información general fue extraída exitosamente.
+                                                                        {tr("El documento fue analizado correctamente. No se encontraron servicios específicos pero la información general fue extraída exitosamente.")}
                                                                     </p>
                                                                 )}
                                                             </div>
@@ -581,7 +582,7 @@ export default function QuotationDetailPage() {
                                                     } catch {
                                                         return (
                                                             <p className="text-sm text-slate-600 italic">
-                                                                El documento fue analizado. Revise la información extraída para más detalles.
+                                                                {tr("El documento fue analizado. Revise la información extraída para más detalles.")}
                                                             </p>
                                                         );
                                                     }
@@ -597,7 +598,7 @@ export default function QuotationDetailPage() {
                                         {aiData.alerts && aiData.alerts.length > 0 && (
                                             <Card className="border-amber-200 shadow-sm">
                                                 <CardHeader className="bg-amber-50">
-                                                    <CardTitle className="text-base text-amber-900">⚠️ Alertas</CardTitle>
+                                                    <CardTitle className="text-base text-amber-900">{tr("⚠️ Alertas")}</CardTitle>
                                                 </CardHeader>
                                                 <CardContent className="pt-4">
                                                     <ul className="space-y-2">
@@ -632,7 +633,7 @@ export default function QuotationDetailPage() {
                                                     <Building2 className="h-5 w-5 text-slate-600" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs text-slate-500 uppercase tracking-wider">Ubicación</p>
+                                                    <p className="text-xs text-slate-500 uppercase tracking-wider">{tr("Ubicación")}</p>
                                                     <p className="font-medium text-slate-900">{aiData.location}</p>
                                                 </div>
                                             </div>
@@ -646,14 +647,14 @@ export default function QuotationDetailPage() {
                                     <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                                         <Sparkles className="h-8 w-8 text-slate-400" />
                                     </div>
-                                    <h3 className="text-lg font-semibold text-slate-900">No hay análisis disponible</h3>
+                                    <h3 className="text-lg font-semibold text-slate-900">{tr("No hay análisis disponible")}</h3>
                                     <p className="text-slate-500 max-w-md mt-2">
-                                        Esta cotización aún no ha sido analizada por IA. Haz clic en "Analizar con IA" para obtener un análisis detallado.
+                                        {tr("Esta cotización aún no ha sido analizada por IA. Haz clic en \"Analizar con IA\" para obtener un análisis detallado.")}
                                     </p>
                                     {quotation.status === 'PENDING' && (
                                         <Button onClick={handleAnalyze} disabled={isAnalyzing} className="mt-4">
                                             {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                            Analizar ahora
+                                            {tr("Analizar ahora")}
                                         </Button>
                                     )}
                                 </CardContent>
@@ -667,7 +668,7 @@ export default function QuotationDetailPage() {
                             <div className="flex justify-end">
                                 <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={isAnalyzing}>
                                     {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                    Volver a analizar
+                                    {tr("Volver a analizar")}
                                 </Button>
                             </div>
                         )}
@@ -702,25 +703,25 @@ export default function QuotationDetailPage() {
                                                         verdict === null ? 'text-slate-900' :
                                                             'text-amber-900'
                                                     }`}>
-                                                    {verdict === true ? (withException ? 'CONFORME CON EXCEPCIÓN APROBADA' : 'CONFORME') :
-                                                        verdict === false ? 'NO CONFORME' :
-                                                            verdict === null ? 'SIN VEREDICTO NORMATIVO (matriz descriptiva)' :
-                                                                'REQUIERE REVISIÓN'}
+                                                    {verdict === true ? (withException ? tr("CONFORME CON EXCEPCIÓN APROBADA") : tr("CONFORME")) :
+                                                        verdict === false ? tr("NO CONFORME") :
+                                                            verdict === null ? tr("SIN VEREDICTO NORMATIVO (matriz descriptiva)") :
+                                                                tr("REQUIERE REVISIÓN")}
                                                 </h3>
                                                 <p className="text-sm text-slate-600 mt-1">
-                                                    Verificado: {complianceResult.analyzedAt ?
+                                                    {tr("Verificado:")}{' '}{complianceResult.analyzedAt ?
                                                         new Date(complianceResult.analyzedAt).toLocaleString('es-ES') : 'N/A'}
                                                 </p>
                                                 {Array.isArray(complianceResult.comparedAgainst) ? (
                                                     <p className="text-xs text-slate-500">
-                                                        Comparada contra: {complianceResult.comparedAgainst.length
+                                                        {tr("Comparada contra:")}{' '}{complianceResult.comparedAgainst.length
                                                             ? complianceResult.comparedAgainst.join('; ')
-                                                            : 'ningún artículo (ver hallazgos)'}
+                                                            : tr("ningún artículo (ver hallazgos)")}
                                                         {complianceResult.sampleMatrix && ` · Muestra: ${complianceResult.sampleMatrix}`}
                                                     </p>
                                                 ) : complianceResult.standardsCount !== undefined && (
                                                     <p className="text-xs text-slate-500">
-                                                        Normas verificadas: {complianceResult.standardsCount}
+                                                        {tr("Normas verificadas:")}{' '}{complianceResult.standardsCount}
                                                     </p>
                                                 )}
                                             </div>
@@ -737,10 +738,10 @@ export default function QuotationDetailPage() {
                                                             'text-red-700'
                                                         }`}>{complianceResult.score}</span>
                                                 </div>
-                                                <p className="text-xs text-slate-500 mt-1">Puntuación</p>
+                                                <p className="text-xs text-slate-500 mt-1">{tr("Puntuación")}</p>
                                                 {complianceResult.coverage && (
-                                                    <p className="text-[11px] text-slate-500" title="Parámetros del artículo que se cotizaron">
-                                                        Cotizados {complianceResult.coverage.quoted} de {complianceResult.coverage.total}
+                                                    <p className="text-[11px] text-slate-500" title={tr("Parámetros del artículo que se cotizaron")}>
+                                                        {tr("Cotizados")}{' '}{complianceResult.coverage.quoted} de {complianceResult.coverage.total}
                                                     </p>
                                                 )}
                                             </div>
@@ -748,14 +749,14 @@ export default function QuotationDetailPage() {
                                     </div>
                                     {complianceResult.coverage && (
                                         <p className="mt-3 text-xs text-slate-500">
-                                            La puntuación mide lo cotizado: de los parámetros cotizados, cuántos están sin observaciones (un hallazgo aceptado cuenta como resuelto). Los sugeridos por la norma no cotizados no restan.
+                                            {tr("La puntuación mide lo cotizado: de los parámetros cotizados, cuántos están sin observaciones (un hallazgo aceptado cuenta como resuelto). Los sugeridos por la norma no cotizados no restan.")}
                                         </p>
                                     )}
                                     {actionableIssues.length > 0 && (
                                         <p className={`mt-2 text-sm font-medium ${complianceResult.pendingDecisions ? 'text-amber-800' : 'text-green-800'}`}>
                                             {complianceResult.pendingDecisions
                                                 ? `${complianceResult.pendingDecisions} de ${actionableIssues.length} hallazgo(s) sin decisión final (pendientes o en revisión). La cotización queda habilitada para OIT cuando todos estén aceptados.`
-                                                : quotation.approvedForOit ? 'Todos los hallazgos tienen decisión. Habilitada para OIT.' : 'Todos los hallazgos tienen decisión.'}
+                                                : quotation.approvedForOit ? tr("Todos los hallazgos tienen decisión. Habilitada para OIT.") : tr("Todos los hallazgos tienen decisión.")}
                                         </p>
                                     )}
                                     {/* Summary */}
@@ -772,12 +773,12 @@ export default function QuotationDetailPage() {
                                         <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50">
                                             <CardTitle className="text-base flex items-center gap-2 text-red-900">
                                                 <XCircle className="h-5 w-5" />
-                                                Hallazgos que requieren decisión ({actionableIssues.length})
+                                                {tr("Hallazgos que requieren decisión (")}{actionableIssues.length})
                                             </CardTitle>
                                             <CardDescription>
                                                 {issues.filter((i: any) => i.severity === 'CRITICAL').length} incumplimientos
-                                                {' · '}{issues.filter((i: any) => i.severity === 'WARNING').length} por revisar
-                                                {' · '}{informativeIssues.length} informativos (en el cuadro de abajo)
+                                                {' · '}{issues.filter((i: any) => i.severity === 'WARNING').length} {tr("por revisar")}
+                                                {' · '}{informativeIssues.length} {tr("informativos (en el cuadro de abajo)")}
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="pt-4 space-y-3">
@@ -791,7 +792,7 @@ export default function QuotationDetailPage() {
                                                             issue.severity === 'WARNING' ? 'bg-amber-500 text-white' :
                                                                 'bg-blue-500 text-white'
                                                             }`}>
-                                                            {SEVERITY_LABEL[issue.severity] || 'INFO'}
+                                                            {SEVERITY_LABEL[issue.severity] || tr("INFO")}
                                                         </span>
                                                         {issue.category && (
                                                             <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{issue.category}</span>
@@ -805,17 +806,17 @@ export default function QuotationDetailPage() {
                                                     <p className="mt-2 font-medium text-slate-900">{issue.description}</p>
                                                     {issue.normReference && (
                                                         <p className="mt-1 text-xs text-slate-600 bg-slate-100 p-2 rounded">
-                                                            📋 <strong>Norma:</strong> {issue.normReference}
+                                                            📋 <strong>{tr("Norma:")}</strong> {issue.normReference}
                                                         </p>
                                                     )}
                                                     {issue.location && (
                                                         <p className="mt-1 text-xs text-slate-500">
-                                                            📍 <strong>Ubicación:</strong> {issue.location}
+                                                            📍 <strong>{tr("Ubicación:")}</strong> {issue.location}
                                                         </p>
                                                     )}
                                                     {issue.recommendation && (
                                                         <p className="mt-2 text-sm text-green-800 bg-green-50 p-2 rounded border border-green-200">
-                                                            💡 <strong>Acción:</strong> {issue.recommendation}
+                                                            💡 <strong>{tr("Acción:")}</strong> {issue.recommendation}
                                                         </p>
                                                     )}
                                                     {issue.key && complianceResult.effectiveStatus && !complianceResult.error && (
@@ -843,18 +844,18 @@ export default function QuotationDetailPage() {
                                     <Card className="border-slate-200 shadow-sm">
                                         <CardHeader className="bg-slate-50">
                                             <CardTitle className="text-base text-slate-800">
-                                                Parámetros del artículo ({parameterChecks.length})
+                                                {tr("Parámetros del artículo (")}{parameterChecks.length})
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="pt-4 overflow-x-auto">
                                             <table className="w-full text-sm">
                                                 <thead>
                                                     <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b">
-                                                        <th className="py-2 pr-3">Parámetro (norma)</th>
-                                                        <th className="py-2 pr-3">Límite norma</th>
-                                                        <th className="py-2 pr-3">Cotizado como</th>
-                                                        <th className="py-2 pr-3">Lím. cuantificación</th>
-                                                        <th className="py-2">Resultado</th>
+                                                        <th className="py-2 pr-3">{tr("Parámetro (norma)")}</th>
+                                                        <th className="py-2 pr-3">{tr("Límite norma")}</th>
+                                                        <th className="py-2 pr-3">{tr("Cotizado como")}</th>
+                                                        <th className="py-2 pr-3">{tr("Lím. cuantificación")}</th>
+                                                        <th className="py-2">{tr("Resultado")}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -867,7 +868,7 @@ export default function QuotationDetailPage() {
                                                             <td className="py-2">
                                                                 {(c.problems || []).length === 0 ? (
                                                                     <span className="inline-flex items-center gap-1 text-green-700">
-                                                                        <CheckCircle2 className="h-4 w-4" /> Correcto
+                                                                        <CheckCircle2 className="h-4 w-4" /> {tr("Correcto")}
                                                                     </span>
                                                                 ) : (
                                                                     <span className="text-slate-800">
@@ -891,7 +892,7 @@ export default function QuotationDetailPage() {
                                             <CardHeader className="bg-amber-50">
                                                 <CardTitle className="text-base flex items-center gap-2 text-amber-900">
                                                     <AlertTriangle className="h-4 w-4" />
-                                                    Parámetros Faltantes ({complianceResult.missingParameters.length})
+                                                    {tr("Parámetros Faltantes (")}{complianceResult.missingParameters.length})
                                                 </CardTitle>
                                             </CardHeader>
                                             <CardContent className="pt-4">
@@ -903,9 +904,9 @@ export default function QuotationDetailPage() {
                                                             ) : (
                                                                 <div className="space-y-1">
                                                                     <p className="font-bold text-amber-900">🔬 {param.parameter}</p>
-                                                                    {param.norm && <p className="text-xs text-amber-700">📋 Norma: {param.norm}</p>}
-                                                                    {param.article && <p className="text-xs text-amber-600">📌 Artículo: {param.article}</p>}
-                                                                    {param.requiredMethod && <p className="text-xs text-amber-600">🧪 Método: {param.requiredMethod}</p>}
+                                                                    {param.norm && <p className="text-xs text-amber-700">{tr("📋 Norma:")}{' '}{param.norm}</p>}
+                                                                    {param.article && <p className="text-xs text-amber-600">{tr("📌 Artículo:")}{' '}{param.article}</p>}
+                                                                    {param.requiredMethod && <p className="text-xs text-amber-600">{tr("🧪 Método:")}{' '}{param.requiredMethod}</p>}
                                                                 </div>
                                                             )}
                                                         </li>
@@ -918,7 +919,7 @@ export default function QuotationDetailPage() {
                                         <Card className="border-blue-200 shadow-sm">
                                             <CardHeader className="bg-blue-50">
                                                 <CardTitle className="text-base flex items-center gap-2 text-blue-900">
-                                                    💡 Recomendaciones
+                                                    {tr("💡 Recomendaciones")}
                                                 </CardTitle>
                                             </CardHeader>
                                             <CardContent className="pt-4">
@@ -941,7 +942,7 @@ export default function QuotationDetailPage() {
                                         <CardHeader className="bg-green-50">
                                             <CardTitle className="text-base flex items-center gap-2 text-green-900">
                                                 <CheckCircle2 className="h-4 w-4" />
-                                                Requisitos Cumplidos ({complianceResult.compliantItems.length})
+                                                {tr("Requisitos Cumplidos (")}{complianceResult.compliantItems.length})
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="pt-4">
@@ -962,7 +963,7 @@ export default function QuotationDetailPage() {
                                     <Card className="border-slate-200 shadow-sm">
                                         <CardHeader className="bg-slate-50">
                                             <CardTitle className="text-base text-slate-700">
-                                                📚 Normas Aplicadas
+                                                {tr("📚 Normas Aplicadas")}
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="pt-4">
@@ -983,9 +984,9 @@ export default function QuotationDetailPage() {
                                     <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                                         <CheckCircle2 className="h-8 w-8 text-slate-400" />
                                     </div>
-                                    <h3 className="text-lg font-semibold text-slate-900">Sin verificación de cumplimiento</h3>
+                                    <h3 className="text-lg font-semibold text-slate-900">{tr("Sin verificación de cumplimiento")}</h3>
                                     <p className="text-slate-500 max-w-md mt-2">
-                                        No se ha realizado una verificación de cumplimiento para esta cotización.
+                                        {tr("No se ha realizado una verificación de cumplimiento para esta cotización.")}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -999,17 +1000,17 @@ export default function QuotationDetailPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Link2 className="h-5 w-5 text-blue-600" />
-                                    OITs Vinculadas
+                                    {tr("OITs Vinculadas")}
                                 </CardTitle>
                                 <CardDescription>
-                                    Se vinculan solas: cuando llega una OIT del Sistema Serambiente que trae este número de cotización.
+                                    {tr("Se vinculan solas: cuando llega una OIT del Sistema Serambiente que trae este número de cotización.")}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {!!quotation.linkedOITs?.length && !quotation.approvedForOit && (
                                     <div className="mb-4 flex items-start gap-2 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-3">
                                         <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                        Ya hay OIT creadas con esta cotización, pero la cotización todavía no está aprobada contra la norma (ver pestaña Cumplimiento).
+                                        {tr("Ya hay OIT creadas con esta cotización, pero la cotización todavía no está aprobada contra la norma (ver pestaña Cumplimiento).")}
                                     </div>
                                 )}
                                 {quotation.linkedOITs && quotation.linkedOITs.length > 0 ? (
@@ -1039,9 +1040,9 @@ export default function QuotationDetailPage() {
                                         <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                                             <Link2 className="h-8 w-8 text-slate-400" />
                                         </div>
-                                        <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin OITs vinculadas</h3>
+                                        <h3 className="text-lg font-semibold text-slate-700 mb-2">{tr("Sin OITs vinculadas")}</h3>
                                         <p className="text-slate-500 max-w-md">
-                                            Esta cotización aún no ha sido vinculada a ninguna orden de inspección.
+                                            {tr("Esta cotización aún no ha sido vinculada a ninguna orden de inspección.")}
                                         </p>
                                     </div>
                                 )}

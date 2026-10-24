@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/authStore';
 
+import { tr, locale } from '@/i18n';
 interface Propuesta {
     id: string; modulo: string; tipo: 'NOVEDAD' | 'PREGUNTA'; titulo: string; contenido: string; evidencia: string;
     estado: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA'; decididoPor: string | null; decididoEn: string | null; createdAt: string;
@@ -30,27 +31,27 @@ export default function AcademyPropuestasPage() {
             toast.success(aprobar ? 'Publicado en Xmart Academy' : 'Propuesta rechazada');
             setItems(list => (list || []).filter(x => x.id !== p.id));
         } catch {
-            toast.error('No se pudo guardar la decisión');
+            toast.error(tr("No se pudo guardar la decisión"));
         } finally { setBusy(''); }
     };
     const buscar = async () => {
         setBusy('buscar');
         try { const r = await api.post('/academy/propuestas/buscar'); toast.success(r.data?.message || 'Buscando propuestas'); }
-        catch { toast.error('No se pudo iniciar la búsqueda'); }
+        catch { toast.error(tr("No se pudo iniciar la búsqueda")); }
         finally { setBusy(''); }
     };
     const valor = (p: Propuesta) => edits[p.id] || { titulo: p.titulo, contenido: p.contenido };
 
     return (
         <div className="mx-auto max-w-4xl space-y-5 pb-16">
-            <Link to="/academy" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-[#004CAB]"><ArrowLeft className="h-4 w-4" /> Xmart Academy</Link>
+            <Link to="/academy" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-[#004CAB]"><ArrowLeft className="h-4 w-4" /> {tr("Xmart Academy")}</Link>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Propuestas de la IA</h1>
-                    <p className="text-sm text-slate-600">Novedades por cambios del sistema y preguntas frecuentes del equipo. Nada se publica sin tu aprobación; puedes corregir el texto antes.</p>
+                    <h1 className="text-2xl font-bold text-slate-900">{tr("Propuestas de la IA")}</h1>
+                    <p className="text-sm text-slate-600">{tr("Novedades por cambios del sistema y preguntas frecuentes del equipo. Nada se publica sin tu aprobación; puedes corregir el texto antes.")}</p>
                 </div>
                 <button onClick={buscar} disabled={busy === 'buscar'} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-                    {busy === 'buscar' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />} Buscar propuestas ahora
+                    {busy === 'buscar' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />} {tr("Buscar propuestas ahora")}
                 </button>
             </div>
 
@@ -61,18 +62,18 @@ export default function AcademyPropuestasPage() {
             </div>
 
             {!items && <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#004CAB]" /></div>}
-            {items && !items.length && <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No hay propuestas en esta lista.</p>}
+            {items && !items.length && <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">{tr("No hay propuestas en esta lista.")}</p>}
 
             {items?.map(p => (
                 <article key={p.id} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-medium ${p.tipo === 'NOVEDAD' ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700'}`}>
                             {p.tipo === 'NOVEDAD' ? <Code2 className="h-3.5 w-3.5" /> : <MessagesSquare className="h-3.5 w-3.5" />}
-                            {p.tipo === 'NOVEDAD' ? 'Novedad del sistema' : 'Pregunta frecuente'}
+                            {p.tipo === 'NOVEDAD' ? tr("Novedad del sistema") : tr("Pregunta frecuente")}
                         </span>
                         <Link to={`/academy/${p.modulo}`} className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 hover:bg-slate-200">{p.modulo}</Link>
-                        <span className="text-slate-400">{new Date(p.createdAt).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</span>
-                        {p.decididoPor && <span className="text-slate-400">· {p.estado === 'APROBADA' ? 'Aprobada' : 'Rechazada'} por {p.decididoPor}</span>}
+                        <span className="text-slate-400">{new Date(p.createdAt).toLocaleString(locale(), { timeZone: 'America/Bogota' })}</span>
+                        {p.decididoPor && <span className="text-slate-400">· {p.estado === 'APROBADA' ? tr("Aprobada") : tr("Rechazada")} por {p.decididoPor}</span>}
                     </div>
                     {p.estado === 'PENDIENTE' ? (
                         <>
@@ -88,14 +89,14 @@ export default function AcademyPropuestasPage() {
                         </div>
                     )}
                     <details className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-                        <summary className="cursor-pointer font-medium text-slate-700">De dónde sale</summary>
+                        <summary className="cursor-pointer font-medium text-slate-700">{tr("De dónde sale")}</summary>
                         <p className="mt-2 whitespace-pre-line">{p.evidencia}</p>
                     </details>
                     {p.estado === 'PENDIENTE' && (
                         <div className="flex justify-end gap-2">
-                            <button onClick={() => decidir(p, false)} disabled={!!busy} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"><X className="h-4 w-4" /> Rechazar</button>
+                            <button onClick={() => decidir(p, false)} disabled={!!busy} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"><X className="h-4 w-4" /> {tr("Rechazar")}</button>
                             <button onClick={() => decidir(p, true)} disabled={!!busy} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-                                {busy === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Aprobar y publicar
+                                {busy === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {tr("Aprobar y publicar")}
                             </button>
                         </div>
                     )}

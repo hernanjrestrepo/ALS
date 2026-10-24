@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, AlertTriangle, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { tr } from '@/i18n';
 interface InsightsPanelProps {
     stuckOITs: any[];
     completedOITs: number;
@@ -22,8 +23,7 @@ export function InsightsPanel({ stuckOITs, completedOITs, totalOITs, statusBreak
             tone: 'warn',
             text: (
                 <>
-                    <strong>{stuckOITs.length}</strong> OIT{stuckOITs.length === 1 ? '' : 's'} llevan más de 5 días sin
-                    avanzar de estado. <Link to="/oits" className="underline hover:text-amber-900">Revisar</Link>.
+                    <strong>{stuckOITs.length}</strong> {tr("OIT")}{stuckOITs.length === 1 ? '' : 's'} {tr("llevan más de 5 días sin avanzar de estado.")}{' '}<Link to="/oits" className="underline hover:text-amber-900">{tr("Revisar")}</Link>.
                 </>
             ),
         });
@@ -31,7 +31,7 @@ export function InsightsPanel({ stuckOITs, completedOITs, totalOITs, statusBreak
         insights.push({
             icon: CheckCircle2,
             tone: 'ok',
-            text: 'Ninguna OIT lleva más de 5 días estancada en el mismo estado.',
+            text: tr("Ninguna OIT lleva más de 5 días estancada en el mismo estado."),
         });
     }
 
@@ -41,7 +41,7 @@ export function InsightsPanel({ stuckOITs, completedOITs, totalOITs, statusBreak
             tone: 'info',
             text: (
                 <>
-                    <strong>{completionRate}%</strong> de las OITs totales están completadas ({completedOITs} de {totalOITs}).
+                    <strong>{completionRate}%</strong> {tr("de las OITs totales están completadas (")}{completedOITs} de {totalOITs}).
                 </>
             ),
         });
@@ -53,7 +53,7 @@ export function InsightsPanel({ stuckOITs, completedOITs, totalOITs, statusBreak
             tone: 'info',
             text: (
                 <>
-                    El estado más frecuente es <strong>{topStatus.label}</strong>, con {topStatus.count} OIT{topStatus.count === 1 ? '' : 's'}.
+                    {tr("El estado más frecuente es")}{' '}<strong>{topStatus.label}</strong>{tr(", con")}{' '}{topStatus.count} {tr("OIT")}{topStatus.count === 1 ? '' : 's'}.
                 </>
             ),
         });
@@ -63,7 +63,7 @@ export function InsightsPanel({ stuckOITs, completedOITs, totalOITs, statusBreak
         insights.push({
             icon: Sparkles,
             tone: 'info',
-            text: 'Aún no hay suficientes OITs para generar observaciones.',
+            text: tr("Aún no hay suficientes OITs para generar observaciones."),
         });
     }
 
@@ -78,7 +78,7 @@ export function InsightsPanel({ stuckOITs, completedOITs, totalOITs, statusBreak
             <CardHeader>
                 <CardTitle className="text-slate-900 flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-[#004CAB]" />
-                    Observaciones
+                    {tr("Observaciones")}
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">

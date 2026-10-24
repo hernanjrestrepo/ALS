@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, FileText, Type, Image, FileUp, CheckSquare, PenTool } from 'lucide-react';
 import type { TemplateStep, StepType } from '@/types/sampling';
 
+import { tr } from '@/i18n';
 interface StepBuilderProps {
     onAddStep: (step: TemplateStep) => void;
 }
@@ -126,7 +127,7 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
             <CardHeader className="pb-4">
                 <h4 className="font-semibold flex items-center gap-2">
                     <Plus className="h-4 w-4" />
-                    Agregar Paso
+                    {tr("Agregar Paso")}
                 </h4>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -149,20 +150,20 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
                 {/* Common Fields */}
                 <div className="space-y-3">
                     <div>
-                        <Label>Título del Paso *</Label>
+                        <Label>{tr("Título del Paso *")}</Label>
                         <Input
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            placeholder="Ej: Medición de temperatura"
+                            placeholder={tr("Ej: Medición de temperatura")}
                         />
                     </div>
 
                     <div>
-                        <Label>Descripción</Label>
+                        <Label>{tr("Descripción")}</Label>
                         <Textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Instrucciones adicionales..."
+                            placeholder={tr("Instrucciones adicionales...")}
                             className="h-20"
                         />
                     </div>
@@ -172,18 +173,18 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
                             checked={required}
                             onCheckedChange={(checked: boolean) => setRequired(!!checked)}
                         />
-                        <Label>Campo requerido</Label>
+                        <Label>{tr("Campo requerido")}</Label>
                     </div>
                 </div>
 
                 {/* Type-Specific Fields */}
                 {stepType === 'TEXT' && (
                     <div>
-                        <Label>Contenido</Label>
+                        <Label>{tr("Contenido")}</Label>
                         <Textarea
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            placeholder="Instrucciones detalladas..."
+                            placeholder={tr("Instrucciones detalladas...")}
                             className="h-32"
                         />
                     </div>
@@ -192,35 +193,35 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
                 {stepType === 'INPUT' && (
                     <div className="space-y-3">
                         <div>
-                            <Label>Tipo de Input</Label>
+                            <Label>{tr("Tipo de Input")}</Label>
                             <Select value={inputType} onValueChange={(val: any) => setInputType(val)}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="text">Texto</SelectItem>
-                                    <SelectItem value="number">Número</SelectItem>
-                                    <SelectItem value="date">Fecha</SelectItem>
-                                    <SelectItem value="time">Hora</SelectItem>
-                                    <SelectItem value="email">Email</SelectItem>
+                                    <SelectItem value="text">{tr("Texto")}</SelectItem>
+                                    <SelectItem value="number">{tr("Número")}</SelectItem>
+                                    <SelectItem value="date">{tr("Fecha")}</SelectItem>
+                                    <SelectItem value="time">{tr("Hora")}</SelectItem>
+                                    <SelectItem value="email">{tr("Email")}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <Label>Placeholder</Label>
+                                <Label>{tr("Placeholder")}</Label>
                                 <Input
                                     value={placeholder}
                                     onChange={(e) => setPlaceholder(e.target.value)}
-                                    placeholder="Ej: Ingrese valor"
+                                    placeholder={tr("Ej: Ingrese valor")}
                                 />
                             </div>
                             <div>
-                                <Label>Unidad</Label>
+                                <Label>{tr("Unidad")}</Label>
                                 <Input
                                     value={unit}
                                     onChange={(e) => setUnit(e.target.value)}
-                                    placeholder="Ej: °C, mg/L"
+                                    placeholder={tr("Ej: °C, mg/L")}
                                 />
                             </div>
                         </div>
@@ -234,14 +235,14 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
                                 checked={allowMultiple}
                                 onCheckedChange={(checked: boolean) => setAllowMultiple(!!checked)}
                             />
-                            <Label>Permitir múltiples imágenes</Label>
+                            <Label>{tr("Permitir múltiples imágenes")}</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                             <Checkbox
                                 checked={requireGPS}
                                 onCheckedChange={(checked: boolean) => setRequireGPS(!!checked)}
                             />
-                            <Label>Requerir ubicación GPS</Label>
+                            <Label>{tr("Requerir ubicación GPS")}</Label>
                         </div>
                     </div>
                 )}
@@ -249,11 +250,11 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
                 {stepType === 'DOCUMENT' && (
                     <div className="space-y-3">
                         <div>
-                            <Label>Formatos Aceptados</Label>
+                            <Label>{tr("Formatos Aceptados")}</Label>
                             <Input
                                 value={acceptedFormats.join(', ')}
                                 onChange={(e) => setAcceptedFormats(e.target.value.split(',').map(f => f.trim()))}
-                                placeholder=".pdf, .doc, .xlsx"
+                                placeholder={tr(".pdf, .doc, .xlsx")}
                             />
                         </div>
                         <div className="flex items-center space-x-2">
@@ -261,7 +262,7 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
                                 checked={allowMultiple}
                                 onCheckedChange={(checked: boolean) => setAllowMultiple(!!checked)}
                             />
-                            <Label>Permitir múltiples archivos</Label>
+                            <Label>{tr("Permitir múltiples archivos")}</Label>
                         </div>
                     </div>
                 )}
@@ -269,11 +270,11 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
                 {stepType === 'CHECKBOX' && (
                     <div className="space-y-3">
                         <div>
-                            <Label>Etiqueta del Checkbox</Label>
+                            <Label>{tr("Etiqueta del Checkbox")}</Label>
                             <Input
                                 value={checkboxLabel}
                                 onChange={(e) => setCheckboxLabel(e.target.value)}
-                                placeholder="Ej: ¿Se completó la verificación?"
+                                placeholder={tr("Ej: ¿Se completó la verificación?")}
                             />
                         </div>
                         <div className="flex items-center space-x-2">
@@ -281,18 +282,18 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
                                 checked={requiresComment}
                                 onCheckedChange={(checked: boolean) => setRequiresComment(!!checked)}
                             />
-                            <Label>Requiere comentario</Label>
+                            <Label>{tr("Requiere comentario")}</Label>
                         </div>
                     </div>
                 )}
 
                 {stepType === 'SIGNATURE' && (
                     <div>
-                        <Label>Nombre del Firmante</Label>
+                        <Label>{tr("Nombre del Firmante")}</Label>
                         <Input
                             value={signerName}
                             onChange={(e) => setSignerName(e.target.value)}
-                            placeholder="Ej: Técnico de Campo"
+                            placeholder={tr("Ej: Técnico de Campo")}
                         />
                     </div>
                 )}
@@ -303,7 +304,7 @@ export const StepTypeBuilder: React.FC<StepBuilderProps> = ({ onAddStep }) => {
                     disabled={!title.trim()}
                 >
                     <Plus className="h-4 w-4 mr-2" />
-                    Agregar Paso
+                    {tr("Agregar Paso")}
                 </Button>
             </CardContent>
         </Card>

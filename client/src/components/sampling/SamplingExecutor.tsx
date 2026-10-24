@@ -9,6 +9,7 @@ import type { TemplateStep, StepData, SamplingData } from '@/types/sampling';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
+import { tr } from '@/i18n';
 interface SamplingExecutorProps {
     templateId: string;
     oitId: string;
@@ -43,7 +44,7 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
             setSteps(parsedSteps);
         } catch (error) {
             console.error('Error loading template:', error);
-            toast.error('Error al cargar la plantilla');
+            toast.error(tr("Error al cargar la plantilla"));
         } finally {
             setIsLoading(false);
         }
@@ -89,7 +90,7 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
         } catch (error) {
             console.error('Error uploading files:', error);
             setIsSaving(false);
-            toast.error('Error al subir archivos. Por favor intente nuevamente.');
+            toast.error(tr("Error al subir archivos. Por favor intente nuevamente."));
         }
     };
 
@@ -107,11 +108,11 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
         try {
             setIsSaving(true);
             await api.post(`/oits/${oitId}/sampling-data`, samplingData);
-            toast.success('Muestreo completado exitosamente');
+            toast.success(tr("Muestreo completado exitosamente"));
             onComplete(samplingData);
         } catch (error) {
             console.error('Error saving sampling data:', error);
-            toast.error('Error al guardar datos de muestreo');
+            toast.error(tr("Error al guardar datos de muestreo"));
         } finally {
             setIsSaving(false);
         }
@@ -130,10 +131,10 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
         try {
             setIsSaving(true);
             await api.post(`/oits/${oitId}/sampling-data`, { ...samplingData, partial: true });
-            toast.success('Progreso guardado');
+            toast.success(tr("Progreso guardado"));
         } catch (error) {
             console.error('Error saving progress:', error);
-            toast.error('Error al guardar progreso');
+            toast.error(tr("Error al guardar progreso"));
         } finally {
             setIsSaving(false);
         }
@@ -144,7 +145,7 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
             <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mx-auto mb-4"></div>
-                    <p className="text-slate-500">Cargando plantilla...</p>
+                    <p className="text-slate-500">{tr("Cargando plantilla...")}</p>
                 </div>
             </div>
         );
@@ -153,7 +154,7 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
     if (steps.length === 0) {
         return (
             <div className="text-center py-12">
-                <p className="text-slate-500">No hay pasos definidos en esta plantilla</p>
+                <p className="text-slate-500">{tr("No hay pasos definidos en esta plantilla")}</p>
             </div>
         );
     }
@@ -169,9 +170,9 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
                     <div className="space-y-3">
                         <div className="flex items-center justify-between text-sm">
                             <span className="font-medium text-slate-700">
-                                Paso {currentStepIndex + 1} de {steps.length}
+                                {tr("Paso")}{' '}{currentStepIndex + 1} de {steps.length}
                             </span>
-                            <span className="text-slate-500">{progress}% completado</span>
+                            <span className="text-slate-500">{progress}{tr("% completado")}</span>
                         </div>
                         <Progress value={progress} className="h-2" />
                         <div className="flex items-center justify-between">
@@ -185,7 +186,7 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
                                 disabled={isSaving || collectedData.length === 0}
                             >
                                 <Save className="h-4 w-4 mr-2" />
-                                {isSaving ? 'Guardando...' : 'Guardar Progreso'}
+                                {isSaving ? tr("Guardando...") : tr("Guardar Progreso")}
                             </Button>
                         </div>
                     </div>
@@ -203,7 +204,7 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
                             <div className="flex items-center gap-2">
                                 <Badge>{currentStep.type}</Badge>
                                 {currentStep.required && (
-                                    <Badge variant="destructive" className="text-xs">Requerido</Badge>
+                                    <Badge variant="destructive" className="text-xs">{tr("Requerido")}</Badge>
                                 )}
                             </div>
                             <h3 className="text-lg font-semibold mt-1">{currentStep.title}</h3>
@@ -226,7 +227,7 @@ export const SamplingExecutor: React.FC<SamplingExecutorProps> = ({
                     disabled={currentStepIndex === 0}
                 >
                     <ChevronLeft className="h-4 w-4 mr-2" />
-                    Anterior
+                    {tr("Anterior")}
                 </Button>
 
                 {collectedData.length > 0 && (

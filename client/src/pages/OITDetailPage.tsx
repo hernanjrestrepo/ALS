@@ -44,6 +44,7 @@ import { SamplingForm } from '@/components/sampling/SamplingForm';
 import { scheduleDays, formatDays } from '@/lib/scheduleDays';
 import { getSuggestedDate, formatLocalDateLong, parseLocalDate, bogotaDateTimeToISO, toBogotaDateTimeInputs, formatBogotaDate, formatBogotaTime } from '@/lib/serviceDate';
 
+import { tr } from '@/i18n';
 // Service schedule structure for enhanced scheduling
 interface ServiceSchedule {
     name: string;
@@ -219,7 +220,7 @@ export default function OITDetailPage() {
 
         } catch (error) {
             console.error('Error fetching OIT:', error);
-            toast.error('Error al cargar datos de OIT');
+            toast.error(tr("Error al cargar datos de OIT"));
         }
     };
 
@@ -327,7 +328,7 @@ export default function OITDetailPage() {
                 setOit(response.data);
             } catch (error) {
                 console.error('Error updating file:', error);
-                toast.error('Error al actualizar archivo');
+                toast.error(tr("Error al actualizar archivo"));
             } finally {
                 setIsProcessing(false);
                 // Reset input
@@ -353,10 +354,10 @@ export default function OITDetailPage() {
             link.remove();
             window.URL.revokeObjectURL(url);
 
-            toast.success('Descarga iniciada');
+            toast.success(tr("Descarga iniciada"));
         } catch (error) {
             console.error('Error downloading file:', error);
-            toast.error('Error al descargar archivo');
+            toast.error(tr("Error al descargar archivo"));
         }
     };
 
@@ -397,27 +398,27 @@ export default function OITDetailPage() {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-            toast.success('Informe descargado');
+            toast.success(tr("Informe descargado"));
         } catch (error) {
             console.error('Error downloading report:', error);
-            toast.error('Error al descargar el informe');
+            toast.error(tr("Error al descargar el informe"));
         }
     };
 
     const handleClearSchedule = async () => {
         if (!id) return;
-        if (!window.confirm('¿Quitar la fecha programada de esta OIT? Se puede volver a programar después.')) return;
+        if (!window.confirm(tr("¿Quitar la fecha programada de esta OIT? Se puede volver a programar después."))) return;
         try {
             // También se limpia serviceDates: si solo se borraba scheduledDate, la
             // Agenda seguia mostrando el servicio como "Confirmado" (serviceDates
             // seguia con confirmed:true) y el estado se quedaba en SCHEDULED, aunque
             // la OIT ya no tuviera fecha.
             await api.put(`/oits/${id}`, { scheduledDate: null, serviceDates: null });
-            toast.success('Programación eliminada');
+            toast.success(tr("Programación eliminada"));
             fetchOIT();
         } catch (error) {
             console.error('Error clearing schedule:', error);
-            toast.error('Error al quitar la programación');
+            toast.error(tr("Error al quitar la programación"));
         }
     };
 
@@ -449,11 +450,11 @@ export default function OITDetailPage() {
                 return newData;
             });
 
-            toast.success('Recursos actualizados exitosamente');
+            toast.success(tr("Recursos actualizados exitosamente"));
             setIsResourceDialogOpen(false);
         } catch (error) {
             console.error('Error saving resources:', error);
-            toast.error('Error al actualizar recursos');
+            toast.error(tr("Error al actualizar recursos"));
         } finally {
             setIsSavingResources(false);
         }
@@ -467,7 +468,7 @@ export default function OITDetailPage() {
             setAvailableTemplates(res.data);
         } catch (error) {
             console.error('Error loading sampling templates:', error);
-            toast.error('Error al cargar las plantillas de muestreo');
+            toast.error(tr("Error al cargar las plantillas de muestreo"));
         } finally {
             setIsLoadingTemplates(false);
         }
@@ -485,7 +486,7 @@ export default function OITDetailPage() {
             setIsTemplatePickerOpen(false);
         } catch (error) {
             console.error('Error linking sampling template:', error);
-            toast.error('Error al vincular la plantilla');
+            toast.error(tr("Error al vincular la plantilla"));
         } finally {
             setIsSavingTemplate(false);
         }
@@ -528,14 +529,14 @@ export default function OITDetailPage() {
 
     const getStatusLabel = (status: string) => {
         const statusMap: Record<string, string> = {
-            'PENDING': 'Pendiente',
-            'IN_PROGRESS': 'En Muestreo',
-            'COMPLETED': 'Completada',
-            'ANALYZING': 'Analizando',
-            'SCHEDULED': 'Programada',
-            'UPLOADING': 'Subiendo',
-            'REVIEW_REQUIRED': 'Pendiente de Aprobación',
-            'REVIEW_NEEDED': 'Requiere Revisión'
+            'PENDING': tr("Pendiente"),
+            'IN_PROGRESS': tr("En Muestreo"),
+            'COMPLETED': tr("Completada"),
+            'ANALYZING': tr("Analizando"),
+            'SCHEDULED': tr("Programada"),
+            'UPLOADING': tr("Subiendo"),
+            'REVIEW_REQUIRED': tr("Pendiente de Aprobación"),
+            'REVIEW_NEEDED': tr("Requiere Revisión")
         };
         return statusMap[status] || status;
     };
@@ -559,7 +560,7 @@ export default function OITDetailPage() {
                             </div>
                             {oit.clientName && <p className="text-slate-800 text-sm font-medium truncate">{oit.clientName}</p>}
                             <p className="text-slate-500 text-sm max-w-2xl truncate">
-                                {oit.status === 'ANALYZING' ? 'Análisis en curso...' : (oit.description || 'Sin descripción')}
+                                {oit.status === 'ANALYZING' ? tr("Análisis en curso...") : (oit.description || tr("Sin descripción"))}
                             </p>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-slate-500">
@@ -584,8 +585,8 @@ export default function OITDetailPage() {
                             <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
                         </div>
                         <div>
-                            <p className="font-semibold text-blue-900">Analizando documentos...</p>
-                            <p className="text-sm text-blue-700 mt-0.5">La IA está extrayendo información y recursos. Esto puede tomar unos momentos.</p>
+                            <p className="font-semibold text-blue-900">{tr("Analizando documentos...")}</p>
+                            <p className="text-sm text-blue-700 mt-0.5">{tr("La IA está extrayendo información y recursos. Esto puede tomar unos momentos.")}</p>
                         </div>
                     </div>
                 )}
@@ -597,24 +598,24 @@ export default function OITDetailPage() {
                             : 'max-w-md grid-cols-2'
                             } bg-white p-1 rounded-xl sm:rounded-full border border-slate-200 shadow-sm h-auto transition-all duration-300`}>
                             <TabsTrigger value="info" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                <FileText className="mr-2 h-4 w-4" /> Info
+                                <FileText className="mr-2 h-4 w-4" /> {tr("Info")}
                             </TabsTrigger>
                             {isAdmin && (
                                 <TabsTrigger value="scheduling" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                    <Calendar className="mr-2 h-4 w-4" /> Agenda
+                                    <Calendar className="mr-2 h-4 w-4" /> {tr("Agenda")}
                                 </TabsTrigger>
                             )}
                             <TabsTrigger value="sampling" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                <Beaker className="mr-2 h-4 w-4" /> Muestreo
+                                <Beaker className="mr-2 h-4 w-4" /> {tr("Muestreo")}
                             </TabsTrigger>
                             {isAdmin && (
                                 <TabsTrigger value="report" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                    <FileBarChart className="mr-2 h-4 w-4" /> Informe
+                                    <FileBarChart className="mr-2 h-4 w-4" /> {tr("Informe")}
                                 </TabsTrigger>
                             )}
                             {isAdmin && (
                                 <TabsTrigger value="quality" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
-                                    <AlertTriangle className="mr-2 h-4 w-4" /> Calidad
+                                    <AlertTriangle className="mr-2 h-4 w-4" /> {tr("Calidad")}
                                 </TabsTrigger>
                             )}
                         </TabsList>
@@ -625,20 +626,20 @@ export default function OITDetailPage() {
                             {/* Main Info Card */}
                             <Card className="md:col-span-2 border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
                                 <CardHeader>
-                                    <CardTitle>Información General</CardTitle>
+                                    <CardTitle>{tr("Información General")}</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-1">
-                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Número OIT</strong>
+                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tr("Número OIT")}</strong>
                                             <p className="text-lg font-medium text-slate-900">{oit.oitNumber}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</strong>
+                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tr("Estado")}</strong>
                                             <p className="text-lg font-medium text-slate-900">{getStatusLabel(oit.status)}</p>
                                         </div>
                                         <div className="col-span-2 space-y-1">
-                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">Descripción</strong>
+                                            <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tr("Descripción")}</strong>
                                             <p className="text-slate-700 leading-relaxed">{oit.description}</p>
                                         </div>
                                     </div>
@@ -646,9 +647,9 @@ export default function OITDetailPage() {
                                     <div className="flex items-center gap-4 pt-6 border-t border-slate-100">
                                         <div className="flex-1 p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between group hover:border-slate-300 transition-colors">
                                             <div>
-                                                <strong className="block text-xs font-semibold text-slate-500 mb-1">Documento OIT</strong>
+                                                <strong className="block text-xs font-semibold text-slate-500 mb-1">{tr("Documento OIT")}</strong>
                                                 <span className="text-sm text-slate-700 truncate block max-w-[150px]">
-                                                    {oit.oitFileUrl ? 'Archivo cargado' : 'No disponible'}
+                                                    {oit.oitFileUrl ? tr("Archivo cargado") : tr("No disponible")}
                                                 </span>
                                             </div>
                                             {oit.oitFileUrl && (
@@ -661,11 +662,11 @@ export default function OITDetailPage() {
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem onClick={() => handleDownload(oit.oitFileUrl, 'documento-oit.pdf')}>
                                                             <Download className="mr-2 h-4 w-4" />
-                                                            Descargar
+                                                            {tr("Descargar")}
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => document.getElementById('oitFileInput')?.click()}>
                                                             <RefreshCcw className="mr-2 h-4 w-4" />
-                                                            Reemplazar
+                                                            {tr("Reemplazar")}
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -674,7 +675,7 @@ export default function OITDetailPage() {
                                         {oit.quotation ? (
                                             <div className="flex items-center justify-between w-full">
                                                 <div className="min-w-0">
-                                                    <strong className="block text-xs font-semibold text-slate-500 mb-1">Cotización</strong>
+                                                    <strong className="block text-xs font-semibold text-slate-500 mb-1">{tr("Cotización")}</strong>
                                                     <button
                                                         onClick={() => navigate(`/quotations/${oit.quotation.id}`)}
                                                         className="text-sm font-medium text-indigo-700 hover:underline truncate block max-w-full text-left"
@@ -682,18 +683,18 @@ export default function OITDetailPage() {
                                                         {oit.quotation.quotationNumber}
                                                     </button>
                                                     <span className={`text-xs ${oit.quotation.approvedForOit ? 'text-green-700' : 'text-amber-700'}`}>
-                                                        {oit.quotation.approvedForOit ? 'Aprobada contra la norma' : 'Sin aprobar contra la norma'}
+                                                        {oit.quotation.approvedForOit ? tr("Aprobada contra la norma") : tr("Sin aprobar contra la norma")}
                                                     </span>
                                                 </div>
                                                 <Dialog>
                                                     <DialogTrigger asChild>
-                                                        <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500">Cambiar</Button>
+                                                        <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500">{tr("Cambiar")}</Button>
                                                     </DialogTrigger>
                                                     <DialogContent>
                                                         <DialogHeader>
-                                                            <DialogTitle>Cambiar Cotización</DialogTitle>
+                                                            <DialogTitle>{tr("Cambiar Cotización")}</DialogTitle>
                                                             <DialogDescription>
-                                                                Selecciona la cotización correcta para esta OIT.
+                                                                {tr("Selecciona la cotización correcta para esta OIT.")}
                                                             </DialogDescription>
                                                         </DialogHeader>
                                                         <QuotationLinker oitId={id!} onLinked={fetchOIT} />
@@ -703,9 +704,9 @@ export default function OITDetailPage() {
                                         ) : oit.quotationFileUrl ? (
                                             <div className="flex items-center justify-between w-full">
                                                 <div>
-                                                    <strong className="block text-xs font-semibold text-slate-500 mb-1">Cotización</strong>
+                                                    <strong className="block text-xs font-semibold text-slate-500 mb-1">{tr("Cotización")}</strong>
                                                     <span className="text-sm text-slate-700 truncate block max-w-[150px]">
-                                                        Archivo cargado
+                                                        {tr("Archivo cargado")}
                                                     </span>
                                                 </div>
                                                 <DropdownMenu>
@@ -717,34 +718,34 @@ export default function OITDetailPage() {
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem onClick={() => handleDownload(oit.quotationFileUrl, 'cotizacion.pdf')}>
                                                             <Download className="mr-2 h-4 w-4" />
-                                                            Descargar
+                                                            {tr("Descargar")}
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => document.getElementById('quotationFileInput')?.click()}>
                                                             <RefreshCcw className="mr-2 h-4 w-4" />
-                                                            Reemplazar
+                                                            {tr("Reemplazar")}
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
                                         ) : (
                                             <div className="w-full">
-                                                <strong className="block text-xs font-semibold text-slate-500 mb-1">Cotización</strong>
+                                                <strong className="block text-xs font-semibold text-slate-500 mb-1">{tr("Cotización")}</strong>
                                                 {oit.quotationRef && (
                                                     <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
-                                                        La OIT trae la cotización <strong>{oit.quotationRef}</strong>, pero esa cotización no está cargada en Xmart. Al cargarla en Cotizaciones se vincula sola.
+                                                        {tr("La OIT trae la cotización")}{' '}<strong>{oit.quotationRef}</strong>{tr(", pero esa cotización no está cargada en Xmart. Al cargarla en Cotizaciones se vincula sola.")}
                                                     </p>
                                                 )}
                                                 <Dialog>
                                                     <DialogTrigger asChild>
                                                         <Button variant="outline" size="sm" className="w-full h-8 text-xs border-dashed text-slate-500 hover:text-slate-900 border-slate-300">
-                                                            <Plus className="mr-1 h-3 w-3" /> Link Cotización
+                                                            <Plus className="mr-1 h-3 w-3" /> {tr("Link Cotización")}
                                                         </Button>
                                                     </DialogTrigger>
                                                     <DialogContent>
                                                         <DialogHeader>
-                                                            <DialogTitle>Vincular Cotización</DialogTitle>
+                                                            <DialogTitle>{tr("Vincular Cotización")}</DialogTitle>
                                                             <DialogDescription>
-                                                                Selecciona una cotización existente para vincular a esta OIT.
+                                                                {tr("Selecciona una cotización existente para vincular a esta OIT.")}
                                                             </DialogDescription>
                                                         </DialogHeader>
                                                         <QuotationLinker oitId={id!} onLinked={fetchOIT} />
@@ -764,7 +765,7 @@ export default function OITDetailPage() {
                                 <CardHeader>
                                     <CardTitle className="flex items-center justify-between gap-2">
                                         <div className="flex items-center gap-2">
-                                            Análisis IA
+                                            {tr("Análisis IA")}
                                             {aiData && (aiData.valid ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <AlertCircle className="h-4 w-4 text-red-500" />)}
                                         </div>
                                         <Button
@@ -776,23 +777,23 @@ export default function OITDetailPage() {
                                             onClick={async () => {
                                                 try {
                                                     setIsProcessing(true);
-                                                    toast.info('Iniciando re-análisis...');
+                                                    toast.info(tr("Iniciando re-análisis..."));
                                                     await api.post(`/oits/${id}/reanalyze`);
-                                                    toast.success('Análisis iniciado en segundo plano');
+                                                    toast.success(tr("Análisis iniciado en segundo plano"));
 
                                                     // Trigger manual fetch to update status to ANALYZING immediately
                                                     // And clear current aiData to show visual feedback
                                                     setOit((prev: any) => ({ ...prev, status: 'ANALYZING', aiData: null }));
                                                 } catch (err) {
                                                     console.error(err);
-                                                    toast.error('Error al solicitar análisis');
+                                                    toast.error(tr("Error al solicitar análisis"));
                                                 } finally {
                                                     setIsProcessing(false);
                                                 }
                                             }}
                                         >
                                             <RefreshCcw className={`mr-2 h-3.5 w-3.5 ${(isProcessing || oit.status === 'ANALYZING' || oit.status === 'UPLOADING') ? 'animate-spin' : ''}`} />
-                                            Reiniciar Análisis
+                                            {tr("Reiniciar Análisis")}
                                         </Button>
                                         {aiData && (
                                             <FeedbackButton
@@ -818,7 +819,7 @@ export default function OITDetailPage() {
                                                     {aiData.data.services && Array.isArray(aiData.data.services) && aiData.data.services.length > 0 && (
                                                         <div className="space-y-3 pt-2">
                                                             <div className="flex items-center gap-2">
-                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Servicios Identificados ({aiData.data.services.length})</p>
+                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr("Servicios Identificados (")}{aiData.data.services.length})</p>
                                                             </div>
                                                             <div className="grid gap-2">
                                                                 {aiData.data.services.map((service: any, idx: number) => (
@@ -841,7 +842,7 @@ export default function OITDetailPage() {
                                                         <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                                                             <Beaker className="h-5 w-5 text-indigo-600 mt-0.5" />
                                                             <div className="flex-1">
-                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Plantilla Seleccionada</p>
+                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr("Plantilla Seleccionada")}</p>
                                                                 <p className="text-sm font-medium text-slate-900 mt-1">{aiData.data.templateName}</p>
                                                             </div>
                                                         </div>
@@ -851,7 +852,7 @@ export default function OITDetailPage() {
                                                         <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                                                             <Clock className="h-5 w-5 text-indigo-600 mt-0.5" />
                                                             <div className="flex-1">
-                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Duración Estimada</p>
+                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr("Duración Estimada")}</p>
                                                                 <p className="text-sm font-medium text-slate-900 mt-1">{aiData.data.estimatedDuration}</p>
                                                             </div>
                                                         </div>
@@ -861,8 +862,8 @@ export default function OITDetailPage() {
                                                         <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                                                             <FileText className="h-5 w-5 text-indigo-600 mt-0.5" />
                                                             <div className="flex-1">
-                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pasos de Muestreo</p>
-                                                                <p className="text-sm font-medium text-slate-900 mt-1">{aiData.data.steps.length} pasos identificados</p>
+                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr("Pasos de Muestreo")}</p>
+                                                                <p className="text-sm font-medium text-slate-900 mt-1">{aiData.data.steps.length} {tr("pasos identificados")}</p>
                                                             </div>
                                                         </div>
                                                     )}
@@ -871,8 +872,8 @@ export default function OITDetailPage() {
                                                         <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                                                             <Users className="h-5 w-5 text-indigo-600 mt-0.5" />
                                                             <div className="flex-1">
-                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recursos Asignados</p>
-                                                                <p className="text-sm font-medium text-slate-900 mt-1">{aiData.data.assignedResources.length} recursos propuestos</p>
+                                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{tr("Recursos Asignados")}</p>
+                                                                <p className="text-sm font-medium text-slate-900 mt-1">{aiData.data.assignedResources.length} {tr("recursos propuestos")}</p>
                                                             </div>
                                                         </div>
                                                     )}
@@ -881,7 +882,7 @@ export default function OITDetailPage() {
 
                                             {aiData.errors?.length > 0 && (
                                                 <div className="space-y-2">
-                                                    <p className="text-xs font-semibold text-red-700 uppercase tracking-wider">Errores Detectados</p>
+                                                    <p className="text-xs font-semibold text-red-700 uppercase tracking-wider">{tr("Errores Detectados")}</p>
                                                     <ul className="space-y-1">
                                                         {aiData.errors.map((e: string, i: number) => (
                                                             <li key={i} className="text-xs text-red-600 flex items-start gap-2">
@@ -896,11 +897,11 @@ export default function OITDetailPage() {
                                     ) : (oit.status === 'PENDING' || oit.status === 'UPLOADING') ? (
                                         <div className="text-center py-8 text-slate-400">
                                             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
-                                            <p className="text-sm">Esperando análisis...</p>
+                                            <p className="text-sm">{tr("Esperando análisis...")}</p>
                                         </div>
                                     ) : (
                                         <div className="text-center py-8 text-slate-400">
-                                            <p className="text-sm">Esta OIT no tiene análisis de planificación (creada automáticamente vía integración externa).</p>
+                                            <p className="text-sm">{tr("Esta OIT no tiene análisis de planificación (creada automáticamente vía integración externa).")}</p>
                                         </div>
                                     )}
                                 </CardContent>
@@ -917,9 +918,9 @@ export default function OITDetailPage() {
                                         <Sparkles className="h-10 w-10 text-indigo-500 animate-pulse" />
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-medium text-slate-800 mb-2">Analizando Documentación</h3>
+                                <h3 className="text-xl font-medium text-slate-800 mb-2">{tr("Analizando Documentación")}</h3>
                                 <p className="text-sm text-slate-500 max-w-sm text-center leading-relaxed">
-                                    Nuestra IA está procesando el documento completo para extraer recursos y generar la propuesta de visita. Esto puede tardar unos segundos.
+                                    {tr("Nuestra IA está procesando el documento completo para extraer recursos y generar la propuesta de visita. Esto puede tardar unos segundos.")}
                                 </p>
                             </div>
                         ) : (
@@ -927,13 +928,13 @@ export default function OITDetailPage() {
                                 <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
                                     <CardHeader className="flex flex-row items-center justify-between space-y-0">
                                         <div>
-                                            <CardTitle>Programación de Visita</CardTitle>
-                                            <CardDescription>Define la fecha y hora para la toma de muestras.</CardDescription>
+                                            <CardTitle>{tr("Programación de Visita")}</CardTitle>
+                                            <CardDescription>{tr("Define la fecha y hora para la toma de muestras.")}</CardDescription>
                                         </div>
                                         {oit.scheduledDate && (
                                             <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleClearSchedule}>
                                                 <X className="h-3.5 w-3.5 mr-1" />
-                                                Quitar programación
+                                                {tr("Quitar programación")}
                                             </Button>
                                         )}
                                     </CardHeader>
@@ -946,8 +947,8 @@ export default function OITDetailPage() {
                                                         <Calendar className="h-5 w-5 text-indigo-600" />
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-sm font-semibold text-indigo-900">Programación de Servicios</h4>
-                                                        <p className="text-xs text-indigo-700">Define la fecha para cada servicio individualmente.</p>
+                                                        <h4 className="text-sm font-semibold text-indigo-900">{tr("Programación de Servicios")}</h4>
+                                                        <p className="text-xs text-indigo-700">{tr("Define la fecha para cada servicio individualmente.")}</p>
                                                     </div>
                                                 </div>
 
@@ -961,11 +962,11 @@ export default function OITDetailPage() {
                                                                         <Sparkles className="h-4 w-4" />
                                                                     </div>
                                                                     <div>
-                                                                        <h4 className="font-semibold text-indigo-900">Propuesta de Programación IA</h4>
+                                                                        <h4 className="font-semibold text-indigo-900">{tr("Propuesta de Programación IA")}</h4>
                                                                         <p className="text-xs text-indigo-600">
                                                                             {aiData.data.services.some((s: any) => s.proposedDate)
-                                                                                ? 'Basada en análisis del documento'
-                                                                                : 'El documento no trae fecha; se sugiere una por defecto'}
+                                                                                ? tr("Basada en análisis del documento")
+                                                                                : tr("El documento no trae fecha; se sugiere una por defecto")}
                                                                         </p>
                                                                     </div>
                                                                 </div>
@@ -986,7 +987,7 @@ export default function OITDetailPage() {
                                                                                         <p className="text-sm font-medium text-slate-900">{s.name}</p>
                                                                                         <div className="flex items-center gap-2 text-xs text-slate-500">
                                                                                             <span className="flex items-center gap-1">
-                                                                                                <Calendar className="h-3 w-3" /> {dateStr}{!fromDocument && ' (sugerida)'}
+                                                                                                <Calendar className="h-3 w-3" /> {dateStr}{!fromDocument && tr(" (sugerida)")}
                                                                                             </span>
                                                                                             <span>•</span>
                                                                                             <span className="flex items-center gap-1">
@@ -1012,7 +1013,7 @@ export default function OITDetailPage() {
                                                                         onClick={() => setIsManualScheduling(true)}
                                                                         className="text-slate-600 hover:text-slate-900"
                                                                     >
-                                                                        Configurar manualmente
+                                                                        {tr("Configurar manualmente")}
                                                                     </Button>
                                                                     <Button
                                                                         className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all hover:scale-105"
@@ -1044,23 +1045,23 @@ export default function OITDetailPage() {
                                                                                 await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
                                                                                 const flags: string[] = plan.flags || [];
                                                                                 if (flags.length) toast.warning(`Programación aceptada con ${flags.length} alerta(s): ${flags.join(' ')}`, { duration: 12000 });
-                                                                                else toast.success('¡Programación aceptada con el personal asignado!');
+                                                                                else toast.success(tr("¡Programación aceptada con el personal asignado!"));
                                                                                 fetchOIT();
                                                                             } catch (error) {
                                                                                 console.error(error);
-                                                                                toast.error('Error al guardar programación');
+                                                                                toast.error(tr("Error al guardar programación"));
                                                                             }
                                                                         }}
                                                                     >
                                                                         <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                                        Aceptar Propuesta
+                                                                        {tr("Aceptar Propuesta")}
                                                                     </Button>
                                                                 </div>
                                                             </div>
                                                         ) : (
                                                             <div className="grid gap-3 animate-in fade-in slide-in-from-top-4">
                                                                 <div className="flex items-center justify-between mb-2">
-                                                                    <h5 className="text-sm font-medium text-slate-700">Programación Manual</h5>
+                                                                    <h5 className="text-sm font-medium text-slate-700">{tr("Programación Manual")}</h5>
                                                                     {!aiData.data.services.every((_: any, idx: number) => serviceDates[`ai-service-${idx}`]?.confirmed) && (
                                                                         <Button
                                                                             variant="ghost"
@@ -1068,7 +1069,7 @@ export default function OITDetailPage() {
                                                                             onClick={() => setIsManualScheduling(false)}
                                                                             className="h-8 text-xs text-indigo-600 hover:text-indigo-700"
                                                                         >
-                                                                            Ver Propuesta Automática
+                                                                            {tr("Ver Propuesta Automática")}
                                                                         </Button>
                                                                     )}
                                                                 </div>
@@ -1110,11 +1111,11 @@ export default function OITDetailPage() {
 
                                                                                 try {
                                                                                     await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
-                                                                                    toast.success('Programación actualizada correctamente');
+                                                                                    toast.success(tr("Programación actualizada correctamente"));
                                                                                     fetchOIT();
                                                                                 } catch (error) {
                                                                                     console.error(error);
-                                                                                    toast.error('Error al guardar programación');
+                                                                                    toast.error(tr("Error al guardar programación"));
                                                                                 }
                                                                             }}
                                                                         />
@@ -1153,8 +1154,8 @@ export default function OITDetailPage() {
                                                                                     <Sparkles className="h-4 w-4" />
                                                                                 </div>
                                                                                 <div>
-                                                                                    <h4 className="font-semibold text-indigo-900">Propuesta de Programación</h4>
-                                                                                    <p className="text-xs text-indigo-600">Agrupada por tipo de servicio</p>
+                                                                                    <h4 className="font-semibold text-indigo-900">{tr("Propuesta de Programación")}</h4>
+                                                                                    <p className="text-xs text-indigo-600">{tr("Agrupada por tipo de servicio")}</p>
                                                                                 </div>
                                                                             </div>
 
@@ -1179,7 +1180,7 @@ export default function OITDetailPage() {
                                                                                                     <p className="text-sm font-medium text-slate-900">{type}</p>
                                                                                                     <div className="flex items-center gap-2 text-xs text-slate-500">
                                                                                                         <span className="flex items-center gap-1">
-                                                                                                            <Users className="h-3 w-3" /> {templates.length} parámetro(s)
+                                                                                                            <Users className="h-3 w-3" /> {templates.length} {tr("parámetro(s)")}
                                                                                                         </span>
                                                                                                         <span>•</span>
                                                                                                         <span className="flex items-center gap-1">
@@ -1203,14 +1204,14 @@ export default function OITDetailPage() {
                                                                                     onClick={() => setIsManualScheduling(true)}
                                                                                     className="text-slate-600 hover:text-slate-900"
                                                                                 >
-                                                                                    Configurar manualmente
+                                                                                    {tr("Configurar manualmente")}
                                                                                 </Button>
                                                                             </div>
                                                                         </div>
                                                                     ) : (
                                                                         <div className="grid gap-3 animate-in fade-in slide-in-from-top-4">
                                                                             <div className="flex items-center justify-between mb-2">
-                                                                                <h5 className="text-sm font-medium text-slate-700">Programación por Servicio</h5>
+                                                                                <h5 className="text-sm font-medium text-slate-700">{tr("Programación por Servicio")}</h5>
                                                                                 {!Object.values(serviceDates).some(s => s.confirmed) && (
                                                                                     <Button
                                                                                         variant="ghost"
@@ -1218,7 +1219,7 @@ export default function OITDetailPage() {
                                                                                         onClick={() => setIsManualScheduling(false)}
                                                                                         className="h-8 text-xs text-indigo-600 hover:text-indigo-700"
                                                                                     >
-                                                                                        Ver Resumen
+                                                                                        {tr("Ver Resumen")}
                                                                                     </Button>
                                                                                 )}
                                                                             </div>
@@ -1261,7 +1262,7 @@ export default function OITDetailPage() {
                                                                                                 fetchOIT();
                                                                                             } catch (error) {
                                                                                                 console.error(error);
-                                                                                                toast.error('Error al guardar programación');
+                                                                                                toast.error(tr("Error al guardar programación"));
                                                                                             }
                                                                                         }}
                                                                                     />
@@ -1283,18 +1284,18 @@ export default function OITDetailPage() {
                                                         <div>
                                                             <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                                                                 <Calendar className="h-4 w-4 text-indigo-600" />
-                                                                Visita Programada
+                                                                {tr("Visita Programada")}
                                                             </h4>
-                                                            <p className="text-sm text-slate-500 mt-1">La visita técnica ya ha sido confirmada.</p>
+                                                            <p className="text-sm text-slate-500 mt-1">{tr("La visita técnica ya ha sido confirmada.")}</p>
                                                         </div>
                                                         <Button variant="outline" size="sm" onClick={() => setIsEditingSchedule(true)}>
-                                                            Editar Programación
+                                                            {tr("Editar Programación")}
                                                         </Button>
                                                     </div>
 
                                                     <div className="grid md:grid-cols-2 gap-6 pt-2">
                                                         <div className="space-y-1">
-                                                            <p className="text-xs font-medium text-slate-500 uppercase">Fecha y Hora</p>
+                                                            <p className="text-xs font-medium text-slate-500 uppercase">{tr("Fecha y Hora")}</p>
                                                             <div className="flex items-center gap-2 text-slate-900 font-medium">
                                                                 <Calendar className="h-4 w-4 text-slate-400" />
                                                                 {formatBogotaDate(oit.scheduledDate)}
@@ -1304,10 +1305,10 @@ export default function OITDetailPage() {
                                                             </div>
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <p className="text-xs font-medium text-slate-500 uppercase">Ubicación</p>
+                                                            <p className="text-xs font-medium text-slate-500 uppercase">{tr("Ubicación")}</p>
                                                             <div className="flex items-center gap-2 text-slate-900 font-medium">
                                                                 <MapPin className="h-4 w-4 text-slate-400" />
-                                                                {oit.location || 'No especificada'}
+                                                                {oit.location || tr("No especificada")}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1315,11 +1316,11 @@ export default function OITDetailPage() {
                                                     {/* Cada servicio con todos sus dias y sus alertas (monitoreo de varios dias). */}
                                                     {Object.values(serviceDates).some(s => scheduleDays(s).length > 1 || (s.flags || []).length > 0) && (
                                                         <div className="pt-2 space-y-2">
-                                                            <p className="text-xs font-medium text-slate-500 uppercase">Servicios</p>
+                                                            <p className="text-xs font-medium text-slate-500 uppercase">{tr("Servicios")}</p>
                                                             {Object.entries(serviceDates).map(([key, s]) => (
                                                                 <div key={key} className="rounded-lg border border-slate-200 p-3 text-sm">
-                                                                    <p className="font-medium text-slate-900">{s.name || 'Servicio'}</p>
-                                                                    <p className="text-slate-600">{formatDays(scheduleDays(s))}{s.time ? ` · ${s.time}` : ''}</p>
+                                                                    <p className="font-medium text-slate-900">{s.name || tr("Servicio")}</p>
+                                                                    <p className="text-slate-600">{formatDays(scheduleDays(s), tr('y'))}{s.time ? ` · ${s.time}` : ''}</p>
                                                                     {(s.flags || []).map((f, i) => (
                                                                         <p key={i} className="mt-1 text-xs text-red-700 bg-red-50 border border-red-100 rounded px-2 py-1">{f}</p>
                                                                     ))}
@@ -1329,7 +1330,7 @@ export default function OITDetailPage() {
                                                     )}
 
                                                     <div className="pt-2">
-                                                        <p className="text-xs font-medium text-slate-500 uppercase mb-2">Ingenieros Asignados</p>
+                                                        <p className="text-xs font-medium text-slate-500 uppercase mb-2">{tr("Ingenieros Asignados")}</p>
                                                         <div className="flex flex-wrap gap-2">
                                                             {selectedEngineerIds.map(id => {
                                                                 const eng = availableEngineers.find(e => e.id === id);
@@ -1352,12 +1353,12 @@ export default function OITDetailPage() {
                                                     <div>
                                                         <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
                                                             <Calendar className="h-4 w-4 text-indigo-600" />
-                                                            Programar Fecha y Hora
+                                                            {tr("Programar Fecha y Hora")}
                                                         </h4>
                                                         <div className="grid md:grid-cols-2 gap-6">
                                                             {/* Date Input */}
                                                             <div className="space-y-2">
-                                                                <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Fecha</label>
+                                                                <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">{tr("Fecha")}</label>
                                                                 <div className="relative">
                                                                     <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                                     <input
@@ -1379,7 +1380,7 @@ export default function OITDetailPage() {
 
                                                             {/* Time Input */}
                                                             <div className="space-y-2">
-                                                                <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Hora</label>
+                                                                <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">{tr("Hora")}</label>
                                                                 <div className="relative">
                                                                     <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                                     <input
@@ -1397,14 +1398,14 @@ export default function OITDetailPage() {
 
                                                         {/* Location Input */}
                                                         <div className="space-y-2 mt-4">
-                                                            <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">Ubicación del Muestreo</label>
+                                                            <label className="text-xs font-medium text-slate-600 uppercase tracking-wider">{tr("Ubicación del Muestreo")}</label>
                                                             <div className="relative">
                                                                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                                 <input
                                                                     type="text"
                                                                     className="w-full pl-10 h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:border-transparent transition-all"
                                                                     value={oit.location || ''}
-                                                                    placeholder="Dirección o Coordenadas (Ej: Calle 123 # 45-67)"
+                                                                    placeholder={tr("Dirección o Coordenadas (Ej: Calle 123 # 45-67)")}
                                                                     onChange={(e) => setOit({ ...oit, location: e.target.value })}
                                                                 />
                                                             </div>
@@ -1418,19 +1419,19 @@ export default function OITDetailPage() {
                                                         <div className="flex items-center justify-between mb-4">
                                                             <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                                                                 <Users className="h-4 w-4 text-indigo-600" />
-                                                                Ingenieros Asignados
-                                                                <span className="text-xs font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">* Requerido</span>
+                                                                {tr("Ingenieros Asignados")}
+                                                                <span className="text-xs font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">{tr("* Requerido")}</span>
                                                             </h4>
 
                                                             <DropdownMenu>
                                                                 <DropdownMenuTrigger asChild>
                                                                     <Button variant="outline" size="sm" className="h-8 border-dashed">
                                                                         <Plus className="mr-2 h-3.5 w-3.5" />
-                                                                        Asignar Ingeniero
+                                                                        {tr("Asignar Ingeniero")}
                                                                     </Button>
                                                                 </DropdownMenuTrigger>
                                                                 <DropdownMenuContent align="end" className="w-56">
-                                                                    <DropdownMenuLabel>Ingenieros Disponibles</DropdownMenuLabel>
+                                                                    <DropdownMenuLabel>{tr("Ingenieros Disponibles")}</DropdownMenuLabel>
                                                                     {availableEngineers.map((eng) => {
                                                                         const isSelected = selectedEngineerIds.includes(eng.id);
                                                                         const isAvailable = isEngineerAvailable(eng, oit.scheduledDate || aiData?.data?.proposedDate);
@@ -1453,7 +1454,7 @@ export default function OITDetailPage() {
                                                                                         <span>{eng.name}</span>
                                                                                         {!isAvailable && (
                                                                                             <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
-                                                                                                Ocupado
+                                                                                                {tr("Ocupado")}
                                                                                             </span>
                                                                                         )}
                                                                                     </div>
@@ -1463,7 +1464,7 @@ export default function OITDetailPage() {
                                                                         );
                                                                     })}
                                                                     {availableEngineers.length === 0 && (
-                                                                        <div className="p-2 text-xs text-slate-500 text-center">No hay ingenieros disponibles</div>
+                                                                        <div className="p-2 text-xs text-slate-500 text-center">{tr("No hay ingenieros disponibles")}</div>
                                                                     )}
                                                                 </DropdownMenuContent>
                                                             </DropdownMenu>
@@ -1493,7 +1494,7 @@ export default function OITDetailPage() {
                                                             </div>
                                                         ) : (
                                                             <div className="text-sm text-slate-500 italic p-3 bg-slate-50 rounded border border-dashed border-slate-200 text-center">
-                                                                No hay ingenieros asignados. Debes seleccionar al menos uno.
+                                                                {tr("No hay ingenieros asignados. Debes seleccionar al menos uno.")}
                                                             </div>
                                                         )}
                                                     </div>
@@ -1511,13 +1512,13 @@ export default function OITDetailPage() {
                                                                         status: 'SCHEDULED',
                                                                         engineerIds: selectedEngineerIds
                                                                     });
-                                                                    toast.success('Visita programada exitosamente');
+                                                                    toast.success(tr("Visita programada exitosamente"));
 
                                                                     // Refresh
                                                                     const res = await api.get(`/oits/${id}`);
                                                                     setOit(res.data);
                                                                 } catch (error: any) {
-                                                                    toast.error(error.response?.data?.error || 'Error al programar visita');
+                                                                    toast.error(error.response?.data?.error || tr("Error al programar visita"));
                                                                 } finally {
                                                                     setIsProcessing(false);
                                                                 }
@@ -1528,7 +1529,7 @@ export default function OITDetailPage() {
                                                             ) : (
                                                                 <Calendar className="mr-2 h-4 w-4" />
                                                             )}
-                                                            Confirmar Programación
+                                                            {tr("Confirmar Programación")}
                                                         </Button>
                                                     </div>
 
@@ -1536,7 +1537,7 @@ export default function OITDetailPage() {
                                                         <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mt-4">
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 <Sparkles className="h-4 w-4 text-indigo-600" />
-                                                                <span className="text-sm font-medium text-indigo-900">Sugerencia de IA</span>
+                                                                <span className="text-sm font-medium text-indigo-900">{tr("Sugerencia de IA")}</span>
                                                             </div>
                                                             <p className="text-sm text-indigo-700">
                                                                 {new Date(aiData.data.proposedDate).toLocaleDateString('es-ES', {
@@ -1544,7 +1545,7 @@ export default function OITDetailPage() {
                                                                     year: 'numeric',
                                                                     month: 'long',
                                                                     day: 'numeric'
-                                                                })} a las {aiData.data.proposedTime || '09:00'}
+                                                                })} {tr("a las")}{' '}{aiData.data.proposedTime || '09:00'}
                                                             </p>
                                                         </div>
                                                     )}
@@ -1556,8 +1557,8 @@ export default function OITDetailPage() {
 
                                 <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
                                     <CardHeader>
-                                        <CardTitle>Recursos</CardTitle>
-                                        <CardDescription>Personal y equipos identificados y propuestos para el muestreo.</CardDescription>
+                                        <CardTitle>{tr("Recursos")}</CardTitle>
+                                        <CardDescription>{tr("Personal y equipos identificados y propuestos para el muestreo.")}</CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-6">
                                         {/* AI Proposed Resources */}
@@ -1566,12 +1567,12 @@ export default function OITDetailPage() {
                                                 <div className="flex items-center gap-2 justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <Sparkles className="h-4 w-4 text-indigo-600" />
-                                                        <h4 className="text-sm font-semibold text-indigo-900">Equipos Propuestos por IA</h4>
+                                                        <h4 className="text-sm font-semibold text-indigo-900">{tr("Equipos Propuestos por IA")}</h4>
                                                         <Badge variant="outline" className="text-xs">{aiData.data.assignedResources.length} equipos</Badge>
                                                     </div>
                                                     <Button variant="ghost" size="sm" className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" onClick={handleOpenResourceDialog}>
                                                         <Pencil className="h-3.5 w-3.5 mr-1" />
-                                                        Editar
+                                                        {tr("Editar")}
                                                     </Button>
                                                 </div>
                                                 <div className="grid md:grid-cols-2 gap-4">
@@ -1603,7 +1604,7 @@ export default function OITDetailPage() {
                                             <div className="space-y-3">
                                                 <div className="flex items-center gap-2">
                                                     <FileText className="h-4 w-4 text-slate-600" />
-                                                    <h4 className="text-sm font-semibold text-slate-700">Recursos Extraídos de Documentos</h4>
+                                                    <h4 className="text-sm font-semibold text-slate-700">{tr("Recursos Extraídos de Documentos")}</h4>
                                                 </div>
                                                 <div className="grid md:grid-cols-2 gap-4">
                                                     {resources.map((res: any, idx: number) => (
@@ -1614,7 +1615,7 @@ export default function OITDetailPage() {
                                                                 </div>
                                                                 <div>
                                                                     <p className="font-medium text-slate-900">{typeof res === 'string' ? res : res.name}</p>
-                                                                    <p className="text-xs text-slate-500">{res.type === 'PERSONNEL' ? 'Personal Técnico' : 'Equipo / Material'}</p>
+                                                                    <p className="text-xs text-slate-500">{res.type === 'PERSONNEL' ? tr("Personal Técnico") : tr("Equipo / Material")}</p>
                                                                 </div>
                                                             </div>
                                                             {typeof res !== 'string' && res.quantity && (
@@ -1631,10 +1632,10 @@ export default function OITDetailPage() {
                                             asignar el primer equipo/personal cuando la lista arrancaba vacia. */}
                                         {(!resources || resources.length === 0) && (!aiData?.data?.assignedResources || aiData.data.assignedResources.length === 0) && (
                                             <div className="text-center py-12 text-slate-400 space-y-3">
-                                                <p>No se han identificado recursos.</p>
+                                                <p>{tr("No se han identificado recursos.")}</p>
                                                 <Button variant="outline" size="sm" onClick={handleOpenResourceDialog}>
                                                     <Pencil className="h-3.5 w-3.5 mr-1" />
-                                                    Asignar Recursos
+                                                    {tr("Asignar Recursos")}
                                                 </Button>
                                             </div>
                                         )}
@@ -1645,16 +1646,16 @@ export default function OITDetailPage() {
                                 <Dialog open={isResourceDialogOpen} onOpenChange={setIsResourceDialogOpen}>
                                     <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
                                         <DialogHeader>
-                                            <DialogTitle>Editar Recursos Asignados</DialogTitle>
+                                            <DialogTitle>{tr("Editar Recursos Asignados")}</DialogTitle>
                                             <DialogDescription>
-                                                Selecciona los equipos y personal necesarios para esta OIT.
+                                                {tr("Selecciona los equipos y personal necesarios para esta OIT.")}
                                             </DialogDescription>
                                         </DialogHeader>
 
                                         <div className="mb-4 relative">
                                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                             <input
-                                                placeholder="Buscar equipo por nombre, código o marca..."
+                                                placeholder={tr("Buscar equipo por nombre, código o marca...")}
                                                 className="w-full pl-9 h-10 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                                 value={resourceSearch}
                                                 onChange={(e) => setResourceSearch(e.target.value)}
@@ -1663,7 +1664,7 @@ export default function OITDetailPage() {
 
                                         <div className="flex-1 overflow-y-auto min-h-[300px] border rounded-md p-2 space-y-1">
                                             {filteredResources.length === 0 ? (
-                                                <div className="text-center py-8 text-slate-500">No se encontraron recursos matching "{resourceSearch}"</div>
+                                                <div className="text-center py-8 text-slate-500">{tr("No se encontraron recursos matching \"")}{resourceSearch}"</div>
                                             ) : (
                                                 filteredResources.map((resource) => (
                                                     <div
@@ -1709,13 +1710,13 @@ export default function OITDetailPage() {
 
                                         <div className="flex justify-between items-center mt-4 pt-4 border-t">
                                             <div className="text-sm text-slate-500">
-                                                {selectedResourceIdsEdit.length} recursos seleccionados
+                                                {selectedResourceIdsEdit.length} {tr("recursos seleccionados")}
                                             </div>
                                             <div className="flex gap-2">
-                                                <Button variant="outline" onClick={() => setIsResourceDialogOpen(false)}>Cancelar</Button>
+                                                <Button variant="outline" onClick={() => setIsResourceDialogOpen(false)}>{tr("Cancelar")}</Button>
                                                 <Button onClick={handleSaveResources} disabled={isSavingResources}>
                                                     {isSavingResources ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                                    Guardar Cambios
+                                                    {tr("Guardar Cambios")}
                                                 </Button>
                                             </div>
                                         </div>
@@ -1749,9 +1750,9 @@ export default function OITDetailPage() {
                                             <div className="h-16 w-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
                                                 <Users className="h-8 w-8 text-red-500" />
                                             </div>
-                                            <h3 className="text-lg font-semibold text-slate-900">Acceso Restringido</h3>
+                                            <h3 className="text-lg font-semibold text-slate-900">{tr("Acceso Restringido")}</h3>
                                             <p className="text-slate-600 max-w-md mt-2">
-                                                Solo los ingenieros asignados a esta OIT pueden acceder al muestreo.
+                                                {tr("Solo los ingenieros asignados a esta OIT pueden acceder al muestreo.")}
                                             </p>
                                         </CardContent>
                                     </Card>
@@ -1771,9 +1772,9 @@ export default function OITDetailPage() {
                                                 <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                                                     <Clock className="h-8 w-8 text-slate-400" />
                                                 </div>
-                                                <h3 className="text-lg font-semibold text-slate-900">Muestreo en Progreso</h3>
+                                                <h3 className="text-lg font-semibold text-slate-900">{tr("Muestreo en Progreso")}</h3>
                                                 <p className="text-slate-500 max-w-md mt-2">
-                                                    El ingeniero asignado está realizando el muestreo. Verás el análisis aquí cuando finalice.
+                                                    {tr("El ingeniero asignado está realizando el muestreo. Verás el análisis aquí cuando finalice.")}
                                                 </p>
                                             </CardContent>
                                         </Card>
@@ -1789,9 +1790,9 @@ export default function OITDetailPage() {
                                             <div className="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                                 <Navigation className="h-6 w-6 text-indigo-600" />
                                             </div>
-                                            <h3 className="text-xl font-bold text-indigo-900">Seleccionar Servicio para Muestreo</h3>
+                                            <h3 className="text-xl font-bold text-indigo-900">{tr("Seleccionar Servicio para Muestreo")}</h3>
                                             <p className="text-sm text-indigo-700 max-w-lg mx-auto mt-2">
-                                                Selecciona cuál de los servicios programados vas a realizar ahora. Se verificará tu ubicación y la hora programada para ese servicio específico.
+                                                {tr("Selecciona cuál de los servicios programados vas a realizar ahora. Se verificará tu ubicación y la hora programada para ese servicio específico.")}
                                             </p>
                                         </div>
 
@@ -1846,7 +1847,7 @@ export default function OITDetailPage() {
                                                                 className={`cursor-pointer transition-all hover:shadow-md border-2 ${isConfirmed ? 'border-slate-200 hover:border-indigo-300' : 'border-slate-100 opacity-70'}`}
                                                                 onClick={() => {
                                                                     if (!isConfirmed) {
-                                                                        toast.error('Este servicio no ha sido confirmado aún.');
+                                                                        toast.error(tr("Este servicio no ha sido confirmado aún."));
                                                                         return;
                                                                     }
                                                                     setSelectedServiceForSampling(schedule);
@@ -1857,7 +1858,7 @@ export default function OITDetailPage() {
                                                                         <Badge variant="secondary" className="mb-2 bg-slate-100 text-slate-700">
                                                                             {schedule.name}
                                                                         </Badge>
-                                                                        {isToday && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Hoy</Badge>}
+                                                                        {isToday && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">{tr("Hoy")}</Badge>}
                                                                     </div>
                                                                     <CardTitle className="text-sm font-medium text-slate-900 line-clamp-2 min-h-[40px]">
                                                                         {schedule.name}
@@ -1867,7 +1868,7 @@ export default function OITDetailPage() {
                                                                     <div className="space-y-2 text-sm text-slate-600">
                                                                         <div className="flex items-center gap-2">
                                                                             <Calendar className="h-3.5 w-3.5" />
-                                                                            {schedule.date ? parseLocalDate(schedule.date).toLocaleDateString() : 'Por confirmar'}
+                                                                            {schedule.date ? parseLocalDate(schedule.date).toLocaleDateString() : tr("Por confirmar")}
                                                                         </div>
                                                                         <div className="flex items-center gap-2">
                                                                             <Clock className="h-3.5 w-3.5" />
@@ -1879,7 +1880,7 @@ export default function OITDetailPage() {
                                                                         </div>
                                                                     </div>
                                                                     <Button size="sm" className="w-full mt-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200" disabled={!isConfirmed}>
-                                                                        Iniciar Muestreo <ArrowRight className="ml-1 h-3 w-3" />
+                                                                        {tr("Iniciar Muestreo")}{' '}<ArrowRight className="ml-1 h-3 w-3" />
                                                                     </Button>
                                                                 </CardContent>
                                                             </Card>
@@ -1900,9 +1901,9 @@ export default function OITDetailPage() {
                                             <div className="h-16 w-16 bg-amber-50 rounded-full flex items-center justify-center mb-4">
                                                 <Calendar className="h-8 w-8 text-amber-500" />
                                             </div>
-                                            <h3 className="text-lg font-semibold text-slate-900">Planeación Pendiente</h3>
+                                            <h3 className="text-lg font-semibold text-slate-900">{tr("Planeación Pendiente")}</h3>
                                             <p className="text-slate-500 max-w-md mt-2">
-                                                Debes aceptar la propuesta de planeación en la pestaña "Agendamiento" antes de iniciar el muestreo.
+                                                {tr("Debes aceptar la propuesta de planeación en la pestaña \"Agendamiento\" antes de iniciar el muestreo.")}
                                             </p>
                                         </CardContent>
                                     </Card>
@@ -1917,13 +1918,13 @@ export default function OITDetailPage() {
                                             <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                                                 <Beaker className="h-8 w-8 text-slate-400" />
                                             </div>
-                                            <h3 className="text-lg font-semibold text-slate-900">Plantilla no seleccionada</h3>
+                                            <h3 className="text-lg font-semibold text-slate-900">{tr("Plantilla no seleccionada")}</h3>
                                             <p className="text-slate-500 max-w-md mt-2">
-                                                No hay una plantilla de muestreo asociada a este OIT.
+                                                {tr("No hay una plantilla de muestreo asociada a este OIT.")}
                                             </p>
                                             <Button className="mt-4" onClick={handleOpenTemplatePicker}>
                                                 <Beaker className="mr-2 h-4 w-4" />
-                                                Seleccionar Plantilla
+                                                {tr("Seleccionar Plantilla")}
                                             </Button>
                                         </CardContent>
                                     </Card>
@@ -1953,7 +1954,7 @@ export default function OITDetailPage() {
                                                     <CardHeader>
                                                         <CardTitle className="flex items-center gap-2 text-green-800 text-lg">
                                                             <Sparkles className="h-5 w-5" />
-                                                            Análisis de Supervisión IA
+                                                            {tr("Análisis de Supervisión IA")}
                                                         </CardTitle>
                                                     </CardHeader>
                                                     <CardContent className="prose prose-sm max-w-none text-green-900 px-6 py-4">
@@ -1978,7 +1979,7 @@ export default function OITDetailPage() {
                                                     <div className="flex justify-center pt-2">
                                                         <Button size="lg" onClick={handleDownloadReport} className="shadow-lg bg-[#004CAB] hover:bg-[#003b85] text-white">
                                                             <FileDown className="mr-2 h-5 w-5" />
-                                                            Descargar Informe PDF
+                                                            {tr("Descargar Informe PDF")}
                                                         </Button>
                                                     </div>
                                                 )}
@@ -2001,8 +2002,8 @@ export default function OITDetailPage() {
                                                 <FileText className="h-5 w-5" />
                                             </div>
                                             <div>
-                                                <CardTitle className="text-lg font-bold text-slate-900">Gestión de Informes por Servicio</CardTitle>
-                                                <CardDescription>Suba planillas y resultados para generar informes individuales</CardDescription>
+                                                <CardTitle className="text-lg font-bold text-slate-900">{tr("Gestión de Informes por Servicio")}</CardTitle>
+                                                <CardDescription>{tr("Suba planillas y resultados para generar informes individuales")}</CardDescription>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -2041,7 +2042,7 @@ export default function OITDetailPage() {
                                         if (displayServices.length === 0) {
                                             return (
                                                 <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                                                    <p className="text-slate-500">No hay servicios identificados para generar informes.</p>
+                                                    <p className="text-slate-500">{tr("No hay servicios identificados para generar informes.")}</p>
                                                 </div>
                                             );
                                         }
@@ -2101,13 +2102,13 @@ export default function OITDetailPage() {
                                 if (unreadable.length === 0) return null;
                                 return (
                                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                                        <p className="font-semibold">Planillas que no se pudieron leer como texto ({unreadable.length})</p>
+                                        <p className="font-semibold">{tr("Planillas que no se pudieron leer como texto (")}{unreadable.length})</p>
                                         <ul className="mt-2 list-disc pl-5 space-y-1">
                                             {unreadable.map((u: any, i: number) => (
                                                 <li key={i}><span className="font-medium">{u.filename}</span>: {u.reason}</li>
                                             ))}
                                         </ul>
-                                        <p className="mt-2 text-xs text-amber-800">La IA no tiene los datos de estas planillas. Use la lectura por foto en el formulario de muestreo o revise el archivo manualmente.</p>
+                                        <p className="mt-2 text-xs text-amber-800">{tr("La IA no tiene los datos de estas planillas. Use la lectura por foto en el formulario de muestreo o revise el archivo manualmente.")}</p>
                                     </div>
                                 );
                             })()}
@@ -2117,7 +2118,7 @@ export default function OITDetailPage() {
                                     <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                                         <Sparkles className="h-8 w-8 text-slate-300" />
                                     </div>
-                                    <p className="text-slate-500 font-medium">Seleccione un servicio para gestionar sus informes</p>
+                                    <p className="text-slate-500 font-medium">{tr("Seleccione un servicio para gestionar sus informes")}</p>
                                 </div>
                             )}
                         </div>
@@ -2137,9 +2138,9 @@ export default function OITDetailPage() {
                 <Dialog open={isTemplatePickerOpen} onOpenChange={setIsTemplatePickerOpen}>
                     <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
                         <DialogHeader>
-                            <DialogTitle>Seleccionar Plantilla de Muestreo</DialogTitle>
+                            <DialogTitle>{tr("Seleccionar Plantilla de Muestreo")}</DialogTitle>
                             <DialogDescription>
-                                Define los pasos del checklist de campo para esta OIT.
+                                {tr("Define los pasos del checklist de campo para esta OIT.")}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="flex-1 overflow-y-auto min-h-[200px] space-y-2">
@@ -2149,7 +2150,7 @@ export default function OITDetailPage() {
                                 </div>
                             ) : availableTemplates.length === 0 ? (
                                 <div className="text-center py-12 text-slate-500">
-                                    No hay plantillas creadas todavía. Créalas en la sección "Plantillas".
+                                    {tr("No hay plantillas creadas todavía. Créalas en la sección \"Plantillas\".")}
                                 </div>
                             ) : (
                                 availableTemplates.map((tmpl) => (
@@ -2181,20 +2182,20 @@ export default function OITDetailPage() {
                     title={feedbackTitle}
                     fields={
                         feedbackCategory === 'OIT_ANALYSIS' ? [
-                            { name: 'templateDetection', value: '', label: 'Detección de Plantilla' },
-                            { name: 'location', value: '', label: 'Ubicación' },
-                            { name: 'dates', value: '', label: 'Fechas' },
-                            { name: 'description', value: '', label: 'Descripción' }
+                            { name: 'templateDetection', value: '', label: tr("Detección de Plantilla") },
+                            { name: 'location', value: '', label: tr("Ubicación") },
+                            { name: 'dates', value: '', label: tr("Fechas") },
+                            { name: 'description', value: '', label: tr("Descripción") }
                         ] : feedbackCategory === 'PROPOSAL' ? [
-                            { name: 'resources', value: '', label: 'Recursos Seleccionados' },
-                            { name: 'engineers', value: '', label: 'Ingenieros Asignados' },
-                            { name: 'dates', value: '', label: 'Fechas Propuestas' },
-                            { name: 'steps', value: '', label: 'Pasos del Muestreo' }
+                            { name: 'resources', value: '', label: tr("Recursos Seleccionados") },
+                            { name: 'engineers', value: '', label: tr("Ingenieros Asignados") },
+                            { name: 'dates', value: '', label: tr("Fechas Propuestas") },
+                            { name: 'steps', value: '', label: tr("Pasos del Muestreo") }
                         ] : [
-                            { name: 'introduction', value: '', label: 'Introducción' },
-                            { name: 'methodology', value: '', label: 'Metodología' },
-                            { name: 'results', value: '', label: 'Resultados' },
-                            { name: 'conclusions', value: '', label: 'Conclusiones' }
+                            { name: 'introduction', value: '', label: tr("Introducción") },
+                            { name: 'methodology', value: '', label: tr("Metodología") },
+                            { name: 'results', value: '', label: tr("Resultados") },
+                            { name: 'conclusions', value: '', label: tr("Conclusiones") }
                         ]
                     }
                 />

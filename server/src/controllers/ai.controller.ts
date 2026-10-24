@@ -9,6 +9,13 @@ const pdfParse = require('pdf-parse');
 
 const prisma = new PrismaClient();
 
+// Idioma elegido en la plataforma (cabecera X-Lang): Ana responde en ese idioma (Hernan, 2026-10-24).
+const IDIOMAS: Record<string, string> = { en: 'inglés (English)', pt: 'portugués de Brasil (Português)', fr: 'francés (Français)' };
+export function instruccionIdioma(lang: unknown): string {
+    const nombre = IDIOMAS[String(lang || '').slice(0, 2).toLowerCase()];
+    return nombre ? `\n\nIDIOMA: la persona usa la plataforma en ${nombre}. Responde SIEMPRE en ${nombre}, aunque los datos del sistema estén en español; conserva tal cual los números de OIT, cotizaciones y nombres propios.` : '';
+}
+
 
 // Preguntas de hecho concreto (estado de una OIT, existencia de una norma) se
 // responden DIRECTO desde la base de datos, sin pasar por el modelo de IA local.
@@ -109,7 +116,7 @@ export const chat = async (req: Request, res: Response) => {
 
         const prompt = `DATOS ACTUALES DEL SISTEMA:\n\n${context}\n\n${historyBlock}PREGUNTA DEL USUARIO: ${message}`;
 
-        const response = await aiService.chat(prompt, model, ASSISTANT_SYSTEM_PROMPT);
+        const response = await aiService.chat(prompt, model, ASSISTANT_SYSTEM_PROMPT + instruccionIdioma(req.headers['x-lang']));
         res.json({ response });
     } catch (error) {
         console.error('Error in chat:', error);

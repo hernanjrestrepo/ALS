@@ -32,6 +32,7 @@ import { canManageUsers } from '@/types/auth';
 import { allowedMenuHrefs } from '@/lib/areaMenus';
 import api from '@/lib/api';
 
+import { tr } from '@/i18n';
 // Menus en el orden del proceso de una orden y agrupados por funcion:
 // lo comercial ocurre antes de la OIT, la operacion es la OIT en curso, la base tecnica es
 // lo que la operacion usa, y al final el seguimiento y la administracion.
@@ -39,42 +40,42 @@ const getNavigationGroups = (userRole?: string) => {
     const admin = [];
     // Gestion de usuarios solo para SUPER_ADMIN
     if (userRole && canManageUsers(userRole as any)) {
-        admin.push({ icon: Users, label: 'Usuarios', href: '/users' });
+        admin.push({ icon: Users, label: tr("Usuarios"), href: '/users' });
     }
     // Personal de monitoreo: lo administra Operaciones (Raul, ADMIN) y la gerencia.
     if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
-        admin.push({ icon: HardHat, label: 'Personal de monitoreo', href: '/monitoring-staff' });
+        admin.push({ icon: HardHat, label: tr("Personal de monitoreo"), href: '/monitoring-staff' });
     }
-    admin.push({ icon: Settings, label: 'Configuración', href: '/settings' });
+    admin.push({ icon: Settings, label: tr("Configuración"), href: '/settings' });
 
     return [
-        { title: 'Inicio', items: [
-            { icon: LayoutDashboard, label: 'Panel de Control', href: '/' },
-            { icon: GraduationCap, label: 'Xmart Academy', href: '/academy' },
+        { title: tr("Inicio"), items: [
+            { icon: LayoutDashboard, label: tr("Panel de Control"), href: '/' },
+            { icon: GraduationCap, label: tr("Xmart Academy"), href: '/academy' },
         ] },
-        { title: 'Comercial', items: [
-            { icon: Building2, label: 'Clientes', href: '/clients' },
-            { icon: Beaker, label: 'Servicios', href: '/services' },
-            { icon: Receipt, label: 'Cotizaciones', href: '/quotations' },
-            { icon: Mail, label: 'Listas de Distribución', href: '/distribution-lists' },
+        { title: tr("Comercial"), items: [
+            { icon: Building2, label: tr("Clientes"), href: '/clients' },
+            { icon: Beaker, label: tr("Servicios"), href: '/services' },
+            { icon: Receipt, label: tr("Cotizaciones"), href: '/quotations' },
+            { icon: Mail, label: tr("Listas de Distribución"), href: '/distribution-lists' },
             // Respuestas de equivalencias de parámetros: solo quien puede registrarlas (ADMIN o SUPER_ADMIN)
-            ...(userRole === 'ADMIN' || userRole === 'SUPER_ADMIN' ? [{ icon: HelpCircle, label: 'Consultas de parámetros', href: '/parameter-consultations' }] : []),
+            ...(userRole === 'ADMIN' || userRole === 'SUPER_ADMIN' ? [{ icon: HelpCircle, label: tr("Consultas de parámetros"), href: '/parameter-consultations' }] : []),
         ] },
-        { title: 'Operación', items: [
-            { icon: FileText, label: 'OITs', href: '/oits' },
-            { icon: Calendar, label: 'Calendario', href: '/calendar' },
-            { icon: Box, label: 'Recursos', href: '/resources' },
+        { title: tr("Operación"), items: [
+            { icon: FileText, label: tr('OITs'), href: '/oits' },
+            { icon: Calendar, label: tr("Calendario"), href: '/calendar' },
+            { icon: Box, label: tr("Recursos"), href: '/resources' },
         ] },
-        { title: 'Base técnica', items: [
-            { icon: Workflow, label: 'Plantillas', href: '/sampling-templates' },
-            { icon: Scale, label: 'Normas', href: '/standards' },
+        { title: tr("Base técnica"), items: [
+            { icon: Workflow, label: tr("Plantillas"), href: '/sampling-templates' },
+            { icon: Scale, label: tr("Normas"), href: '/standards' },
         ] },
-        { title: 'Seguimiento', items: [
-            { icon: BarChart3, label: 'Analítica', href: '/analytics' },
-            { icon: Sparkles, label: 'Asistente IA', href: '/ai' },
-            { icon: Bell, label: 'Notificaciones', href: '/notifications' },
+        { title: tr("Seguimiento"), items: [
+            { icon: BarChart3, label: tr("Analítica"), href: '/analytics' },
+            { icon: Sparkles, label: tr("Asistente IA"), href: '/ai' },
+            { icon: Bell, label: tr("Notificaciones"), href: '/notifications' },
         ] },
-        { title: 'Administración', items: admin },
+        { title: tr("Administración"), items: admin },
     ];
 };
 
@@ -144,10 +145,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 {/* Branding */}
                 <div className="h-20 flex items-center justify-between px-4 border-b border-slate-200/50">
                     <div className="flex items-center gap-3">
-                        <img src="/logo.png" alt="ALS" className="h-12 w-12 object-contain flex-shrink-0" />
+                        <img src="/logo.png" alt={tr("ALS")} className="h-12 w-12 object-contain flex-shrink-0" />
                         <div className="text-left">
-                            <p className="text-base font-bold text-[#004CAB] leading-none tracking-tight">ALS</p>
-                            <p className="text-xs text-slate-500 mt-1">Serambiente</p>
+                            <p className="text-base font-bold text-[#004CAB] leading-none tracking-tight">{tr("ALS")}</p>
+                            <p className="text-xs text-slate-500 mt-1">{tr("Serambiente")}</p>
                         </div>
                     </div>
                     {/* Close button for mobile */}
@@ -218,7 +219,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 <AvatarFallback>{user?.email?.[0].toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div className="text-sm">
-                                <p className="font-medium text-slate-900">{user?.name || 'Usuario'}</p>
+                                <p className="font-medium text-slate-900">{user?.name || tr("Usuario")}</p>
                                 <p className="text-xs text-slate-500 truncate max-w-[120px]">{user?.email}</p>
                             </div>
                         </div>

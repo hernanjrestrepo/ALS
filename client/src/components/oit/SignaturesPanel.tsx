@@ -12,6 +12,7 @@ import { SignaturePad } from '@/components/oit/SignaturePad';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
+import { tr } from '@/i18n';
 interface SignatureItem {
     id: string;
     signerName: string;
@@ -55,15 +56,15 @@ export function SignaturesPanel({ oitId }: { oitId: string }) {
 
     const handleSave = async () => {
         if (!signerName.trim()) {
-            toast.error('Escribe el nombre de quien firma');
+            toast.error(tr("Escribe el nombre de quien firma"));
             return;
         }
         if (mode === 'draw' && !signatureData) {
-            toast.error('Captura la firma en el recuadro');
+            toast.error(tr("Captura la firma en el recuadro"));
             return;
         }
         if (mode === 'upload' && !file) {
-            toast.error('Selecciona el documento firmado');
+            toast.error(tr("Selecciona el documento firmado"));
             return;
         }
 
@@ -80,11 +81,11 @@ export function SignaturesPanel({ oitId }: { oitId: string }) {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
             }
-            toast.success('Firma registrada');
+            toast.success(tr("Firma registrada"));
             reset();
             load();
         } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Error al registrar la firma');
+            toast.error(error.response?.data?.error || tr("Error al registrar la firma"));
         } finally {
             setIsSaving(false);
         }
@@ -93,10 +94,10 @@ export function SignaturesPanel({ oitId }: { oitId: string }) {
     const handleDelete = async (id: string) => {
         try {
             await api.delete(`/signatures/${id}`);
-            toast.success('Firma eliminada');
+            toast.success(tr("Firma eliminada"));
             load();
         } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Error al eliminar');
+            toast.error(error.response?.data?.error || tr("Error al eliminar"));
         }
     };
 
@@ -105,9 +106,9 @@ export function SignaturesPanel({ oitId }: { oitId: string }) {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <FileSignature className="h-5 w-5 text-[#004CAB]" />
-                    Firmas de campo
+                    {tr("Firmas de campo")}
                 </CardTitle>
-                <CardDescription>Firma del funcionario de ALS y del cliente, en pantalla o mediante documento ya firmado.</CardDescription>
+                <CardDescription>{tr("Firma del funcionario de ALS y del cliente, en pantalla o mediante documento ya firmado.")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 {/* Existing signatures */}
@@ -127,43 +128,43 @@ export function SignaturesPanel({ oitId }: { oitId: string }) {
                                     </Button>
                                 </div>
                                 {item.signatureData && (
-                                    <img src={item.signatureData} alt="Firma" className="h-16 border border-slate-100 rounded bg-white" />
+                                    <img src={item.signatureData} alt={tr("Firma")} className="h-16 border border-slate-100 rounded bg-white" />
                                 )}
                                 {item.documentUrl && (
                                     <a href={item.documentUrl} target="_blank" rel="noreferrer" className="text-xs text-[#004CAB] hover:underline flex items-center gap-1">
-                                        <Upload className="h-3 w-3" /> Ver documento firmado
+                                        <Upload className="h-3 w-3" /> {tr("Ver documento firmado")}
                                     </a>
                                 )}
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p className="text-sm text-slate-500 text-center py-2">Todavía no hay firmas registradas para esta OIT.</p>
+                    <p className="text-sm text-slate-500 text-center py-2">{tr("Todavía no hay firmas registradas para esta OIT.")}</p>
                 )}
 
                 {/* Capture form */}
                 <div className="border-t border-slate-100 pt-5 space-y-4">
                     <div className="flex items-center gap-2">
                         <Button type="button" size="sm" variant={mode === 'draw' ? 'default' : 'outline'} onClick={() => setMode('draw')} className={mode === 'draw' ? 'bg-[#004CAB] hover:bg-[#003b85]' : ''}>
-                            <PenLine className="mr-1.5 h-3.5 w-3.5" /> Firmar en pantalla
+                            <PenLine className="mr-1.5 h-3.5 w-3.5" /> {tr("Firmar en pantalla")}
                         </Button>
                         <Button type="button" size="sm" variant={mode === 'upload' ? 'default' : 'outline'} onClick={() => setMode('upload')} className={mode === 'upload' ? 'bg-[#004CAB] hover:bg-[#003b85]' : ''}>
-                            <Upload className="mr-1.5 h-3.5 w-3.5" /> Subir documento firmado
+                            <Upload className="mr-1.5 h-3.5 w-3.5" /> {tr("Subir documento firmado")}
                         </Button>
                     </div>
 
                     <div className="grid sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Nombre de quien firma</Label>
-                            <Input value={signerName} onChange={e => setSignerName(e.target.value)} placeholder="Nombre completo" />
+                            <Label>{tr("Nombre de quien firma")}</Label>
+                            <Input value={signerName} onChange={e => setSignerName(e.target.value)} placeholder={tr("Nombre completo")} />
                         </div>
                         <div className="space-y-2">
-                            <Label>Rol</Label>
+                            <Label>{tr("Rol")}</Label>
                             <Select value={signerRole} onValueChange={v => setSignerRole(v as 'ALS' | 'CLIENTE')}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="CLIENTE">Cliente</SelectItem>
-                                    <SelectItem value="ALS">Funcionario ALS</SelectItem>
+                                    <SelectItem value="CLIENTE">{tr("Cliente")}</SelectItem>
+                                    <SelectItem value="ALS">{tr("Funcionario ALS")}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -177,7 +178,7 @@ export function SignaturesPanel({ oitId }: { oitId: string }) {
 
                     <Button onClick={handleSave} disabled={isSaving} className="w-full bg-[#004CAB] hover:bg-[#003b85]">
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSignature className="mr-2 h-4 w-4" />}
-                        Registrar firma
+                        {tr("Registrar firma")}
                     </Button>
                 </div>
             </CardContent>

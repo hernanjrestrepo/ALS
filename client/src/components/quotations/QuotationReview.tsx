@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { toast } from 'sonner';
 import { CheckCircle2, Loader2, Info, Pencil } from 'lucide-react';
 
+import { tr, locale } from '@/i18n';
 // Pedido de Hernan (2026-10-19, SIACOT-20857): faltantes subsanables en pantalla,
 // decision de Ana por hallazgo con comentario, e informativos en un cuadro resumen.
 
@@ -28,26 +29,26 @@ export interface MissingResolution {
 
 export const DECISION_INFO: Record<FindingDecision, { label: string; hint: string; badge: string; button: string }> = {
     ACEPTADO: {
-        label: 'Aceptado con justificación',
+        label: tr("Aceptado con justificación"),
         hint: 'Procede así. Escribe por qué se acepta (queda como excepción aprobada).',
         badge: 'bg-green-600 text-white',
         button: 'border-green-300 text-green-800 hover:bg-green-50 data-[active=true]:bg-green-600 data-[active=true]:text-white',
     },
     EN_REVISION: {
-        label: 'En revisión',
+        label: tr("En revisión"),
         hint: 'Se está verificando (con el cliente, el laboratorio o el área técnica). Escribe qué se revisa y con quién.',
         badge: 'bg-amber-500 text-white',
         button: 'border-amber-300 text-amber-800 hover:bg-amber-50 data-[active=true]:bg-amber-500 data-[active=true]:text-white',
     },
     RECHAZADO: {
-        label: 'Rechazado',
+        label: tr("Rechazado"),
         hint: 'No procede: la cotización debe corregirse. Escribe qué hay que cambiar.',
         badge: 'bg-red-600 text-white',
         button: 'border-red-300 text-red-800 hover:bg-red-50 data-[active=true]:bg-red-600 data-[active=true]:text-white',
     },
 };
 
-const when = (iso: string) => new Date(iso).toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'short', timeStyle: 'short' });
+const when = (iso: string) => new Date(iso).toLocaleString(locale(), { timeZone: 'America/Bogota', dateStyle: 'short', timeStyle: 'short' });
 
 function errorText(error: any, fallback: string) {
     return error?.response?.data?.error || fallback;
@@ -68,7 +69,7 @@ const ITEM_ES: Array<[RegExp, string]> = [
 ];
 const itemLabel = (item: string) => ITEM_ES.find(([re]) => re.test(item))?.[1] || item;
 const dateLabel = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v)
-    ? new Date(`${v}T12:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
+    ? new Date(`${v}T12:00:00`).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })
     : v;
 
 function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
@@ -86,7 +87,7 @@ function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
             const { data } = await api.put(`/quotations/${quotationId}/missing`, { item, value: raw.trim() });
             onSaved(data);
             setEditing(false);
-            toast.success('Elemento subsanado');
+            toast.success(tr("Elemento subsanado"));
         } catch (error) {
             toast.error(errorText(error, 'No se pudo guardar'));
         } finally {
@@ -101,10 +102,10 @@ function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
                 <div className="flex-1 min-w-0">
                     <p className="text-slate-500 line-through decoration-slate-300">{itemLabel(item)}</p>
                     <p className="font-medium text-green-900 break-words">{isDate ? dateLabel(resolution.value) : resolution.value}</p>
-                    <p className="text-xs text-green-700">Subsanado por {resolution.userName || 'usuario'} · {when(resolution.at)}</p>
+                    <p className="text-xs text-green-700">{tr("Subsanado por")}{' '}{resolution.userName || 'usuario'} · {when(resolution.at)}</p>
                 </div>
                 {canEdit && (
-                    <button onClick={() => setEditing(true)} className="text-slate-400 hover:text-slate-700" title="Editar">
+                    <button onClick={() => setEditing(true)} className="text-slate-400 hover:text-slate-700" title={tr("Editar")}>
                         <Pencil className="h-4 w-4" />
                     </button>
                 )}
@@ -132,7 +133,7 @@ function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
                             value={value}
                             onChange={e => setValue(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
-                            placeholder="Escribe el dato y presiona Enter"
+                            placeholder={tr("Escribe el dato y presiona Enter")}
                             className="h-8 text-sm"
                             disabled={saving}
                         />
@@ -184,7 +185,7 @@ export function FindingDecisionPanel({ quotationId, issueKey, review, canEdit, o
             onSaved(data);
             setEditing(false);
             setComment('');
-            toast.success('Decisión registrada');
+            toast.success(tr("Decisión registrada"));
         } catch (error) {
             toast.error(errorText(error, 'No se pudo registrar la decisión'));
         } finally {
@@ -201,29 +202,29 @@ export function FindingDecisionPanel({ quotationId, issueKey, review, canEdit, o
                     <span className={`px-2 py-0.5 text-xs font-bold rounded ${DECISION_INFO[review.decision].badge}`}>
                         {DECISION_INFO[review.decision].label.toUpperCase()}
                     </span>
-                    <span className="ml-2 text-xs text-slate-500">{review.userName || 'Usuario'} · {when(review.at)}</span>
+                    <span className="ml-2 text-xs text-slate-500">{review.userName || tr("Usuario")} · {when(review.at)}</span>
                     <p className="mt-1 text-slate-800 bg-white/70 p-2 rounded border border-slate-200 whitespace-pre-wrap">{review.comment}</p>
                     {review.history && review.history.length > 0 && (
                         <details className="mt-1 text-xs text-slate-500">
-                            <summary className="cursor-pointer">Decisiones anteriores ({review.history.length})</summary>
+                            <summary className="cursor-pointer">{tr("Decisiones anteriores (")}{review.history.length})</summary>
                             <ul className="mt-1 space-y-1">
                                 {[...review.history].reverse().map((h, idx) => (
-                                    <li key={idx}>{DECISION_INFO[h.decision]?.label || h.decision} — {h.userName || 'Usuario'}, {when(h.at)}: {h.comment}</li>
+                                    <li key={idx}>{DECISION_INFO[h.decision]?.label || h.decision} — {h.userName || tr("Usuario")}, {when(h.at)}: {h.comment}</li>
                                 ))}
                             </ul>
                         </details>
                     )}
                     {canEdit && !editing && (
                         <Button variant="ghost" size="sm" className="mt-1 h-7 px-2 text-xs" onClick={() => { setEditing(true); setDecision(review.decision); }}>
-                            Cambiar decisión
+                            {tr("Cambiar decisión")}
                         </Button>
                     )}
                 </div>
             )}
-            {!review && !canEdit && <p className="text-xs text-slate-500">Pendiente de decisión del laboratorio.</p>}
+            {!review && !canEdit && <p className="text-xs text-slate-500">{tr("Pendiente de decisión del laboratorio.")}</p>}
             {showForm && (
                 <div className="space-y-2">
-                    <p className="text-xs font-semibold text-slate-600">Decisión:</p>
+                    <p className="text-xs font-semibold text-slate-600">{tr("Decisión:")}</p>
                     <div className="flex flex-wrap gap-2">
                         {(Object.keys(DECISION_INFO) as FindingDecision[]).map(d => (
                             <button
@@ -241,18 +242,18 @@ export function FindingDecisionPanel({ quotationId, issueKey, review, canEdit, o
                     <Textarea
                         value={comment}
                         onChange={e => setComment(e.target.value)}
-                        placeholder="Comentario (obligatorio)"
+                        placeholder={tr("Comentario (obligatorio)")}
                         className="text-sm min-h-[60px] bg-white"
                         disabled={saving}
                     />
                     <div className="flex gap-2">
                         <Button size="sm" onClick={save} disabled={saving || !decision || comment.trim().length < 3}>
                             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Guardar decisión
+                            {tr("Guardar decisión")}
                         </Button>
                         {review && (
                             <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setComment(''); setDecision(review.decision); }} disabled={saving}>
-                                Cancelar
+                                {tr("Cancelar")}
                             </Button>
                         )}
                     </div>
@@ -271,10 +272,10 @@ export function InformativeFindingsTable({ issues, parameterChecks }: { issues: 
             <CardHeader className="bg-blue-50">
                 <CardTitle className="text-base flex items-center gap-2 text-blue-900">
                     <Info className="h-4 w-4" />
-                    Informativos ({issues.length})
+                    {tr("Informativos (")}{issues.length})
                 </CardTitle>
                 <CardDescription>
-                    No cuentan como incumplimiento ni requieren decisión. Los sugeridos por la norma son parámetros del artículo que no se cotizaron: confirmar con el cliente si los necesita.
+                    {tr("No cuentan como incumplimiento ni requieren decisión. Los sugeridos por la norma son parámetros del artículo que no se cotizaron: confirmar con el cliente si los necesita.")}
                 </CardDescription>
             </CardHeader>
             <CardContent className="pt-4 overflow-x-auto">
@@ -282,9 +283,9 @@ export function InformativeFindingsTable({ issues, parameterChecks }: { issues: 
                     <thead>
                         <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b">
                             <th className="py-1.5 pr-3 w-8">#</th>
-                            <th className="py-1.5 pr-3">Parámetro</th>
-                            <th className="py-1.5 pr-3">Límite norma</th>
-                            <th className="py-1.5">Observación</th>
+                            <th className="py-1.5 pr-3">{tr("Parámetro")}</th>
+                            <th className="py-1.5 pr-3">{tr("Límite norma")}</th>
+                            <th className="py-1.5">{tr("Observación")}</th>
                         </tr>
                     </thead>
                     <tbody>

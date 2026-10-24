@@ -13,6 +13,7 @@ import { History, RotateCcw, Download } from 'lucide-react';
 import api from '@/lib/api';
 import { notify } from '@/lib/notify';
 
+import { tr, locale } from '@/i18n';
 interface ReportVersion {
     id: string;
     name: string;
@@ -77,7 +78,7 @@ export function ReportVersionHistoryButton({ oitId, reportName, onActivated }: R
                 size="sm"
                 variant="ghost"
                 className="h-8 w-8 p-0 text-slate-400 hover:text-slate-700"
-                title="Historial de versiones"
+                title={tr("Historial de versiones")}
                 onClick={handleOpen}
             >
                 <History className="h-4 w-4" />
@@ -88,7 +89,7 @@ export function ReportVersionHistoryButton({ oitId, reportName, onActivated }: R
                     <DialogHeader className="shrink-0">
                         <DialogTitle className="flex items-center gap-2">
                             <History className="h-4 w-4 text-slate-400" />
-                            Historial de versiones
+                            {tr("Historial de versiones")}
                         </DialogTitle>
                         <DialogDescription>{reportName}</DialogDescription>
                     </DialogHeader>
@@ -100,7 +101,7 @@ export function ReportVersionHistoryButton({ oitId, reportName, onActivated }: R
                             </>
                         ) : versions.length === 0 ? (
                             <p className="text-sm text-slate-500 text-center py-6">
-                                No hay versiones anteriores registradas para este informe.
+                                {tr("No hay versiones anteriores registradas para este informe.")}
                             </p>
                         ) : (
                             versions.map((v) => {
@@ -118,17 +119,17 @@ export function ReportVersionHistoryButton({ oitId, reportName, onActivated }: R
                                                 <Badge variant="outline" className="bg-white shrink-0">v{v.versionNumber}</Badge>
                                                 {v.isActive && (
                                                     <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100 shrink-0">
-                                                        Activa
+                                                        {tr("Activa")}
                                                     </Badge>
                                                 )}
                                             </div>
                                             <p className="text-xs text-slate-500 mt-0.5">
-                                                {new Date(v.createdAt).toLocaleString('es-CO')}
+                                                {new Date(v.createdAt).toLocaleString(locale())}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-1 shrink-0">
                                             <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600">
-                                                <a href={reportUrl} download title="Descargar esta versión">
+                                                <a href={reportUrl} download title={tr("Descargar esta versión")}>
                                                     <Download className="h-4 w-4" />
                                                 </a>
                                             </Button>
@@ -141,7 +142,7 @@ export function ReportVersionHistoryButton({ oitId, reportName, onActivated }: R
                                                     onClick={() => handleActivate(v.id)}
                                                 >
                                                     <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                                                    Activar
+                                                    {tr("Activar")}
                                                 </Button>
                                             )}
                                         </div>

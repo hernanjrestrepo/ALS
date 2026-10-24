@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search, Plus, MoreHorizontal, FileText, Scale, Download, Edit, Trash2 } from 'lucide-react';
 
+import { tr } from '@/i18n';
 interface Standard {
     id: string;
     title: string;
@@ -47,7 +48,7 @@ export default function StandardsPage() {
             setFilteredStandards(response.data);
         } catch (error) {
             console.error('Error fetching standards:', error);
-            toast.error('No se pudieron cargar las normas. Verifica la conexión.');
+            toast.error(tr("No se pudieron cargar las normas. Verifica la conexión."));
             setStandards([]);
             setFilteredStandards([]);
         } finally {
@@ -72,26 +73,26 @@ export default function StandardsPage() {
         try {
             await api.delete(`/standards/${id}`);
             setStandards(standards.filter(s => s.id !== id));
-            toast.success('Norma eliminada');
+            toast.success(tr("Norma eliminada"));
         } catch (error) {
             console.error('Error deleting standard:', error);
-            toast.error('Error al eliminar norma');
+            toast.error(tr("Error al eliminar norma"));
         }
     };
 
     const getTypeBadge = (type: string) => {
         return type === 'OIT'
-            ? <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">OIT</Badge>
-            : <Badge className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-50">Cotización</Badge>;
+            ? <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">{tr("OIT")}</Badge>
+            : <Badge className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-50">{tr("Cotización")}</Badge>;
     };
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Normas y Reglas</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">{tr("Normas y Reglas")}</h2>
                     <p className="text-slate-500">
-                        Define los criterios de revisión para OITs y Cotizaciones.
+                        {tr("Define los criterios de revisión para OITs y Cotizaciones.")}
                     </p>
                 </div>
                 <Button
@@ -99,7 +100,7 @@ export default function StandardsPage() {
                     className="bg-[#004CAB] hover:bg-[#003b85] text-white"
                 >
                     <Plus className="mr-2 h-4 w-4" />
-                    Nueva Norma
+                    {tr("Nueva Norma")}
                 </Button>
             </div>
 
@@ -109,7 +110,7 @@ export default function StandardsPage() {
                         <div className="relative w-72">
                             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
-                                placeholder="Buscar normas..."
+                                placeholder={tr("Buscar normas...")}
                                 className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -122,10 +123,10 @@ export default function StandardsPage() {
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="hover:bg-slate-50/50 border-slate-100">
-                                    <TableHead className="w-[250px] py-3 px-4 font-medium text-slate-500">Título</TableHead>
-                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Tipo</TableHead>
-                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Descripción</TableHead>
-                                    <TableHead className="text-right py-3 px-4 font-medium text-slate-500">Acciones</TableHead>
+                                    <TableHead className="w-[250px] py-3 px-4 font-medium text-slate-500">{tr("Título")}</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Tipo")}</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Descripción")}</TableHead>
+                                    <TableHead className="text-right py-3 px-4 font-medium text-slate-500">{tr("Acciones")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-100">
@@ -143,7 +144,7 @@ export default function StandardsPage() {
                                         <TableCell colSpan={4} className="h-32 text-center text-slate-500">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 <Scale className="h-8 w-8 text-slate-300" />
-                                                <p>No hay normas definidas</p>
+                                                <p>{tr("No hay normas definidas")}</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -165,7 +166,7 @@ export default function StandardsPage() {
                                                     {std.fileUrl && (
                                                         <a href={std.fileUrl} download target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center text-blue-600 hover:underline text-xs bg-blue-50 px-2 py-1 rounded-full border border-blue-100">
                                                             <Download className="h-3 w-3 mr-1" />
-                                                            {/.xlsx?$/i.test(std.fileUrl) ? 'Descargar Excel' : /.pdf$/i.test(std.fileUrl) ? 'Descargar PDF' : 'Descargar'}
+                                                            {/.xlsx?$/i.test(std.fileUrl) ? tr("Descargar Excel") : /.pdf$/i.test(std.fileUrl) ? tr("Descargar PDF") : tr("Descargar")}
                                                         </a>
                                                     )}
                                                 </div>
@@ -180,11 +181,11 @@ export default function StandardsPage() {
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem onClick={() => navigate(`/standards/edit/${std.id}`)}>
                                                             <Edit className="mr-2 h-4 w-4" />
-                                                            Editar
+                                                            {tr("Editar")}
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(std.id)}>
                                                             <Trash2 className="mr-2 h-4 w-4" />
-                                                            Eliminar
+                                                            {tr("Eliminar")}
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>

@@ -22,7 +22,8 @@ export interface AcademyModulo {
     novedades: AcademyPublicada[];
     preguntasAprobadas: AcademyPublicada[];
 }
-export interface AcademyData { grupos: string[]; modulos: AcademyModulo[] }
+// grupo es la clave en espanol; gruposNombre trae el nombre en el idioma elegido.
+export interface AcademyData { grupos: string[]; gruposNombre?: Record<string, string>; modulos: AcademyModulo[] }
 
 export interface MarcaCaptura { x: number; y: number; titulo: string; texto: string }
 

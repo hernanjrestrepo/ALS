@@ -7,6 +7,7 @@ import { FileText, Presentation, Sheet, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
+import { tr } from '@/i18n';
 const PALETTE = ['#004CAB', '#00A3A6', '#F59E0B', '#7C3AED', '#DC2626', '#059669', '#DB2777', '#475569'];
 
 interface ChartSpec {
@@ -112,7 +113,7 @@ export function ExportButtons({ content, compact }: { content: string; compact?:
             a.remove();
             URL.revokeObjectURL(url);
         } catch {
-            toast.error('No se pudo generar el documento. Intenta de nuevo.');
+            toast.error(tr("No se pudo generar el documento. Intenta de nuevo."));
         } finally {
             setBusy(null);
         }
@@ -120,7 +121,7 @@ export function ExportButtons({ content, compact }: { content: string; compact?:
 
     return (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {!compact && <span className="text-[11px] text-slate-400">Descargar:</span>}
+            {!compact && <span className="text-[11px] text-slate-400">{tr("Descargar:")}</span>}
             {FORMATS.map(f => (
                 <button
                     key={f.id}

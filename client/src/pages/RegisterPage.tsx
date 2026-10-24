@@ -20,12 +20,13 @@ import { ArrowRight, Loader2 } from 'lucide-react';
 import type { AuthResponse } from '@/types/auth';
 import { ParadixeFooter } from '@/components/brand/ParadixeFooter';
 
+import { tr } from '@/i18n';
 const formSchema = z.object({
     email: z.string().email({
-        message: 'Por favor ingresa un correo electrónico válido.',
+        message: tr("Por favor ingresa un correo electrónico válido."),
     }),
     password: z.string().min(6, {
-        message: 'La contraseña debe tener al menos 6 caracteres.',
+        message: tr("La contraseña debe tener al menos 6 caracteres."),
     }),
 });
 
@@ -51,7 +52,7 @@ export default function RegisterPage() {
             login(response.data.token, response.data.user);
             navigate('/');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Error al crear la cuenta');
+            setError(err.response?.data?.message || tr("Error al crear la cuenta"));
         } finally {
             setIsLoading(false);
         }
@@ -63,14 +64,14 @@ export default function RegisterPage() {
                 <CardHeader className="space-y-1 text-center pb-8">
                     <div className="flex justify-center mb-4">
                         <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden">
-                            <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
+                            <img src="/logo.png" alt={tr("Logo")} className="h-8 w-8 object-contain" />
                         </div>
                     </div>
                     <CardTitle className="text-xl font-semibold text-slate-900">
-                        Crear una cuenta
+                        {tr("Crear una cuenta")}
                     </CardTitle>
                     <CardDescription className="text-slate-500">
-                        Ingresa tu correo electrónico para crear tu cuenta
+                        {tr("Ingresa tu correo electrónico para crear tu cuenta")}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -81,14 +82,14 @@ export default function RegisterPage() {
                                 name="email"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-slate-700">Correo Electrónico</FormLabel>
+                                        <FormLabel className="text-slate-700">{tr("Correo Electrónico")}</FormLabel>
                                         <FormControl>
                                             <Input
                                                 type="email"
                                                 autoCapitalize="none"
                                                 autoCorrect="off"
                                                 autoComplete="email"
-                                                placeholder="nombre@ejemplo.com"
+                                                placeholder={tr("nombre@ejemplo.com")}
                                                 {...field}
                                                 className="bg-white border-slate-200 focus:border-slate-400 focus:ring-0"
                                             />
@@ -102,7 +103,7 @@ export default function RegisterPage() {
                                 name="password"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-slate-700">Contraseña</FormLabel>
+                                        <FormLabel className="text-slate-700">{tr("Contraseña")}</FormLabel>
                                         <FormControl>
                                             <Input
                                                 type="password"
@@ -129,7 +130,7 @@ export default function RegisterPage() {
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                     <span className="flex items-center justify-center gap-2">
-                                        Registrarse
+                                        {tr("Registrarse")}
                                         <ArrowRight className="h-4 w-4" />
                                     </span>
                                 )}
@@ -139,9 +140,9 @@ export default function RegisterPage() {
                 </CardContent>
                 <CardFooter className="justify-center border-t border-slate-100 pt-6">
                     <p className="text-sm text-slate-500">
-                        ¿Ya tienes una cuenta?{' '}
+                        {tr("¿Ya tienes una cuenta?")}{' '}
                         <Link to="/login" className="text-slate-900 hover:underline font-medium">
-                            Inicia sesión
+                            {tr("Inicia sesión")}
                         </Link>
                     </p>
                 </CardFooter>

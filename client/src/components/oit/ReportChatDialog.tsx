@@ -14,6 +14,7 @@ import { notify } from '@/lib/notify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { tr } from '@/i18n';
 interface ReportChatDialogProps {
     oitId: string;
     reportName: string;
@@ -92,7 +93,7 @@ export function ReportChatDialog({ oitId, reportName, group = 'General', onAppro
                 size="sm"
                 variant="ghost"
                 className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600"
-                title="Chat con IA para pedir cambios"
+                title={tr("Chat con IA para pedir cambios")}
                 onClick={() => setOpen(true)}
             >
                 <MessageSquareText className="h-4 w-4" />
@@ -103,7 +104,7 @@ export function ReportChatDialog({ oitId, reportName, group = 'General', onAppro
                     <DialogHeader className="shrink-0">
                         <DialogTitle className="flex items-center gap-2">
                             <Sparkles className="h-4 w-4 text-indigo-500" />
-                            Pedir cambios con IA
+                            {tr("Pedir cambios con IA")}
                         </DialogTitle>
                         <DialogDescription>{reportName}</DialogDescription>
                     </DialogHeader>
@@ -111,10 +112,7 @@ export function ReportChatDialog({ oitId, reportName, group = 'General', onAppro
                     <div className="flex-1 overflow-y-auto pr-1 space-y-3">
                         {!proposedMarkdown ? (
                             <div className="text-sm text-slate-500 bg-slate-50 border border-slate-100 rounded-md px-3 py-3">
-                                Describe el cambio que necesitas en este informe (ej. "cambia la recomendación de
-                                la conclusión para sugerir muestreo trimestral" o "agrega una nota sobre el clima
-                                seco en el resumen ejecutivo"). La IA propone el informe completo revisado — nada
-                                se guarda hasta que apruebes.
+                                {tr("Describe el cambio que necesitas en este informe (ej. \"cambia la recomendación de la conclusión para sugerir muestreo trimestral\" o \"agrega una nota sobre el clima seco en el resumen ejecutivo\"). La IA propone el informe completo revisado — nada se guarda hasta que apruebes.")}
                             </div>
                         ) : (
                             <div className="border border-indigo-100 bg-indigo-50/40 rounded-md p-4 prose prose-sm max-w-none">
@@ -136,11 +134,11 @@ export function ReportChatDialog({ oitId, reportName, group = 'General', onAppro
                                     ) : (
                                         <CheckCircle2 className="mr-2 h-4 w-4" />
                                     )}
-                                    Aprobar y regenerar informe
+                                    {tr("Aprobar y regenerar informe")}
                                 </Button>
                                 <Button variant="outline" className="border-slate-200" onClick={handleDiscard}>
                                     <RotateCcw className="mr-2 h-4 w-4" />
-                                    Descartar propuesta
+                                    {tr("Descartar propuesta")}
                                 </Button>
                             </div>
                         )}

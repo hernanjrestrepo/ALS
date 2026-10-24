@@ -1,24 +1,27 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { GRUPOS_ACADEMY, MODULOS_ACADEMY } from '../data/academy-catalogo';
+import { idiomaAcademy, nombreGrupo, traducirModulo } from '../data/academy-traduccion';
 import { ejecutarPropuestas } from '../services/academyPropuestas';
 import { logError } from '../utils/errors';
 
 const prisma = new PrismaClient();
 
 // Catalogo + lo aprobado (novedades y preguntas frecuentes) para la pantalla /academy.
-export const getAcademy = async (_req: Request, res: Response) => {
+export const getAcademy = async (req: Request, res: Response) => {
     try {
         const aprobadas = await prisma.academyPropuesta.findMany({
             where: { estado: 'APROBADA' }, orderBy: { decididoEn: 'desc' },
             select: { id: true, modulo: true, tipo: true, titulo: true, contenido: true, decididoEn: true },
         });
-        const modulos = MODULOS_ACADEMY.map(({ fuentes, palabras, ...m }) => ({
+        const lang = idiomaAcademy(req.headers['x-lang']);
+        const modulos = MODULOS_ACADEMY.map(m0 => traducirModulo(m0, lang)).map(({ fuentes, palabras, ...m }) => ({
             ...m,
             novedades: aprobadas.filter(a => a.modulo === m.key && a.tipo === 'NOVEDAD').slice(0, 10),
             preguntasAprobadas: aprobadas.filter(a => a.modulo === m.key && a.tipo === 'PREGUNTA'),
         }));
-        res.json({ grupos: GRUPOS_ACADEMY, modulos });
+        // grupo sigue en espanol (es la clave); gruposNombre es lo que se muestra.
+        res.json({ grupos: GRUPOS_ACADEMY, gruposNombre: Object.fromEntries(GRUPOS_ACADEMY.map(g => [g, nombreGrupo(g, lang)])), modulos });
     } catch (error) {
         logError('Academy: no se pudo cargar', error);
         res.status(500).json({ error: 'No se pudo cargar Xmart Academy' });

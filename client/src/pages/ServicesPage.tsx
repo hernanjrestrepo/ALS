@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Beaker, Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 
+import { tr } from '@/i18n';
 interface ServiceData {
     id: string;
     name: string;
@@ -41,7 +42,7 @@ export default function ServicesPage() {
             setServices(response.data);
         } catch (error) {
             console.error('Error fetching services:', error);
-            toast.error('Error al cargar servicios');
+            toast.error(tr("Error al cargar servicios"));
         } finally {
             setLoading(false);
         }
@@ -61,23 +62,23 @@ export default function ServicesPage() {
 
     const handleSave = async () => {
         if (!form.name.trim()) {
-            toast.error('El nombre del servicio es obligatorio');
+            toast.error(tr("El nombre del servicio es obligatorio"));
             return;
         }
         setIsSaving(true);
         try {
             if (editingId) {
                 await api.put(`/services/${editingId}`, form);
-                toast.success('Servicio actualizado');
+                toast.success(tr("Servicio actualizado"));
             } else {
                 await api.post('/services', form);
-                toast.success('Servicio creado');
+                toast.success(tr("Servicio creado"));
             }
             setIsFormOpen(false);
             fetchServices();
         } catch (error: any) {
             console.error('Error saving service:', error);
-            toast.error(error.response?.data?.message || 'Error al guardar servicio');
+            toast.error(error.response?.data?.message || tr("Error al guardar servicio"));
         } finally {
             setIsSaving(false);
         }
@@ -89,10 +90,10 @@ export default function ServicesPage() {
         try {
             await api.delete(`/services/${service.id}`);
             setServices(services.filter(s => s.id !== service.id));
-            toast.success('Servicio eliminado');
+            toast.success(tr("Servicio eliminado"));
         } catch (error: any) {
             console.error('Error deleting service:', error);
-            toast.error(error.response?.data?.message || 'Error al eliminar servicio');
+            toast.error(error.response?.data?.message || tr("Error al eliminar servicio"));
         } finally {
             setDeletingId(null);
         }
@@ -110,8 +111,8 @@ export default function ServicesPage() {
                         <Beaker className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Servicios</h1>
-                        <p className="text-sm text-slate-500">Catálogo de servicios ambientales que se pueden cotizar</p>
+                        <h1 className="text-2xl font-bold text-slate-900">{tr("Servicios")}</h1>
+                        <p className="text-sm text-slate-500">{tr("Catálogo de servicios ambientales que se pueden cotizar")}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -120,32 +121,32 @@ export default function ServicesPage() {
                         <DialogTrigger asChild>
                             <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white" onClick={openCreate}>
                                 <Plus className="mr-2 h-4 w-4" />
-                                Nuevo Servicio
+                                {tr("Nuevo Servicio")}
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[450px]">
                             <DialogHeader>
-                                <DialogTitle>{editingId ? 'Editar Servicio' : 'Nuevo Servicio'}</DialogTitle>
-                                <DialogDescription>Servicios disponibles para cotizar a los clientes.</DialogDescription>
+                                <DialogTitle>{editingId ? tr("Editar Servicio") : tr("Nuevo Servicio")}</DialogTitle>
+                                <DialogDescription>{tr("Servicios disponibles para cotizar a los clientes.")}</DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                                 <div className="space-y-2">
-                                    <Label>Nombre *</Label>
-                                    <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Muestreo de agua subterránea" />
+                                    <Label>{tr("Nombre *")}</Label>
+                                    <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder={tr("Muestreo de agua subterránea")} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Matriz ambiental</Label>
-                                    <Input value={form.oitType} onChange={e => setForm({ ...form, oitType: e.target.value })} placeholder="Agua, Aire, Suelo, Biota..." />
+                                    <Label>{tr("Matriz ambiental")}</Label>
+                                    <Input value={form.oitType} onChange={e => setForm({ ...form, oitType: e.target.value })} placeholder={tr("Agua, Aire, Suelo, Biota...")} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Descripción</Label>
+                                    <Label>{tr("Descripción")}</Label>
                                     <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} />
                                 </div>
                             </div>
                             <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancelar</Button>
+                                <Button variant="outline" onClick={() => setIsFormOpen(false)}>{tr("Cancelar")}</Button>
                                 <Button onClick={handleSave} disabled={isSaving}>
-                                    {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : 'Guardar'}
+                                    {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{tr("Guardando...")}</> : tr("Guardar")}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -155,20 +156,20 @@ export default function ServicesPage() {
 
             <Card className="border-slate-200 shadow-sm">
                 <CardHeader className="border-b border-slate-100 pb-4">
-                    <CardTitle className="text-lg font-medium text-slate-900">Servicios disponibles</CardTitle>
-                    <CardDescription>Se usan al crear cotizaciones desde el módulo de Clientes.</CardDescription>
+                    <CardTitle className="text-lg font-medium text-slate-900">{tr("Servicios disponibles")}</CardTitle>
+                    <CardDescription>{tr("Se usan al crear cotizaciones desde el módulo de Clientes.")}</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                     {services.length === 0 ? (
-                        <div className="text-center py-12 text-slate-400">No hay servicios registrados todavía.</div>
+                        <div className="text-center py-12 text-slate-400">{tr("No hay servicios registrados todavía.")}</div>
                     ) : (
                         <table className="w-full">
                             <thead className="bg-slate-50 border-b border-slate-100">
                                 <tr>
-                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Servicio</th>
-                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Matriz</th>
-                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Descripción</th>
-                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
+                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Servicio")}</th>
+                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Matriz")}</th>
+                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Descripción")}</th>
+                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Acciones")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -180,10 +181,10 @@ export default function ServicesPage() {
                                         <td className="p-4">
                                             <div className="flex items-center gap-1">
                                                 <Button variant="ghost" size="sm" onClick={() => openEdit(service)} className="text-slate-500 hover:text-blue-600 hover:bg-blue-50">
-                                                    <Pencil className="h-4 w-4 mr-1" />Editar
+                                                    <Pencil className="h-4 w-4 mr-1" />{tr("Editar")}
                                                 </Button>
                                                 <Button variant="ghost" size="sm" onClick={() => handleDelete(service)} disabled={deletingId === service.id} className="text-slate-500 hover:text-red-600 hover:bg-red-50">
-                                                    {deletingId === service.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 mr-1" />Eliminar</>}
+                                                    {deletingId === service.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 mr-1" />{tr("Eliminar")}</>}
                                                 </Button>
                                             </div>
                                         </td>

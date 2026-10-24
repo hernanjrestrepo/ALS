@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { type TestStatus, type CommentPriority, TEMPLATE_TEST_ITEMS } from '@/types/testing';
 
+import { tr, locale } from '@/i18n';
 /* ------------------------------------------------------------------ */
 /*  Config helpers                                                      */
 /* ------------------------------------------------------------------ */
@@ -70,13 +71,13 @@ function CommentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCirclePlus className="h-5 w-5 text-slate-600" />
-            Agregar comentario / corrección
+            {tr("Agregar comentario / corrección")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3 pt-2">
           <div className="flex items-center gap-2">
             <Input
-              placeholder="Campo / placeholder"
+              placeholder={tr("Campo / placeholder")}
               value={field}
               onChange={(e) => setField(e.target.value)}
               className="h-9 text-xs font-mono bg-slate-50 border-slate-200 flex-1"
@@ -86,38 +87,38 @@ function CommentModal({
               onChange={(e) => setPriority(e.target.value as CommentPriority)}
               className="h-9 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700"
             >
-              <option value="low">Baja</option>
-              <option value="medium">Media</option>
-              <option value="high">Alta</option>
-              <option value="critical">Crítica</option>
+              <option value="low">{tr("Baja")}</option>
+              <option value="medium">{tr("Media")}</option>
+              <option value="high">{tr("Alta")}</option>
+              <option value="critical">{tr("Crítica")}</option>
             </select>
           </div>
           {prefillTag && (
             <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2">
-              <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-1">Placeholder seleccionado</p>
+              <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-1">{tr("Placeholder seleccionado")}</p>
               <span className="inline-block rounded bg-white border border-slate-200 px-2 py-1 text-xs font-mono text-blue-700">{'{'}{prefillTag}{'}'}</span>
             </div>
           )}
           {prefillText && !prefillTag && (
             <div className="rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2">
-              <p className="text-[11px] text-yellow-700 uppercase tracking-wider mb-1">Texto seleccionado</p>
+              <p className="text-[11px] text-yellow-700 uppercase tracking-wider mb-1">{tr("Texto seleccionado")}</p>
               <p className="text-xs text-slate-700 italic truncate">"{prefillText}"</p>
             </div>
           )}
           {position && (
             <div className="rounded-md bg-indigo-50 border border-indigo-200 px-3 py-2">
-              <p className="text-[11px] text-indigo-700 uppercase tracking-wider mb-1">Posición en el documento</p>
-              <p className="text-xs text-slate-700">Página {position.page} — coords ({Math.round(position.x)}, {Math.round(position.y)})</p>
+              <p className="text-[11px] text-indigo-700 uppercase tracking-wider mb-1">{tr("Posición en el documento")}</p>
+              <p className="text-xs text-slate-700">{tr("Página")}{' '}{position.page} {tr("— coords (")}{Math.round(position.x)}, {Math.round(position.y)})</p>
             </div>
           )}
           <Textarea
-            placeholder="Describe el error o corrección..."
+            placeholder={tr("Describe el error o corrección...")}
             value={text}
             onChange={(e) => setText(e.target.value)}
             className="min-h-[100px] text-sm bg-slate-50 border-slate-200"
           />
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>Cancelar</Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>{tr("Cancelar")}</Button>
             <Button
               size="sm"
               disabled={!text.trim()}
@@ -128,7 +129,7 @@ function CommentModal({
               className="bg-[#004CAB] hover:bg-[#003b85] text-white gap-1.5"
             >
               <Send className="h-3.5 w-3.5" />
-              Guardar
+              {tr("Guardar")}
             </Button>
           </div>
         </div>
@@ -180,7 +181,7 @@ export default function TemplateTestsPage() {
       })
       .catch(() => {
         setPages([]);
-        toast.error('No se pudieron cargar las imágenes del preview');
+        toast.error(tr("No se pudieron cargar las imágenes del preview"));
       })
       .finally(() => setLoadingPages(false));
   }, [selectedTemplateId, selectedTemplate?.fileName]);
@@ -213,13 +214,13 @@ export default function TemplateTestsPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('JSON descargado');
+    toast.success(tr("JSON descargado"));
   };
 
   const handleExportMd = () => {
     const data = exportTests(user?.name);
     let md = `# Correcciones de Templates — ALS\n\n`;
-    md += `**Exportado:** ${new Date(data.exportedAt).toLocaleString('es-CO')}\n`;
+    md += `**Exportado:** ${new Date(data.exportedAt).toLocaleString(locale())}\n`;
     md += `**Por:** ${data.exportedBy || 'N/A'}\n\n`;
     md += `## Resumen\n\n| Métrica | Valor |\n|---------|-------|\n`;
     md += `| Total | ${data.tests.length} |\n`;
@@ -249,13 +250,13 @@ export default function TemplateTestsPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('Markdown descargado');
+    toast.success(tr("Markdown descargado"));
   };
 
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-slate-500">Cargando...</p>
+        <p className="text-slate-500">{tr("Cargando...")}</p>
       </div>
     );
   }
@@ -267,15 +268,15 @@ export default function TemplateTestsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Beaker className="h-5 w-5 text-emerald-600" />
-            <h1 className="text-lg font-bold text-slate-900">QA Templates Docxtemplater</h1>
-            <p className="text-xs text-slate-500 hidden md:inline">Clickea en cualquier parte del documento para agregar un pin/comentario.</p>
+            <h1 className="text-lg font-bold text-slate-900">{tr("QA Templates Docxtemplater")}</h1>
+            <p className="text-xs text-slate-500 hidden md:inline">{tr("Clickea en cualquier parte del documento para agregar un pin/comentario.")}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={handleExportJson}>
-              <FileJson className="h-3.5 w-3.5" /> JSON
+              <FileJson className="h-3.5 w-3.5" /> {tr("JSON")}
             </Button>
             <Button variant="outline" size="sm" className="gap-1 text-xs h-8" onClick={handleExportMd}>
-              <StickyNote className="h-3.5 w-3.5" /> MD
+              <StickyNote className="h-3.5 w-3.5" /> {tr("MD")}
             </Button>
           </div>
         </div>
@@ -284,11 +285,11 @@ export default function TemplateTestsPage() {
       {/* Stats bar */}
       <div className="shrink-0 border-b border-slate-100 bg-slate-50/60 px-6 py-2">
         <div className="flex items-center gap-4">
-          <span className="text-[11px] text-slate-500">Total <strong className="text-slate-900">{stats.total}</strong></span>
-          <span className="text-[11px] text-amber-600">Pendientes <strong>{stats.pending}</strong></span>
-          <span className="text-[11px] text-emerald-600">Testeados <strong>{stats.tested}</strong></span>
-          <span className="text-[11px] text-red-600">Fallidos <strong>{stats.failed}</strong></span>
-          <span className="text-[11px] text-blue-600">Comentarios <strong>{stats.totalComments}</strong></span>
+          <span className="text-[11px] text-slate-500">{tr("Total")}{' '}<strong className="text-slate-900">{stats.total}</strong></span>
+          <span className="text-[11px] text-amber-600">{tr("Pendientes")}{' '}<strong>{stats.pending}</strong></span>
+          <span className="text-[11px] text-emerald-600">{tr("Testeados")}{' '}<strong>{stats.tested}</strong></span>
+          <span className="text-[11px] text-red-600">{tr("Fallidos")}{' '}<strong>{stats.failed}</strong></span>
+          <span className="text-[11px] text-blue-600">{tr("Comentarios")}{' '}<strong>{stats.totalComments}</strong></span>
         </div>
       </div>
 
@@ -300,7 +301,7 @@ export default function TemplateTestsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <Input
-                placeholder="Buscar..."
+                placeholder={tr("Buscar...")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-7 h-7 text-xs bg-slate-50 border-slate-200"
@@ -311,10 +312,10 @@ export default function TemplateTestsPage() {
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="h-7 rounded-md border border-slate-200 bg-white px-1.5 text-[11px] text-slate-700"
             >
-              <option value="all">Todos</option>
-              <option value="pending">Pend</option>
-              <option value="tested">OK</option>
-              <option value="failed">Fail</option>
+              <option value="all">{tr("Todos")}</option>
+              <option value="pending">{tr("Pend")}</option>
+              <option value="tested">{tr("OK")}</option>
+              <option value="failed">{tr("Fail")}</option>
               <option value="not_applicable">N/A</option>
             </select>
           </div>
@@ -347,7 +348,7 @@ export default function TemplateTestsPage() {
                     <p className="text-[10px] font-mono text-slate-400 truncate">{t.fileName}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={cn('text-[10px]', cfg.cls)}>{cfg.label}</span>
-                      {t.hasErrors && <span className="text-[10px] text-red-500 font-medium">● Errores</span>}
+                      {t.hasErrors && <span className="text-[10px] text-red-500 font-medium">{tr("● Errores")}</span>}
                     </div>
                   </div>
                   <ChevronRight className={cn('h-3.5 w-3.5 text-slate-300 mt-1 shrink-0', active && 'text-slate-700')} />
@@ -366,26 +367,26 @@ export default function TemplateTestsPage() {
                 <div className="flex items-center gap-2">
                   <Eye className="h-3.5 w-3.5 text-slate-500" />
                   <span className="text-xs font-medium text-slate-700">{selectedTemplate.matrix}</span>
-                  <span className="text-[10px] font-mono text-slate-400">{pages.length} páginas</span>
+                  <span className="text-[10px] font-mono text-slate-400">{pages.length} {tr("páginas")}</span>
                 </div>
                 <a
                   href={`/api/files/download/${encodeURIComponent(selectedTemplate.fileName)}`}
                   download
                   className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  <Download className="h-3 w-3" /> DOCX
+                  <Download className="h-3 w-3" /> {tr("DOCX")}
                 </a>
               </div>
 
               {loadingPages ? (
                 <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                   <Loader2 className="h-8 w-8 animate-spin mb-2" />
-                  <p className="text-sm">Generando preview...</p>
+                  <p className="text-sm">{tr("Generando preview...")}</p>
                 </div>
               ) : pages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                   <FileText className="h-8 w-8 mb-2" />
-                  <p className="text-sm">No hay imágenes de preview para este template</p>
+                  <p className="text-sm">{tr("No hay imágenes de preview para este template")}</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-4 py-6 px-4">
@@ -397,7 +398,7 @@ export default function TemplateTestsPage() {
                     >
                       {/* Page label */}
                       <div className="absolute top-2 left-2 z-10 rounded bg-slate-900/70 text-white text-[10px] px-1.5 py-0.5 font-mono">
-                        Pág. {pg.page}
+                        {tr("Pág.")}{' '}{pg.page}
                       </div>
                       <img
                         src={pg.url}
@@ -414,7 +415,7 @@ export default function TemplateTestsPage() {
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-slate-400">
               <FileText className="h-12 w-12 text-slate-300 mb-3" />
-              <p className="text-sm">Selecciona un template de la izquierda para ver el preview</p>
+              <p className="text-sm">{tr("Selecciona un template de la izquierda para ver el preview")}</p>
             </div>
           )}
         </div>
@@ -424,10 +425,10 @@ export default function TemplateTestsPage() {
           <div className="border-b border-slate-100 px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-slate-500" />
-              Correcciones
+              {tr("Correcciones")}
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              {test?.comments.length || 0} comentarios en este template
+              {test?.comments.length || 0} {tr("comentarios en este template")}
             </p>
           </div>
 
@@ -440,9 +441,9 @@ export default function TemplateTestsPage() {
                     onChange={(e) => updateStatus(selectedTemplate.templateId, e.target.value as TestStatus)}
                     className="h-7 rounded-md border border-slate-200 bg-white px-2 text-[11px] text-slate-700 flex-1"
                   >
-                    <option value="pending">Pendiente</option>
-                    <option value="tested">Testeado ✓</option>
-                    <option value="failed">Fallido ✗</option>
+                    <option value="pending">{tr("Pendiente")}</option>
+                    <option value="tested">{tr("Testeado ✓")}</option>
+                    <option value="failed">{tr("Fallido ✗")}</option>
                     <option value="not_applicable">N/A</option>
                   </select>
                   <label className="inline-flex items-center gap-1.5 text-[11px] text-slate-700 cursor-pointer">
@@ -452,7 +453,7 @@ export default function TemplateTestsPage() {
                       onChange={() => toggleErrors(selectedTemplate.templateId)}
                       className="h-3.5 w-3.5 rounded border-slate-300"
                     />
-                    Errores
+                    {tr("Errores")}
                   </label>
                 </div>
                 <Separator />
@@ -461,14 +462,14 @@ export default function TemplateTestsPage() {
 
             {!selectedTemplate && (
               <div className="text-center text-xs text-slate-400 py-8">
-                Selecciona un template para ver sus comentarios.
+                {tr("Selecciona un template para ver sus comentarios.")}
               </div>
             )}
 
             {selectedTemplate && test && test.comments.length === 0 && (
               <div className="rounded-lg border border-slate-100 bg-slate-50 p-4 text-center">
-                <p className="text-xs text-slate-500">Sin comentarios.</p>
-                <p className="text-[11px] text-slate-400 mt-1">Haz clic en cualquier página del preview para agregar un comentario con posición.</p>
+                <p className="text-xs text-slate-500">{tr("Sin comentarios.")}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{tr("Haz clic en cualquier página del preview para agregar un comentario con posición.")}</p>
               </div>
             )}
 
@@ -498,14 +499,14 @@ export default function TemplateTestsPage() {
                   </div>
                   <p className="text-xs text-slate-700 mt-1.5 whitespace-pre-wrap break-words leading-relaxed">{c.text}</p>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    {new Date(c.createdAt).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    {new Date(c.createdAt).toLocaleString(locale(), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               );
             })}
 
             <div className="pt-4 border-t border-slate-100">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Resumen global</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">{tr("Resumen global")}</p>
               <div className="space-y-1">
                 {tests.filter((t) => t.comments.length > 0 || t.hasErrors).map((t) => (
                   <button
@@ -535,7 +536,7 @@ export default function TemplateTestsPage() {
         onSave={(text, field, priority) => {
           if (selectedTemplateId) {
             addComment(selectedTemplateId, text, field, priority);
-            toast.success('Comentario guardado');
+            toast.success(tr("Comentario guardado"));
           }
         }}
       />

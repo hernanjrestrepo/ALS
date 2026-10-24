@@ -1,4 +1,5 @@
-// Firma de marca Paradixe (Manual de Marca v1): "by Paradixe" como una sola
+
+import { tr } from '@/i18n';// Firma de marca Paradixe (Manual de Marca v1): "by Paradixe" como una sola
 // unidad enlazada (texto + wordmark), no un logo y un link por separado.
 // Fondo claro -> texto "PARADIXE" en Navy, sin isotipo (el isotipo es solo
 // para fondo oscuro).
@@ -16,7 +17,7 @@ export function ParadixeFooter() {
                     className="text-xs font-bold tracking-widest"
                     style={{ color: '#12224B' }}
                 >
-                    PARADIXE
+                    {tr("PARADIXE")}
                 </span>
             </a>
         </div>

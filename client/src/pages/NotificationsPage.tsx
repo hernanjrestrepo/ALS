@@ -5,8 +5,8 @@ import { Bell, Check, CheckCheck, Trash2, AlertCircle, CheckCircle, Info, AlertT
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
 
+import { tr, dateLocale } from '@/i18n';
 interface Notification {
     id: string;
     title: string;
@@ -62,7 +62,7 @@ export default function NotificationsPage() {
             }
         } catch (error) {
             console.error('Error fetching notifications:', error);
-            toast.error('Error al cargar notificaciones');
+            toast.error(tr("Error al cargar notificaciones"));
             setNotifications([]);
         } finally {
             setIsLoading(false);
@@ -75,7 +75,7 @@ export default function NotificationsPage() {
             setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
         } catch (error) {
             console.error('Error marking as read:', error);
-            toast.error('Error al marcar la notificación como leída');
+            toast.error(tr("Error al marcar la notificación como leída"));
         }
     };
 
@@ -83,10 +83,10 @@ export default function NotificationsPage() {
         try {
             await api.patch('/notifications/read-all');
             setNotifications(notifications.map(n => ({ ...n, read: true })));
-            toast.success('Todas marcadas como leídas');
+            toast.success(tr("Todas marcadas como leídas"));
         } catch (error) {
             console.error('Error marking all as read:', error);
-            toast.error('Error al marcar todas como leídas');
+            toast.error(tr("Error al marcar todas como leídas"));
         }
     };
 
@@ -94,10 +94,10 @@ export default function NotificationsPage() {
         try {
             await api.delete(`/notifications/${id}`);
             setNotifications(notifications.filter(n => n.id !== id));
-            toast.success('Notificación eliminada');
+            toast.success(tr("Notificación eliminada"));
         } catch (error) {
             console.error('Error deleting notification:', error);
-            toast.error('Error al eliminar notificación');
+            toast.error(tr("Error al eliminar notificación"));
         }
     };
 
@@ -134,9 +134,9 @@ export default function NotificationsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Notificaciones</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">{tr("Notificaciones")}</h2>
                     <p className="text-slate-500">
-                        {unreadCount > 0 ? `${unreadCount} sin leer` : 'Todo al día'}
+                        {unreadCount > 0 ? `${unreadCount} ${tr('sin leer')}` : tr("Todo al día")}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -145,11 +145,11 @@ export default function NotificationsPage() {
                             onClick={() => {
                                 Notification.requestPermission().then(res => {
                                     if (res === 'granted') {
-                                        toast.success('Alertas activadas');
+                                        toast.success(tr("Alertas activadas"));
                                         // Force re-render/update
                                         window.location.reload();
                                     } else {
-                                        toast.error('Permiso denegado');
+                                        toast.error(tr("Permiso denegado"));
                                     }
                                 });
                             }}
@@ -157,7 +157,7 @@ export default function NotificationsPage() {
                             className="gap-2 border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
                         >
                             <Bell className="h-4 w-4" />
-                            Activar Alertas
+                            {tr("Activar Alertas")}
                         </Button>
                     )}
                     {unreadCount > 0 && (
@@ -167,7 +167,7 @@ export default function NotificationsPage() {
                             className="gap-2"
                         >
                             <CheckCheck className="h-4 w-4" />
-                            Marcar leídas
+                            {tr("Marcar leídas")}
                         </Button>
                     )}
                 </div>
@@ -177,7 +177,7 @@ export default function NotificationsPage() {
             {notifications.length === 0 ? (
                 <div className="text-center py-12">
                     <Bell className="h-16 w-16 mx-auto text-slate-300 mb-4" />
-                    <p className="text-slate-500">No tienes notificaciones</p>
+                    <p className="text-slate-500">{tr("No tienes notificaciones")}</p>
                 </div>
             ) : (
                 <div className="space-y-4 max-w-4xl mx-auto w-full">
@@ -205,7 +205,7 @@ export default function NotificationsPage() {
                                                     <span>
                                                         {formatDistanceToNow(new Date(notification.createdAt), {
                                                             addSuffix: true,
-                                                            locale: es
+                                                            locale: dateLocale()
                                                         })}
                                                     </span>
                                                     {notification.oit && (

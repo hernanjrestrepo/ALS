@@ -18,9 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { ParadixeFooter } from '@/components/brand/ParadixeFooter';
 
+import { tr } from '@/i18n';
 const formSchema = z.object({
     email: z.string().email({
-        message: 'Por favor ingresa un correo electrónico válido.',
+        message: tr("Por favor ingresa un correo electrónico válido."),
     }),
 });
 
@@ -41,7 +42,7 @@ export default function ForgotPasswordPage() {
             await api.post('/auth/forgot-password', values);
             setSent(true);
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Error al procesar la solicitud');
+            setError(err.response?.data?.message || tr("Error al procesar la solicitud"));
         } finally {
             setIsLoading(false);
         }
@@ -53,21 +54,20 @@ export default function ForgotPasswordPage() {
                 <CardHeader className="space-y-1 text-center pb-8">
                     <div className="flex justify-center mb-4">
                         <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden">
-                            <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
+                            <img src="/logo.png" alt={tr("Logo")} className="h-8 w-8 object-contain" />
                         </div>
                     </div>
                     <CardTitle className="text-xl font-semibold text-slate-900">
-                        Recuperar contraseña
+                        {tr("Recuperar contraseña")}
                     </CardTitle>
                     <CardDescription className="text-slate-500">
-                        Ingresa tu correo y te mostraremos un link para definir una nueva contraseña
+                        {tr("Ingresa tu correo y te mostraremos un link para definir una nueva contraseña")}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {sent ? (
                         <div className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-3">
-                            Si el correo existe en el sistema, te enviamos un link de recuperación.
-                            Revisa tu bandeja de entrada (y la carpeta de spam) durante la próxima hora.
+                            {tr("Si el correo existe en el sistema, te enviamos un link de recuperación. Revisa tu bandeja de entrada (y la carpeta de spam) durante la próxima hora.")}
                         </div>
                     ) : (
                         <Form {...form}>
@@ -77,14 +77,14 @@ export default function ForgotPasswordPage() {
                                     name="email"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-slate-700">Correo Electrónico</FormLabel>
+                                            <FormLabel className="text-slate-700">{tr("Correo Electrónico")}</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="email"
                                                     autoCapitalize="none"
                                                     autoCorrect="off"
                                                     autoComplete="email"
-                                                    placeholder="nombre@ejemplo.com"
+                                                    placeholder={tr("nombre@ejemplo.com")}
                                                     {...field}
                                                     className="bg-white border-slate-200 focus:border-slate-400 focus:ring-0"
                                                 />
@@ -107,7 +107,7 @@ export default function ForgotPasswordPage() {
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <span className="flex items-center justify-center gap-2">
-                                            Generar link de recuperación
+                                            {tr("Generar link de recuperación")}
                                             <ArrowRight className="h-4 w-4" />
                                         </span>
                                     )}
@@ -119,7 +119,7 @@ export default function ForgotPasswordPage() {
                 <CardFooter className="justify-center border-t border-slate-100 pt-6">
                     <p className="text-sm text-slate-500">
                         <Link to="/login" className="text-slate-900 hover:underline font-medium">
-                            Volver a inicio de sesión
+                            {tr("Volver a inicio de sesión")}
                         </Link>
                     </p>
                 </CardFooter>

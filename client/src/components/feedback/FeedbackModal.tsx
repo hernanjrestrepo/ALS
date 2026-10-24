@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Star, ThumbsUp, ThumbsDown, AlertCircle, Upload, FileText, X, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { tr } from '@/i18n';
 export type FeedbackCategory = 'OIT_ANALYSIS' | 'PROPOSAL' | 'REPORT' | 'TEMPLATE_MAPPING' | 'QUOTATION_ANALYSIS' | 'QUOTATION_COMPLIANCE';
 
 interface FeedbackModalProps {
@@ -37,12 +38,12 @@ interface FeedbackData {
 }
 
 const categoryLabels: Record<FeedbackCategory, string> = {
-    'OIT_ANALYSIS': 'Análisis de OIT',
-    'PROPOSAL': 'Propuesta de Programación',
-    'REPORT': 'Informe Final',
-    'TEMPLATE_MAPPING': 'Mapeo de Plantilla',
-    'QUOTATION_ANALYSIS': 'Análisis de Cotización',
-    'QUOTATION_COMPLIANCE': 'Cumplimiento de Cotización'
+    'OIT_ANALYSIS': tr("Análisis de OIT"),
+    'PROPOSAL': tr("Propuesta de Programación"),
+    'REPORT': tr("Informe Final"),
+    'TEMPLATE_MAPPING': tr("Mapeo de Plantilla"),
+    'QUOTATION_ANALYSIS': tr("Análisis de Cotización"),
+    'QUOTATION_COMPLIANCE': tr("Cumplimiento de Cotización")
 };
 
 export function FeedbackModal({
@@ -68,7 +69,7 @@ export function FeedbackModal({
         const file = e.target.files?.[0];
         if (file) {
             if (file.size > 10 * 1024 * 1024) {
-                toast.error('El archivo no puede superar 10MB');
+                toast.error(tr("El archivo no puede superar 10MB"));
                 return;
             }
             setAttachment(file);
@@ -77,7 +78,7 @@ export function FeedbackModal({
 
     const handleSubmit = async () => {
         if (!feedbackType) {
-            toast.error('Por favor indica si el resultado es correcto, parcial o incorrecto');
+            toast.error(tr("Por favor indica si el resultado es correcto, parcial o incorrecto"));
             return;
         }
 
@@ -122,7 +123,7 @@ export function FeedbackModal({
             });
 
             if (response.ok) {
-                toast.success('¡Gracias! Tu feedback ayudará a mejorar la IA');
+                toast.success(tr("¡Gracias! Tu feedback ayudará a mejorar la IA"));
                 onOpenChange(false);
                 onSubmitSuccess?.();
                 // Reset form
@@ -136,7 +137,7 @@ export function FeedbackModal({
                 throw new Error('Failed to submit');
             }
         } catch (error) {
-            toast.error('Error al enviar feedback');
+            toast.error(tr("Error al enviar feedback"));
         } finally {
             setIsSubmitting(false);
         }
@@ -153,14 +154,14 @@ export function FeedbackModal({
                         {title || `Feedback: ${categoryLabels[category]}`}
                     </DialogTitle>
                     <DialogDescription className="text-slate-500">
-                        Tu retroalimentación nos ayuda a mejorar la calidad de los resultados de la IA.
+                        {tr("Tu retroalimentación nos ayuda a mejorar la calidad de los resultados de la IA.")}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-5 py-4">
                     {/* Star Rating */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">Calificación general</label>
+                        <label className="text-sm font-medium text-slate-700">{tr("Calificación general")}</label>
                         <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button
@@ -173,14 +174,14 @@ export function FeedbackModal({
                                 </button>
                             ))}
                             <span className="ml-2 text-sm text-slate-500">
-                                {rating > 0 ? `${rating}/5` : 'Sin calificar'}
+                                {rating > 0 ? `${rating}/5` : tr("Sin calificar")}
                             </span>
                         </div>
                     </div>
 
                     {/* Feedback Type */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">¿El resultado fue correcto?</label>
+                        <label className="text-sm font-medium text-slate-700">{tr("¿El resultado fue correcto?")}</label>
                         <div className="grid grid-cols-3 gap-2">
                             <button
                                 onClick={() => setFeedbackType('CORRECT')}
@@ -190,7 +191,7 @@ export function FeedbackModal({
                                     }`}
                             >
                                 <ThumbsUp className="w-5 h-5" />
-                                <span className="text-xs font-medium">Correcto</span>
+                                <span className="text-xs font-medium">{tr("Correcto")}</span>
                             </button>
                             <button
                                 onClick={() => setFeedbackType('PARTIAL')}
@@ -200,7 +201,7 @@ export function FeedbackModal({
                                     }`}
                             >
                                 <AlertCircle className="w-5 h-5" />
-                                <span className="text-xs font-medium">Parcial</span>
+                                <span className="text-xs font-medium">{tr("Parcial")}</span>
                             </button>
                             <button
                                 onClick={() => setFeedbackType('WRONG')}
@@ -210,7 +211,7 @@ export function FeedbackModal({
                                     }`}
                             >
                                 <ThumbsDown className="w-5 h-5" />
-                                <span className="text-xs font-medium">Incorrecto</span>
+                                <span className="text-xs font-medium">{tr("Incorrecto")}</span>
                             </button>
                         </div>
                     </div>
@@ -218,13 +219,13 @@ export function FeedbackModal({
                     {/* Field Selection */}
                     {fields.length > 0 && (feedbackType === 'PARTIAL' || feedbackType === 'WRONG') && (
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">¿Qué sección está incorrecta?</label>
+                            <label className="text-sm font-medium text-slate-700">{tr("¿Qué sección está incorrecta?")}</label>
                             <select
                                 value={selectedField || ''}
                                 onChange={(e) => setSelectedField(e.target.value)}
                                 className="w-full p-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             >
-                                <option value="">Seleccionar sección...</option>
+                                <option value="">{tr("Seleccionar sección...")}</option>
                                 {fields.map((field) => (
                                     <option key={field.name} value={field.name}>
                                         {field.label}
@@ -238,12 +239,12 @@ export function FeedbackModal({
                     {(feedbackType === 'PARTIAL' || feedbackType === 'WRONG') && (
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-slate-700">
-                                ¿Cuál sería el valor correcto?
+                                {tr("¿Cuál sería el valor correcto?")}
                             </label>
                             <textarea
                                 value={correctValue}
                                 onChange={(e) => setCorrectValue(e.target.value)}
-                                placeholder="Describe cómo debería ser el resultado correcto..."
+                                placeholder={tr("Describe cómo debería ser el resultado correcto...")}
                                 className="w-full p-3 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm min-h-[80px] resize-y focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             />
                         </div>
@@ -252,7 +253,7 @@ export function FeedbackModal({
                     {/* PDF Attachment */}
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-700">
-                            Adjuntar documento de referencia (opcional)
+                            {tr("Adjuntar documento de referencia (opcional)")}
                         </label>
                         <div
                             className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${attachment
@@ -289,7 +290,7 @@ export function FeedbackModal({
                             ) : (
                                 <div className="flex flex-col items-center gap-1 text-slate-500">
                                     <Upload className="w-5 h-5" />
-                                    <span className="text-xs">PDF, DOCX o XLSX (máx. 10MB)</span>
+                                    <span className="text-xs">{tr("PDF, DOCX o XLSX (máx. 10MB)")}</span>
                                 </div>
                             )}
                         </div>
@@ -298,13 +299,13 @@ export function FeedbackModal({
                     {/* Notes */}
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-700">
-                            Notas adicionales (opcional)
+                            {tr("Notas adicionales (opcional)")}
                         </label>
                         <input
                             type="text"
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            placeholder="Ej: El formato de fecha debería ser DD/MM/YYYY"
+                            placeholder={tr("Ej: El formato de fecha debería ser DD/MM/YYYY")}
                             className="w-full p-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                         />
                     </div>
@@ -316,7 +317,7 @@ export function FeedbackModal({
                         onClick={() => onOpenChange(false)}
                         className="border-slate-200 text-slate-700 hover:bg-slate-50"
                     >
-                        Cancelar
+                        {tr("Cancelar")}
                     </Button>
                     <Button
                         onClick={handleSubmit}
@@ -326,12 +327,12 @@ export function FeedbackModal({
                         {isSubmitting ? (
                             <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Enviando...
+                                {tr("Enviando...")}
                             </>
                         ) : (
                             <>
                                 <Send className="w-4 h-4 mr-2" />
-                                Enviar Feedback
+                                {tr("Enviar Feedback")}
                             </>
                         )}
                     </Button>
@@ -355,7 +356,7 @@ export function FeedbackButton({ onClick, variant = 'default', label, className 
             <button
                 onClick={onClick}
                 className={`p-2 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors ${className}`}
-                title="Dar feedback"
+                title={tr("Dar feedback")}
             >
                 <Star className="w-4 h-4" />
             </button>
@@ -369,7 +370,7 @@ export function FeedbackButton({ onClick, variant = 'default', label, className 
                 className={`text-sm text-slate-500 hover:text-emerald-600 flex items-center gap-1 transition-colors ${className}`}
             >
                 <Star className="w-3.5 h-3.5" />
-                {label || 'Dar feedback'}
+                {label || tr("Dar feedback")}
             </button>
         );
     }
@@ -381,7 +382,7 @@ export function FeedbackButton({ onClick, variant = 'default', label, className 
             className={`border-slate-200 text-slate-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 ${className}`}
         >
             <Star className="w-4 h-4 mr-2" />
-            {label || 'Dar feedback'}
+            {label || tr("Dar feedback")}
         </Button>
     );
 }

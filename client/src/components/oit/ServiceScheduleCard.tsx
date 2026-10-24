@@ -14,6 +14,7 @@ import {
 import { Calendar, Clock, Users, Pencil, Check, X, ChevronDown, Sparkles, Plus } from 'lucide-react';
 import { scheduleDays, rangeDays, withDays, formatDays } from '@/lib/scheduleDays';
 
+import { tr } from '@/i18n';
 interface ServiceSchedule {
     name: string;
     date: string;
@@ -97,7 +98,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                             {isConfirmed && (
                                 <Badge variant="secondary" className="mt-1 bg-green-100 text-green-700">
                                     <Check className="h-3 w-3 mr-1" />
-                                    Confirmado
+                                    {tr("Confirmado")}
                                 </Badge>
                             )}
                         </div>
@@ -110,7 +111,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                             className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
                         >
                             <Pencil className="h-4 w-4 mr-1" />
-                            Editar
+                            {tr("Editar")}
                         </Button>
                     )}
                 </div>
@@ -128,10 +129,10 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                             <div className="flex items-center gap-2 p-2 bg-indigo-50 border border-indigo-100 rounded text-xs text-indigo-700">
                                 <Sparkles className="h-3 w-3" />
                                 <span>
-                                    💡 Sugerencia IA: {(() => {
+                                    {tr("💡 Sugerencia IA:")}{' '}{(() => {
                                         const [y, m, d] = schedule.date.split('-').map(Number);
                                         return new Date(y, m - 1, d).toLocaleDateString('es-ES');
-                                    })()} a las {schedule.time}
+                                    })()} {tr("a las")}{' '}{schedule.time}
                                 </span>
                             </div>
                         )}
@@ -140,7 +141,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium flex items-center gap-1">
                                     <Calendar className="h-3.5 w-3.5" />
-                                    Primer día
+                                    {tr("Primer día")}
                                 </Label>
                                 <Input
                                     type="date"
@@ -152,7 +153,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium flex items-center gap-1">
                                     <Clock className="h-3.5 w-3.5" />
-                                    Hora
+                                    {tr("Hora")}
                                 </Label>
                                 <Input
                                     type="time"
@@ -165,14 +166,14 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
 
                         {/* Varios dias: dias sueltos o rango */}
                         <div className="space-y-2 rounded-lg border border-slate-200 p-3">
-                            <Label className="text-sm font-medium">Días del monitoreo ({days.length})</Label>
+                            <Label className="text-sm font-medium">{tr("Días del monitoreo (")}{days.length})</Label>
                             {days.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5">
                                     {days.map(d => (
                                         <Badge key={d} variant="secondary" className="bg-indigo-50 text-indigo-700 gap-1">
                                             {new Date(`${d}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                                             {days.length > 1 && (
-                                                <button type="button" onClick={() => removeDay(d)} className="ml-0.5 hover:text-red-600" title="Quitar día">
+                                                <button type="button" onClick={() => removeDay(d)} className="ml-0.5 hover:text-red-600" title={tr("Quitar día")}>
                                                     <X className="h-3 w-3" />
                                                 </button>
                                             )}
@@ -183,19 +184,19 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                             <div className="flex flex-wrap items-center gap-2">
                                 <Input type="date" value={newDay} onChange={e => setNewDay(e.target.value)} className="h-8 w-40" />
                                 <Button type="button" variant="outline" size="sm" onClick={addDay} disabled={!newDay}>
-                                    <Plus className="h-3.5 w-3.5 mr-1" /> Agregar día
+                                    <Plus className="h-3.5 w-3.5 mr-1" /> {tr("Agregar día")}
                                 </Button>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-xs text-slate-500">Rango:</span>
+                                <span className="text-xs text-slate-500">{tr("Rango:")}</span>
                                 <Input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="h-8 w-40" />
                                 <span className="text-xs text-slate-500">a</span>
                                 <Input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="h-8 w-40" />
                                 <label className="flex items-center gap-1 text-xs text-slate-600">
-                                    <input type="checkbox" checked={weekdaysOnly} onChange={e => setWeekdaysOnly(e.target.checked)} /> Solo lunes a viernes
+                                    <input type="checkbox" checked={weekdaysOnly} onChange={e => setWeekdaysOnly(e.target.checked)} /> {tr("Solo lunes a viernes")}
                                 </label>
                                 <Button type="button" variant="outline" size="sm" onClick={addRange} disabled={!rangeFrom || !rangeTo}>
-                                    <Plus className="h-3.5 w-3.5 mr-1" /> Agregar rango
+                                    <Plus className="h-3.5 w-3.5 mr-1" /> {tr("Agregar rango")}
                                 </Button>
                             </div>
                         </div>
@@ -203,7 +204,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                         <div className="space-y-2">
                             <Label className="text-sm font-medium flex items-center gap-1">
                                 <Users className="h-3.5 w-3.5" />
-                                Ingenieros Asignados
+                                {tr("Ingenieros Asignados")}
                             </Label>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -211,13 +212,13 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                                         <span className="text-sm">
                                             {selectedEngineers.length > 0
                                                 ? `${selectedEngineers.length} seleccionado${selectedEngineers.length > 1 ? 's' : ''}`
-                                                : 'Seleccionar ingenieros'}
+                                                : tr("Seleccionar ingenieros")}
                                         </span>
                                         <ChevronDown className="h-4 w-4 opacity-50" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className="w-full">
-                                    <DropdownMenuLabel>Seleccionar personal</DropdownMenuLabel>
+                                    <DropdownMenuLabel>{tr("Seleccionar personal")}</DropdownMenuLabel>
                                     {engineers.map(eng => (
                                         <DropdownMenuCheckboxItem
                                             key={eng.id}
@@ -254,12 +255,12 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                                 className="flex-1 bg-indigo-600 hover:bg-indigo-700"
                             >
                                 <Check className="h-4 w-4 mr-1" />
-                                {schedule.confirmed ? 'Guardar Cambios' : 'Confirmar Programación'}
+                                {schedule.confirmed ? tr("Guardar Cambios") : tr("Confirmar Programación")}
                             </Button>
                             {isEditing && schedule.confirmed && (
                                 <Button variant="outline" onClick={handleCancel}>
                                     <X className="h-4 w-4 mr-1" />
-                                    Cancelar
+                                    {tr("Cancelar")}
                                 </Button>
                             )}
                         </div>
@@ -269,7 +270,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                         <div className="flex items-center gap-2 text-sm text-slate-700">
                             <Calendar className="h-4 w-4 text-green-600" />
                             <span className="font-medium">
-                                {days.length > 1 ? `${days.length} días: ${formatDays(days)}` : (() => {
+                                {days.length > 1 ? `${days.length} días: ${formatDays(days, tr('y'))}` : (() => {
                                     // Parse manually to avoid UTC conversion shifts
                                     const [y, m, d] = localSchedule.date.split('-').map(Number);
                                     const localDate = new Date(y, m - 1, d);
@@ -289,7 +290,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                         <div>
                             <div className="flex items-center gap-2 text-sm text-slate-700 mb-2">
                                 <Users className="h-4 w-4 text-green-600" />
-                                <span className="font-medium">Personal asignado:</span>
+                                <span className="font-medium">{tr("Personal asignado:")}</span>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {selectedEngineers.map(eng => (

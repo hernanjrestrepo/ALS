@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Bell, Search, Slash, Menu, PanelLeft } from 'lucide-react';
+import { LanguageSelector } from '@/components/shared/LanguageSelector';
 import { Button } from '@/components/ui/button';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -13,6 +14,7 @@ import {
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 import { useNotifications } from '@/hooks/useNotifications';
 
+import { tr } from '@/i18n';
 interface HeaderProps {
     onMenuClick: () => void;
 }
@@ -72,19 +74,19 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <Breadcrumb className="hidden md:flex">
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/" className="font-semibold text-[#004CAB] hover:text-[#003b85]">ALS</BreadcrumbLink>
+                            <BreadcrumbLink href="/" className="font-semibold text-[#004CAB] hover:text-[#003b85]">{tr("ALS")}</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator>
                             <Slash className="h-4 w-4 text-slate-300" />
                         </BreadcrumbSeparator>
                         <BreadcrumbItem>
-                            <BreadcrumbLink className="font-medium text-slate-500 hover:text-slate-900">{breadcrumbs[0]}</BreadcrumbLink>
+                            <BreadcrumbLink className="font-medium text-slate-500 hover:text-slate-900">{tr(breadcrumbs[0])}</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator>
                             <Slash className="h-4 w-4 text-slate-300" />
                         </BreadcrumbSeparator>
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="font-medium text-slate-900">{breadcrumbs[1]}</BreadcrumbPage>
+                            <BreadcrumbPage className="font-medium text-slate-900">{tr(breadcrumbs[1])}</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -95,7 +97,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                     <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
                         type="search"
-                        placeholder="Buscar en todo el sitio..."
+                        placeholder={tr("Buscar en todo el sitio...")}
                         value={searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value);
@@ -116,18 +118,18 @@ export function Header({ onMenuClick }: HeaderProps) {
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-md shadow-lg z-50 max-h-[400px] overflow-y-auto">
                             {isLoading ? (
                                 <div className="p-4 text-center text-sm text-slate-500">
-                                    Buscando...
+                                    {tr("Buscando...")}
                                 </div>
                             ) : totalResults === 0 ? (
                                 <div className="p-4 text-center text-sm text-slate-500">
-                                    No se encontraron resultados
+                                    {tr("No se encontraron resultados")}
                                 </div>
                             ) : (
                                 <div className="py-2">
                                     {results.oits.length > 0 && (
                                         <div>
                                             <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">
-                                                OITs ({results.oits.length})
+                                                {tr("OITs (")}{results.oits.length})
                                             </div>
                                             {results.oits.map((oit) => (
                                                 <button
@@ -139,7 +141,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                                                         {oit.oitNumber || `OIT-${oit.id}`}
                                                     </div>
                                                     <div className="text-xs text-slate-500">
-                                                        {oit.description || 'Sin descripción'}
+                                                        {oit.description || tr("Sin descripción")}
                                                     </div>
                                                 </button>
                                             ))}
@@ -148,7 +150,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                                     {results.resources.length > 0 && (
                                         <div>
                                             <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase">
-                                                Recursos ({results.resources.length})
+                                                {tr("Recursos (")}{results.resources.length})
                                             </div>
                                             {results.resources.map((resource) => (
                                                 <button
@@ -160,7 +162,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                                                         {resource.name}
                                                     </div>
                                                     <div className="text-xs text-slate-500">
-                                                        {resource.type} • Cantidad: {resource.quantity}
+                                                        {resource.type} {tr("• Cantidad:")}{' '}{resource.quantity}
                                                     </div>
                                                 </button>
                                             ))}
@@ -171,6 +173,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                         </div>
                     )}
                 </div>
+                <LanguageSelector compact />
                 <Button
                     variant="ghost"
                     size="icon"

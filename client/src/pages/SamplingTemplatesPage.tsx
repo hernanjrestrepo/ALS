@@ -28,6 +28,7 @@ import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
+import { tr, locale } from '@/i18n';
 interface TemplateStep {
     id: string;
     title: string;
@@ -81,7 +82,7 @@ export default function SamplingTemplatesPage() {
             setFilteredTemplates(response.data);
         } catch (error) {
             console.error('Error fetching templates:', error);
-            toast.error('No se pudieron cargar las plantillas');
+            toast.error(tr("No se pudieron cargar las plantillas"));
             setTemplates([]);
             setFilteredTemplates([]);
         } finally {
@@ -127,7 +128,7 @@ export default function SamplingTemplatesPage() {
             toast.success(`Restaurada la versión ${restoreVersionTarget.versionNumber}`);
         } catch (error) {
             console.error('Error restoring version:', error);
-            toast.error('Error al restaurar la versión');
+            toast.error(tr("Error al restaurar la versión"));
         } finally {
             setRestoreVersionTarget(null);
         }
@@ -146,7 +147,7 @@ export default function SamplingTemplatesPage() {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Error downloading field template:', error);
-            toast.error('Error al descargar la plantilla de campo');
+            toast.error(tr("Error al descargar la plantilla de campo"));
         }
     };
 
@@ -155,10 +156,10 @@ export default function SamplingTemplatesPage() {
         try {
             await api.delete(`/sampling-templates/${deleteTarget.id}`);
             setTemplates(templates.filter(t => t.id !== deleteTarget.id));
-            toast.success('Plantilla movida a la papelera. Se puede recuperar durante 90 días.');
+            toast.success(tr("Plantilla movida a la papelera. Se puede recuperar durante 90 días."));
         } catch (error) {
             console.error('Error deleting template:', error);
-            toast.error('Error al eliminar plantilla');
+            toast.error(tr("Error al eliminar plantilla"));
         } finally {
             setDeleteTarget(null);
         }
@@ -176,9 +177,9 @@ export default function SamplingTemplatesPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Plantillas de Muestreo</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">{tr("Plantillas de Muestreo")}</h2>
                     <p className="text-slate-500">
-                        Define flujos de trabajo reutilizables para diferentes tipos de OIT.
+                        {tr("Define flujos de trabajo reutilizables para diferentes tipos de OIT.")}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -188,7 +189,7 @@ export default function SamplingTemplatesPage() {
                         className="border-slate-200"
                     >
                         <Sparkles className="mr-2 h-4 w-4" />
-                        Detectar Tags con IA
+                        {tr("Detectar Tags con IA")}
                     </Button>
                     <Button
                         variant="outline"
@@ -196,14 +197,14 @@ export default function SamplingTemplatesPage() {
                         className="border-slate-200"
                     >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Papelera
+                        {tr("Papelera")}
                     </Button>
                     <Button
                         onClick={() => navigate('/sampling-templates/create')}
                         className="bg-[#004CAB] hover:bg-[#003b85] text-white"
                     >
                         <Plus className="mr-2 h-4 w-4" />
-                        Nueva Plantilla
+                        {tr("Nueva Plantilla")}
                     </Button>
                 </div>
             </div>
@@ -214,7 +215,7 @@ export default function SamplingTemplatesPage() {
                         <div className="relative w-72">
                             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
-                                placeholder="Buscar plantillas..."
+                                placeholder={tr("Buscar plantillas...")}
                                 className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -227,11 +228,11 @@ export default function SamplingTemplatesPage() {
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="hover:bg-slate-50/50 border-slate-100">
-                                    <TableHead className="w-[250px] py-3 px-4 font-medium text-slate-500">Nombre</TableHead>
-                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Tipo OIT</TableHead>
-                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Descripción</TableHead>
-                                    <TableHead className="py-3 px-4 font-medium text-slate-500">Pasos</TableHead>
-                                    <TableHead className="text-right py-3 px-4 font-medium text-slate-500">Acciones</TableHead>
+                                    <TableHead className="w-[250px] py-3 px-4 font-medium text-slate-500">{tr("Nombre")}</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Tipo OIT")}</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Descripción")}</TableHead>
+                                    <TableHead className="py-3 px-4 font-medium text-slate-500">{tr("Pasos")}</TableHead>
+                                    <TableHead className="text-right py-3 px-4 font-medium text-slate-500">{tr("Acciones")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-100">
@@ -250,7 +251,7 @@ export default function SamplingTemplatesPage() {
                                         <TableCell colSpan={5} className="h-32 text-center text-slate-500">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 <Workflow className="h-8 w-8 text-slate-300" />
-                                                <p>No hay plantillas definidas</p>
+                                                <p>{tr("No hay plantillas definidas")}</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -284,7 +285,7 @@ export default function SamplingTemplatesPage() {
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-8 w-8 text-slate-400 hover:text-slate-900"
-                                                            title="Ver"
+                                                            title={tr("Ver")}
                                                             onClick={() => setViewTemplate(template)}
                                                         >
                                                             <Eye className="h-4 w-4" />
@@ -293,7 +294,7 @@ export default function SamplingTemplatesPage() {
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-8 w-8 text-slate-400 hover:text-slate-900"
-                                                            title="Editar"
+                                                            title={tr("Editar")}
                                                             onClick={() => navigate(`/sampling-templates/edit/${template.id}`)}
                                                         >
                                                             <Edit className="h-4 w-4" />
@@ -302,7 +303,7 @@ export default function SamplingTemplatesPage() {
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-8 w-8 text-slate-400 hover:text-[#004CAB]"
-                                                            title="Descargar plantilla de campo (PDF)"
+                                                            title={tr("Descargar plantilla de campo (PDF)")}
                                                             onClick={() => handleDownloadFieldTemplate(template)}
                                                         >
                                                             <FileDown className="h-4 w-4" />
@@ -311,7 +312,7 @@ export default function SamplingTemplatesPage() {
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-8 w-8 text-slate-400 hover:text-red-600"
-                                                            title="Eliminar"
+                                                            title={tr("Eliminar")}
                                                             onClick={() => setDeleteTarget(template)}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
@@ -340,9 +341,9 @@ export default function SamplingTemplatesPage() {
                     </DialogHeader>
                     <Tabs defaultValue="detalles" className="flex-1 flex flex-col overflow-hidden">
                         <TabsList className="shrink-0 w-fit">
-                            <TabsTrigger value="detalles">Detalles</TabsTrigger>
+                            <TabsTrigger value="detalles">{tr("Detalles")}</TabsTrigger>
                             <TabsTrigger value="historial">
-                                Historial de versiones
+                                {tr("Historial de versiones")}
                                 {versions.length > 0 && (
                                     <Badge variant="outline" className="ml-1.5 h-5 px-1.5 bg-slate-50">{versions.length}</Badge>
                                 )}
@@ -357,7 +358,7 @@ export default function SamplingTemplatesPage() {
                             <div className="space-y-1.5">
                                 <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
                                     <FileText className="h-4 w-4" />
-                                    Plantilla de informe asociada
+                                    {tr("Plantilla de informe asociada")}
                                 </div>
                                 {viewTemplate?.reportTemplateFile ? (
                                     <div className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-100 rounded-md px-3 py-2">
@@ -374,12 +375,12 @@ export default function SamplingTemplatesPage() {
                                             }}
                                         >
                                             <FileSearch className="mr-1.5 h-3.5 w-3.5" />
-                                            Ver documento
+                                            {tr("Ver documento")}
                                         </Button>
                                     </div>
                                 ) : (
                                     <p className="text-sm text-slate-400 italic">
-                                        Esta plantilla no tiene un informe (.docx) asociado todavía.
+                                        {tr("Esta plantilla no tiene un informe (.docx) asociado todavía.")}
                                     </p>
                                 )}
                             </div>
@@ -387,7 +388,7 @@ export default function SamplingTemplatesPage() {
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
                                     <ListChecks className="h-4 w-4" />
-                                    Pasos del flujo
+                                    {tr("Pasos del flujo")}
                                 </div>
                                 <ol className="space-y-2">
                                     {viewTemplate && parseSteps(viewTemplate.steps).map((step, i) => (
@@ -411,7 +412,7 @@ export default function SamplingTemplatesPage() {
                             ) : versions.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center gap-2 py-10 text-slate-500">
                                     <History className="h-8 w-8 text-slate-300" />
-                                    <p className="text-sm">Todavía no hay cambios guardados en esta plantilla.</p>
+                                    <p className="text-sm">{tr("Todavía no hay cambios guardados en esta plantilla.")}</p>
                                 </div>
                             ) : (
                                 <ul className="space-y-2">
@@ -423,7 +424,7 @@ export default function SamplingTemplatesPage() {
                                                     <span className="text-sm font-medium text-slate-900 truncate">{v.name}</span>
                                                 </div>
                                                 <p className="text-xs text-slate-500 mt-0.5">
-                                                    {new Date(v.createdAt).toLocaleString('es-CO')}
+                                                    {new Date(v.createdAt).toLocaleString(locale())}
                                                 </p>
                                             </div>
                                             <Button
@@ -433,7 +434,7 @@ export default function SamplingTemplatesPage() {
                                                 onClick={() => setRestoreVersionTarget(v)}
                                             >
                                                 <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                                                Restaurar
+                                                {tr("Restaurar")}
                                             </Button>
                                         </li>
                                     ))}
@@ -448,16 +449,15 @@ export default function SamplingTemplatesPage() {
             <AlertDialog open={!!restoreVersionTarget} onOpenChange={(open) => !open && setRestoreVersionTarget(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>¿Restaurar la versión {restoreVersionTarget?.versionNumber}?</AlertDialogTitle>
+                        <AlertDialogTitle>{tr("¿Restaurar la versión")}{' '}{restoreVersionTarget?.versionNumber}?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            El estado actual de "{viewTemplate?.name}" se guardará como una nueva versión antes de
-                            restaurar, así que nada se pierde y puedes deshacer esto después.
+                            {tr("El estado actual de \"")}{viewTemplate?.name}{tr("\" se guardará como una nueva versión antes de restaurar, así que nada se pierde y puedes deshacer esto después.")}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogCancel>{tr("Cancelar")}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmRestoreVersion}>
-                            Restaurar
+                            {tr("Restaurar")}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -467,19 +467,18 @@ export default function SamplingTemplatesPage() {
             <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás seguro de eliminar esta plantilla?</AlertDialogTitle>
+                        <AlertDialogTitle>{tr("¿Estás seguro de eliminar esta plantilla?")}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            "{deleteTarget?.name}" se moverá a la papelera de reciclaje y podrás recuperarla
-                            durante los próximos 90 días. Después de ese plazo se eliminará de forma permanente.
+                            "{deleteTarget?.name}{tr("\" se moverá a la papelera de reciclaje y podrás recuperarla durante los próximos 90 días. Después de ese plazo se eliminará de forma permanente.")}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogCancel>{tr("Cancelar")}</AlertDialogCancel>
                         <AlertDialogAction
                             className="bg-red-600 hover:bg-red-700 text-white"
                             onClick={confirmDelete}
                         >
-                            Eliminar
+                            {tr("Eliminar")}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

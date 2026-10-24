@@ -20,12 +20,14 @@ import type { AuthResponse } from '@/types/auth';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { ParadixeFooter } from '@/components/brand/ParadixeFooter';
 
+import { tr } from '@/i18n';
+import { LanguageSelector } from '@/components/shared/LanguageSelector';
 const formSchema = z.object({
     email: z.string().email({
-        message: 'Por favor ingresa un correo electrónico válido.',
+        message: tr("Por favor ingresa un correo electrónico válido."),
     }),
     password: z.string().min(6, {
-        message: 'La contraseña debe tener al menos 6 caracteres.',
+        message: tr("La contraseña debe tener al menos 6 caracteres."),
     }),
 });
 
@@ -51,24 +53,25 @@ export default function LoginPage() {
             login(response.data.token, response.data.user);
             navigate('/');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Error al iniciar sesión');
+            setError(err.response?.data?.message || tr("Error al iniciar sesión"));
         } finally {
             setIsLoading(false);
         }
     }
 
     return (
-        <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-slate-50 gap-4">
+        <div className="relative flex flex-col min-h-screen items-center justify-center p-4 bg-slate-50 gap-4">
+            <LanguageSelector className="absolute right-4 top-4" />
             <Card className="w-full max-w-[400px] shadow-none border-slate-200">
                 <CardHeader className="space-y-1 text-center pb-8">
                     <div className="flex justify-center mb-4">
-                        <img src="/logo.png" alt="ALS" className="h-20 w-20 object-contain" />
+                        <img src="/logo.png" alt={tr("ALS")} className="h-20 w-20 object-contain" />
                     </div>
                     <CardTitle className="text-xl font-semibold text-slate-900">
-                        Bienvenido de nuevo
+                        {tr("Bienvenido de nuevo")}
                     </CardTitle>
                     <CardDescription className="text-slate-500">
-                        Ingresa tus credenciales para acceder a tu cuenta
+                        {tr("Ingresa tus credenciales para acceder a tu cuenta")}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -79,14 +82,14 @@ export default function LoginPage() {
                                 name="email"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-slate-700">Correo Electrónico</FormLabel>
+                                        <FormLabel className="text-slate-700">{tr("Correo Electrónico")}</FormLabel>
                                         <FormControl>
                                             <Input
                                                 type="email"
                                                 autoCapitalize="none"
                                                 autoCorrect="off"
                                                 autoComplete="email"
-                                                placeholder="nombre@ejemplo.com"
+                                                placeholder={tr("nombre@ejemplo.com")}
                                                 {...field}
                                                 className="bg-white border-slate-200 focus:border-slate-400 focus:ring-0"
                                             />
@@ -101,9 +104,9 @@ export default function LoginPage() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <div className="flex items-center justify-between">
-                                            <FormLabel className="text-slate-700">Contraseña</FormLabel>
+                                            <FormLabel className="text-slate-700">{tr("Contraseña")}</FormLabel>
                                             <Link to="/forgot-password" className="text-xs text-slate-500 hover:text-slate-900 hover:underline">
-                                                ¿Olvidaste tu contraseña?
+                                                {tr("¿Olvidaste tu contraseña?")}
                                             </Link>
                                         </div>
                                         <FormControl>
@@ -132,7 +135,7 @@ export default function LoginPage() {
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                     <span className="flex items-center justify-center gap-2">
-                                        Iniciar Sesión
+                                        {tr("Iniciar Sesión")}
                                         <ArrowRight className="h-4 w-4" />
                                     </span>
                                 )}
@@ -142,7 +145,7 @@ export default function LoginPage() {
                 </CardContent>
                 <CardFooter className="justify-center border-t border-slate-100 pt-6">
                     <p className="text-sm text-slate-500">
-                        ¿Necesitas acceso? Solicita tu cuenta al administrador.
+                        {tr("¿Necesitas acceso? Solicita tu cuenta al administrador.")}
                     </p>
                 </CardFooter>
             </Card>

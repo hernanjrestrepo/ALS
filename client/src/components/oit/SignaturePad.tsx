@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Eraser } from 'lucide-react';
 
+import { tr } from '@/i18n';
 interface SignaturePadProps {
     onChange: (dataUrl: string | null) => void;
 }
@@ -89,9 +90,9 @@ export function SignaturePad({ onChange }: SignaturePadProps) {
                 />
             </div>
             <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-400">Firma con el dedo, lápiz óptico o mouse.</p>
+                <p className="text-xs text-slate-400">{tr("Firma con el dedo, lápiz óptico o mouse.")}</p>
                 <Button type="button" size="sm" variant="ghost" onClick={clear} className="text-slate-500">
-                    <Eraser className="mr-1.5 h-3.5 w-3.5" /> Limpiar
+                    <Eraser className="mr-1.5 h-3.5 w-3.5" /> {tr("Limpiar")}
                 </Button>
             </div>
         </div>

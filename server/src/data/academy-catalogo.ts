@@ -409,7 +409,7 @@ export const MODULOS_ACADEMY: ModuloAcademy[] = [
         titulo: 'Ana, el asistente IA',
         grupo: 'Seguimiento',
         resumen: 'Pregúntale lo que sea del sistema; responde con tablas, gráficas y fotos, y entrega PDF, PowerPoint o Excel.',
-        paraQue: 'Ana conoce las OIT, cotizaciones, recursos, normas y este Academy. Responde en lenguaje natural, arma informes con gráficas, tablas y fotos del muestreo, y los entrega en PDF, PowerPoint o Excel con la marca de ALS.',
+        paraQue: 'Ana conoce las OIT, cotizaciones, recursos, normas y este Academy. Responde en lenguaje natural, arma informes con gráficas, tablas y fotos del muestreo, y los entrega en PDF, PowerPoint o Excel con la marca de ALS. Responde en el idioma que elijas.',
         quienes: ['Todo el equipo de ALS'],
         pasos: [
             { titulo: 'Abrir el chat', detalle: 'El botón azul de abajo a la derecha, en cualquier pantalla, o "Asistente IA" en el menú. Si estás en una OIT, Ana ya sabe cuál es.' },
@@ -484,15 +484,18 @@ export const MODULOS_ACADEMY: ModuloAcademy[] = [
         href: '/settings',
         titulo: 'Configuración',
         grupo: 'Administración',
-        resumen: 'Tu perfil, tu contraseña y las notificaciones.',
-        paraQue: 'Cada persona ajusta sus datos, cambia su contraseña y activa las notificaciones en el celular.',
+        resumen: 'Tu perfil, tu idioma, tu contraseña y las notificaciones.',
+        paraQue: 'Cada persona ajusta sus datos, elige el idioma de la plataforma, cambia su contraseña y activa las notificaciones en el celular.',
         quienes: ['Todo el equipo de ALS'],
-        pasos: [{ titulo: 'Cambiar contraseña', detalle: 'Configuración → Cambiar contraseña: la actual y la nueva dos veces.' }],
+        pasos: [
+            { titulo: 'Cambiar el idioma', detalle: 'Configuración → Idioma, o el globo arriba a la derecha: español, inglés, portugués o francés. Ana también te responde en ese idioma.' },
+            { titulo: 'Cambiar contraseña', detalle: 'Configuración → Cambiar contraseña: la actual y la nueva dos veces.' },
+        ],
         reglas: [],
         preguntas: [],
         captura: null,
-        fuentes: ['client/src/pages/SettingsPage.tsx'],
-        palabras: ['configuracion', 'perfil', 'mi cuenta'],
+        fuentes: ['client/src/pages/SettingsPage.tsx', 'client/src/i18n'],
+        palabras: ['configuracion', 'perfil', 'mi cuenta', 'idioma', 'ingles', 'portugues', 'frances'],
     },
 ];
 

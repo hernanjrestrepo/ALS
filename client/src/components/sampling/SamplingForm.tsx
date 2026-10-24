@@ -13,6 +13,7 @@ import {
     ScanText, MessageSquarePlus, Eye, Trash2, FileText,
 } from 'lucide-react';
 
+import { tr, locale } from '@/i18n';
 // Formulario de muestreo (rediseno pedido por Hernan, 2026-10-23: "pesimo ese
 // formulario, dificil de diligenciar"; "lo van a registrar desde un celular... veo
 // demasiado espacio desperdiciado"). Antes: un paso a la vez, bloqueados en orden,
@@ -114,7 +115,7 @@ const subText = (subs: SubField[], value: any) => subs
 
 // ------------------------------------------------------------ utilidades
 const fmt = (iso?: string) => iso
-    ? new Date(iso).toLocaleString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    ? new Date(iso).toLocaleString(locale(), { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : '—';
 const fmtGps = (g: GpsFix | null) => g ? `${g.lat.toFixed(6)}, ${g.lng.toFixed(6)} (±${Math.round(g.accuracy)} m)` : 'sin GPS';
 
@@ -267,11 +268,11 @@ function PhotoButtons({ onFiles, accept = 'image/*', disabled, small }: { onFile
     const cls = `inline-flex items-center justify-center rounded-full text-indigo-700 bg-indigo-50 hover:bg-indigo-100 ${small ? 'h-8 w-8' : 'h-9 w-9'} ${disabled ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`;
     return (
         <div className="flex items-center gap-1.5 shrink-0">
-            <label className={cls} title="Tomar foto">
+            <label className={cls} title={tr("Tomar foto")}>
                 <Camera className="h-4 w-4" />
                 <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => { onFiles(e.target.files); e.target.value = ''; }} />
             </label>
-            <label className={cls} title="Adjuntar desde el teléfono">
+            <label className={cls} title={tr("Adjuntar desde el teléfono")}>
                 <Paperclip className="h-4 w-4" />
                 <input type="file" accept={accept} multiple className="hidden" onChange={e => { onFiles(e.target.files); e.target.value = ''; }} />
             </label>
@@ -353,7 +354,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         setVisits(v => [...v, { arrival: { at: at.toISOString(), gps }, warnings }]);
         setBusy('');
         if (warnings.length) toast.warning(`Llegada registrada con ${warnings.length} alerta(s). Se reportan; puedes seguir.`);
-        else toast.success('Llegada registrada');
+        else toast.success(tr("Llegada registrada"));
     };
 
     const departurePoint = async (): Promise<{ point: VisitPoint; warning?: FieldWarning }> => {
@@ -368,7 +369,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         const { point, warning } = await departurePoint();
         setVisits(v => v.map((visit, i) => i === v.length - 1 ? { ...visit, departure: point, warnings: warning ? [...visit.warnings, warning] : visit.warnings } : visit));
         setBusy('');
-        toast.success('Salida registrada. Al volver otro día, marca de nuevo "Llegué al sitio".');
+        toast.success(tr("Salida registrada. Al volver otro día, marca de nuevo \"Llegué al sitio\"."));
     };
 
     // ------------------------------------------------------------ fotos
@@ -378,7 +379,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         for (const original of list) {
             const f = await toJpeg(original);
             const p: StoredPhoto = { id: `${photoGroup}:${index}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`, group: photoGroup, stepIndex: index, name: f.name, type: f.type, blob: f, takenAt: new Date().toISOString() };
-            try { await savePhoto(p); added.push(p); } catch { toast.error('No se pudo guardar la foto en el teléfono'); }
+            try { await savePhoto(p); added.push(p); } catch { toast.error(tr("No se pudo guardar la foto en el teléfono")); }
         }
         setPhotos(ps => [...ps, ...added]);
         return added;
@@ -396,7 +397,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         if (!files?.length) return;
         const stored = await storePhotos(SHEET_INDEX, files);
         if (!navigator.onLine) {
-            toast.warning('Sin señal: la foto de la planilla quedó guardada. Vuelve a leerla cuando haya conexión.');
+            toast.warning(tr("Sin señal: la foto de la planilla quedó guardada. Vuelve a leerla cuando haya conexión."));
             return;
         }
         const fields = sections.flatMap(s => {
@@ -433,10 +434,10 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             // La foto ya quedo en el servidor como evidencia: se quita de los pendientes del telefono.
             for (const p of stored) await removePhoto(p.id);
             const filled = Object.keys(values).length - skipped;
-            if (!Object.keys(values).length) toast.warning('No se leyeron datos de la planilla. Prueba con una foto más clara y de frente, o adjunta el archivo original (PDF, Word o Excel).');
+            if (!Object.keys(values).length) toast.warning(tr("No se leyeron datos de la planilla. Prueba con una foto más clara y de frente, o adjunta el archivo original (PDF, Word o Excel)."));
             else toast.success(`${filled} dato(s) leídos de la planilla${skipped ? `; ${skipped} no se cambiaron porque ya estaban escritos` : ''}. Revisa los marcados en azul.`);
         } catch (error: any) {
-            toast.error(error?.response?.data?.error || 'No se pudo leer la planilla. La foto quedó guardada como evidencia.');
+            toast.error(error?.response?.data?.error || tr("No se pudo leer la planilla. La foto quedó guardada como evidencia."));
         } finally {
             setBusy('');
         }
@@ -448,7 +449,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
     const buildSteps = (endAt: string, files: Record<number, string[]>, closedVisits: Visit[]) => {
         const arrival = closedVisits[0]?.arrival;
         const plannedDays = scheduleDays(schedule);
-        const plannedText = schedule.date ? `${plannedDays.length > 1 ? formatDays(plannedDays) : schedule.date} ${schedule.time || '09:00'}` : '';
+        const plannedText = schedule.date ? `${plannedDays.length > 1 ? formatDays(plannedDays, tr('y')) : schedule.date} ${schedule.time || '09:00'}` : '';
         const headerValue = (kind: HeaderKind): any => ({
             cliente: oit.clientName || '',
             ot: String(oit.oitNumber || ''),
@@ -514,7 +515,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             const endAt = endAtOverride || draft.endAt || new Date().toISOString();
             if (!navigator.onLine) {
                 setDraft(d => ({ ...d, pendingSubmit: true, endAt }));
-                toast.warning('Sin señal: el muestreo quedó guardado en el teléfono y se envía solo al recuperar conexión.');
+                toast.warning(tr("Sin señal: el muestreo quedó guardado en el teléfono y se envía solo al recuperar conexión."));
                 return;
             }
             const files: Record<number, string[]> = {};
@@ -547,7 +548,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         } catch (error: any) {
             console.error('Error enviando el muestreo', error);
             setDraft(d => ({ ...d, pendingSubmit: true, endAt: d.endAt || endAtOverride || new Date().toISOString() }));
-            toast.error(error?.response?.data?.error || 'No se pudo enviar. Quedó guardado en el teléfono; se reintenta al tener conexión.');
+            toast.error(error?.response?.data?.error || tr("No se pudo enviar. Quedó guardado en el teléfono; se reintenta al tener conexión."));
         } finally {
             setBusy('');
         }
@@ -555,7 +556,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
 
     const finish = () => {
         if (!visits.length) {
-            toast.error('Primero marca "Llegué al sitio".');
+            toast.error(tr("Primero marca \"Llegué al sitio\"."));
             return;
         }
         const required = sections.filter(s => s.step.required && !sectionFilled(s)).map(s => s.index);
@@ -568,12 +569,12 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         const missingPhotos = REQUIRED_PHOTOS.filter(slot => !photos.some(p => p.stepIndex === slot.index) && !submittedSlotFiles[slot.key]?.length);
         setMissingPhotoSlots(missingPhotos.map(m => m.key));
         if (missingPhotos.length) {
-            toast.error(`Faltan ${missingPhotos.length} foto(s) obligatoria(s): ${missingPhotos.map(m => m.label).join('; ')}.`);
+            toast.error(`Faltan ${missingPhotos.length} foto(s) obligatoria(s): ${missingPhotos.map(m => tr(m.label)).join('; ')}.`);
             document.getElementById('fotos-obligatorias')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
         if (responsableChanged && (draft.responsable?.reason || '').trim().length < 3) {
-            toast.error('Cambiaste el responsable: escribe el motivo.');
+            toast.error(tr("Cambiaste el responsable: escribe el motivo."));
             setEditingResponsable(true);
             return;
         }
@@ -610,11 +611,11 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         <div className="max-w-2xl mx-auto space-y-2.5 pb-24 -mx-1 sm:mx-auto">
             <div className="flex items-center justify-between gap-2">
                 <button onClick={onChangeService} className="inline-flex items-center text-sm text-indigo-700 py-1">
-                    <ArrowLeft className="h-4 w-4 mr-1" /> Servicios
+                    <ArrowLeft className="h-4 w-4 mr-1" /> {tr("Servicios")}
                 </button>
                 {!online && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-100 rounded-full px-2 py-0.5">
-                        <CloudOff className="h-3 w-3" /> Sin señal: se guarda en el teléfono
+                        <CloudOff className="h-3 w-3" /> {tr("Sin señal: se guarda en el teléfono")}
                     </span>
                 )}
             </div>
@@ -622,14 +623,14 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             {draft.pendingSubmit && (
                 <div className="flex items-center gap-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2">
                     <CloudOff className="h-4 w-4 shrink-0" />
-                    <span className="flex-1">Terminado y pendiente de envío; se envía solo al tener conexión.</span>
-                    {online && <Button size="sm" variant="outline" className="h-7" onClick={() => submit()} disabled={!!busy}>Enviar</Button>}
+                    <span className="flex-1">{tr("Terminado y pendiente de envío; se envía solo al tener conexión.")}</span>
+                    {online && <Button size="sm" variant="outline" className="h-7" onClick={() => submit()} disabled={!!busy}>{tr("Enviar")}</Button>}
                 </div>
             )}
             {submitted && !draft.pendingSubmit && (
                 <div className="flex items-center gap-2 text-xs text-green-900 bg-green-50 border border-green-200 rounded-lg p-2">
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    Enviado el {fmt(submitted.completedAt)}. Si lo envías de nuevo, reemplaza el anterior.
+                    {tr("Enviado el")}{' '}{fmt(submitted.completedAt)}{tr(". Si lo envías de nuevo, reemplaza el anterior.")}
                 </div>
             )}
 
@@ -637,18 +638,18 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             <div className="rounded-xl border border-indigo-100 bg-white p-3">
                 <p className="font-semibold text-slate-900 text-sm leading-tight">{service.name}</p>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 text-xs">
-                    <Fixed label="Cliente" value={oit.clientName || 'No viene en la OIT'} wide />
-                    <Fixed label="OT" value={oit.oitNumber} />
-                    {oit.reportTo && oit.reportTo !== oit.clientName && <Fixed label="Informe a nombre de" value={oit.reportTo} />}
-                    <Fixed label="Inicio programado" value={planned ? fmt(planned.toISOString()) : 'Sin programar'} />
-                    {scheduleDays(schedule).length > 1 && <Fixed label="Días programados" value={formatDays(scheduleDays(schedule))} />}
-                    <Fixed label="Sitio" value={oit.location || '—'} wide />
+                    <Fixed label={tr("Cliente")} value={oit.clientName || 'No viene en la OIT'} wide />
+                    <Fixed label={tr("OT")} value={oit.oitNumber} />
+                    {oit.reportTo && oit.reportTo !== oit.clientName && <Fixed label={tr("Informe a nombre de")} value={oit.reportTo} />}
+                    <Fixed label={tr("Inicio programado")} value={planned ? fmt(planned.toISOString()) : 'Sin programar'} />
+                    {scheduleDays(schedule).length > 1 && <Fixed label={tr("Días programados")} value={formatDays(scheduleDays(schedule), tr('y'))} />}
+                    <Fixed label={tr("Sitio")} value={oit.location || '—'} wide />
                     <div className="col-span-2">
-                        <p className="text-[11px] text-slate-500">Responsable en campo</p>
+                        <p className="text-[11px] text-slate-500">{tr("Responsable en campo")}</p>
                         {!editingResponsable ? (
                             <div className="flex items-center gap-1.5">
-                                <p className="font-medium text-slate-900">{responsable || 'Sin asignar en la Agenda'}</p>
-                                {canEdit && <button className="text-slate-400 hover:text-indigo-600 p-1" title="Cambiar responsable" onClick={() => setEditingResponsable(true)}><Pencil className="h-3.5 w-3.5" /></button>}
+                                <p className="font-medium text-slate-900">{responsable || tr("Sin asignar en la Agenda")}</p>
+                                {canEdit && <button className="text-slate-400 hover:text-indigo-600 p-1" title={tr("Cambiar responsable")} onClick={() => setEditingResponsable(true)}><Pencil className="h-3.5 w-3.5" /></button>}
                             </div>
                         ) : (
                             <div className="space-y-1.5 mt-1">
@@ -662,12 +663,12 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                                     />
                                 )}
                                 <div className="flex gap-2">
-                                    <Button size="sm" variant="outline" className="h-7" onClick={() => setEditingResponsable(false)}>Listo</Button>
-                                    <Button size="sm" variant="ghost" className="h-7" onClick={() => { setDraft(d => ({ ...d, responsable: undefined })); setEditingResponsable(false); }}>Volver al de la Agenda</Button>
+                                    <Button size="sm" variant="outline" className="h-7" onClick={() => setEditingResponsable(false)}>{tr("Listo")}</Button>
+                                    <Button size="sm" variant="ghost" className="h-7" onClick={() => { setDraft(d => ({ ...d, responsable: undefined })); setEditingResponsable(false); }}>{tr("Volver al de la Agenda")}</Button>
                                 </div>
                             </div>
                         )}
-                        {responsableChanged && !editingResponsable && <p className="text-[11px] text-amber-700">Cambiado. Motivo: {draft.responsable?.reason || '(falta escribirlo)'}</p>}
+                        {responsableChanged && !editingResponsable && <p className="text-[11px] text-amber-700">{tr("Cambiado. Motivo:")}{' '}{draft.responsable?.reason || tr("(falta escribirlo)")}</p>}
                     </div>
                 </div>
             </div>
@@ -676,12 +677,12 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
                 <div className="flex items-center gap-1.5">
                     <MapPin className="h-4 w-4 text-indigo-600" />
-                    <p className="font-semibold text-sm text-slate-900">En sitio</p>
-                    {firstArrival && <span className="ml-auto text-[11px] text-slate-500">Hora real: {fmt(firstArrival.at)}</span>}
+                    <p className="font-semibold text-sm text-slate-900">{tr("En sitio")}</p>
+                    {firstArrival && <span className="ml-auto text-[11px] text-slate-500">{tr("Hora real:")}{' '}{fmt(firstArrival.at)}</span>}
                 </div>
                 {visits.map((v, i) => (
                     <div key={i} className="text-xs border border-slate-100 bg-slate-50 rounded-lg px-2 py-1.5">
-                        <p className="text-slate-700"><span className="font-medium">Día {i + 1}</span> · <LogIn className="inline h-3 w-3 text-green-600" /> {fmt(v.arrival.at)} · {v.departure ? <><LogOut className="inline h-3 w-3" /> {fmt(v.departure.at)}</> : <span className="text-indigo-700">en sitio</span>}</p>
+                        <p className="text-slate-700"><span className="font-medium">{tr("Día")}{' '}{i + 1}</span> · <LogIn className="inline h-3 w-3 text-green-600" /> {fmt(v.arrival.at)} · {v.departure ? <><LogOut className="inline h-3 w-3" /> {fmt(v.departure.at)}</> : <span className="text-indigo-700">{tr("en sitio")}</span>}</p>
                         <p className="text-[11px] text-slate-500">{fmtGps(v.arrival.gps)}</p>
                         {v.warnings.map((w, j) => (
                             <p key={j} className="text-[11px] text-amber-800 flex items-start gap-1"><AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />{w.message}</p>
@@ -692,12 +693,12 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                     openVisit ? (
                         <Button variant="outline" className="w-full h-10" onClick={registerDeparture} disabled={!!busy}>
                             {busy === 'departure' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogOut className="h-4 w-4 mr-2" />}
-                            Salgo del sitio (fin del día)
+                            {tr("Salgo del sitio (fin del día)")}
                         </Button>
                     ) : (
                         <Button className="w-full h-10 bg-indigo-600 hover:bg-indigo-700" onClick={registerArrival} disabled={!!busy}>
                             {busy === 'arrival' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogIn className="h-4 w-4 mr-2" />}
-                            {visits.length ? 'Llegué al sitio (otro día)' : 'Llegué al sitio'}
+                            {visits.length ? tr("Llegué al sitio (otro día)") : tr("Llegué al sitio")}
                         </Button>
                     )
                 )}
@@ -708,30 +709,30 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                 <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 flex items-center gap-3">
                     <ScanText className="h-5 w-5 text-indigo-600 shrink-0" />
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-indigo-900">Leer la planilla de campo</p>
-                        <p className="text-[11px] text-indigo-800">Toma la foto o adjunta la planilla (foto, PDF, Word o Excel) y se llenan los campos. Revisa lo leído (en azul).</p>
+                        <p className="text-sm font-semibold text-indigo-900">{tr("Leer la planilla de campo")}</p>
+                        <p className="text-[11px] text-indigo-800">{tr("Toma la foto o adjunta la planilla (foto, PDF, Word o Excel) y se llenan los campos. Revisa lo leído (en azul).")}</p>
                     </div>
                     {busy === 'sheet' ? <Loader2 className="h-5 w-5 animate-spin text-indigo-600" /> : <PhotoButtons onFiles={readSheet} disabled={!!busy} accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.txt,image/*" />}
                 </div>
             )}
             {(draft.sheetFiles?.length || 0) > 0 && (
                 <div className="rounded-xl border border-slate-200 bg-white p-3">
-                    <p className="text-xs font-semibold text-slate-600 mb-2">Archivos de la planilla leídos ({draft.sheetFiles!.length})</p>
+                    <p className="text-xs font-semibold text-slate-600 mb-2">{tr("Archivos de la planilla leídos (")}{draft.sheetFiles!.length})</p>
                     <ul className="space-y-1.5">
                         {draft.sheetFiles!.map(f => (
                             <li key={f} className="flex items-center gap-2 text-sm">
                                 <FileText className="h-4 w-4 text-slate-400 shrink-0" />
                                 <span className="flex-1 min-w-0 truncate" title={draft.sheetFileNames?.[f] || f}>{draft.sheetFileNames?.[f] || f}</span>
                                 <a href={sheetFileUrl(f)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-50">
-                                    <Eye className="h-3.5 w-3.5" /> Ver
+                                    <Eye className="h-3.5 w-3.5" /> {tr("Ver")}
                                 </a>
                                 {canEdit && (
                                     <button
                                         type="button"
-                                        onClick={() => { if (window.confirm('¿Quitar este archivo de la planilla? No se enviará con el muestreo (los datos ya llenados se conservan).')) setDraft(d => removeSheetFile(d, f)); }}
+                                        onClick={() => { if (window.confirm(tr("¿Quitar este archivo de la planilla? No se enviará con el muestreo (los datos ya llenados se conservan)."))) setDraft(d => removeSheetFile(d, f)); }}
                                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50"
                                     >
-                                        <Trash2 className="h-3.5 w-3.5" /> Quitar
+                                        <Trash2 className="h-3.5 w-3.5" /> {tr("Quitar")}
                                     </button>
                                 )}
                             </li>
@@ -741,20 +742,20 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             )}
             {sheetDoubts.length > 0 && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                    <p className="font-semibold">Dudas de la planilla ({sheetDoubts.length})</p>
+                    <p className="font-semibold">{tr("Dudas de la planilla (")}{sheetDoubts.length})</p>
                     <ul className="mt-1 list-disc pl-5 space-y-0.5 text-[13px]">
                         {sheetDoubts.map((d, i) => <li key={i}>{d}</li>)}
                     </ul>
                 </div>
             )}
             {sheetPhotos.length > 0 && (
-                <Thumbs photos={sheetPhotos} onRemove={canEdit ? removePhoto : undefined} label="Planilla guardada en el teléfono (sin leer aún)" />
+                <Thumbs photos={sheetPhotos} onRemove={canEdit ? removePhoto : undefined} label={tr("Planilla guardada en el teléfono (sin leer aún)")} />
             )}
 
             {/* Secciones de la plantilla */}
             <div className="flex items-center justify-between px-1 pt-1">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Registro</p>
-                <span className="text-[11px] text-slate-500">{filledCount} de {sections.length} con datos</span>
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{tr("Registro")}</p>
+                <span className="text-[11px] text-slate-500">{filledCount} de {sections.length} {tr("con datos")}</span>
             </div>
             {sections.map(s => (
                 <Section
@@ -779,12 +780,12 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             {/* Registro fotografico obligatorio */}
             <div id="fotos-obligatorias" className="rounded-xl border border-slate-200 bg-white p-3">
                 <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-900">Registro fotográfico obligatorio</p>
+                    <p className="text-sm font-semibold text-slate-900">{tr("Registro fotográfico obligatorio")}</p>
                     <span className="text-[11px] text-slate-500">
                         {REQUIRED_PHOTOS.filter(slot => photos.some(p => p.stepIndex === slot.index) || submittedSlotFiles[slot.key]?.length).length} de {REQUIRED_PHOTOS.length}
                     </span>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">Sin estas 5 fotos no se puede terminar. Puedes agregar más fotos en cualquier sección.</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">{tr("Sin estas 5 fotos no se puede terminar. Puedes agregar más fotos en cualquier sección.")}</p>
                 <div className="mt-2 space-y-2">
                     {REQUIRED_PHOTOS.map(slot => {
                         const slotPhotos = photos.filter(p => p.stepIndex === slot.index);
@@ -795,7 +796,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                             <div key={slot.key} className={`rounded-lg border p-2 ${isMissingSlot ? 'border-red-300 bg-red-50' : done ? 'border-green-200 bg-green-50/40' : 'border-slate-200'}`}>
                                 <div className="flex items-center gap-2">
                                     {done ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Camera className="h-4 w-4 text-slate-400 shrink-0" />}
-                                    <p className="flex-1 text-[13px] text-slate-800">{slot.label}{sent > 0 && !slotPhotos.length ? ` (${sent} ya enviada${sent > 1 ? 's' : ''})` : ''}</p>
+                                    <p className="flex-1 text-[13px] text-slate-800">{tr(slot.label)}{sent > 0 && !slotPhotos.length ? ` (${sent} ya enviada${sent > 1 ? 's' : ''})` : ''}</p>
                                     {canEdit && <PhotoButtons small onFiles={files => storePhotos(slot.index, files)} disabled={!!busy} />}
                                 </div>
                                 {slotPhotos.length > 0 && <Thumbs photos={slotPhotos} onRemove={canEdit ? removePhoto : undefined} />}
@@ -807,7 +808,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
 
             {allWarnings.length > 0 && (
                 <div className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-0.5">
-                    <p className="font-semibold">Alertas que se reportan al enviar ({allWarnings.length})</p>
+                    <p className="font-semibold">{tr("Alertas que se reportan al enviar (")}{allWarnings.length})</p>
                     {allWarnings.map((w, i) => <p key={i}>• {w.message}</p>)}
                 </div>
             )}
@@ -815,10 +816,10 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             {canEdit && (
                 <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 px-3 py-2 pr-20 sm:pr-28">
                     <div className="max-w-2xl mx-auto flex items-center gap-2">
-                        <p className="text-[11px] leading-tight text-slate-500 flex-1">Guardado en el teléfono. Al terminar se toma la fecha de fin y la IA revisa todo.</p>
+                        <p className="text-[11px] leading-tight text-slate-500 flex-1">{tr("Guardado en el teléfono. Al terminar se toma la fecha de fin y la IA revisa todo.")}</p>
                         <Button className="h-10 bg-green-600 hover:bg-green-700 px-3" onClick={finish} disabled={!!busy}>
                             {busy === 'submit' ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Send className="h-4 w-4 mr-1.5" />}
-                            Terminar
+                            {tr("Terminar")}
                         </Button>
                     </div>
                 </div>
@@ -847,8 +848,8 @@ function Thumbs({ photos, onRemove, label }: { photos: StoredPhoto[]; onRemove?:
             <div className="flex flex-wrap gap-1.5">
                 {urls.map(u => (
                     <div key={u.id} className="relative h-14 w-14 rounded-md overflow-hidden border border-slate-200 bg-slate-50">
-                        {u.image ? <img src={u.url} alt="" className="h-full w-full object-cover" /> : <span className="text-[10px] p-1 block">Archivo</span>}
-                        {onRemove && <button className="absolute top-0.5 right-0.5 bg-white/90 rounded-full p-0.5" onClick={() => onRemove(u.id)} title="Quitar"><X className="h-3 w-3" /></button>}
+                        {u.image ? <img src={u.url} alt="" className="h-full w-full object-cover" /> : <span className="text-[10px] p-1 block">{tr("Archivo")}</span>}
+                        {onRemove && <button className="absolute top-0.5 right-0.5 bg-white/90 rounded-full p-0.5" onClick={() => onRemove(u.id)} title={tr("Quitar")}><X className="h-3 w-3" /></button>}
                     </div>
                 ))}
             </div>
@@ -896,15 +897,15 @@ function Section({ item, subs, value, comment, photos, fromSheet, isMissing, dis
                             <select id={inputId} value={isOther ? '__otro' : current} disabled={disabled}
                                 onChange={e => onValue(e.target.value === '__otro' ? 'Otro: ' : e.target.value)}
                                 className={`h-10 w-full rounded-md border border-input bg-background px-3 text-base ${sheetCls(String(index))}`}>
-                                <option value="">Seleccione…</option>
+                                <option value="">{tr("Seleccione…")}</option>
                                 {CAPTACION_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                                <option value="__otro">Otro (escribir)</option>
+                                <option value="__otro">{tr("Otro (escribir)")}</option>
                             </select>
                             {isOther && (
                                 <Input value={current.replace(/^Otro:\s*/, '')} onChange={e => onValue(`Otro: ${e.target.value}`)} disabled={disabled}
-                                    placeholder="¿Cuál?" className="h-10 text-base" />
+                                    placeholder={tr("¿Cuál?")} className="h-10 text-base" />
                             )}
-                            {oitHint && current === oitHint && <p className="text-[11px] text-indigo-700">Tomado de la OIT.</p>}
+                            {oitHint && current === oitHint && <p className="text-[11px] text-indigo-700">{tr("Tomado de la OIT.")}</p>}
                         </div>
                     );
                 }
@@ -922,18 +923,18 @@ function Section({ item, subs, value, comment, photos, fromSheet, isMissing, dis
                 return (
                     <label className="flex items-center gap-2.5 text-sm text-slate-800">
                         <Checkbox checked={!!value} onCheckedChange={c => onValue(!!c)} disabled={disabled} />
-                        {step.label || 'Realizado'}
+                        {step.label || tr("Realizado")}
                     </label>
                 );
             case 'TEXT':
                 return <p className="text-xs text-slate-600 whitespace-pre-wrap">{step.content || step.description}</p>;
             case 'IMAGE':
             case 'DOCUMENT':
-                return photos.length ? null : <p className="text-xs text-slate-500">Toma o adjunta la evidencia.</p>;
+                return photos.length ? null : <p className="text-xs text-slate-500">{tr("Toma o adjunta la evidencia.")}</p>;
             default:
                 return (
                     <Textarea id={inputId} value={value ?? ''} onChange={e => onValue(e.target.value)} disabled={disabled}
-                        placeholder="Qué se hizo y qué se encontró" rows={2} className={`min-h-[44px] text-base py-2 ${sheetCls(String(index))}`} />
+                        placeholder={tr("Qué se hizo y qué se encontró")} rows={2} className={`min-h-[44px] text-base py-2 ${sheetCls(String(index))}`} />
                 );
         }
     };
@@ -947,12 +948,12 @@ function Section({ item, subs, value, comment, photos, fromSheet, isMissing, dis
                         {step.title}{step.required && <span className="text-red-500 ml-0.5">*</span>}
                     </label>
                     {step.description && !subs && step.type !== 'TEXT' && <p className="text-[11px] text-slate-500 leading-tight">{step.description}</p>}
-                    {isMissing && <p className="text-[11px] text-red-600 font-medium">Dato obligatorio</p>}
+                    {isMissing && <p className="text-[11px] text-red-600 font-medium">{tr("Dato obligatorio")}</p>}
                 </div>
                 {!disabled && (
                     <div className="flex items-center gap-1.5">
                         {!showComment && (
-                            <button className="h-8 w-8 inline-flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100" title="Agregar observación" onClick={() => setShowComment(true)}>
+                            <button className="h-8 w-8 inline-flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100" title={tr("Agregar observación")} onClick={() => setShowComment(true)}>
                                 <MessageSquarePlus className="h-4 w-4" />
                             </button>
                         )}
@@ -963,7 +964,7 @@ function Section({ item, subs, value, comment, photos, fromSheet, isMissing, dis
             {field()}
             {photos.length > 0 && <Thumbs photos={photos} onRemove={disabled ? undefined : onRemovePhoto} />}
             {showComment && (
-                <Textarea value={comment} onChange={e => onComment(e.target.value)} disabled={disabled} placeholder="Observación (opcional)" rows={2} className="min-h-[40px] text-sm py-2" />
+                <Textarea value={comment} onChange={e => onComment(e.target.value)} disabled={disabled} placeholder={tr("Observación (opcional)")} rows={2} className="min-h-[40px] text-sm py-2" />
             )}
         </div>
     );

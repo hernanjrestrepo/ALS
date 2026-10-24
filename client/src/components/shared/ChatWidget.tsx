@@ -7,6 +7,7 @@ import { MessageCircle, X, Send, Bot, User, Sparkles } from 'lucide-react';
 import api from '@/lib/api';
 import { AssistantMessage } from './AssistantMessage';
 
+import { tr } from '@/i18n';
 interface Message {
     role: 'user' | 'assistant';
     content: string;
@@ -116,9 +117,9 @@ export function ChatWidget() {
                                 <Sparkles className="h-5 w-5" />
                             </div>
                             <div>
-                                <CardTitle className="text-lg font-semibold">Asistente ALS</CardTitle>
+                                <CardTitle className="text-lg font-semibold">{tr("Asistente ALS")}</CardTitle>
                                 <p className="text-xs text-blue-100">
-                                    {location.pathname.startsWith('/oits/') && params.id ? 'Viendo esta OIT' : 'Asistente Virtual ALS'}
+                                    {location.pathname.startsWith('/oits/') && params.id ? tr("Viendo esta OIT") : tr("Asistente Virtual ALS")}
                                 </p>
                             </div>
                         </div>
@@ -139,8 +140,8 @@ export function ChatWidget() {
                                     <div className="h-20 w-20 rounded-full bg-gradient-to-br from-[#E6EEF8] to-[#E6EEF8] flex items-center justify-center mx-auto mb-4">
                                         <Bot className="h-10 w-10 text-[#004CAB]" />
                                     </div>
-                                    <p className="text-sm font-medium text-slate-700">¡Hola! Soy tu asistente IA</p>
-                                    <p className="text-xs text-slate-500 mt-1">Pregúntame sobre OITs o recursos</p>
+                                    <p className="text-sm font-medium text-slate-700">{tr("¡Hola! Soy tu asistente IA")}</p>
+                                    <p className="text-xs text-slate-500 mt-1">{tr("Pregúntame sobre OITs o recursos")}</p>
                                 </div>
                             )}
                             {messages.map((msg, idx) => (
@@ -193,7 +194,7 @@ export function ChatWidget() {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                placeholder="Escribe tu mensaje..."
+                                placeholder={tr("Escribe tu mensaje...")}
                                 disabled={isLoading}
                                 className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
                             />

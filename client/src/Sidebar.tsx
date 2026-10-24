@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
 import { canManageUsers } from '@/types/auth';
 
+import { tr } from '@/i18n';
 const getNavigationItems = (userRole?: string) => {
     const baseItems = [
         { icon: LayoutDashboard, label: 'Panel de Control', href: '/' },
@@ -82,11 +83,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200/50">
                     <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden">
-                            <img src="/logo.png" alt="Logo" className="h-6 w-6 object-contain" />
+                            <img src="/logo.png" alt={tr("Logo")} className="h-6 w-6 object-contain" />
                         </div>
                         <div className="text-left">
-                            <p className="text-sm font-medium text-slate-900 leading-none">ALS</p>
-                            <p className="text-xs text-slate-500 mt-0.5">Serambiente</p>
+                            <p className="text-sm font-medium text-slate-900 leading-none">{tr("ALS")}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{tr("Serambiente")}</p>
                         </div>
                     </div>
                     {/* Close button for mobile */}
@@ -99,7 +100,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     {/* Platform Section */}
                     <div>
                         <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                            Plataforma
+                            {tr("Plataforma")}
                         </h3>
                         <nav className="space-y-0.5">
                             {getNavigationItems(user?.role).map((item) => {
@@ -142,7 +143,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 <AvatarFallback>{user?.email?.[0].toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div className="text-sm">
-                                <p className="font-medium text-slate-900">{user?.name || 'Usuario'}</p>
+                                <p className="font-medium text-slate-900">{user?.name || tr("Usuario")}</p>
                                 <p className="text-xs text-slate-500 truncate max-w-[120px]">{user?.email}</p>
                             </div>
                         </div>

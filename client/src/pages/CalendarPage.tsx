@@ -8,13 +8,13 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { format, parse, startOfWeek, getDay, addHours } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Calendar, dateFnsLocalizer, Views, type View } from 'react-big-calendar';
+import { tr, getLang, dateLocale } from '@/i18n';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 // Customize the localizer to use Spanish
 const locales = {
-    'es': es,
+    [getLang()]: dateLocale(),
 };
 
 const localizer = dateFnsLocalizer({
@@ -84,7 +84,7 @@ export default function CalendarPage() {
             }
         } catch (error) {
             console.error('Error fetching scheduled OITs:', error);
-            toast.error('Error al cargar muestreos agendados');
+            toast.error(tr("Error al cargar muestreos agendados"));
             setOits([]);
             setFilteredOits([]);
         } finally {
@@ -204,7 +204,7 @@ export default function CalendarPage() {
             const date = toolbar.date;
             return (
                 <span className="capitalize text-lg font-semibold text-slate-800">
-                    {format(date, view === 'month' ? 'MMMM yyyy' : 'MMMM yyyy', { locale: es })}
+                    {format(date, view === 'month' ? 'MMMM yyyy' : 'MMMM yyyy', { locale: dateLocale() })}
                 </span>
             );
         };
@@ -216,7 +216,7 @@ export default function CalendarPage() {
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <Button variant="outline" size="sm" onClick={goToCurrent}>
-                        Hoy
+                        {tr("Hoy")}
                     </Button>
                     <Button variant="outline" size="icon" onClick={goToNext} className="h-8 w-8">
                         <ChevronRight className="h-4 w-4" />
@@ -229,25 +229,25 @@ export default function CalendarPage() {
                         className={`px-3 py-1 text-sm rounded-sm transition-all ${view === 'month' ? 'bg-white shadow-sm text-slate-900 font-medium' : 'text-slate-500 hover:text-slate-700'}`}
                         onClick={() => toolbar.onView('month')}
                     >
-                        Mes
+                        {tr("Mes")}
                     </button>
                     <button
                         className={`px-3 py-1 text-sm rounded-sm transition-all ${view === 'week' ? 'bg-white shadow-sm text-slate-900 font-medium' : 'text-slate-500 hover:text-slate-700'}`}
                         onClick={() => toolbar.onView('week')}
                     >
-                        Semana
+                        {tr("Semana")}
                     </button>
                     <button
                         className={`px-3 py-1 text-sm rounded-sm transition-all ${view === 'day' ? 'bg-white shadow-sm text-slate-900 font-medium' : 'text-slate-500 hover:text-slate-700'}`}
                         onClick={() => toolbar.onView('day')}
                     >
-                        Día
+                        {tr("Día")}
                     </button>
                     <button
                         className={`px-3 py-1 text-sm rounded-sm transition-all ${view === 'agenda' ? 'bg-white shadow-sm text-slate-900 font-medium' : 'text-slate-500 hover:text-slate-700'}`}
                         onClick={() => toolbar.onView('agenda')}
                     >
-                        Agenda
+                        {tr("Agenda")}
                     </button>
                 </div>
             </div>
@@ -275,9 +275,9 @@ export default function CalendarPage() {
 
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Agenda de Muestreos</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">{tr("Agenda de Muestreos")}</h2>
                     <p className="text-slate-500">
-                        Gestiona y visualiza los muestreos programados.
+                        {tr("Gestiona y visualiza los muestreos programados.")}
                     </p>
                 </div>
             </div>
@@ -288,7 +288,7 @@ export default function CalendarPage() {
                         <div className="relative w-72">
                             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
-                                placeholder="Buscar por OIT..."
+                                placeholder={tr("Buscar por OIT...")}
                                 className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -301,7 +301,7 @@ export default function CalendarPage() {
                                 onClick={() => setStatusFilter('ALL')}
                                 className={statusFilter === 'ALL' ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-600 border-slate-200"}
                             >
-                                Todos
+                                {tr("Todos")}
                             </Button>
                             <Button
                                 variant={statusFilter === 'SCHEDULED' ? 'default' : 'outline'}
@@ -309,7 +309,7 @@ export default function CalendarPage() {
                                 onClick={() => setStatusFilter('SCHEDULED')}
                                 className={statusFilter === 'SCHEDULED' ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-600 border-slate-200"}
                             >
-                                Agendados
+                                {tr("Agendados")}
                             </Button>
                             <Button
                                 variant={statusFilter === 'IN_PROGRESS' ? 'default' : 'outline'}
@@ -317,7 +317,7 @@ export default function CalendarPage() {
                                 onClick={() => setStatusFilter('IN_PROGRESS')}
                                 className={statusFilter === 'IN_PROGRESS' ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-600 border-slate-200"}
                             >
-                                En Progreso
+                                {tr("En Progreso")}
                             </Button>
                         </div>
                     </div>
@@ -341,19 +341,19 @@ export default function CalendarPage() {
                                 date={date}
                                 onNavigate={setDate}
                                 messages={{
-                                    next: "Siguiente",
-                                    previous: "Anterior",
-                                    today: "Hoy",
-                                    month: "Mes",
-                                    week: "Semana",
-                                    day: "Día",
-                                    agenda: "Agenda",
-                                    date: "Fecha",
-                                    time: "Hora",
-                                    event: "Evento",
-                                    noEventsInRange: "No hay eventos en este rango",
+                                    next: tr("Siguiente"),
+                                    previous: tr("Anterior"),
+                                    today: tr("Hoy"),
+                                    month: tr("Mes"),
+                                    week: tr("Semana"),
+                                    day: tr("Día"),
+                                    agenda: tr("Agenda"),
+                                    date: tr("Fecha"),
+                                    time: tr("Hora"),
+                                    event: tr("Evento"),
+                                    noEventsInRange: tr("No hay eventos en este rango"),
                                 }}
-                                culture='es'
+                                culture={getLang()}
                                 eventPropGetter={getEventStyle}
                                 onSelectEvent={onSelectEvent}
                                 components={{

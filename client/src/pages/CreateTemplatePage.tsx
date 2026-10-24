@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import type { TemplateStep } from '@/types/sampling';
 import { StepTypeBuilder } from '@/components/sampling/StepTypeBuilder';
 
+import { tr } from '@/i18n';
 interface FormData {
     name: string;
     description: string;
@@ -36,7 +37,7 @@ export default function CreateTemplatePage() {
             ...formData,
             steps: [...formData.steps, stepWithOrder]
         });
-        toast.success('Paso agregado');
+        toast.success(tr("Paso agregado"));
     };
 
     const handleRemoveStep = (stepId: string) => {
@@ -62,12 +63,12 @@ export default function CreateTemplatePage() {
         e.preventDefault();
 
         if (!formData.name || !formData.description || !formData.oitType) {
-            toast.error('Por favor completa todos los campos requeridos');
+            toast.error(tr("Por favor completa todos los campos requeridos"));
             return;
         }
 
         if (formData.steps.length === 0) {
-            toast.error('Agrega al menos un paso a la plantilla');
+            toast.error(tr("Agrega al menos un paso a la plantilla"));
             return;
         }
 
@@ -75,11 +76,11 @@ export default function CreateTemplatePage() {
             setIsCreating(true);
             await api.post('/sampling-templates', formData);
 
-            toast.success('Plantilla creada exitosamente');
+            toast.success(tr("Plantilla creada exitosamente"));
             navigate('/sampling-templates');
         } catch (error) {
             console.error('Error creating template:', error);
-            toast.error('Error al crear plantilla');
+            toast.error(tr("Error al crear plantilla"));
         } finally {
             setIsCreating(false);
         }
@@ -90,8 +91,8 @@ export default function CreateTemplatePage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Nueva Plantilla de Muestreo</h2>
-                    <p className="text-slate-500">Define un flujo de trabajo reutilizable con pasos versátiles</p>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">{tr("Nueva Plantilla de Muestreo")}</h2>
+                    <p className="text-slate-500">{tr("Define un flujo de trabajo reutilizable con pasos versátiles")}</p>
                 </div>
             </div>
 
@@ -101,15 +102,15 @@ export default function CreateTemplatePage() {
                     {/* Main Form */}
                     <Card className="md:col-span-2 border-slate-200 shadow-sm bg-white">
                         <CardHeader className="border-b border-slate-100">
-                            <h3 className="font-semibold text-slate-900">Información de la Plantilla</h3>
+                            <h3 className="font-semibold text-slate-900">{tr("Información de la Plantilla")}</h3>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             <div className="grid gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="name">Nombre de la Plantilla *</Label>
+                                    <Label htmlFor="name">{tr("Nombre de la Plantilla *")}</Label>
                                     <Input
                                         id="name"
-                                        placeholder="Ej: Muestreo de Agua Potable"
+                                        placeholder={tr("Ej: Muestreo de Agua Potable")}
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         required
@@ -117,24 +118,24 @@ export default function CreateTemplatePage() {
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="oitType">Tipo de OIT *</Label>
+                                    <Label htmlFor="oitType">{tr("Tipo de OIT *")}</Label>
                                     <Input
                                         id="oitType"
-                                        placeholder="Ej: AGUA, SUELO, AIRE"
+                                        placeholder={tr("Ej: AGUA, SUELO, AIRE")}
                                         value={formData.oitType}
                                         onChange={(e) => setFormData({ ...formData, oitType: e.target.value.toUpperCase() })}
                                         required
                                     />
                                     <p className="text-xs text-slate-500">
-                                        La IA usará este tipo para seleccionar automáticamente la plantilla apropiada.
+                                        {tr("La IA usará este tipo para seleccionar automáticamente la plantilla apropiada.")}
                                     </p>
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="description">Descripción *</Label>
+                                    <Label htmlFor="description">{tr("Descripción *")}</Label>
                                     <Textarea
                                         id="description"
-                                        placeholder="Describe cuándo usar esta plantilla..."
+                                        placeholder={tr("Describe cuándo usar esta plantilla...")}
                                         className="h-24 resize-none"
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -146,8 +147,8 @@ export default function CreateTemplatePage() {
                             {/* Steps List */}
                             <div className="border-t pt-6">
                                 <div className="mb-4">
-                                    <h4 className="font-semibold text-slate-900">Pasos del Flujo de Trabajo</h4>
-                                    <p className="text-sm text-slate-500">Define los pasos versátiles que se seguirán durante el muestreo</p>
+                                    <h4 className="font-semibold text-slate-900">{tr("Pasos del Flujo de Trabajo")}</h4>
+                                    <p className="text-sm text-slate-500">{tr("Define los pasos versátiles que se seguirán durante el muestreo")}</p>
                                 </div>
 
                                 {/* Current Steps */}
@@ -197,24 +198,24 @@ export default function CreateTemplatePage() {
                     <div className="space-y-6">
                         <Card className="border-slate-200 shadow-sm bg-white">
                             <CardHeader className="border-b border-slate-100">
-                                <h3 className="font-semibold text-slate-900">Resumen</h3>
+                                <h3 className="font-semibold text-slate-900">{tr("Resumen")}</h3>
                             </CardHeader>
                             <CardContent className="pt-6">
                                 <div className="space-y-3 text-sm">
                                     <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                                        <span className="text-slate-500">Nombre:</span>
+                                        <span className="text-slate-500">{tr("Nombre:")}</span>
                                         <span className="font-medium text-slate-900">
                                             {formData.name || '-'}
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                                        <span className="text-slate-500">Tipo:</span>
+                                        <span className="text-slate-500">{tr("Tipo:")}</span>
                                         <span className="font-medium text-slate-900">
                                             {formData.oitType || '-'}
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between py-2">
-                                        <span className="text-slate-500">Pasos:</span>
+                                        <span className="text-slate-500">{tr("Pasos:")}</span>
                                         <span className="font-medium text-slate-900">
                                             {formData.steps.length}
                                         </span>
@@ -232,7 +233,7 @@ export default function CreateTemplatePage() {
                                         className="w-full bg-[#004CAB] hover:bg-[#003b85] text-white"
                                     >
                                         <Save className="mr-2 h-4 w-4" />
-                                        {isCreating ? 'Creando...' : 'Crear Plantilla'}
+                                        {isCreating ? tr("Creando...") : tr("Crear Plantilla")}
                                     </Button>
                                     <Button
                                         type="button"
@@ -240,7 +241,7 @@ export default function CreateTemplatePage() {
                                         onClick={() => navigate('/sampling-templates')}
                                         className="w-full"
                                     >
-                                        Cancelar
+                                        {tr("Cancelar")}
                                     </Button>
                                 </div>
                             </CardContent>

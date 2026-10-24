@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Star, ThumbsUp, ThumbsDown, Send, Edit3, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { tr } from '@/i18n';
 interface FeedbackGridProps {
     oitId?: string;
     category: 'OIT_ANALYSIS' | 'PROPOSAL' | 'REPORT' | 'TEMPLATE_MAPPING';
@@ -37,7 +38,7 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
 
     const handleSubmit = async () => {
         if (!feedbackType) {
-            toast.error('Por favor indica si el resultado es correcto, parcial o incorrecto');
+            toast.error(tr("Por favor indica si el resultado es correcto, parcial o incorrecto"));
             return;
         }
 
@@ -61,14 +62,14 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
             });
 
             if (response.ok) {
-                toast.success('¡Gracias! Tu feedback ayudará a mejorar la IA');
+                toast.success(tr("¡Gracias! Tu feedback ayudará a mejorar la IA"));
                 setSubmitted(true);
                 onFeedbackSubmit?.(feedbackData);
             } else {
                 throw new Error('Failed to submit');
             }
         } catch (error) {
-            toast.error('Error al enviar feedback');
+            toast.error(tr("Error al enviar feedback"));
         } finally {
             setIsSubmitting(false);
         }
@@ -78,7 +79,7 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
         return (
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-green-600" />
-                <span className="text-green-700 dark:text-green-300">Feedback registrado. ¡Gracias!</span>
+                <span className="text-green-700 dark:text-green-300">{tr("Feedback registrado. ¡Gracias!")}</span>
             </div>
         );
     }
@@ -87,12 +88,12 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
         <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4 shadow-sm">
             <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                 <Edit3 className="w-4 h-4" />
-                <span>Califica este resultado para mejorar la IA</span>
+                <span>{tr("Califica este resultado para mejorar la IA")}</span>
             </div>
 
             {/* Rating Stars */}
             <div className="flex items-center gap-1">
-                <span className="text-sm text-slate-500 mr-2">Calidad:</span>
+                <span className="text-sm text-slate-500 mr-2">{tr("Calidad:")}</span>
                 {[1, 2, 3, 4, 5].map((star) => (
                     <button
                         key={star}
@@ -114,7 +115,7 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
                         }`}
                 >
                     <ThumbsUp className="w-4 h-4" />
-                    Correcto
+                    {tr("Correcto")}
                 </button>
                 <button
                     onClick={() => setFeedbackType('PARTIAL')}
@@ -124,7 +125,7 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
                         }`}
                 >
                     <AlertCircle className="w-4 h-4" />
-                    Parcial
+                    {tr("Parcial")}
                 </button>
                 <button
                     onClick={() => setFeedbackType('WRONG')}
@@ -134,7 +135,7 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
                         }`}
                 >
                     <ThumbsDown className="w-4 h-4" />
-                    Incorrecto
+                    {tr("Incorrecto")}
                 </button>
             </div>
 
@@ -142,14 +143,14 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
             {fields.length > 0 && (feedbackType === 'PARTIAL' || feedbackType === 'WRONG') && (
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                        ¿Qué campo está mal?
+                        {tr("¿Qué campo está mal?")}
                     </label>
                     <select
                         value={selectedField || ''}
                         onChange={(e) => setSelectedField(e.target.value)}
                         className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
                     >
-                        <option value="">Seleccionar campo...</option>
+                        <option value="">{tr("Seleccionar campo...")}</option>
                         {fields.map((field) => (
                             <option key={field.name} value={field.name}>
                                 {field.label}: {field.value.substring(0, 50)}...
@@ -163,12 +164,12 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
             {(feedbackType === 'PARTIAL' || feedbackType === 'WRONG') && (
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                        Valor correcto o corrección:
+                        {tr("Valor correcto o corrección:")}
                     </label>
                     <textarea
                         value={correctValue}
                         onChange={(e) => setCorrectValue(e.target.value)}
-                        placeholder="Escribe cómo debería ser el resultado correcto..."
+                        placeholder={tr("Escribe cómo debería ser el resultado correcto...")}
                         className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 min-h-[80px] resize-y"
                     />
                 </div>
@@ -177,13 +178,13 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
             {/* Notes */}
             <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                    Notas adicionales (opcional):
+                    {tr("Notas adicionales (opcional):")}
                 </label>
                 <input
                     type="text"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Ej: El formato de fecha debería ser DD/MM/YYYY"
+                    placeholder={tr("Ej: El formato de fecha debería ser DD/MM/YYYY")}
                     className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
                 />
             </div>
@@ -197,12 +198,12 @@ export const FeedbackGrid: React.FC<FeedbackGridProps> = ({
                 {isSubmitting ? (
                     <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Enviando...
+                        {tr("Enviando...")}
                     </>
                 ) : (
                     <>
                         <Send className="w-4 h-4" />
-                        Enviar Feedback
+                        {tr("Enviar Feedback")}
                     </>
                 )}
             </button>

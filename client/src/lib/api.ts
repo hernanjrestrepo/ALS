@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '@/features/auth/authStore';
+import { getLang } from '@/i18n';
 
 const api = axios.create({
     baseURL: `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api`,
@@ -10,6 +11,8 @@ api.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    // Idioma elegido: Ana responde en este idioma.
+    config.headers['X-Lang'] = getLang();
     return config;
 });
 

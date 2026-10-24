@@ -12,6 +12,7 @@ import { FeedbackModal, FeedbackButton } from '@/components/feedback/FeedbackMod
 import { ReportVersionHistoryButton } from '@/components/oit/ReportVersionHistoryButton';
 import { ReportChatDialog } from '@/components/oit/ReportChatDialog';
 
+import { tr } from '@/i18n';
 interface ReportGeneratorProps {
     oitId: string;
     finalReportUrl?: string | null;
@@ -262,7 +263,7 @@ export function ReportGenerator({
             notify.success(`Planilla para ${serviceGroup} subida. Actualizando análisis...`);
         } catch (error: any) {
             console.error('Error uploading sheets:', error);
-            notify.error(error.response?.data?.error || 'Error al subir planillas');
+            notify.error(error.response?.data?.error || tr("Error al subir planillas"));
         } finally {
             setIsUploadingSheet(false);
         }
@@ -444,9 +445,9 @@ export function ReportGenerator({
 
     // Helper for Quality Badge
     const getQualityBadge = (quality: string) => {
-        if (quality === 'buena') return <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200"><CheckCircle2 className="h-3 w-3 mr-1" />Buena Calidad</Badge>;
-        if (quality === 'deficiente') return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />Deficiente</Badge>;
-        return <Badge variant="outline" className="border-amber-200 text-amber-700 bg-amber-50">Regular</Badge>;
+        if (quality === 'buena') return <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200"><CheckCircle2 className="h-3 w-3 mr-1" />{tr("Buena Calidad")}</Badge>;
+        if (quality === 'deficiente') return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />{tr("Deficiente")}</Badge>;
+        return <Badge variant="outline" className="border-amber-200 text-amber-700 bg-amber-50">{tr("Regular")}</Badge>;
     };
 
     // Render File Input
@@ -469,7 +470,7 @@ export function ReportGenerator({
                     {icon}
                     {title}
                     <Badge variant="secondary" className="ml-auto text-xs font-normal">
-                        {urls.length} archivo(s)
+                        {urls.length} {tr("archivo(s)")}
                     </Badge>
                 </CardTitle>
                 <CardDescription className="text-xs">{description}</CardDescription>
@@ -489,7 +490,7 @@ export function ReportGenerator({
                                         type="button"
                                         onClick={() => onRemove(url)}
                                         className="hidden group-hover:flex h-4 w-4 rounded-full bg-red-100 hover:bg-red-200 items-center justify-center transition-colors"
-                                        title="Eliminar archivo"
+                                        title={tr("Eliminar archivo")}
                                     >
                                         <X className="h-2.5 w-2.5 text-red-600" />
                                     </button>
@@ -518,12 +519,12 @@ export function ReportGenerator({
                     {isUploading ? (
                         <div className="flex flex-col items-center">
                             <Loader2 className="h-6 w-6 text-indigo-500 animate-spin mb-1" />
-                            <p className="text-[10px] font-medium text-slate-600">Subiendo...</p>
+                            <p className="text-[10px] font-medium text-slate-600">{tr("Subiendo...")}</p>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center text-slate-400 group-hover:text-slate-600">
                             <Upload className="h-5 w-5 mb-1 opacity-50" />
-                            <p className="text-[10px] font-semibold">Agregar archivo</p>
+                            <p className="text-[10px] font-semibold">{tr("Agregar archivo")}</p>
                         </div>
                     )}
                 </div>
@@ -571,12 +572,12 @@ export function ReportGenerator({
                 <div className="bg-teal-50/50 border border-teal-200 rounded-xl p-5 animate-in fade-in slide-in-from-bottom-4">
                     <div className="flex items-center gap-2 mb-3">
                         <FileCheck className="h-5 w-5 text-teal-600" />
-                        <h3 className="text-sm font-semibold text-teal-900">Comunicados Técnicos</h3>
+                        <h3 className="text-sm font-semibold text-teal-900">{tr("Comunicados Técnicos")}</h3>
                         <Badge variant="outline" className="text-[10px] bg-teal-50 text-teal-700 border-teal-200 ml-auto">
-                            {reportList.filter(r => r.name.toLowerCase().includes(serviceGroup.toLowerCase()) && r.name.startsWith('Comunicado')).length} documento(s)
+                            {reportList.filter(r => r.name.toLowerCase().includes(serviceGroup.toLowerCase()) && r.name.startsWith('Comunicado')).length} {tr("documento(s)")}
                         </Badge>
                     </div>
-                    <p className="text-xs text-teal-600 mb-3">Documentos de comunicado técnico por servicio para enviar al cliente.</p>
+                    <p className="text-xs text-teal-600 mb-3">{tr("Documentos de comunicado técnico por servicio para enviar al cliente.")}</p>
                     <div className="space-y-2">
                         {reportList.filter(r => r.name.toLowerCase().includes(serviceGroup.toLowerCase()) && r.name.startsWith('Comunicado')).map((report, idx) => {
                             const reportUrl = report.url.startsWith('http') ? report.url : `${(api.defaults.baseURL || '').replace(/\/api$/, '')}/uploads/${report.url.replace(/^uploads\//, '')}?t=${idx}_${Date.now()}`;
@@ -589,7 +590,7 @@ export function ReportGenerator({
                                         <span className="text-sm font-medium text-slate-700 truncate">{report.name}</span>
                                     </div>
                                     <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-teal-400 hover:text-teal-600 hover:bg-teal-50">
-                                        <a href={reportUrl} download title="Descargar comunicado">
+                                        <a href={reportUrl} download title={tr("Descargar comunicado")}>
                                             <Download className="h-4 w-4" />
                                         </a>
                                     </Button>
@@ -610,7 +611,7 @@ export function ReportGenerator({
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
                                         <Sparkles className="h-4 w-4 text-indigo-500" />
-                                        Análisis de Planillas
+                                        {tr("Análisis de Planillas")}
                                     </CardTitle>
                                     {sheetAnalysis && getQualityBadge(sheetAnalysis.quality)}
                                 </div>
@@ -621,10 +622,10 @@ export function ReportGenerator({
                                         {isUploadingSheet ? (
                                             <>
                                                 <Loader2 className="h-6 w-6 animate-spin mb-2 text-indigo-400" />
-                                                <p className="text-xs">Analizando planillas...</p>
+                                                <p className="text-xs">{tr("Analizando planillas...")}</p>
                                             </>
                                         ) : (
-                                            <p className="text-xs">Esperando archivo...</p>
+                                            <p className="text-xs">{tr("Esperando archivo...")}</p>
                                         )}
                                     </div>
                                 ) : (
@@ -632,7 +633,7 @@ export function ReportGenerator({
                                         <p className="text-slate-700">{sheetAnalysis.summary}</p>
                                         {sheetAnalysis.findings?.length > 0 && (
                                             <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
-                                                <p className="font-medium text-amber-900 text-xs mb-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Hallazgos</p>
+                                                <p className="font-medium text-amber-900 text-xs mb-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {tr("Hallazgos")}</p>
                                                 <ul className="list-disc pl-4 space-y-1 text-xs text-amber-800">
                                                     {sheetAnalysis.findings.map((f: string, i: number) => <li key={i}>{f}</li>)}
                                                 </ul>
@@ -649,9 +650,9 @@ export function ReportGenerator({
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="text-sm font-semibold text-purple-900 flex items-center gap-2">
                                         <Sparkles className="h-4 w-4 text-purple-500" />
-                                        Análisis de Laboratorio
+                                        {tr("Análisis de Laboratorio")}
                                     </CardTitle>
-                                    <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">Resultados</Badge>
+                                    <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">{tr("Resultados")}</Badge>
                                 </div>
                             </CardHeader>
                             <CardContent className="pt-4 flex-1">
@@ -660,10 +661,10 @@ export function ReportGenerator({
                                         {isUploadingLab ? (
                                             <>
                                                 <Loader2 className="h-6 w-6 animate-spin mb-2 text-purple-400" />
-                                                <p className="text-xs">Interpretando resultados...</p>
+                                                <p className="text-xs">{tr("Interpretando resultados...")}</p>
                                             </>
                                         ) : (
-                                            <p className="text-xs">Esperando archivo...</p>
+                                            <p className="text-xs">{tr("Esperando archivo...")}</p>
                                         )}
                                     </div>
                                 ) : (
@@ -682,10 +683,10 @@ export function ReportGenerator({
             {/* 3. GENERATE FINAL REPORT BUTTON */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center space-y-4">
                 <div className="text-center max-w-lg">
-                    <h3 className="text-lg font-semibold text-slate-900">Generar Informe {serviceGroup}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{tr("Generar Informe")}{' '}{serviceGroup}</h3>
                     <p className="text-sm text-slate-500">
                         {serviceGroup === 'General'
-                            ? 'El sistema generará los informes técnicos y comunicados para todos los servicios.'
+                            ? tr("El sistema generará los informes técnicos y comunicados para todos los servicios.")
                             : `El sistema generará el informe técnico y comunicado específico para el servicio de ${serviceGroup}.`}
                     </p>
                 </div>
@@ -702,7 +703,7 @@ export function ReportGenerator({
                                 <>
                                     <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-md">
                                         <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                                        <p className="text-sm font-medium text-emerald-900">Informes Técnicos {serviceGroup !== 'General' ? `(${serviceGroup})` : ''}</p>
+                                        <p className="text-sm font-medium text-emerald-900">{tr("Informes Técnicos")}{' '}{serviceGroup !== 'General' ? `(${serviceGroup})` : ''}</p>
                                     </div>
                                     <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
                                         {informes.map((report, idx) => {
@@ -721,7 +722,7 @@ export function ReportGenerator({
                                                         <ReportChatDialog oitId={oitId} reportName={report.name} group={serviceGroup} onApproved={refreshReportList} />
                                                         <ReportVersionHistoryButton oitId={oitId} reportName={report.name} onActivated={refreshReportList} />
                                                         <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
-                                                            <a href={reportUrl} download title="Descargar informe">
+                                                            <a href={reportUrl} download title={tr("Descargar informe")}>
                                                                 <Download className="h-4 w-4" />
                                                             </a>
                                                         </Button>
@@ -744,7 +745,7 @@ export function ReportGenerator({
                                 <>
                                     <div className="flex items-center gap-3 p-3 bg-teal-50 border border-teal-100 rounded-md mt-3">
                                         <FileCheck className="h-5 w-5 text-teal-600" />
-                                        <p className="text-sm font-medium text-teal-900">Comunicados {serviceGroup !== 'General' ? `(${serviceGroup})` : ''}</p>
+                                        <p className="text-sm font-medium text-teal-900">{tr("Comunicados")}{' '}{serviceGroup !== 'General' ? `(${serviceGroup})` : ''}</p>
                                     </div>
                                     <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
                                         {comunicados.map((report, idx) => {
@@ -762,7 +763,7 @@ export function ReportGenerator({
                                                     <div className="flex items-center gap-0.5">
                                                         <ReportVersionHistoryButton oitId={oitId} reportName={report.name} onActivated={refreshReportList} />
                                                         <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0 text-teal-400 hover:text-teal-600 hover:bg-teal-50">
-                                                            <a href={reportUrl} download title="Descargar comunicado">
+                                                            <a href={reportUrl} download title={tr("Descargar comunicado")}>
                                                                 <Download className="h-4 w-4" />
                                                             </a>
                                                         </Button>
@@ -780,7 +781,7 @@ export function ReportGenerator({
                             <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg">
                                 <div className="flex items-center gap-3">
                                     <FileBarChart className="h-4 w-4 text-slate-400" />
-                                    <span className="text-sm font-medium text-slate-700">Informe {serviceGroup}</span>
+                                    <span className="text-sm font-medium text-slate-700">{tr("Informe")}{' '}{serviceGroup}</span>
                                 </div>
                                 <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0">
                                     <a href={finalReportUrl} download>
@@ -792,11 +793,11 @@ export function ReportGenerator({
 
                         <div className="flex gap-2 pt-2">
                             <Button variant="outline" className="flex-1" onClick={() => setReportGenerated(false)}>
-                                <RefreshCcw className="mr-2 h-4 w-4" /> Regenerar {serviceGroup}
+                                <RefreshCcw className="mr-2 h-4 w-4" /> {tr("Regenerar")}{' '}{serviceGroup}
                             </Button>
                         </div>
                         <div className="pt-2">
-                            <FeedbackButton onClick={() => setFeedbackModalOpen(true)} className="w-full" label="Reportar problema en informes" />
+                            <FeedbackButton onClick={() => setFeedbackModalOpen(true)} className="w-full" label={tr("Reportar problema en informes")} />
                         </div>
                     </div>
                 ) : (
@@ -808,11 +809,11 @@ export function ReportGenerator({
                     >
                         {isGenerating ? (
                             <>
-                                <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generando Documento...
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" /> {tr("Generando Documento...")}
                             </>
                         ) : (
                             <>
-                                <FileBarChart className="mr-2 h-5 w-5" /> Generar Informe Consolidado
+                                <FileBarChart className="mr-2 h-5 w-5" /> {tr("Generar Informe Consolidado")}
                             </>
                         )}
                     </Button>
@@ -827,14 +828,14 @@ export function ReportGenerator({
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                                     <Sparkles className="h-4 w-4 text-indigo-500" />
-                                    Resumen de Planillas de Campo (Texto Consolidado)
+                                    {tr("Resumen de Planillas de Campo (Texto Consolidado)")}
                                 </CardTitle>
                                 <Badge variant="secondary" className="bg-white border-slate-200 text-slate-600">
-                                    Copiable
+                                    {tr("Copiable")}
                                 </Badge>
                             </div>
                             <CardDescription className="text-xs">
-                                Análisis consolidado de las planillas de campo para referencia rápida.
+                                {tr("Análisis consolidado de las planillas de campo para referencia rápida.")}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-4">
@@ -846,7 +847,7 @@ export function ReportGenerator({
                                 {sheetAnalysis.findings?.length > 0 && (
                                     <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
                                         <p className="font-semibold text-amber-900 text-xs mb-2 flex items-center gap-1">
-                                            <AlertTriangle className="h-3 w-3" /> Hallazgos Importantes
+                                            <AlertTriangle className="h-3 w-3" /> {tr("Hallazgos Importantes")}
                                         </p>
                                         <ul className="list-disc pl-4 space-y-1 text-xs text-amber-800">
                                             {sheetAnalysis.findings.map((f: string, i: number) => (
@@ -868,9 +869,9 @@ export function ReportGenerator({
                 oitId={oitId}
                 category="REPORT"
                 aiOutput={typeof labAnalysis === 'string' ? labAnalysis : JSON.stringify(labAnalysis)}
-                title="Feedback del Informe"
+                title={tr("Feedback del Informe")}
                 fields={[
-                    { name: 'general', value: '', label: 'Comentario General' }
+                    { name: 'general', value: '', label: tr("Comentario General") }
                 ]}
             />
         </div >

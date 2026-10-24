@@ -8,6 +8,7 @@ import { Send, Loader2, Bot, User, Sparkles, Database, FileText, Beaker, AlertTr
 import api from '@/lib/api';
 import { AssistantMessage } from '@/components/shared/AssistantMessage';
 
+import { tr } from '@/i18n';
 interface Message {
     id: string;
     role: 'user' | 'assistant';
@@ -89,7 +90,7 @@ export default function AIAssistantPage() {
             setMessages(prev => [...prev, assistantMessage]);
         } catch (error: any) {
             console.error('Error sending message:', error);
-            toast.error('Error al enviar mensaje');
+            toast.error(tr("Error al enviar mensaje"));
 
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
@@ -119,7 +120,7 @@ export default function AIAssistantPage() {
                         <Bot className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-lg font-bold text-slate-900">Asistente IA</h1>
+                        <h1 className="text-lg font-bold text-slate-900">{tr("Asistente IA")}</h1>
                     </div>
                 </div>
 
@@ -157,38 +158,38 @@ export default function AIAssistantPage() {
                             <div className="h-16 w-16 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
                                 <Sparkles className="h-8 w-8 text-indigo-600" />
                             </div>
-                            <h3 className="text-lg font-semibold text-slate-900 mb-2">¡Hola! Soy tu asistente IA</h3>
+                            <h3 className="text-lg font-semibold text-slate-900 mb-2">{tr("¡Hola! Soy tu asistente IA")}</h3>
                             <p className="text-sm text-slate-500 max-w-md mb-6">
-                                Tengo acceso completo a la información del sistema. Puedo ayudarte con:
+                                {tr("Tengo acceso completo a la información del sistema. Puedo ayudarte con:")}
                             </p>
                             <div className="grid grid-cols-2 gap-3 w-full max-w-md">
                                 <button
                                     onClick={() => setInput('¿Cuántas OITs hay pendientes?')}
                                     className="p-3 rounded-lg border border-slate-200 text-left hover:bg-slate-50 transition-colors"
                                 >
-                                    <p className="text-sm font-medium text-slate-900">Estado de OITs</p>
-                                    <p className="text-xs text-slate-500">Consultar pendientes, progreso</p>
+                                    <p className="text-sm font-medium text-slate-900">{tr("Estado de OITs")}</p>
+                                    <p className="text-xs text-slate-500">{tr("Consultar pendientes, progreso")}</p>
                                 </button>
                                 <button
                                     onClick={() => setInput('¿Qué equipos tenemos para monitoreo de ruido?')}
                                     className="p-3 rounded-lg border border-slate-200 text-left hover:bg-slate-50 transition-colors"
                                 >
-                                    <p className="text-sm font-medium text-slate-900">Consultar recursos</p>
-                                    <p className="text-xs text-slate-500">Equipos, disponibilidad</p>
+                                    <p className="text-sm font-medium text-slate-900">{tr("Consultar recursos")}</p>
+                                    <p className="text-xs text-slate-500">{tr("Equipos, disponibilidad")}</p>
                                 </button>
                                 <button
                                     onClick={() => setInput('¿Cuáles son los límites de ruido según la norma?')}
                                     className="p-3 rounded-lg border border-slate-200 text-left hover:bg-slate-50 transition-colors"
                                 >
-                                    <p className="text-sm font-medium text-slate-900">Normativas</p>
-                                    <p className="text-xs text-slate-500">Límites, requerimientos</p>
+                                    <p className="text-sm font-medium text-slate-900">{tr("Normativas")}</p>
+                                    <p className="text-xs text-slate-500">{tr("Límites, requerimientos")}</p>
                                 </button>
                                 <button
                                     onClick={() => setInput('¿Cómo va el muestreo de la OIT más reciente?')}
                                     className="p-3 rounded-lg border border-slate-200 text-left hover:bg-slate-50 transition-colors"
                                 >
-                                    <p className="text-sm font-medium text-slate-900">Seguimiento</p>
-                                    <p className="text-xs text-slate-500">Progreso de muestreos</p>
+                                    <p className="text-sm font-medium text-slate-900">{tr("Seguimiento")}</p>
+                                    <p className="text-xs text-slate-500">{tr("Progreso de muestreos")}</p>
                                 </button>
                             </div>
                         </div>
@@ -231,7 +232,7 @@ export default function AIAssistantPage() {
                                     <div className="bg-slate-100 rounded-2xl px-4 py-3">
                                         <div className="flex items-center gap-2">
                                             <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
-                                            <span className="text-sm text-slate-500">Pensando...</span>
+                                            <span className="text-sm text-slate-500">{tr("Pensando...")}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -248,7 +249,7 @@ export default function AIAssistantPage() {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            placeholder="Escribe tu pregunta..."
+                            placeholder={tr("Escribe tu pregunta...")}
                             className="flex-1 bg-white border-slate-200 focus:ring-indigo-500"
                             disabled={isLoading}
                         />

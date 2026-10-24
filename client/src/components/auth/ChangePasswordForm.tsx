@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 
+import { tr } from '@/i18n';
 export function ChangePasswordForm({ onSuccess }: { onSuccess?: () => void }) {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -14,19 +15,19 @@ export function ChangePasswordForm({ onSuccess }: { onSuccess?: () => void }) {
     const handleSubmit = async () => {
         setMessage(null);
         if (newPassword !== confirmPassword) {
-            setMessage({ type: 'error', text: 'La nueva contraseña y su confirmación no coinciden' });
+            setMessage({ type: 'error', text: tr("La nueva contraseña y su confirmación no coinciden") });
             return;
         }
         setLoading(true);
         try {
             await api.put('/users/me/password', { currentPassword, newPassword });
-            setMessage({ type: 'success', text: 'Contraseña actualizada exitosamente' });
+            setMessage({ type: 'success', text: tr("Contraseña actualizada exitosamente") });
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
             onSuccess?.();
         } catch (error: any) {
-            setMessage({ type: 'error', text: error?.response?.data?.error || 'Error al actualizar la contraseña' });
+            setMessage({ type: 'error', text: error?.response?.data?.error || tr("Error al actualizar la contraseña") });
         } finally {
             setLoading(false);
         }
@@ -35,7 +36,7 @@ export function ChangePasswordForm({ onSuccess }: { onSuccess?: () => void }) {
     return (
         <div className="space-y-4">
             <div className="grid gap-2">
-                <Label htmlFor="currentPassword">Contraseña actual</Label>
+                <Label htmlFor="currentPassword">{tr("Contraseña actual")}</Label>
                 <Input
                     id="currentPassword"
                     type="password"
@@ -44,7 +45,7 @@ export function ChangePasswordForm({ onSuccess }: { onSuccess?: () => void }) {
                 />
             </div>
             <div className="grid gap-2">
-                <Label htmlFor="newPassword">Nueva contraseña</Label>
+                <Label htmlFor="newPassword">{tr("Nueva contraseña")}</Label>
                 <Input
                     id="newPassword"
                     type="password"
@@ -53,7 +54,7 @@ export function ChangePasswordForm({ onSuccess }: { onSuccess?: () => void }) {
                 />
             </div>
             <div className="grid gap-2">
-                <Label htmlFor="confirmPassword">Confirmar nueva contraseña</Label>
+                <Label htmlFor="confirmPassword">{tr("Confirmar nueva contraseña")}</Label>
                 <Input
                     id="confirmPassword"
                     type="password"
@@ -70,7 +71,7 @@ export function ChangePasswordForm({ onSuccess }: { onSuccess?: () => void }) {
                 onClick={handleSubmit}
                 disabled={loading || !currentPassword || !newPassword || !confirmPassword}
             >
-                {loading ? 'Actualizando...' : 'Actualizar contraseña'}
+                {loading ? tr("Actualizando...") : tr("Actualizar contraseña")}
             </Button>
         </div>
     );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { tr } from '@/i18n';
 
 interface DashboardStats {
     totalOITs: number;
@@ -15,13 +16,13 @@ interface DashboardStats {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-    PENDING: 'Pendiente',
-    ANALYZING: 'Analizando',
-    REVIEW_REQUIRED: 'Pendiente de aprobación',
-    REVIEW_NEEDED: 'Requiere revisión',
-    SCHEDULED: 'Programada',
-    IN_PROGRESS: 'En muestreo',
-    COMPLETED: 'Completada',
+    PENDING: tr("Pendiente"),
+    ANALYZING: tr("Analizando"),
+    REVIEW_REQUIRED: tr("Pendiente de aprobación"),
+    REVIEW_NEEDED: tr("Requiere revisión"),
+    SCHEDULED: tr("Programada"),
+    IN_PROGRESS: tr("En muestreo"),
+    COMPLETED: tr("Completada"),
 };
 
 const STUCK_STATUSES = ['REVIEW_REQUIRED', 'REVIEW_NEEDED', 'PENDING', 'ANALYZING'];

@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Building2, Loader2, Plus, Pencil, Trash2, FileText, CheckCircle2 } from 'lucide-react';
 import api from '@/lib/api';
 
+import { tr } from '@/i18n';
 interface ClientData {
     id: string;
     name: string;
@@ -51,7 +52,7 @@ export default function ClientsPage() {
             setClients(response.data);
         } catch (error) {
             console.error('Error fetching clients:', error);
-            toast.error('Error al cargar clientes');
+            toast.error(tr("Error al cargar clientes"));
         } finally {
             setLoading(false);
         }
@@ -77,7 +78,7 @@ export default function ClientsPage() {
 
     const handleSave = async () => {
         if (!form.name.trim()) {
-            toast.error('El nombre del cliente es obligatorio');
+            toast.error(tr("El nombre del cliente es obligatorio"));
             return;
         }
         setIsSaving(true);
@@ -90,16 +91,16 @@ export default function ClientsPage() {
 
             if (editingId) {
                 await api.put(`/clients/${editingId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-                toast.success('Cliente actualizado exitosamente');
+                toast.success(tr("Cliente actualizado exitosamente"));
             } else {
                 await api.post('/clients', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-                toast.success('Cliente creado exitosamente');
+                toast.success(tr("Cliente creado exitosamente"));
             }
             setIsFormOpen(false);
             fetchClients();
         } catch (error: any) {
             console.error('Error saving client:', error);
-            toast.error(error.response?.data?.message || 'Error al guardar cliente');
+            toast.error(error.response?.data?.message || tr("Error al guardar cliente"));
         } finally {
             setIsSaving(false);
         }
@@ -111,10 +112,10 @@ export default function ClientsPage() {
         try {
             await api.delete(`/clients/${client.id}`);
             setClients(clients.filter(c => c.id !== client.id));
-            toast.success('Cliente eliminado');
+            toast.success(tr("Cliente eliminado"));
         } catch (error: any) {
             console.error('Error deleting client:', error);
-            toast.error(error.response?.data?.message || 'Error al eliminar cliente');
+            toast.error(error.response?.data?.message || tr("Error al eliminar cliente"));
         } finally {
             setDeletingId(null);
         }
@@ -134,8 +135,8 @@ export default function ClientsPage() {
                         <Building2 className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Clientes</h1>
-                        <p className="text-sm text-slate-500">Base de clientes y su documentación requerida</p>
+                        <h1 className="text-2xl font-bold text-slate-900">{tr("Clientes")}</h1>
+                        <p className="text-sm text-slate-500">{tr("Base de clientes y su documentación requerida")}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -144,68 +145,68 @@ export default function ClientsPage() {
                         <DialogTrigger asChild>
                             <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white" onClick={openCreate}>
                                 <Plus className="mr-2 h-4 w-4" />
-                                Nuevo Cliente
+                                {tr("Nuevo Cliente")}
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
-                                <DialogTitle>{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle>
-                                <DialogDescription>Datos de contacto y documentación requerida antes de generar cotizaciones.</DialogDescription>
+                                <DialogTitle>{editingId ? tr("Editar Cliente") : tr("Nuevo Cliente")}</DialogTitle>
+                                <DialogDescription>{tr("Datos de contacto y documentación requerida antes de generar cotizaciones.")}</DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2 col-span-2">
-                                        <Label>Nombre *</Label>
-                                        <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ecopetrol S.A." />
+                                        <Label>{tr("Nombre *")}</Label>
+                                        <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder={tr("Ecopetrol S.A.")} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>NIT</Label>
+                                        <Label>{tr("NIT")}</Label>
                                         <Input value={form.nit} onChange={e => setForm({ ...form, nit: e.target.value })} placeholder="900.123.456-7" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Teléfono</Label>
+                                        <Label>{tr("Teléfono")}</Label>
                                         <Input value={form.contactPhone} onChange={e => setForm({ ...form, contactPhone: e.target.value })} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Contacto</Label>
+                                        <Label>{tr("Contacto")}</Label>
                                         <Input value={form.contactName} onChange={e => setForm({ ...form, contactName: e.target.value })} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Correo de contacto</Label>
+                                        <Label>{tr("Correo de contacto")}</Label>
                                         <Input type="email" value={form.contactEmail} onChange={e => setForm({ ...form, contactEmail: e.target.value })} />
                                     </div>
                                     <div className="space-y-2 col-span-2">
-                                        <Label>Dirección</Label>
+                                        <Label>{tr("Dirección")}</Label>
                                         <Input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
                                     </div>
                                     <div className="space-y-2 col-span-2">
-                                        <Label>Notas</Label>
+                                        <Label>{tr("Notas")}</Label>
                                         <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} />
                                     </div>
                                 </div>
 
                                 <div className="border-t pt-4 space-y-3">
-                                    <p className="text-sm font-medium text-slate-700">Documentación del cliente</p>
+                                    <p className="text-sm font-medium text-slate-700">{tr("Documentación del cliente")}</p>
                                     <div className="grid gap-3">
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-slate-500">Manual de contratistas</Label>
+                                            <Label className="text-xs text-slate-500">{tr("Manual de contratistas")}</Label>
                                             <Input type="file" accept=".pdf,.doc,.docx" onChange={e => setFiles({ ...files, contractorManual: e.target.files?.[0] })} />
                                         </div>
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-slate-500">Procedimientos</Label>
+                                            <Label className="text-xs text-slate-500">{tr("Procedimientos")}</Label>
                                             <Input type="file" accept=".pdf,.doc,.docx" onChange={e => setFiles({ ...files, procedures: e.target.files?.[0] })} />
                                         </div>
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-slate-500">Políticas</Label>
+                                            <Label className="text-xs text-slate-500">{tr("Políticas")}</Label>
                                             <Input type="file" accept=".pdf,.doc,.docx" onChange={e => setFiles({ ...files, policies: e.target.files?.[0] })} />
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancelar</Button>
+                                <Button variant="outline" onClick={() => setIsFormOpen(false)}>{tr("Cancelar")}</Button>
                                 <Button onClick={handleSave} disabled={isSaving}>
-                                    {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : 'Guardar'}
+                                    {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{tr("Guardando...")}</> : tr("Guardar")}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -215,21 +216,21 @@ export default function ClientsPage() {
 
             <Card className="border-slate-200 shadow-sm">
                 <CardHeader className="border-b border-slate-100 pb-4">
-                    <CardTitle className="text-lg font-medium text-slate-900">Clientes registrados</CardTitle>
-                    <CardDescription>Un cliente debe existir aquí, con su documentación, antes de poder generarle una cotización.</CardDescription>
+                    <CardTitle className="text-lg font-medium text-slate-900">{tr("Clientes registrados")}</CardTitle>
+                    <CardDescription>{tr("Un cliente debe existir aquí, con su documentación, antes de poder generarle una cotización.")}</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                     {clients.length === 0 ? (
-                        <div className="text-center py-12 text-slate-400">No hay clientes registrados todavía.</div>
+                        <div className="text-center py-12 text-slate-400">{tr("No hay clientes registrados todavía.")}</div>
                     ) : (
                         <table className="w-full">
                             <thead className="bg-slate-50 border-b border-slate-100">
                                 <tr>
-                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Cliente</th>
-                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">NIT</th>
-                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Contacto</th>
-                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Documentación</th>
-                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
+                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Cliente")}</th>
+                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("NIT")}</th>
+                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Contacto")}</th>
+                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Documentación")}</th>
+                                    <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Acciones")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -247,21 +248,21 @@ export default function ClientsPage() {
                                         <td className="p-4">
                                             {docCount(client) === 3 ? (
                                                 <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 border">
-                                                    <CheckCircle2 className="h-3 w-3 mr-1" />Completa
+                                                    <CheckCircle2 className="h-3 w-3 mr-1" />{tr("Completa")}
                                                 </Badge>
                                             ) : (
                                                 <Badge className="bg-amber-100 text-amber-800 border-amber-200 border">
-                                                    <FileText className="h-3 w-3 mr-1" />{docCount(client)}/3 documentos
+                                                    <FileText className="h-3 w-3 mr-1" />{docCount(client)}{tr("/3 documentos")}
                                                 </Badge>
                                             )}
                                         </td>
                                         <td className="p-4">
                                             <div className="flex items-center gap-1">
                                                 <Button variant="ghost" size="sm" onClick={() => openEdit(client)} className="text-slate-500 hover:text-blue-600 hover:bg-blue-50">
-                                                    <Pencil className="h-4 w-4 mr-1" />Editar
+                                                    <Pencil className="h-4 w-4 mr-1" />{tr("Editar")}
                                                 </Button>
                                                 <Button variant="ghost" size="sm" onClick={() => handleDelete(client)} disabled={deletingId === client.id} className="text-slate-500 hover:text-red-600 hover:bg-red-50">
-                                                    {deletingId === client.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 mr-1" />Eliminar</>}
+                                                    {deletingId === client.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Trash2 className="h-4 w-4 mr-1" />{tr("Eliminar")}</>}
                                                 </Button>
                                             </div>
                                         </td>

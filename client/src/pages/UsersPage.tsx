@@ -21,6 +21,7 @@ import { useAuthStore } from '@/features/auth/authStore';
 import { canManageUsers } from '@/types/auth';
 import type { UserRole } from '@/types/auth';
 
+import { tr } from '@/i18n';
 interface UserData {
     id: string;
     email: string;
@@ -31,17 +32,17 @@ interface UserData {
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
-    'SUPER_ADMIN': 'Super Administrador',
-    'ADMIN': 'Administrador',
-    'ENGINEER': 'Ingeniero de Campo',
-    'USER': 'Usuario'
+    'SUPER_ADMIN': tr("Super Administrador"),
+    'ADMIN': tr("Administrador"),
+    'ENGINEER': tr("Ingeniero de Campo"),
+    'USER': tr("Usuario")
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
-    'SUPER_ADMIN': 'bg-purple-100 text-purple-800 border-purple-200',
-    'ADMIN': 'bg-blue-100 text-blue-800 border-blue-200',
-    'ENGINEER': 'bg-green-100 text-green-800 border-green-200',
-    'USER': 'bg-gray-100 text-gray-800 border-gray-200'
+    'SUPER_ADMIN': "bg-purple-100 text-purple-800 border-purple-200",
+    'ADMIN': "bg-blue-100 text-blue-800 border-blue-200",
+    'ENGINEER': "bg-green-100 text-green-800 border-green-200",
+    'USER': "bg-gray-100 text-gray-800 border-gray-200"
 };
 
 export default function UsersPage() {
@@ -85,9 +86,9 @@ export default function UsersPage() {
         } catch (error: any) {
             console.error('Error fetching users:', error);
             if (error.response?.status === 403) {
-                toast.error('No tienes permisos para ver esta página');
+                toast.error(tr("No tienes permisos para ver esta página"));
             } else {
-                toast.error('Error al cargar usuarios');
+                toast.error(tr("Error al cargar usuarios"));
             }
         } finally {
             setLoading(false);
@@ -96,7 +97,7 @@ export default function UsersPage() {
 
     const handleRoleChange = async (userId: string, newRole: UserRole) => {
         if (userId === currentUser?.id) {
-            toast.error('No puedes cambiar tu propio rol');
+            toast.error(tr("No puedes cambiar tu propio rol"));
             return;
         }
 
@@ -104,10 +105,10 @@ export default function UsersPage() {
         try {
             await api.put(`/users/${userId}/role`, { role: newRole });
             setUsers(users.map((u: UserData) => u.id === userId ? { ...u, role: newRole } : u));
-            toast.success('Rol actualizado correctamente');
+            toast.success(tr("Rol actualizado correctamente"));
         } catch (error: any) {
             console.error('Error updating role:', error);
-            toast.error(error.response?.data?.error || 'Error al actualizar rol');
+            toast.error(error.response?.data?.error || tr("Error al actualizar rol"));
         } finally {
             setUpdatingId(null);
         }
@@ -117,7 +118,7 @@ export default function UsersPage() {
         e.preventDefault();
 
         if (!formData.email || !formData.password || !formData.name) {
-            toast.error('Todos los campos son obligatorios');
+            toast.error(tr("Todos los campos son obligatorios"));
             return;
         }
 
@@ -132,10 +133,10 @@ export default function UsersPage() {
                 password: '',
                 role: 'USER'
             });
-            toast.success('Usuario creado exitosamente');
+            toast.success(tr("Usuario creado exitosamente"));
         } catch (error: any) {
             console.error('Error creating user:', error);
-            toast.error(error.response?.data?.error || 'Error al crear usuario');
+            toast.error(error.response?.data?.error || tr("Error al crear usuario"));
         } finally {
             setIsCreating(false);
         }
@@ -145,7 +146,7 @@ export default function UsersPage() {
 
     const handleToggleActive = async (user: UserData) => {
         if (user.id === currentUser?.id) {
-            toast.error('No puedes desactivar tu propia cuenta');
+            toast.error(tr("No puedes desactivar tu propia cuenta"));
             return;
         }
 
@@ -157,7 +158,7 @@ export default function UsersPage() {
             toast.success(nextActive ? 'Usuario reactivado' : 'Usuario desactivado');
         } catch (error: any) {
             console.error('Error toggling user active state:', error);
-            toast.error(error.response?.data?.error || 'Error al cambiar el estado del usuario');
+            toast.error(error.response?.data?.error || tr("Error al cambiar el estado del usuario"));
         } finally {
             setTogglingId(null);
         }
@@ -171,7 +172,7 @@ export default function UsersPage() {
 
     const handleSaveEdit = async () => {
         if (!editForm.name || !editForm.email) {
-            toast.error('Nombre y email son obligatorios');
+            toast.error(tr("Nombre y email son obligatorios"));
             return;
         }
 
@@ -179,11 +180,11 @@ export default function UsersPage() {
         try {
             await api.put(`/users/${editUserId}`, editForm);
             setUsers(users.map((u: UserData) => u.id === editUserId ? { ...u, ...editForm } : u));
-            toast.success('Usuario actualizado correctamente');
+            toast.success(tr("Usuario actualizado correctamente"));
             setIsEditOpen(false);
         } catch (error: any) {
             console.error('Error updating user:', error);
-            toast.error(error.response?.data?.error || 'Error al actualizar usuario');
+            toast.error(error.response?.data?.error || tr("Error al actualizar usuario"));
         } finally {
             setIsSavingEdit(false);
         }
@@ -198,22 +199,22 @@ export default function UsersPage() {
 
     const handlePasswordChange = async () => {
         if (!newPassword || newPassword.length < 6) {
-            toast.error('La contraseña debe tener al menos 6 caracteres');
+            toast.error(tr("La contraseña debe tener al menos 6 caracteres"));
             return;
         }
         if (newPassword !== confirmPassword) {
-            toast.error('Las contraseñas no coinciden');
+            toast.error(tr("Las contraseñas no coinciden"));
             return;
         }
 
         setIsChangingPassword(true);
         try {
             await api.put(`/users/${selectedUserId}/password`, { newPassword });
-            toast.success('Contraseña actualizada correctamente');
+            toast.success(tr("Contraseña actualizada correctamente"));
             setIsPasswordOpen(false);
         } catch (error: any) {
             console.error('Error changing password:', error);
-            toast.error(error.response?.data?.error || 'Error al cambiar contraseña');
+            toast.error(error.response?.data?.error || tr("Error al cambiar contraseña"));
         } finally {
             setIsChangingPassword(false);
         }
@@ -227,7 +228,7 @@ export default function UsersPage() {
                     <CardContent className="pt-6">
                         <div className="flex items-center gap-3 text-red-700">
                             <Shield className="h-5 w-5" />
-                            <p>No tienes permisos para acceder a esta página.</p>
+                            <p>{tr("No tienes permisos para acceder a esta página.")}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -251,8 +252,8 @@ export default function UsersPage() {
                         <Users className="h-5 w-5 text-purple-600" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Gestión de Usuarios</h1>
-                        <p className="text-sm text-slate-500">Administra los roles y permisos de los usuarios</p>
+                        <h1 className="text-2xl font-bold text-slate-900">{tr("Gestión de Usuarios")}</h1>
+                        <p className="text-sm text-slate-500">{tr("Administra los roles y permisos de los usuarios")}</p>
                     </div>
                 </div>
 
@@ -265,40 +266,40 @@ export default function UsersPage() {
                         <DialogTrigger asChild>
                             <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white">
                                 <UserPlus className="mr-2 h-4 w-4" />
-                                Crear Usuario
+                                {tr("Crear Usuario")}
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[425px]">
                             <DialogHeader>
-                                <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+                                <DialogTitle>{tr("Crear Nuevo Usuario")}</DialogTitle>
                                 <DialogDescription>
-                                    Crea una cuenta para un nuevo miembro del equipo.
+                                    {tr("Crea una cuenta para un nuevo miembro del equipo.")}
                                 </DialogDescription>
                             </DialogHeader>
                             <form onSubmit={handleCreateUser} className="space-y-4 py-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Nombre Completo</Label>
+                                    <Label htmlFor="name">{tr("Nombre Completo")}</Label>
                                     <Input
                                         id="name"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="Juan Pérez"
+                                        placeholder={tr("Juan Pérez")}
                                         required
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="email">Correo Electrónico</Label>
+                                    <Label htmlFor="email">{tr("Correo Electrónico")}</Label>
                                     <Input
                                         id="email"
                                         type="email"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        placeholder="juan@ejemplo.com"
+                                        placeholder={tr("juan@ejemplo.com")}
                                         required
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="password">Contraseña</Label>
+                                    <Label htmlFor="password">{tr("Contraseña")}</Label>
                                     <Input
                                         id="password"
                                         type="password"
@@ -310,36 +311,36 @@ export default function UsersPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="role">Rol Inicial</Label>
+                                    <Label htmlFor="role">{tr("Rol Inicial")}</Label>
                                     <Select
                                         value={formData.role}
                                         onValueChange={(value) => setFormData({ ...formData, role: value as UserRole })}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona un rol" />
+                                            <SelectValue placeholder={tr("Selecciona un rol")} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="SUPER_ADMIN">Super Administrador</SelectItem>
-                                            <SelectItem value="ADMIN">Administrador</SelectItem>
-                                            <SelectItem value="ENGINEER">Ingeniero de Campo</SelectItem>
-                                            <SelectItem value="USER">Usuario</SelectItem>
+                                            <SelectItem value="SUPER_ADMIN">{tr("Super Administrador")}</SelectItem>
+                                            <SelectItem value="ADMIN">{tr("Administrador")}</SelectItem>
+                                            <SelectItem value="ENGINEER">{tr("Ingeniero de Campo")}</SelectItem>
+                                            <SelectItem value="USER">{tr("Usuario")}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <DialogFooter className="pt-4">
                                     <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                                        Cancelar
+                                        {tr("Cancelar")}
                                     </Button>
                                     <Button type="submit" disabled={isCreating}>
                                         {isCreating ? (
                                             <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Creando...
+                                                {tr("Creando...")}
                                             </>
                                         ) : (
                                             <>
                                                 <Plus className="mr-2 h-4 w-4" />
-                                                Crear Usuario
+                                                {tr("Crear Usuario")}
                                             </>
                                         )}
                                     </Button>
@@ -352,19 +353,19 @@ export default function UsersPage() {
 
             <Card className="border-slate-200 shadow-sm">
                 <CardHeader className="border-b border-slate-100 pb-4">
-                    <CardTitle className="text-lg font-medium text-slate-900">Usuarios del Sistema</CardTitle>
-                    <CardDescription>Cambia los roles de los usuarios para controlar sus permisos</CardDescription>
+                    <CardTitle className="text-lg font-medium text-slate-900">{tr("Usuarios del Sistema")}</CardTitle>
+                    <CardDescription>{tr("Cambia los roles de los usuarios para controlar sus permisos")}</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                     <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-100">
                             <tr>
-                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Usuario</th>
-                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Email</th>
-                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Rol Actual</th>
-                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Estado</th>
-                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Cambiar Rol</th>
-                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
+                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Usuario")}</th>
+                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Email")}</th>
+                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Rol Actual")}</th>
+                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Estado")}</th>
+                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Cambiar Rol")}</th>
+                                <th className="text-left p-4 text-xs font-medium text-slate-500 uppercase tracking-wider">{tr("Acciones")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -378,7 +379,7 @@ export default function UsersPage() {
                                             <div>
                                                 <p className="text-sm font-medium text-slate-900">{user.name}</p>
                                                 {user.id === currentUser?.id && (
-                                                    <span className="text-xs text-slate-400">(Tú)</span>
+                                                    <span className="text-xs text-slate-400">{tr("(Tú)")}</span>
                                                 )}
                                             </div>
                                         </div>
@@ -393,12 +394,12 @@ export default function UsersPage() {
                                         <Badge className={user.isActive === false
                                             ? 'bg-red-100 text-red-800 border-red-200 border'
                                             : 'bg-emerald-100 text-emerald-800 border-emerald-200 border'}>
-                                            {user.isActive === false ? 'Inactivo' : 'Activo'}
+                                            {user.isActive === false ? tr("Inactivo") : tr("Activo")}
                                         </Badge>
                                     </td>
                                     <td className="p-4">
                                         {user.id === currentUser?.id ? (
-                                            <span className="text-xs text-slate-400 italic">No disponible</span>
+                                            <span className="text-xs text-slate-400 italic">{tr("No disponible")}</span>
                                         ) : (
                                             <Select
                                                 value={user.role}
@@ -413,10 +414,10 @@ export default function UsersPage() {
                                                     )}
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="SUPER_ADMIN">Super Administrador</SelectItem>
-                                                    <SelectItem value="ADMIN">Administrador</SelectItem>
-                                                    <SelectItem value="ENGINEER">Ingeniero de Campo</SelectItem>
-                                                    <SelectItem value="USER">Usuario</SelectItem>
+                                                    <SelectItem value="SUPER_ADMIN">{tr("Super Administrador")}</SelectItem>
+                                                    <SelectItem value="ADMIN">{tr("Administrador")}</SelectItem>
+                                                    <SelectItem value="ENGINEER">{tr("Ingeniero de Campo")}</SelectItem>
+                                                    <SelectItem value="USER">{tr("Usuario")}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         )}
@@ -430,7 +431,7 @@ export default function UsersPage() {
                                                 className="text-slate-500 hover:text-blue-600 hover:bg-blue-50"
                                             >
                                                 <Pencil className="h-4 w-4 mr-1" />
-                                                Editar
+                                                {tr("Editar")}
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -439,7 +440,7 @@ export default function UsersPage() {
                                                 className="text-slate-500 hover:text-amber-600 hover:bg-amber-50"
                                             >
                                                 <Key className="h-4 w-4 mr-1" />
-                                                Cambiar Clave
+                                                {tr("Cambiar Clave")}
                                             </Button>
                                             {user.id !== currentUser?.id && (
                                                 <Button
@@ -454,9 +455,9 @@ export default function UsersPage() {
                                                     {togglingId === user.id ? (
                                                         <Loader2 className="h-4 w-4 animate-spin" />
                                                     ) : user.isActive === false ? (
-                                                        <><Power className="h-4 w-4 mr-1" />Reactivar</>
+                                                        <><Power className="h-4 w-4 mr-1" />{tr("Reactivar")}</>
                                                     ) : (
-                                                        <><PowerOff className="h-4 w-4 mr-1" />Desactivar</>
+                                                        <><PowerOff className="h-4 w-4 mr-1" />{tr("Desactivar")}</>
                                                     )}
                                                 </Button>
                                             )}
@@ -474,26 +475,26 @@ export default function UsersPage() {
                 <CardHeader className="pb-3">
                     <CardTitle className="text-base font-medium text-slate-900 flex items-center gap-2">
                         <UserCog className="h-4 w-4" />
-                        Descripción de Roles
+                        {tr("Descripción de Roles")}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-3 rounded-lg bg-purple-50 border border-purple-100">
-                            <h4 className="text-sm font-medium text-purple-900">Super Administrador</h4>
-                            <p className="text-xs text-purple-700 mt-1">Acceso completo. Puede gestionar todos los usuarios y cambiar roles.</p>
+                            <h4 className="text-sm font-medium text-purple-900">{tr("Super Administrador")}</h4>
+                            <p className="text-xs text-purple-700 mt-1">{tr("Acceso completo. Puede gestionar todos los usuarios y cambiar roles.")}</p>
                         </div>
                         <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
-                            <h4 className="text-sm font-medium text-blue-900">Administrador</h4>
-                            <p className="text-xs text-blue-700 mt-1">Crea/edita OITs, asigna ingenieros, aprueba planeación, genera el informe final.</p>
+                            <h4 className="text-sm font-medium text-blue-900">{tr("Administrador")}</h4>
+                            <p className="text-xs text-blue-700 mt-1">{tr("Crea/edita OITs, asigna ingenieros, aprueba planeación, genera el informe final.")}</p>
                         </div>
                         <div className="p-3 rounded-lg bg-green-50 border border-green-100">
-                            <h4 className="text-sm font-medium text-green-900">Ingeniero de Campo</h4>
-                            <p className="text-xs text-green-700 mt-1">Ve y opera solo las OITs asignadas a él: muestreo, resultados de laboratorio.</p>
+                            <h4 className="text-sm font-medium text-green-900">{tr("Ingeniero de Campo")}</h4>
+                            <p className="text-xs text-green-700 mt-1">{tr("Ve y opera solo las OITs asignadas a él: muestreo, resultados de laboratorio.")}</p>
                         </div>
                         <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
-                            <h4 className="text-sm font-medium text-gray-900">Usuario</h4>
-                            <p className="text-xs text-gray-700 mt-1">Solo consulta: ve todas las OITs, reportes y dashboard, sin poder editar nada.</p>
+                            <h4 className="text-sm font-medium text-gray-900">{tr("Usuario")}</h4>
+                            <p className="text-xs text-gray-700 mt-1">{tr("Solo consulta: ve todas las OITs, reportes y dashboard, sin poder editar nada.")}</p>
                         </div>
                     </div>
                 </CardContent>
@@ -505,15 +506,15 @@ export default function UsersPage() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Pencil className="h-5 w-5 text-blue-600" />
-                            Editar Usuario
+                            {tr("Editar Usuario")}
                         </DialogTitle>
                         <DialogDescription>
-                            Actualiza el nombre y el email de este usuario.
+                            {tr("Actualiza el nombre y el email de este usuario.")}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="editName">Nombre Completo</Label>
+                            <Label htmlFor="editName">{tr("Nombre Completo")}</Label>
                             <Input
                                 id="editName"
                                 value={editForm.name}
@@ -521,7 +522,7 @@ export default function UsersPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="editEmail">Correo Electrónico</Label>
+                            <Label htmlFor="editEmail">{tr("Correo Electrónico")}</Label>
                             <Input
                                 id="editEmail"
                                 type="email"
@@ -532,16 +533,16 @@ export default function UsersPage() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditOpen(false)}>
-                            Cancelar
+                            {tr("Cancelar")}
                         </Button>
                         <Button onClick={handleSaveEdit} disabled={isSavingEdit}>
                             {isSavingEdit ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Guardando...
+                                    {tr("Guardando...")}
                                 </>
                             ) : (
-                                'Guardar Cambios'
+                                tr("Guardar Cambios")
                             )}
                         </Button>
                     </DialogFooter>
@@ -554,15 +555,15 @@ export default function UsersPage() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Key className="h-5 w-5 text-amber-600" />
-                            Cambiar Contraseña
+                            {tr("Cambiar Contraseña")}
                         </DialogTitle>
                         <DialogDescription>
-                            Ingresa una nueva contraseña para este usuario.
+                            {tr("Ingresa una nueva contraseña para este usuario.")}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                            <Label htmlFor="newPassword">{tr("Nueva Contraseña")}</Label>
                             <Input
                                 id="newPassword"
                                 type="password"
@@ -573,7 +574,7 @@ export default function UsersPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                            <Label htmlFor="confirmPassword">{tr("Confirmar Contraseña")}</Label>
                             <Input
                                 id="confirmPassword"
                                 type="password"
@@ -585,7 +586,7 @@ export default function UsersPage() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsPasswordOpen(false)}>
-                            Cancelar
+                            {tr("Cancelar")}
                         </Button>
                         <Button
                             onClick={handlePasswordChange}
@@ -595,12 +596,12 @@ export default function UsersPage() {
                             {isChangingPassword ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Cambiando...
+                                    {tr("Cambiando...")}
                                 </>
                             ) : (
                                 <>
                                     <Key className="mr-2 h-4 w-4" />
-                                    Cambiar Contraseña
+                                    {tr("Cambiar Contraseña")}
                                 </>
                             )}
                         </Button>

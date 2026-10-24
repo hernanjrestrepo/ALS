@@ -2,20 +2,19 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Clock } from 'lucide-react';
 import api from '@/lib/api';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 
+import { tr, locale } from '@/i18n';
 // Mismo mapeo que AnalyticsPage.tsx (el estado se mostraba crudo, ej. "COMPLETED")
 const STATUS_LABELS: Record<string, string> = {
-    PENDING: 'Pendiente',
-    UPLOADING: 'Subiendo',
-    ANALYZING: 'Analizando',
-    REVIEW_REQUIRED: 'Pendiente de aprobación',
-    REVIEW_NEEDED: 'Requiere revisión',
-    SCHEDULED: 'Programada',
-    IN_PROGRESS: 'En muestreo',
-    COMPLETED: 'Completada',
+    PENDING: tr("Pendiente"),
+    UPLOADING: tr("Subiendo"),
+    ANALYZING: tr("Analizando"),
+    REVIEW_REQUIRED: tr("Pendiente de aprobación"),
+    REVIEW_NEEDED: tr("Requiere revisión"),
+    SCHEDULED: tr("Programada"),
+    IN_PROGRESS: tr("En muestreo"),
+    COMPLETED: tr("Completada"),
 };
 
 interface OIT {
@@ -72,10 +71,10 @@ export function TodaySchedule() {
             <CardHeader>
                 <CardTitle className="text-slate-900 flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-slate-600" />
-                    Agenda de Hoy
+                    {tr("Agenda de Hoy")}
                 </CardTitle>
                 <p className="text-xs text-slate-500 mt-1">
-                    {format(new Date(), "d 'de' MMMM", { locale: es })}
+                    {new Date().toLocaleDateString(locale(), { day: 'numeric', month: 'long' })}
                 </p>
             </CardHeader>
             <CardContent>
@@ -92,13 +91,13 @@ export function TodaySchedule() {
                             onClick={() => { setIsLoading(true); fetchTodayOITs(); }}
                             className="text-xs font-medium text-slate-700 underline"
                         >
-                            Reintentar
+                            {tr("Reintentar")}
                         </button>
                     </div>
                 ) : todayOITs.length === 0 ? (
                     <div className="text-center py-8">
                         <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-sm text-slate-500">No hay OITs agendadas para hoy</p>
+                        <p className="text-sm text-slate-500">{tr("No hay OITs agendadas para hoy")}</p>
                     </div>
                 ) : (
                     <div className="space-y-4">

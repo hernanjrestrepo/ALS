@@ -18,13 +18,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { ParadixeFooter } from '@/components/brand/ParadixeFooter';
 
+import { tr } from '@/i18n';
 const formSchema = z
     .object({
-        password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres.' }),
+        password: z.string().min(6, { message: tr("La contraseña debe tener al menos 6 caracteres.") }),
         confirmPassword: z.string(),
     })
     .refine((data) => data.password === data.confirmPassword, {
-        message: 'Las contraseñas no coinciden.',
+        message: tr("Las contraseñas no coinciden."),
         path: ['confirmPassword'],
     });
 
@@ -54,7 +55,7 @@ export default function ResetPasswordPage() {
             setSuccess(true);
             setTimeout(() => navigate('/login'), 2500);
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Error al restablecer la contraseña');
+            setError(err.response?.data?.message || tr("Error al restablecer la contraseña"));
         } finally {
             setIsLoading(false);
         }
@@ -66,15 +67,15 @@ export default function ResetPasswordPage() {
                 <Card className="w-full max-w-[400px] shadow-none border-slate-200">
                     <CardHeader className="text-center">
                         <CardTitle className="text-xl font-semibold text-slate-900">
-                            Link inválido
+                            {tr("Link inválido")}
                         </CardTitle>
                         <CardDescription className="text-slate-500">
-                            Este link de recuperación no es válido. Solicita uno nuevo.
+                            {tr("Este link de recuperación no es válido. Solicita uno nuevo.")}
                         </CardDescription>
                     </CardHeader>
                     <CardFooter className="justify-center">
                         <Link to="/forgot-password" className="text-slate-900 hover:underline font-medium text-sm">
-                            Solicitar nuevo link
+                            {tr("Solicitar nuevo link")}
                         </Link>
                     </CardFooter>
                 </Card>
@@ -88,14 +89,14 @@ export default function ResetPasswordPage() {
                 <CardHeader className="space-y-1 text-center pb-8">
                     <div className="flex justify-center mb-4">
                         <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden">
-                            <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
+                            <img src="/logo.png" alt={tr("Logo")} className="h-8 w-8 object-contain" />
                         </div>
                     </div>
                     <CardTitle className="text-xl font-semibold text-slate-900">
-                        Nueva contraseña
+                        {tr("Nueva contraseña")}
                     </CardTitle>
                     <CardDescription className="text-slate-500">
-                        Define una nueva contraseña para {email}
+                        {tr("Define una nueva contraseña para")}{' '}{email}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -103,7 +104,7 @@ export default function ResetPasswordPage() {
                         <div className="flex flex-col items-center gap-3 py-4 text-center">
                             <CheckCircle2 className="h-10 w-10 text-emerald-600" />
                             <p className="text-sm text-slate-700">
-                                Contraseña actualizada. Redirigiendo a inicio de sesión...
+                                {tr("Contraseña actualizada. Redirigiendo a inicio de sesión...")}
                             </p>
                         </div>
                     ) : (
@@ -114,7 +115,7 @@ export default function ResetPasswordPage() {
                                     name="password"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-slate-700">Nueva contraseña</FormLabel>
+                                            <FormLabel className="text-slate-700">{tr("Nueva contraseña")}</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="password"
@@ -132,7 +133,7 @@ export default function ResetPasswordPage() {
                                     name="confirmPassword"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-slate-700">Confirmar contraseña</FormLabel>
+                                            <FormLabel className="text-slate-700">{tr("Confirmar contraseña")}</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="password"
@@ -159,7 +160,7 @@ export default function ResetPasswordPage() {
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <span className="flex items-center justify-center gap-2">
-                                            Guardar nueva contraseña
+                                            {tr("Guardar nueva contraseña")}
                                             <ArrowRight className="h-4 w-4" />
                                         </span>
                                     )}

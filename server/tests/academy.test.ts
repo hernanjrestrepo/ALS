@@ -111,3 +111,19 @@ describe('propuestas de la IA', () => {
         expect(p).toContain('sin nombres de archivos ni de proveedores');
     });
 });
+
+describe('Xmart Academy en otros idiomas', () => {
+    it('cada modulo esta traducido a ingles, portugues y frances con la misma forma que el catalogo', async () => {
+        const { traducirModulo } = await import('../src/data/academy-traduccion');
+        for (const lang of ['en', 'pt', 'fr']) {
+            for (const m of MODULOS_ACADEMY) {
+                const t = traducirModulo(m, lang);
+                expect(t.pasos[0].detalle, `${lang}/${m.key}: sin traducir`).not.toBe(m.pasos[0].detalle);
+            }
+        }
+    });
+    it('en espanol devuelve el catalogo tal cual', async () => {
+        const { traducirModulo } = await import('../src/data/academy-traduccion');
+        expect(traducirModulo(MODULOS_ACADEMY[0], null)).toBe(MODULOS_ACADEMY[0]);
+    });
+});

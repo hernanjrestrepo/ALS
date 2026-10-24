@@ -9,6 +9,7 @@ import { StatusChart } from '@/components/dashboard/StatusChart';
 import { TrendChart } from '@/components/dashboard/TrendChart';
 import { InsightsPanel } from '@/components/dashboard/InsightsPanel';
 
+import { tr } from '@/i18n';
 export default function DashboardPage() {
     const { stats, isLoading } = useDashboardStats();
 
@@ -18,34 +19,34 @@ export default function DashboardPage() {
 
     const statCards = [
         {
-            title: 'Total OITs',
+            title: tr("Total OITs"),
             value: stats.totalOITs,
             icon: FileText,
-            description: 'Inspecciones totales',
+            description: tr("Inspecciones totales"),
             iconBg: 'bg-[#E6EEF8]',
             iconColor: 'text-[#004CAB]',
         },
         {
-            title: 'Completadas',
+            title: tr("Completadas"),
             value: stats.completedOITs,
             icon: CheckCircle,
-            description: 'Cerradas exitosamente',
+            description: tr("Cerradas exitosamente"),
             iconBg: 'bg-emerald-50',
             iconColor: 'text-emerald-600',
         },
         {
-            title: 'En Progreso',
+            title: tr("En Progreso"),
             value: stats.inProgressOITs,
             icon: Clock,
-            description: 'Actualmente activas',
+            description: tr("Actualmente activas"),
             iconBg: 'bg-amber-50',
             iconColor: 'text-amber-600',
         },
         {
-            title: 'Pendientes',
+            title: tr("Pendientes"),
             value: stats.pendingOITs,
             icon: AlertCircle,
-            description: 'Esperando acción',
+            description: tr("Esperando acción"),
             iconBg: 'bg-slate-100',
             iconColor: 'text-slate-500',
         },
@@ -53,14 +54,14 @@ export default function DashboardPage() {
 
     const getStatusLabel = (status: string) => {
         const statusMap: Record<string, string> = {
-            'PENDING': 'Pendiente',
-            'IN_PROGRESS': 'En Muestreo',
-            'COMPLETED': 'Completada',
-            'ANALYZING': 'Analizando',
-            'SCHEDULED': 'Programada',
-            'UPLOADING': 'Subiendo',
-            'REVIEW_REQUIRED': 'Pendiente de Aprobación',
-            'REVIEW_NEEDED': 'Requiere Revisión'
+            'PENDING': tr("Pendiente"),
+            'IN_PROGRESS': tr("En Muestreo"),
+            'COMPLETED': tr("Completada"),
+            'ANALYZING': tr("Analizando"),
+            'SCHEDULED': tr("Programada"),
+            'UPLOADING': tr("Subiendo"),
+            'REVIEW_REQUIRED': tr("Pendiente de Aprobación"),
+            'REVIEW_NEEDED': tr("Requiere Revisión")
         };
         return statusMap[status] || status;
     };
@@ -69,13 +70,13 @@ export default function DashboardPage() {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Panel de Control</h2>
-                    <p className="text-slate-500">Resumen de tus actividades de inspección.</p>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">{tr("Panel de Control")}</h2>
+                    <p className="text-slate-500">{tr("Resumen de tus actividades de inspección.")}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Link to="/oits">
                         <Button className="bg-[#004CAB] hover:bg-[#003b85] text-white">
-                            <Plus className="mr-2 h-4 w-4" /> Nueva OIT
+                            <Plus className="mr-2 h-4 w-4" /> {tr("Nueva OIT")}
                         </Button>
                     </Link>
                 </div>
@@ -108,12 +109,12 @@ export default function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-4 border-slate-200 shadow-sm bg-white">
                     <CardHeader>
-                        <CardTitle className="text-slate-900">Últimas OIT cargadas</CardTitle>
+                        <CardTitle className="text-slate-900">{tr("Últimas OIT cargadas")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
                             {stats.recentOITs.length === 0 ? (
-                                <p className="text-sm text-slate-500">No se encontraron OITs recientes.</p>
+                                <p className="text-sm text-slate-500">{tr("No se encontraron OITs recientes.")}</p>
                             ) : (
                                 stats.recentOITs.map((oit) => (
                                     <div key={oit.id} className="flex items-center justify-between border-b border-slate-100 pb-4 last:border-0 last:pb-0">
@@ -122,7 +123,7 @@ export default function DashboardPage() {
                                                 {oit.oitNumber || `OIT-${oit.id}`}
                                             </p>
                                             <p className="text-xs text-slate-500">
-                                                Cargada el {new Date(oit.createdAt).toLocaleDateString()}
+                                                {tr("Cargada el")}{' '}{new Date(oit.createdAt).toLocaleDateString()}
                                             </p>
                                         </div>
                                         <div className={`px-2.5 py-0.5 rounded-full text-xs font-medium
@@ -139,12 +140,12 @@ export default function DashboardPage() {
                 </Card>
                 <Card className="col-span-3 border-slate-200 shadow-sm bg-white">
                     <CardHeader>
-                        <CardTitle className="text-slate-900">Estado de Recursos</CardTitle>
+                        <CardTitle className="text-slate-900">{tr("Estado de Recursos")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-slate-600">Total Recursos</span>
+                                <span className="text-sm font-medium text-slate-600">{tr("Total Recursos")}</span>
                                 <span className="text-sm font-bold text-slate-900">{stats.totalResources}</span>
                             </div>
                             <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -154,7 +155,7 @@ export default function DashboardPage() {
                                 />
                             </div>
                             <p className="text-xs text-slate-500">
-                                {stats.availableResources} disponibles de {stats.totalResources}
+                                {stats.availableResources} {tr("disponibles de")}{' '}{stats.totalResources}
                             </p>
                         </div>
                     </CardContent>
