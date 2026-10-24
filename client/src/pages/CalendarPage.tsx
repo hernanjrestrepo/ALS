@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { scheduleDays } from '@/lib/scheduleDays';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,8 @@ interface OIT {
     // Cliente leido del PDF de la OIT ("NOMBRE EMPRESA"). Antes se buscaba oit.client,
     // que la OIT no tiene, y todo el calendario decia "Sin Cliente" (2026-10-23).
     clientName?: string;
+    // Programacion por servicio (JSON): date + extraDates = dias del monitoreo.
+    serviceDates?: string | null;
 }
 
 interface CalendarEvent {
@@ -69,7 +72,7 @@ export default function CalendarPage() {
             if (Array.isArray(response.data)) {
                 const allOits: OIT[] = response.data;
                 const scheduled = allOits
-                    .filter(oit => oit.scheduledDate)
+                    .filter(oit => oit.scheduledDate || oit.serviceDates)
                     .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
 
                 setOits(scheduled);
@@ -108,19 +111,32 @@ export default function CalendarPage() {
         setFilteredOits(result);
     };
 
-    // Transform OITs to Calendar Events
-    const events: CalendarEvent[] = filteredOits.map(oit => {
+    // Un evento por cada dia de cada servicio programado (monitoreo de varios dias, reunion
+    // del 2026-10-23). Si la OIT no trae programacion por servicio, se usa scheduledDate.
+    const events: CalendarEvent[] = filteredOits.flatMap(oit => {
+        const title = `${oit.oitNumber} - ${oit.clientName || 'Sin Cliente'}`;
+        let services: Record<string, any> = {};
+        try { services = oit.serviceDates ? JSON.parse(oit.serviceDates) || {} : {}; } catch { services = {}; }
+        const perDay: CalendarEvent[] = [];
+        Object.entries(services).forEach(([key, s]: [string, any]) => {
+            if (!s?.confirmed) return;
+            const days = scheduleDays(s);
+            days.forEach((day, i) => {
+                const start = new Date(`${day}T${s.time || '09:00'}:00-05:00`);
+                if (isNaN(start.getTime())) return;
+                perDay.push({
+                    id: `${oit.id}:${key}:${day}`,
+                    title: days.length > 1 ? `${title} (día ${i + 1}/${days.length})` : title,
+                    start,
+                    end: addHours(start, 2),
+                    resource: oit,
+                });
+            });
+        });
+        if (perDay.length) return perDay;
+        if (!oit.scheduledDate) return [];
         const startDate = new Date(oit.scheduledDate);
-        // Assume 2 hour duration if not specified, or checks logic
-        const endDate = addHours(startDate, 2);
-
-        return {
-            id: oit.id,
-            title: `${oit.oitNumber} - ${oit.clientName || 'Sin Cliente'}`,
-            start: startDate,
-            end: endDate,
-            resource: oit,
-        };
+        return [{ id: oit.id, title, start: startDate, end: addHours(startDate, 2), resource: oit }];
     });
 
     const getEventStyle = (event: CalendarEvent) => {
@@ -167,7 +183,7 @@ export default function CalendarPage() {
     };
 
     const onSelectEvent = (event: CalendarEvent) => {
-        navigate(`/oits/${event.id}`);
+        navigate(`/oits/${event.resource.id}`);
     };
 
     // Custom Toolbar

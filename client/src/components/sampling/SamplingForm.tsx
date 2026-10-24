@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { scheduleDays, formatDays } from '@/lib/scheduleDays';
 import { CHAT_MESSAGE_EVENT } from '@/components/shared/ChatWidget';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +51,7 @@ interface Draft {
 interface Props {
     oit: any;
     service: { id: string; name: string; templateIds?: string[] };
-    schedule: { date?: string; time?: string; engineerIds?: string[] };
+    schedule: { date?: string; extraDates?: string[]; time?: string; engineerIds?: string[] };
     steps: SamplingFormStep[];
     engineers: Array<{ id: string; name: string }>;
     canEdit: boolean;
@@ -432,7 +433,8 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
 
     const buildSteps = (endAt: string, files: Record<number, string[]>, closedVisits: Visit[]) => {
         const arrival = closedVisits[0]?.arrival;
-        const plannedText = schedule.date ? `${schedule.date} ${schedule.time || '09:00'}` : '';
+        const plannedDays = scheduleDays(schedule);
+        const plannedText = schedule.date ? `${plannedDays.length > 1 ? formatDays(plannedDays) : schedule.date} ${schedule.time || '09:00'}` : '';
         const headerValue = (kind: HeaderKind): any => ({
             cliente: oit.clientName || '',
             ot: String(oit.oitNumber || ''),
@@ -615,6 +617,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                     <Fixed label="Cliente" value={oit.clientName || 'No viene en la OIT'} wide />
                     <Fixed label="OT" value={oit.oitNumber} />
                     <Fixed label="Inicio programado" value={planned ? fmt(planned.toISOString()) : 'Sin programar'} />
+                    {scheduleDays(schedule).length > 1 && <Fixed label="Días programados" value={formatDays(scheduleDays(schedule))} />}
                     <Fixed label="Sitio" value={oit.location || '—'} wide />
                     <div className="col-span-2">
                         <p className="text-[11px] text-slate-500">Responsable en campo</p>

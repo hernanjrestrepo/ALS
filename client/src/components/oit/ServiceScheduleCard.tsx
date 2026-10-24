@@ -11,11 +11,13 @@ import {
     DropdownMenuTrigger,
     DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
-import { Calendar, Clock, Users, Pencil, Check, X, ChevronDown, Sparkles } from 'lucide-react';
+import { Calendar, Clock, Users, Pencil, Check, X, ChevronDown, Sparkles, Plus } from 'lucide-react';
+import { scheduleDays, rangeDays, withDays, formatDays } from '@/lib/scheduleDays';
 
 interface ServiceSchedule {
     name: string;
     date: string;
+    extraDates?: string[]; // dias adicionales (monitoreo de varios dias)
     time: string;
     engineerIds: string[];
     confirmed: boolean;
@@ -58,6 +60,20 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
 
         setLocalSchedule({ ...localSchedule, engineerIds: newEngineers });
     };
+
+    // Dias del monitoreo: uno, un rango (lunes a viernes) o dias sueltos.
+    const days = scheduleDays(localSchedule);
+    const [newDay, setNewDay] = useState('');
+    const [rangeFrom, setRangeFrom] = useState('');
+    const [rangeTo, setRangeTo] = useState('');
+    const [weekdaysOnly, setWeekdaysOnly] = useState(true);
+    const setDays = (list: string[]) => setLocalSchedule(s => withDays(s, list));
+    const addDay = () => { if (newDay) { setDays([...days, newDay]); setNewDay(''); } };
+    const addRange = () => {
+        const list = rangeDays(rangeFrom, rangeTo, weekdaysOnly);
+        if (list.length) { setDays([...days, ...list]); setRangeFrom(''); setRangeTo(''); }
+    };
+    const removeDay = (d: string) => setDays(days.filter(x => x !== d));
 
     const selectedEngineers = engineers.filter(e => localSchedule.engineerIds.includes(e.id));
     const isConfirmed = schedule.confirmed && !isEditing;
@@ -118,12 +134,12 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium flex items-center gap-1">
                                     <Calendar className="h-3.5 w-3.5" />
-                                    Fecha
+                                    Primer día
                                 </Label>
                                 <Input
                                     type="date"
                                     value={localSchedule.date}
-                                    onChange={(e) => setLocalSchedule({ ...localSchedule, date: e.target.value })}
+                                    onChange={(e) => setDays([e.target.value, ...days.filter(d => d !== localSchedule.date)])}
                                     className="h-9"
                                 />
                             </div>
@@ -138,6 +154,43 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                                     onChange={(e) => setLocalSchedule({ ...localSchedule, time: e.target.value })}
                                     className="h-9"
                                 />
+                            </div>
+                        </div>
+
+                        {/* Varios dias: dias sueltos o rango */}
+                        <div className="space-y-2 rounded-lg border border-slate-200 p-3">
+                            <Label className="text-sm font-medium">Días del monitoreo ({days.length})</Label>
+                            {days.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {days.map(d => (
+                                        <Badge key={d} variant="secondary" className="bg-indigo-50 text-indigo-700 gap-1">
+                                            {new Date(`${d}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                            {days.length > 1 && (
+                                                <button type="button" onClick={() => removeDay(d)} className="ml-0.5 hover:text-red-600" title="Quitar día">
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            )}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Input type="date" value={newDay} onChange={e => setNewDay(e.target.value)} className="h-8 w-40" />
+                                <Button type="button" variant="outline" size="sm" onClick={addDay} disabled={!newDay}>
+                                    <Plus className="h-3.5 w-3.5 mr-1" /> Agregar día
+                                </Button>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs text-slate-500">Rango:</span>
+                                <Input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="h-8 w-40" />
+                                <span className="text-xs text-slate-500">a</span>
+                                <Input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="h-8 w-40" />
+                                <label className="flex items-center gap-1 text-xs text-slate-600">
+                                    <input type="checkbox" checked={weekdaysOnly} onChange={e => setWeekdaysOnly(e.target.checked)} /> Solo lunes a viernes
+                                </label>
+                                <Button type="button" variant="outline" size="sm" onClick={addRange} disabled={!rangeFrom || !rangeTo}>
+                                    <Plus className="h-3.5 w-3.5 mr-1" /> Agregar rango
+                                </Button>
                             </div>
                         </div>
 
@@ -210,7 +263,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                         <div className="flex items-center gap-2 text-sm text-slate-700">
                             <Calendar className="h-4 w-4 text-green-600" />
                             <span className="font-medium">
-                                {(() => {
+                                {days.length > 1 ? `${days.length} días: ${formatDays(days)}` : (() => {
                                     // Parse manually to avoid UTC conversion shifts
                                     const [y, m, d] = localSchedule.date.split('-').map(Number);
                                     const localDate = new Date(y, m - 1, d);
