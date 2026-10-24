@@ -248,6 +248,20 @@ export const REQUIRED_PHOTOS = [
     { index: -14, key: 'nevera', label: 'Muestras en la nevera (con hielo si aplica)' },
 ] as const;
 
+// Tipo de captacion (reunion del 2026-10-23): se elige de una lista en vez de escribirlo,
+// y si la OIT lo menciona viene lleno. "Otro" permite escribir el detalle.
+export const CAPTACION_OPTIONS = ['Piezómetro', 'Aljibe', 'Pozo profundo', 'Pozo', 'Manantial', 'Grifo / llave', 'Tanque', 'Río o quebrada'];
+export const isCaptacionStep = (step: any) => /tipo de captaci/i.test(String(step?.title || ''));
+
+export function captacionFromOit(oit: any): string | null {
+    const text = fold([oit?.description, oit?.location, typeof oit?.aiData === 'string' ? oit.aiData : JSON.stringify(oit?.aiData || '')].join(' '));
+    const rules: Array<[RegExp, string]> = [
+        [/piezometr/, 'Piezómetro'], [/aljibe/, 'Aljibe'], [/pozo profundo/, 'Pozo profundo'], [/\bpozo/, 'Pozo'], [/manantial|nacimiento/, 'Manantial'],
+    ];
+    for (const [re, value] of rules) if (re.test(text)) return value;
+    return null;
+}
+
 // Boton de camara + clip (Hernan: "puede ser un boton para fotos o un clip").
 function PhotoButtons({ onFiles, accept = 'image/*', disabled, small }: { onFiles: (f: FileList | null) => void; accept?: string; disabled?: boolean; small?: boolean }) {
     const cls = `inline-flex items-center justify-center rounded-full text-indigo-700 bg-indigo-50 hover:bg-indigo-100 ${small ? 'h-8 w-8' : 'h-9 w-9'} ${disabled ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`;
@@ -579,6 +593,15 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [draftKey]);
 
+    // Tipo de captacion: si la OIT lo dice y el campo esta vacio, se llena solo.
+    const captacionOit = useMemo(() => captacionFromOit(oit), [oit]);
+    useEffect(() => {
+        if (!captacionOit || !canEdit) return;
+        const empty = sections.filter(s => isCaptacionStep(s.step) && !hasValue(draft.values[s.index]));
+        if (empty.length) setDraft(d => ({ ...d, values: { ...d.values, ...Object.fromEntries(empty.map(s => [s.index, captacionOit])) } }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [captacionOit]);
+
     const filledCount = sections.filter(sectionFilled).length;
     const sheetPhotos = photos.filter(p => p.stepIndex === SHEET_INDEX);
 
@@ -748,6 +771,7 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                     onComment={v => setComment(s.index, v)}
                     onAddPhotos={files => storePhotos(s.index, files)}
                     onRemovePhoto={removePhoto}
+                    oitHint={isCaptacionStep(s.step) ? captacionOit : null}
                 />
             ))}
 
@@ -831,9 +855,10 @@ function Thumbs({ photos, onRemove, label }: { photos: StoredPhoto[]; onRemove?:
     );
 }
 
-function Section({ item, subs, value, comment, photos, fromSheet, isMissing, disabled, onValue, onSubValue, onComment, onAddPhotos, onRemovePhoto }: {
+function Section({ item, subs, value, comment, photos, fromSheet, isMissing, disabled, onValue, onSubValue, onComment, onAddPhotos, onRemovePhoto, oitHint }: {
     item: SamplingFormStep; subs: SubField[] | null; value: any; comment: string; photos: StoredPhoto[]; fromSheet: Set<string>; isMissing: boolean; disabled: boolean;
     onValue: (v: any) => void; onSubValue: (k: string, v: string) => void; onComment: (v: string) => void; onAddPhotos: (f: FileList | null) => void; onRemovePhoto: (id: string) => void;
+    oitHint?: string | null;
 }) {
     const { step, index } = item;
     const inputId = `campo-${index}`;
@@ -862,6 +887,26 @@ function Section({ item, subs, value, comment, photos, fromSheet, isMissing, dis
         }
         switch (step.type) {
             case 'INPUT': {
+                if (isCaptacionStep(step)) {
+                    const current = String(value ?? '');
+                    const isOther = !!current && !CAPTACION_OPTIONS.includes(current);
+                    return (
+                        <div className="space-y-1.5">
+                            <select id={inputId} value={isOther ? '__otro' : current} disabled={disabled}
+                                onChange={e => onValue(e.target.value === '__otro' ? 'Otro: ' : e.target.value)}
+                                className={`h-10 w-full rounded-md border border-input bg-background px-3 text-base ${sheetCls(String(index))}`}>
+                                <option value="">Seleccione…</option>
+                                {CAPTACION_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                                <option value="__otro">Otro (escribir)</option>
+                            </select>
+                            {isOther && (
+                                <Input value={current.replace(/^Otro:\s*/, '')} onChange={e => onValue(`Otro: ${e.target.value}`)} disabled={disabled}
+                                    placeholder="¿Cuál?" className="h-10 text-base" />
+                            )}
+                            {oitHint && current === oitHint && <p className="text-[11px] text-indigo-700">Tomado de la OIT.</p>}
+                        </div>
+                    );
+                }
                 const isDate = ['date', 'time', 'datetime-local'].includes(step.inputType);
                 return (
                     <div className="relative">
