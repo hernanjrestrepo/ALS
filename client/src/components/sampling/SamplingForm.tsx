@@ -236,6 +236,17 @@ function removeSheetFile(d: Draft, file: string): Draft {
     return { ...d, sheetFiles: (d.sheetFiles || []).filter(f => f !== file), sheetFileNames };
 }
 
+// Registro fotografico minimo (Josue, reunion del 2026-10-23): sin estas 5 fotos no se
+// puede terminar. Se pueden agregar mas fotos en cualquier seccion. Cada una se guarda en
+// el telefono con un indice reservado (negativo) hasta enviar.
+export const REQUIRED_PHOTOS = [
+    { index: -10, key: 'panoramica', label: 'Panorámica del punto de muestreo' },
+    { index: -11, key: 'toma', label: 'Toma de la muestra' },
+    { index: -12, key: 'insitu', label: 'Determinación de parámetros in situ (con el equipo)' },
+    { index: -13, key: 'preservacion', label: 'Preservación de las muestras' },
+    { index: -14, key: 'nevera', label: 'Muestras en la nevera (con hielo si aplica)' },
+] as const;
+
 // Boton de camara + clip (Hernan: "puede ser un boton para fotos o un clip").
 function PhotoButtons({ onFiles, accept = 'image/*', disabled, small }: { onFiles: (f: FileList | null) => void; accept?: string; disabled?: boolean; small?: boolean }) {
     const cls = `inline-flex items-center justify-center rounded-full text-indigo-700 bg-indigo-50 hover:bg-indigo-100 ${small ? 'h-8 w-8' : 'h-9 w-9'} ${disabled ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`;
@@ -280,11 +291,18 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         }
         return { values, comments };
     });
+    // Fotos obligatorias ya enviadas antes (reenvio para corregir): cuentan como presentes.
+    const submittedSlotFiles = useMemo(() => {
+        const out: Record<string, string[]> = {};
+        for (const s of submitted?.steps || []) if (s?.photoSlot && Array.isArray(s.files) && s.files.length) out[s.photoSlot] = s.files;
+        return out;
+    }, [submitted]);
     const [visits, setVisits] = useState<Visit[]>(() => readJson<Visit[]>(visitsKey, []));
     const [photos, setPhotos] = useState<StoredPhoto[]>([]);
     const [busy, setBusy] = useState<'' | 'arrival' | 'departure' | 'submit' | 'sheet'>('');
     const [editingResponsable, setEditingResponsable] = useState(false);
     const [missing, setMissing] = useState<number[]>([]);
+    const [missingPhotoSlots, setMissingPhotoSlots] = useState<string[]>([]);
     const [online, setOnline] = useState(navigator.onLine);
     const [sheetEnabled, setSheetEnabled] = useState(false);
 
@@ -458,6 +476,10 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
             { description: 'Jornadas en sitio', value: closedVisits.map((v, i) => `${i + 1}) ${fmt(v.arrival.at)} → ${fmt(v.departure?.at)}`).join('; ') || 'Sin registro', synthetic: true },
             { description: 'Alertas de campo', value: warnings.length ? warnings.map(w => w.message).join(' · ') : 'Sin alertas', synthetic: true },
         );
+        for (const slot of REQUIRED_PHOTOS) {
+            const slotFiles = [...(submittedSlotFiles[slot.key] || []), ...(files[slot.index] || [])];
+            list.push({ description: `Foto obligatoria: ${slot.label}`, value: `${slotFiles.length} foto(s)`, files: slotFiles, photoSlot: slot.key, synthetic: true });
+        }
         const sheetFiles = [...(draft.sheetFiles || []), ...(files[SHEET_INDEX] || [])];
         if (sheetFiles.length) list.push({ description: 'Planilla de campo (foto)', value: `${sheetFiles.length} foto(s)`, files: sheetFiles, synthetic: true });
         return { list, warnings };
@@ -525,6 +547,13 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
         if (required.length) {
             toast.error(`Faltan ${required.length} dato(s) obligatorio(s), marcados en rojo.`);
             document.getElementById(`seccion-${required[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        const missingPhotos = REQUIRED_PHOTOS.filter(slot => !photos.some(p => p.stepIndex === slot.index) && !submittedSlotFiles[slot.key]?.length);
+        setMissingPhotoSlots(missingPhotos.map(m => m.key));
+        if (missingPhotos.length) {
+            toast.error(`Faltan ${missingPhotos.length} foto(s) obligatoria(s): ${missingPhotos.map(m => m.label).join('; ')}.`);
+            document.getElementById('fotos-obligatorias')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
         if (responsableChanged && (draft.responsable?.reason || '').trim().length < 3) {
@@ -718,6 +747,35 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
                     onRemovePhoto={removePhoto}
                 />
             ))}
+
+            {/* Registro fotografico obligatorio */}
+            <div id="fotos-obligatorias" className="rounded-xl border border-slate-200 bg-white p-3">
+                <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-900">Registro fotográfico obligatorio</p>
+                    <span className="text-[11px] text-slate-500">
+                        {REQUIRED_PHOTOS.filter(slot => photos.some(p => p.stepIndex === slot.index) || submittedSlotFiles[slot.key]?.length).length} de {REQUIRED_PHOTOS.length}
+                    </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">Sin estas 5 fotos no se puede terminar. Puedes agregar más fotos en cualquier sección.</p>
+                <div className="mt-2 space-y-2">
+                    {REQUIRED_PHOTOS.map(slot => {
+                        const slotPhotos = photos.filter(p => p.stepIndex === slot.index);
+                        const sent = submittedSlotFiles[slot.key]?.length || 0;
+                        const done = slotPhotos.length > 0 || sent > 0;
+                        const isMissingSlot = missingPhotoSlots.includes(slot.key) && !done;
+                        return (
+                            <div key={slot.key} className={`rounded-lg border p-2 ${isMissingSlot ? 'border-red-300 bg-red-50' : done ? 'border-green-200 bg-green-50/40' : 'border-slate-200'}`}>
+                                <div className="flex items-center gap-2">
+                                    {done ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Camera className="h-4 w-4 text-slate-400 shrink-0" />}
+                                    <p className="flex-1 text-[13px] text-slate-800">{slot.label}{sent > 0 && !slotPhotos.length ? ` (${sent} ya enviada${sent > 1 ? 's' : ''})` : ''}</p>
+                                    {canEdit && <PhotoButtons small onFiles={files => storePhotos(slot.index, files)} disabled={!!busy} />}
+                                </div>
+                                {slotPhotos.length > 0 && <Thumbs photos={slotPhotos} onRemove={canEdit ? removePhoto : undefined} />}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
 
             {allWarnings.length > 0 && (
                 <div className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-0.5">
