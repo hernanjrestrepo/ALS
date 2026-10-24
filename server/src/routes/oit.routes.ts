@@ -38,6 +38,7 @@ import {
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { readSheet, sheetReaderStatus } from '../controllers/sheet.controller';
+import { proposeAssignments } from '../controllers/planning.controller';
 import { authMiddleware, requireAdmin, requireOperational, requireEngineerAssignment } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -79,6 +80,7 @@ router.post('/:id/reanalyze', authMiddleware, requireAdmin, reanalyzeOIT);
 
 // Planning endpoints (ADMIN+ only)
 router.post('/:id/accept-planning', authMiddleware, requireAdmin, acceptPlanning);
+router.post('/:id/propose-assignments', authMiddleware, requireAdmin, proposeAssignments);
 router.post('/:id/reject-planning', authMiddleware, requireAdmin, rejectPlanning);
 router.put('/:id/service-dates', authMiddleware, requireAdmin, updateServiceDates);
 

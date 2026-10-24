@@ -1,5 +1,10 @@
 import { Request, Response } from 'express';
 import planningService from '../services/planning.service';
+import { PrismaClient } from '@prisma/client';
+import { planAssignments, serviceDays, ProposedService, Person } from '../services/planningAssign';
+import { CORREOS_MONITOREO, PERSONAL_MONITOREO, supervisaOperaciones } from '../data/personal-monitoreo';
+
+const prisma = new PrismaClient();
 
 export const generatePlanning = async (req: Request, res: Response) => {
     try {
@@ -33,3 +38,53 @@ export const rejectPlanning = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error al rechazar planeación' });
     }
 };
+
+// Propuesta de programacion con ingenieros asignados y alertas (reunion del 2026-10-23).
+// No guarda nada: la pantalla muestra el resultado y lo guarda con /service-dates.
+export const proposeAssignments = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const services = Array.isArray(req.body?.services) ? req.body.services : [];
+        if (!services.length) return res.status(400).json({ error: 'No hay servicios para programar' });
+        const result = await buildAssignmentPlan(id, services.map((s: any) => ({
+            key: String(s.key), name: String(s.name || ''), date: String(s.date || ''),
+            extraDates: Array.isArray(s.extraDates) ? s.extraDates.map(String) : undefined,
+            time: s.time ? String(s.time) : undefined,
+        })));
+        res.json(result);
+    } catch (error) {
+        console.error('Error proposing assignments:', error);
+        res.status(500).json({ error: 'Error al proponer la asignación' });
+    }
+};
+
+export async function buildAssignmentPlan(oitId: string, services: ProposedService[]) {
+    const users = await prisma.user.findMany({
+        where: { email: { in: [...CORREOS_MONITOREO] }, isActive: true, role: { in: ['ENGINEER', 'ADMIN'] } },
+        select: { id: true, name: true, email: true },
+    });
+    const cargoPorCorreo = new Map(PERSONAL_MONITOREO.map(p => [p.correo.toLowerCase(), p.cargo]));
+    const people: Person[] = users.map(u => ({
+        id: u.id, name: u.name, cargo: cargoPorCorreo.get(u.email.toLowerCase()) || '', supervises: supervisaOperaciones(u.email),
+    }));
+
+    // Lo que cada persona ya tiene programado en otras OIT, por dia.
+    const others = await prisma.oIT.findMany({ where: { id: { not: oitId }, serviceDates: { not: null } }, select: { serviceDates: true, status: true } });
+    const busyByDay: Record<string, string[]> = {};
+    for (const o of others) {
+        if (o.status === 'CANCELLED') continue;
+        let sd: Record<string, any> = {};
+        try { sd = JSON.parse(o.serviceDates || '{}') || {}; } catch { continue; }
+        for (const s of Object.values(sd)) {
+            if (!s?.confirmed || !Array.isArray(s.engineerIds)) continue;
+            for (const day of serviceDays(s)) (busyByDay[day] ||= []).push(...s.engineerIds);
+        }
+    }
+
+    // Equipos disponibles por matriz.
+    const resources = await prisma.resource.findMany({ where: { status: { in: ['AVAILABLE', 'OPERATIVO'] } }, select: { type: true, quantity: true } });
+    const resourcesByType: Record<string, number> = {};
+    for (const r of resources) resourcesByType[r.type] = (resourcesByType[r.type] || 0) + (r.quantity || 1);
+
+    return planAssignments({ services, people, busyByDay, resourcesByType });
+}

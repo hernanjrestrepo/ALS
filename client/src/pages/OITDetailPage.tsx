@@ -47,9 +47,11 @@ import { getSuggestedDate, formatLocalDateLong, parseLocalDate, bogotaDateTimeTo
 interface ServiceSchedule {
     name: string;
     date: string;
+    extraDates?: string[]; // monitoreo de varios dias
     time: string;
     engineerIds: string[];
     confirmed: boolean;
+    flags?: string[]; // alertas de la asignacion automatica
 }
 
 export default function OITDetailPage() {
@@ -1016,23 +1018,32 @@ export default function OITDetailPage() {
                                                                         onClick={async () => {
                                                                             const newServiceDates: Record<string, ServiceSchedule> = {};
                                                                             const today = new Date();
-                                                                            aiData.data.services.forEach((s: any, idx: number) => {
-                                                                                const serviceId = `ai-service-${idx}`;
-                                                                                const { date: dateToUse } = getSuggestedDate(s.proposedDate, idx, today);
-                                                                                newServiceDates[serviceId] = {
-                                                                                    name: s.name,
-                                                                                    date: dateToUse,
-                                                                                    time: '09:00',
-                                                                                    engineerIds: selectedEngineerIds.length > 0 ? selectedEngineerIds : [],
-                                                                                    confirmed: true
-                                                                                };
-                                                                            });
-
-                                                                            setServiceDates(newServiceDates);
+                                                                            const proposed = aiData.data.services.map((s: any, idx: number) => ({
+                                                                                key: `ai-service-${idx}`,
+                                                                                name: s.name,
+                                                                                date: getSuggestedDate(s.proposedDate, idx, today).date,
+                                                                                time: '08:00', // los monitoreos arrancan a las 8 (Josue, 23-oct)
+                                                                            }));
 
                                                                             try {
+                                                                                // El servidor asigna el personal libre y revisa equipos (banderas rojas).
+                                                                                const { data: plan } = await api.post(`/oits/${oit.id}/propose-assignments`, { services: proposed });
+                                                                                for (const s of plan.services || []) {
+                                                                                    newServiceDates[s.key] = {
+                                                                                        name: s.name,
+                                                                                        date: s.date,
+                                                                                        extraDates: s.extraDates,
+                                                                                        time: s.time || '08:00',
+                                                                                        engineerIds: selectedEngineerIds.length > 0 ? selectedEngineerIds : (s.engineerIds || []),
+                                                                                        confirmed: true,
+                                                                                        flags: s.flags || [],
+                                                                                    };
+                                                                                }
+                                                                                setServiceDates(newServiceDates);
                                                                                 await api.put(`/oits/${oit.id}/service-dates`, { serviceDates: newServiceDates });
-                                                                                toast.success('¡Programación aceptada!');
+                                                                                const flags: string[] = plan.flags || [];
+                                                                                if (flags.length) toast.warning(`Programación aceptada con ${flags.length} alerta(s): ${flags.join(' ')}`, { duration: 12000 });
+                                                                                else toast.success('¡Programación aceptada con el personal asignado!');
                                                                                 fetchOIT();
                                                                             } catch (error) {
                                                                                 console.error(error);

@@ -21,6 +21,7 @@ interface ServiceSchedule {
     time: string;
     engineerIds: string[];
     confirmed: boolean;
+    flags?: string[]; // alertas de la asignacion automatica (sin personal o sin equipos)
 }
 
 interface Engineer {
@@ -40,7 +41,7 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
     const [localSchedule, setLocalSchedule] = useState<ServiceSchedule>(schedule);
 
     const handleConfirm = () => {
-        onUpdate(serviceId, { ...localSchedule, confirmed: true });
+        onUpdate(serviceId, { ...localSchedule, confirmed: true, flags: [] });
         setIsEditing(false);
     };
 
@@ -115,6 +116,11 @@ export function ServiceScheduleCard({ serviceId, schedule, engineers, onUpdate }
                 </div>
             </CardHeader>
             <CardContent>
+                {(schedule.flags?.length || 0) > 0 && (
+                    <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-800 space-y-0.5">
+                        {schedule.flags!.map((f, i) => <p key={i}>🚩 {f}</p>)}
+                    </div>
+                )}
                 {isEditing || !isConfirmed ? (
                     <div className="space-y-4">
                         {/* AI Suggested Values - Always visible until first confirmation */}
