@@ -137,7 +137,15 @@ export function ExportButtons({ content, compact }: { content: string; compact?:
     );
 }
 
-/** Respuesta del asistente: Markdown con tablas, graficas (bloques ```chart) y descarga. */
+// Solo imagenes de la carpeta de cargas del servidor.
+export function uploadUrl(src: string): string | null {
+    const name = src.trim().match(/(?:^|\/)uploads\/([^/?#]+)$/)?.[1];
+    if (!name) return null;
+    const base = (api.defaults.baseURL || '').replace(/\/api$/, '');
+    return `${base}/uploads/${encodeURIComponent(decodeURIComponent(name))}`;
+}
+
+/** Respuesta del asistente: Markdown con tablas, graficas (bloques ```chart), fotos y descarga. */
 export function AssistantMessage({ content, compact, exportable = true }: { content: string; compact?: boolean; exportable?: boolean }) {
     return (
         <div className={compact ? 'text-sm' : 'text-sm leading-relaxed'}>
@@ -170,6 +178,16 @@ export function AssistantMessage({ content, compact, exportable = true }: { cont
                     ul: ({ children }) => <ul className="my-1.5 list-disc space-y-0.5 pl-5">{children}</ul>,
                     ol: ({ children }) => <ol className="my-1.5 list-decimal space-y-0.5 pl-5">{children}</ol>,
                     a: ({ children, href }) => (!href || href === '#') ? null : <a href={href} target="_blank" rel="noreferrer" className="text-[#004CAB] underline">{children}</a>,
+                    // Fotos del muestreo (/uploads/...): se piden al servidor con la sesion; nada de internet.
+                    img: ({ src, alt }) => {
+                        const url = uploadUrl(String(src || ''));
+                        return url ? (
+                            <a href={url} target="_blank" rel="noreferrer" className="my-2 block">
+                                <img src={url} alt={alt || ''} loading="lazy" className="max-h-64 rounded-lg border border-slate-200" />
+                                {alt && <span className="mt-0.5 block text-[11px] italic text-slate-500">{alt}</span>}
+                            </a>
+                        ) : null;
+                    },
                 }}
             >
                 {content}

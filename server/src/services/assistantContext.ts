@@ -134,6 +134,10 @@ function oitDetail(oit: any): string {
     const lab = parse(oit.labResultsAnalysis);
     const labText = typeof lab === 'object' && lab ? (lab.rawText || lab.summary || '') : '';
     const resultados: any[] = Array.isArray(lab?.parsedData?.resultados) ? lab.parsedData.resultados : [];
+    // Fotos del muestreo, para que el asistente las ponga en informes PDF/PowerPoint.
+    const photos = steps.flatMap((s: any) => (Array.isArray(s?.files) ? s.files : [])
+        .filter((f: any) => typeof f === 'string' && /\.(jpe?g|png|webp)$/i.test(f))
+        .map((f: string) => `${clip(s.description || s.title || 'Foto', 60)}: /uploads/${f}`)).slice(0, 24);
     const lines = [
         `OIT #${oit.oitNumber} — ${statusLabel(oit.status)}`,
         `Descripción: ${clip(x.description, 400) || 'N/A'}`,
@@ -149,6 +153,7 @@ function oitDetail(oit: any): string {
         oit.finalAnalysis ? `Análisis del muestreo: ${clip(oit.finalAnalysis, 900)}` : '',
         resultados.length ? `Resultados de laboratorio (${resultados.length}): ${resultados.slice(0, 40).map((r: any) => `${r.parametro}=${r.valor}${r.unidad ? ' ' + r.unidad : ''}`).join('; ')}` : '',
         labText ? `Análisis de laboratorio: ${clip(labText, 900)}` : '',
+        photos.length ? `Fotos del muestreo (${photos.length}):\n${photos.map(p => `   - ${p}`).join('\n')}` : '',
         `Archivos: OIT ${oit.oitFileUrl ? 'sí' : 'no'}, resultados de laboratorio ${oit.labResultsUrl ? 'sí' : 'no'}, planillas ${oit.samplingSheetUrl ? 'sí' : 'no'}, informe de muestreo ${oit.samplingReportUrl ? 'sí' : 'no'}, informe final ${oit.finalReportUrl ? 'sí' : 'no'}`,
     ];
     return lines.filter(Boolean).join('\n');
@@ -275,4 +280,6 @@ GRÁFICAS: cuando el usuario pida una gráfica, o cuando comparar cantidades se 
 - "labels" y cada "data" deben tener la misma cantidad de elementos; "data" son solo números tomados de los datos del sistema.
 - Acompaña siempre la gráfica con una frase de interpretación y, si aplica, la tabla con las cifras.
 
-INFORMES Y PRESENTACIONES: el usuario puede descargar tu respuesta como PDF, PowerPoint o Excel con los botones que aparecen debajo. Si te pide un informe, una presentación o un reporte, escríbelo completo y bien estructurado: un título con "# ", secciones con "## ", viñetas cortas, tablas y gráficas. Cada sección "## " se convierte en una diapositiva. No digas que no puedes generar archivos.`;
+INFORMES Y PRESENTACIONES: el usuario puede descargar tu respuesta como PDF, PowerPoint o Excel con los botones que aparecen debajo. Si te pide un informe, una presentación o un reporte, escríbelo completo y bien estructurado: un título con "# ", secciones con "## ", viñetas cortas, tablas y gráficas. Cada sección "## " se convierte en una diapositiva. No digas que no puedes generar archivos: el PDF y el PowerPoint salen con la marca de ALS, gráficas, tablas e imágenes.
+
+IMÁGENES: para poner una foto en la respuesta (y en el PDF o PowerPoint), escribe en una línea sola ![descripción corta](/uploads/archivo.jpg). Usa solo rutas que aparezcan en "Fotos del muestreo" de los datos; nunca inventes nombres de archivo ni uses enlaces de internet. Si piden fotos y la OIT no tiene, dilo.`;

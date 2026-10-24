@@ -7,7 +7,13 @@
  *   ```
  *
  * La pantalla lo dibuja con recharts; aqui se dibuja como SVG (PDF) o grafica nativa (PowerPoint).
+ *
+ * Imagenes: una linea "![descripcion](/uploads/archivo.jpg)" (fotos del muestreo) se inserta en el
+ * PDF y en el PowerPoint (pedido de Hernan 2026-10-24: "PDF con graficas, tablas, imagenes"). Solo
+ * se aceptan archivos de la carpeta de cargas del servidor; nunca enlaces externos.
  */
+import fs from 'fs';
+import path from 'path';
 
 export type ChartType = 'bar' | 'line' | 'pie';
 export interface ChartSpec {
@@ -21,7 +27,35 @@ export type Block =
     | { kind: 'paragraph'; text: string }
     | { kind: 'list'; items: string[] }
     | { kind: 'table'; header: string[]; rows: string[][] }
-    | { kind: 'chart'; chart: ChartSpec };
+    | { kind: 'chart'; chart: ChartSpec }
+    | { kind: 'image'; src: string; alt: string };
+
+const UPLOADS_DIR = path.join(__dirname, '../../uploads');
+const LOGO_PATH = path.join(__dirname, '../../assets/als-logo.png');
+const IMAGE_TYPES: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif' };
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+/** Imagen de la carpeta de cargas como data URI, o null si no existe / no es imagen / viene de fuera. */
+export function resolveImage(src: string, uploadsDir = UPLOADS_DIR): { dataUri: string; mime: string; base64: string } | null {
+    const s = String(src || '').trim().split(/[?#]/)[0];
+    if (/^[a-z]+:/i.test(s) && !/^https?:\/\/[^/]+\/uploads\//i.test(s)) return null; // externo
+    const name = path.basename(decodeURIComponent(s));
+    const mime = IMAGE_TYPES[path.extname(name).toLowerCase()];
+    if (!mime || !/^[\w.\- ()]+$/.test(name)) return null;
+    const file = path.join(uploadsDir, name);
+    try {
+        const stat = fs.statSync(file);
+        if (!stat.isFile() || stat.size > MAX_IMAGE_BYTES) return null;
+        const base64 = fs.readFileSync(file).toString('base64');
+        return { dataUri: `data:${mime};base64,${base64}`, mime, base64 };
+    } catch {
+        return null;
+    }
+}
+
+const logoDataUri = (): string => {
+    try { return `data:image/png;base64,${fs.readFileSync(LOGO_PATH).toString('base64')}`; } catch { return ''; }
+};
 
 export const PALETTE = ['#004CAB', '#00A3A6', '#F59E0B', '#7C3AED', '#DC2626', '#059669', '#DB2777', '#475569'];
 
@@ -62,6 +96,7 @@ const isSeparator = (line: string) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)
 export function plain(md: string): string {
     return String(md ?? '')
         .replace(/<br\s*\/?>/gi, ' · ')
+        .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
         .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
         .replace(/(\*\*|__)(.*?)\1/g, '$2')
         .replace(/(\*|_)(.*?)\1/g, '$2')
@@ -93,6 +128,9 @@ export function parseBlocks(markdown: string): Block[] {
             else if (lang !== 'chart' && body.join('').trim()) blocks.push({ kind: 'paragraph', text: body.join('\n') });
             continue;
         }
+
+        const img = line.trim().match(/^!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)$/);
+        if (img) { blocks.push({ kind: 'image', alt: img[1].trim(), src: img[2] }); i++; continue; }
 
         const h = line.match(/^(#{1,6})\s+(.*)$/);
         if (h) { blocks.push({ kind: 'heading', level: h[1].length, text: plain(h[2]) }); i++; continue; }
@@ -191,13 +229,20 @@ export function toHtml(title: string, markdown: string, meta: { author?: string;
             case 'list': return `<ul>${b.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
             case 'table': return `<table><thead><tr>${b.header.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${b.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
             case 'chart': return `<div class="chart">${chartToSvg(b.chart)}</div>`;
+            case 'image': {
+                const img = resolveImage(b.src);
+                return img
+                    ? `<figure><img src="${img.dataUri}" alt="${esc(b.alt)}">${b.alt ? `<figcaption>${esc(b.alt)}</figcaption>` : ''}</figure>`
+                    : `<p class="missing">[Imagen no disponible${b.alt ? `: ${esc(b.alt)}` : ''}]</p>`;
+            }
         }
     }).join('\n');
     const date = (meta.date || new Date()).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+    const logo = logoDataUri();
     return `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
 @page { size: A4; margin: 18mm 15mm 18mm 15mm; }
 * { box-sizing: border-box; }
-body { font-family: Helvetica, Arial, sans-serif; color: #0f172a; font-size: 11.5px; line-height: 1.55; margin: 0; }
+body { font-family: Helvetica, Arial, sans-serif; background: #fff; color: #0f172a; font-size: 11.5px; line-height: 1.55; margin: 0; }
 .cover { background: linear-gradient(120deg, #004CAB, #0077c8); color: #fff; padding: 22px 26px; border-radius: 10px; margin-bottom: 20px; }
 .cover .brand { font-size: 11px; letter-spacing: 2px; opacity: .85; text-transform: uppercase; }
 .cover h1 { font-size: 23px; margin: 6px 0 4px; line-height: 1.2; }
@@ -212,9 +257,14 @@ th { background: #004CAB; color: #fff; text-align: left; padding: 6px 8px; font-
 td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
 tbody tr:nth-child(even) td { background: #f8fafc; }
 .chart { text-align: center; margin: 12px 0 16px; page-break-inside: avoid; } .chart svg { max-width: 100%; height: auto; }
+figure { margin: 12px 0 16px; text-align: center; page-break-inside: avoid; }
+figure img { max-width: 100%; max-height: 120mm; border-radius: 6px; border: 1px solid #e2e8f0; }
+figcaption { font-size: 10px; color: #64748b; margin-top: 4px; font-style: italic; }
+.missing { color: #94a3b8; font-style: italic; }
+.cover { display: flex; align-items: center; gap: 16px; } .cover img { width: 54px; height: 54px; flex-shrink: 0; }
 .foot { margin-top: 26px; padding-top: 8px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 9.5px; }
 </style></head><body>
-<div class="cover"><div class="brand">ALS Xmart · Asistente IA</div><h1>${esc(title)}</h1><div class="meta">${esc(date)}${meta.author ? ' · Generado por ' + esc(meta.author) : ''}</div></div>
+<div class="cover">${logo ? `<img src="${logo}" alt="ALS">` : ''}<div><div class="brand">ALS Xmart · Asistente IA</div><h1>${esc(title)}</h1><div class="meta">${esc(date)}${meta.author ? ' · Generado por ' + esc(meta.author) : ''}</div></div></div>
 ${body}
 <div class="foot">Documento generado automáticamente por el asistente de ALS Xmart a partir de los datos del sistema en la fecha indicada. Verifique la información antes de usarla en documentos oficiales.</div>
 </body></html>`;
@@ -297,6 +347,8 @@ export async function toPptxBuffer(title: string, markdown: string, meta: { auth
 
     const cover = pptx.addSlide();
     cover.background = { color: BLUE };
+    const logo = logoDataUri();
+    if (logo) cover.addImage({ data: logo.replace(/^data:/, ''), x: 0.7, y: 0.9, w: 1.1, h: 1.1 });
     cover.addText('ALS XMART · ASISTENTE IA', { x: 0.7, y: 2.2, w: 12, h: 0.4, fontSize: 14, color: 'BFDBFE', charSpacing: 3, fontFace: 'Arial' });
     cover.addText(title, { x: 0.7, y: 2.7, w: 12, h: 1.8, fontSize: 38, bold: true, color: 'FFFFFF', fontFace: 'Arial', valign: 'top', fit: 'shrink' });
     cover.addText(`${date}${meta.author ? ' · ' + meta.author : ''}`, { x: 0.7, y: 4.7, w: 12, h: 0.4, fontSize: 14, color: 'DBEAFE', fontFace: 'Arial' });
@@ -331,6 +383,15 @@ export async function toPptxBuffer(title: string, markdown: string, meta: { auth
         const b = all[bi];
         if (b.kind === 'heading') { flushText(); heading = b.text; continue; }
         if (b.kind === 'paragraph') { textBuf.push({ text: b.text, bullet: false }); continue; }
+        if (b.kind === 'image') {
+            flushText();
+            const img = resolveImage(b.src);
+            if (!img) { textBuf.push({ text: `[Imagen no disponible${b.alt ? `: ${b.alt}` : ''}]`, bullet: false }); continue; }
+            const s = newSlide(heading);
+            s.addImage({ data: img.dataUri.replace(/^data:/, ''), x: 0.6, y: 1.1, w: 12.1, h: b.alt ? 5.2 : 5.9, sizing: { type: 'contain', w: 12.1, h: b.alt ? 5.2 : 5.9 } });
+            if (b.alt) addCaption(s, b.alt);
+            continue;
+        }
         if (b.kind === 'list') { b.items.forEach(i => textBuf.push({ text: i, bullet: true })); continue; }
         flushText();
         if (b.kind === 'table') {
