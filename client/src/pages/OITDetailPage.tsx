@@ -41,6 +41,7 @@ import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
 
 import { QuotationLinker } from '@/components/oit/QuotationLinker';
 import { SamplingForm } from '@/components/sampling/SamplingForm';
+import { scheduleDays, formatDays } from '@/lib/scheduleDays';
 import { getSuggestedDate, formatLocalDateLong, parseLocalDate, bogotaDateTimeToISO, toBogotaDateTimeInputs, formatBogotaDate, formatBogotaTime } from '@/lib/serviceDate';
 
 // Service schedule structure for enhanced scheduling
@@ -366,7 +367,7 @@ export default function OITDetailPage() {
     const liveScheduleFor = (svc: any): Partial<ServiceSchedule> => {
         if (!svc) return {};
         const live = serviceDates[svc.id] || serviceDates[(svc.templateIds || [])[0]] || {};
-        return { date: live.date || svc.date, time: live.time || svc.time, engineerIds: live.engineerIds || svc.engineerIds || [] };
+        return { date: live.date || svc.date, extraDates: live.extraDates || svc.extraDates, time: live.time || svc.time, engineerIds: live.engineerIds || svc.engineerIds || [] };
     };
 
     // Pasos de la plantilla del servicio, con su posicion en la lista global.
@@ -1310,6 +1311,22 @@ export default function OITDetailPage() {
                                                             </div>
                                                         </div>
                                                     </div>
+
+                                                    {/* Cada servicio con todos sus dias y sus alertas (monitoreo de varios dias). */}
+                                                    {Object.values(serviceDates).some(s => scheduleDays(s).length > 1 || (s.flags || []).length > 0) && (
+                                                        <div className="pt-2 space-y-2">
+                                                            <p className="text-xs font-medium text-slate-500 uppercase">Servicios</p>
+                                                            {Object.entries(serviceDates).map(([key, s]) => (
+                                                                <div key={key} className="rounded-lg border border-slate-200 p-3 text-sm">
+                                                                    <p className="font-medium text-slate-900">{s.name || 'Servicio'}</p>
+                                                                    <p className="text-slate-600">{formatDays(scheduleDays(s))}{s.time ? ` · ${s.time}` : ''}</p>
+                                                                    {(s.flags || []).map((f, i) => (
+                                                                        <p key={i} className="mt-1 text-xs text-red-700 bg-red-50 border border-red-100 rounded px-2 py-1">{f}</p>
+                                                                    ))}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
 
                                                     <div className="pt-2">
                                                         <p className="text-xs font-medium text-slate-500 uppercase mb-2">Ingenieros Asignados</p>
