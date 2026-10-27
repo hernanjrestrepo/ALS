@@ -660,9 +660,18 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
             return a === b || a.includes(b) || b.includes(a);
         };
 
+        // Plantillas que el analisis de la OIT asigno a ESE servicio: valen aunque el nombre
+        // del servicio no se parezca al tipo ("Monitoreo de flora" -> Biota).
+        const serviceTemplateIds = new Set<string>();
+        try {
+            const aiServices: any[] = JSON.parse(oit.aiData || '{}')?.data?.services || [];
+            const svc = aiServices.find(s => String(s?.name || '').trim() === String(targetGroup || '').trim());
+            (svc?.templates || []).forEach((t: any) => t?.id && serviceTemplateIds.add(String(t.id)));
+        } catch { /* sin aiData: se usa el nombre */ }
+
         for (const t of templates) {
             const type = t.oitType || 'General';
-            if (targetGroup && targetGroup !== 'General' && !matchesGroup(type, targetGroup)) continue;
+            if (targetGroup && targetGroup !== 'General' && !serviceTemplateIds.has(t.id) && !matchesGroup(type, targetGroup)) continue;
             if (!groupedTemplates[type]) groupedTemplates[type] = [];
             groupedTemplates[type].push(t);
         }
@@ -718,7 +727,8 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
                     return record['General'];
                 };
 
-                const groupLabAnalysisRaw = fuzzyLookup(groupedLabAnalyses, groupName) || '';
+                // El resultado llega guardado con el nombre del servicio pedido: tiene prioridad.
+                const groupLabAnalysisRaw = (targetGroup && groupedLabAnalyses[targetGroup]) || fuzzyLookup(groupedLabAnalyses, groupName) || '';
                 let groupLabAnalysisNarrative = typeof groupLabAnalysisRaw === 'string' ? groupLabAnalysisRaw : '';
                 let groupLabAnalysisParsed: any = {};
 
@@ -739,7 +749,7 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
                     groupLabAnalysisParsed = (groupLabAnalysisRaw as any).parsedData || {};
                 }
 
-                const groupSheetAnalysis = fuzzyLookup(groupedSheetAnalysis, groupName) || null;
+                const groupSheetAnalysis = (targetGroup && groupedSheetAnalysis[targetGroup]) || fuzzyLookup(groupedSheetAnalysis, groupName) || null;
                 console.log(`[Report] Group "${groupName}": labAnalysis=${groupLabAnalysisNarrative ? groupLabAnalysisNarrative.slice(0, 80) + '...' : 'EMPTY'}, sheetAnalysis=${groupSheetAnalysis ? 'YES' : 'NO'}`);
 
                 const groupResults = [];
