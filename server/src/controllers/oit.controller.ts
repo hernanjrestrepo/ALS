@@ -395,11 +395,22 @@ export const uploadLabResults = async (req: Request, res: Response) => {
 // consistencia con la integracion que ya conocen del otro lado. Reemplaza al
 // servicio externo (RunPod) que Sistema Serambiente usaba antes y que ya no
 // esta disponible - este vive en nuestra propia infraestructura.
+// "1" -> nombre del servicio 1 de la OIT ("Monitoreo de Agua Subterránea (MATRIZAGUAS)").
+// Si no es un numero o la OIT no tiene ese servicio, se deja igual.
+export function serviceGroupName(aiDataRaw: string | null | undefined, group: string): string {
+    const n = /^\s*(\d{1,2})\s*$/.exec(group)?.[1];
+    if (!n) return group;
+    const ai = parseJsonSafe(aiDataRaw || null);
+    const services: any[] = ai?.data?.services || ai?.data?.oit?.services || [];
+    const name = String(services[Number(n) - 1]?.name || '').trim();
+    return name || group;
+}
+
 export const receiveLabResultsFromUrl = async (req: Request, res: Response) => {
     try {
         const payload = readIntegrationPayload(req);
         const { OT, DOCUMENTO, SERVICIO } = payload;
-        const group = payload.group || SERVICIO || 'General';
+        let group = String(payload.group || SERVICIO || 'General');
 
         if (!OT) {
             console.warn(`[Legacy API] lab-results-from-url rechazado: falta OT (content-type: ${payload.contentType}, campos: ${payload.keys.join(', ') || 'ninguno'})`);
@@ -423,7 +434,12 @@ export const receiveLabResultsFromUrl = async (req: Request, res: Response) => {
             }
         });
 
-        console.log(`[Legacy API] Recibiendo resultado de laboratorio para OIT ${OT}: ${DOCUMENTO}`);
+        // Serambiente manda el servicio como numero ("1"): sin traducirlo, el informe no
+        // encontraba plantilla ni resultados ("No templates found for targetGroup: 1",
+        // 27-oct). Se guarda con el nombre del servicio de la OIT.
+        group = serviceGroupName(oit.aiData, group);
+
+        console.log(`[Legacy API] Recibiendo resultado de laboratorio para OIT ${OT} (servicio: ${group}): ${DOCUMENTO}`);
 
         const filename = `labResultFromUrl-${Date.now()}.pdf`;
         const uploadDir = path.join(__dirname, '../../uploads');
@@ -599,6 +615,9 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
 
     console.log(`[Report] Available labAnalysis keys: [${Object.keys(groupedLabAnalyses).join(', ')}]`);
     console.log(`[Report] Available sheetAnalysis keys: [${Object.keys(groupedSheetAnalysis).join(', ')}]`);
+
+    // Un grupo numerico (servicio 1, 2...) se traduce al nombre del servicio de la OIT.
+    if (targetGroup) targetGroup = serviceGroupName(oit.aiData, targetGroup);
 
     // 3. Group Templates by Service Type
     const templateIds: string[] = oit.selectedTemplateIds ? JSON.parse(oit.selectedTemplateIds) : [];
