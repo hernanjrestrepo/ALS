@@ -244,6 +244,32 @@ async function notifyFieldWarnings(oitId: string, oitNumber: string, submission:
     }
 }
 
+// Las planillas que el ingeniero adjunto en el muestreo (foto, PDF, Word...) pasan solas a la
+// pestana Informe de ese servicio: no hay que cargarlas dos veces (Hernan, 2026-10-28: "si las
+// planillas fueron cargadas en el monitoreo ya no es necesario volverlas a cargar"). Se enlazan
+// bajo el nombre del servicio y se analizan igual que las cargadas a mano.
+async function linkSheetsFromSampling(oitId: string, submission: any): Promise<void> {
+    const serviceName = String(submission?.serviceName || '').trim();
+    if (!serviceName) return;
+    const entries: any[] = (Array.isArray(submission?.steps) ? submission.steps : []).filter((st: any) => st?.description === 'Planilla de campo (foto)');
+    const names = [...new Set(entries.flatMap(e => (Array.isArray(e.files) ? e.files : [])).map((f: any) => String(f).replace(/^\/?uploads\//, '')).filter(Boolean))];
+    if (!names.length) return;
+    const current = await prisma.oIT.findUnique({ where: { id: oitId }, select: { samplingSheetUrl: true } });
+    const grouped: Record<string, string[]> = (() => {
+        const v = parseJsonSafe(current?.samplingSheetUrl || null);
+        return Array.isArray(v) ? { General: v } : (v && typeof v === 'object' ? v : {});
+    })();
+    const have = new Set((grouped[serviceName] || []).map(u => u.replace(/^uploads\//, '')));
+    const fresh = names.filter(n => !have.has(n));
+    if (!fresh.length) return;
+    grouped[serviceName] = [...(grouped[serviceName] || []), ...fresh.map(n => `uploads/${n}`)];
+    await prisma.oIT.update({ where: { id: oitId }, data: { samplingSheetUrl: JSON.stringify(grouped) } as any });
+    console.log(`[Planillas] OIT ${oitId}: ${fresh.length} planilla(s) del muestreo enlazadas a «${serviceName}»`);
+    processSamplingSheetsAsync(oitId, grouped[serviceName].map(u => u.replace(/^uploads\//, '')), serviceName).catch(err => {
+        void notifyOitFailure(oitId, `Error analizando las planillas del muestreo (${serviceName})`, err);
+    });
+}
+
 export const submitSampling = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -275,6 +301,7 @@ export const submitSampling = async (req: Request, res: Response) => {
         });
 
         await notifyFieldWarnings(id, oit.oitNumber, req.body).catch(err => logError(`OIT ${id}: no se pudieron avisar las alertas de campo`, err));
+        await linkSheetsFromSampling(id, req.body).catch(err => logError(`OIT ${id}: no se pudieron enlazar las planillas del muestreo`, err));
         if (pendingServices.length) return;
 
         // 2. Trigger async AI analysis
