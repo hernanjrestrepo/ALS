@@ -42,6 +42,8 @@ model OIT {
   labResultsUrl         String? // Uploaded lab analysis
   finalReportUrl        String? // Final AI-generated report
   labResultsAnalysis    String? // JSON string with AI analysis of lab results
+  labFileSource         String? // JSON: { [archivo]: 'ALS' | 'TERCERO' | 'DESCONOCIDO' } (quien emitio cada resultado)
+  labComplete           String? // JSON: { [servicio]: { at, by } } cargue completo marcado por laboratorio
   aiData                String? // JSON string
   resources             String? // JSON string
   scheduledDate         DateTime?

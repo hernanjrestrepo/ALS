@@ -38,8 +38,9 @@ import {
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { readSheet, sheetReaderStatus } from '../controllers/sheet.controller';
+import { labComplete, labStatusForOit } from '../controllers/lab.controller';
 import { proposeAssignments } from '../controllers/planning.controller';
-import { authMiddleware, requireAdmin, requireOperational, requireEngineerAssignment } from '../middleware/auth.middleware';
+import { authMiddleware, requireAdmin, requireOperational, requireEngineerAssignment, requireLabAccess } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -47,6 +48,7 @@ const router = Router();
 router.get('/', authMiddleware, getAllOITs);
 // Antes de /:id para que no se tome como id de OIT
 router.get('/sheet-reader/status', authMiddleware, sheetReaderStatus);
+router.get('/:id/lab-status', authMiddleware, labStatusForOit);
 router.get('/:id', authMiddleware, getOITById);
 
 // Creating/editing/deleting an OIT is a planning decision: ADMIN+ only
@@ -91,8 +93,9 @@ router.post('/:id/read-sheet', authMiddleware, requireOperational, requireEngine
 router.get('/:id/sampling-data', authMiddleware, getSamplingData);
 
 // Lab results and final report
-router.post('/:id/lab-results', authMiddleware, requireOperational, requireEngineerAssignment, upload.single('file'), uploadLabResults);
-router.delete('/:id/lab-results', authMiddleware, requireOperational, requireEngineerAssignment, deleteLabResult);
+router.post('/:id/lab-results', authMiddleware, requireLabAccess, upload.array('file', 20), uploadLabResults);
+router.delete('/:id/lab-results', authMiddleware, requireLabAccess, deleteLabResult);
+router.post('/:id/lab-complete', authMiddleware, requireLabAccess, labComplete);
 router.post('/:id/sampling-sheets', authMiddleware, requireOperational, requireEngineerAssignment, upload.single('file'), uploadSamplingSheets);
 router.delete('/:id/sampling-sheets', authMiddleware, requireOperational, requireEngineerAssignment, deleteSamplingSheet);
 // Final report generation/approval: ADMIN+ only

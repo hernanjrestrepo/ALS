@@ -20,6 +20,7 @@ import serviceRoutes from './service.routes';
 import distributionListRoutes from './distribution-list.routes';
 import monitoringStaffRoutes from './monitoringStaff.routes';
 import academyRoutes from './academy.routes';
+import labRoutes from './lab.routes';
 
 const router = Router();
 
@@ -28,6 +29,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/monitoring-staff', monitoringStaffRoutes);
 router.use('/academy', academyRoutes);
+router.use('/lab', labRoutes);
 router.use('/oits', oitRoutes);
 router.use('/resources', resourceRoutes);
 router.use('/ai', aiRoutes);

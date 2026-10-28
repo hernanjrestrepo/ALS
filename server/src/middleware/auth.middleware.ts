@@ -98,6 +98,14 @@ export const requireEngineer = requireRole(['SUPER_ADMIN', 'ADMIN', 'ENGINEER'])
 // USER role is read-only across the platform: blocks any operational (write) action
 export const requireOperational = requireRole(['SUPER_ADMIN', 'ADMIN', 'ENGINEER']);
 
+// Laboratorio (Sirys, Juan): ve todas las OIT y carga/borra resultados y marca el cargue completo,
+// sin tener que estar asignado a la OIT (no es ingeniero de campo).
+export const requireLabAccess = async (req: Request, res: Response, next: NextFunction) => {
+    const user = (req as AuthenticatedRequest).user;
+    if (user && ['SUPER_ADMIN', 'ADMIN', 'LAB'].includes(user.role)) return next();
+    return requireEngineerAssignment(req, res, next);
+};
+
 // For OIT-scoped write actions: SUPER_ADMIN/ADMIN pass through, ENGINEER only if assigned to that OIT
 export const requireEngineerAssignment = async (req: Request, res: Response, next: NextFunction) => {
     const user = (req as AuthenticatedRequest).user;

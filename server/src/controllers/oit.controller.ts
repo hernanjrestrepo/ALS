@@ -12,6 +12,7 @@ import { readIntegrationPayload, fromUrlAction } from '../utils/integrationPaylo
 import { getOrAssignConsecutive } from '../services/consecutive.service';
 import { linkOitFromText } from '../services/quotationLink';
 import { autoAssignTemplates } from '../services/templateAssignment';
+import { classifyLabText, LabOrigin } from '../services/labTracking';
 import { readSheetText, combineSheetTexts, SheetText } from '../services/sheetText';
 import { isSupervisor } from '../services/monitoringStaff';
 
@@ -329,9 +330,10 @@ export const uploadLabResults = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { group = 'General' } = req.body; // New: optional group
-        const file = (req as any).file;
+        // Varios archivos a la vez (propios y de terceros): "file" como lista o uno solo.
+        const uploaded: Express.Multer.File[] = ((req as any).files as Express.Multer.File[]) || ((req as any).file ? [(req as any).file] : []);
 
-        if (!file) {
+        if (!uploaded.length) {
             return res.status(400).json({ error: 'No se proporcionó archivo' });
         }
 
@@ -356,9 +358,8 @@ export const uploadLabResults = async (req: Request, res: Response) => {
             }
         }
 
-        const newPath = `uploads/${file.filename}`;
         if (!groupedFiles[group]) groupedFiles[group] = [];
-        groupedFiles[group].push(newPath);
+        for (const f of uploaded) groupedFiles[group].push(`uploads/${f.filename}`);
 
         // 1. Return immediate response and set status to ANALYZING
         await prisma.oIT.update({
@@ -375,7 +376,7 @@ export const uploadLabResults = async (req: Request, res: Response) => {
             success: true,
             labResultsUrl: JSON.stringify(groupedFiles),
             status: 'ANALYZING',
-            message: `Resultados para ${group} subidos. Análisis en curso...`
+            message: `${uploaded.length} archivo(s) de resultados para ${group} subidos. Análisis en curso...`
         });
 
         // 2. Trigger asynchronous processing for THIS GROUP
@@ -502,6 +503,7 @@ export async function processLabResultsAsync(oitId: string, filenames: string[],
         const { pdfService } = require('../services/pdf.service');
         const path = require('path');
         let fullCombinedText = '';
+        const fileOrigins: Record<string, LabOrigin> = {};
 
         for (const filename of filenames) {
             const filePath = path.join(__dirname, '../../uploads', filename);
@@ -523,10 +525,19 @@ export async function processLabResultsAsync(oitId: string, filenames: string[],
                 extractedText = `[Error al leer documento de laboratorio: ${errorMessage(readErr)}]`;
             }
             fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
+            fileOrigins[`uploads/${filename}`] = classifyLabText(extractedText);
         }
 
         // Get OIT Context for better analysis
         const oit = await prisma.oIT.findUnique({ where: { id: oitId } });
+        // Quien emitio cada resultado (ALS o tercero) y, si llegaron resultados nuevos, el
+        // "cargue completo" de ese servicio ya no vale: hay que volver a marcarlo.
+        try {
+            const sources = { ...(parseJsonSafe(oit?.labFileSource || null) || {}), ...fileOrigins };
+            const complete = { ...(parseJsonSafe(oit?.labComplete || null) || {}) };
+            delete complete[group];
+            await prisma.oIT.update({ where: { id: oitId }, data: { labFileSource: JSON.stringify(sources), labComplete: JSON.stringify(complete) } });
+        } catch (e) { logWarning(`OIT ${oitId}: no se pudo guardar el origen de los resultados`, e); }
         const oitContext = `${oit?.description || ''} - Servicio específico: ${group}`;
 
         // Analyze with AI
@@ -2108,9 +2119,13 @@ export const deleteSamplingSheet = async (req: Request, res: Response) => {
             }
         }
 
-        if (groupedFiles[group]) {
-            groupedFiles[group] = groupedFiles[group].filter(url => url !== fileUrl);
+        // El archivo puede estar guardado bajo otro nombre de grupo (numero de servicio, "General"):
+        // se quita de donde este, y se reinicia el analisis de ese grupo.
+        const ownerGroup = Object.keys(groupedFiles).find(k => (groupedFiles[k] || []).includes(fileUrl)) || group;
+        if (groupedFiles[ownerGroup]) {
+            groupedFiles[ownerGroup] = groupedFiles[ownerGroup].filter(url => url !== fileUrl);
         }
+        const group_ = ownerGroup;
 
         // Handle Analysis reset for that group
         let groupedAnalyses: Record<string, any> = {};
@@ -2163,9 +2178,13 @@ export const deleteLabResult = async (req: Request, res: Response) => {
             }
         }
 
-        if (groupedFiles[group]) {
-            groupedFiles[group] = groupedFiles[group].filter(url => url !== fileUrl);
+        // El archivo puede estar guardado bajo otro nombre de grupo (numero de servicio, "General"):
+        // se quita de donde este, y se reinicia el analisis de ese grupo.
+        const ownerGroup = Object.keys(groupedFiles).find(k => (groupedFiles[k] || []).includes(fileUrl)) || group;
+        if (groupedFiles[ownerGroup]) {
+            groupedFiles[ownerGroup] = groupedFiles[ownerGroup].filter(url => url !== fileUrl);
         }
+        const group_ = ownerGroup;
 
         // Handle Analysis reset for that group
         let groupedAnalyses: Record<string, any> = {};
@@ -2178,7 +2197,7 @@ export const deleteLabResult = async (req: Request, res: Response) => {
                 groupedAnalyses = { 'General': currentOit.labResultsAnalysis };
             }
         }
-        delete groupedAnalyses[group];
+        delete groupedAnalyses[group_];
 
         await prisma.oIT.update({
             where: { id },
