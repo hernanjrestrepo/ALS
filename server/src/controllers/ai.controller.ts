@@ -5,6 +5,7 @@ import { buildAssistantContext, ASSISTANT_SYSTEM_PROMPT, statusLabel } from '../
 import { moduloDePregunta } from '../data/academy-catalogo';
 import { toPdfBuffer, toPptxBuffer, toXlsxBuffer, inferTitle, EXPORT_FORMATS, ExportFormat } from '../services/assistantExport';
 import fs from 'fs';
+import { readSheetText } from '../services/sheetText';
 const pdfParse = require('pdf-parse');
 
 const prisma = new PrismaClient();
@@ -66,7 +67,7 @@ function tryDeterministicAnswer(
 
 export const chat = async (req: Request, res: Response) => {
     try {
-        const { message, model, pageContext, history } = req.body;
+        const { message, model, pageContext, history, attachments } = req.body;
 
         if (!message) {
             return res.status(400).json({ error: 'Message is required' });
@@ -114,7 +115,13 @@ export const chat = async (req: Request, res: Response) => {
             ? `CONVERSACIÓN PREVIA:\n${turns.map(t => `${t.role === 'user' ? 'Usuario' : 'Asistente'}: ${String(t.content || '').slice(0, 600)}`).join('\n')}\n\n`
             : '';
 
-        const prompt = `DATOS ACTUALES DEL SISTEMA:\n\n${context}\n\n${historyBlock}PREGUNTA DEL USUARIO: ${message}`;
+        // Archivos que la persona adjunto en el chat (ya leidos por /ai/attach): se entregan al
+        // modelo para que responda sobre ellos y pregunte lo que no entienda.
+        const attachmentsBlock = Array.isArray(attachments) && attachments.length
+            ? `ARCHIVOS ADJUNTOS POR EL USUARIO (úsalos para responder; si algo no está claro, pregunta):\n${attachments.slice(0, 6).map((a: any) => `=== ${String(a?.name || 'archivo').slice(0, 120)} ===\n${String(a?.text || '').slice(0, 9000)}`).join('\n\n')}\n\n`
+            : '';
+
+        const prompt = `DATOS ACTUALES DEL SISTEMA:\n\n${context}\n\n${historyBlock}${attachmentsBlock}PREGUNTA DEL USUARIO: ${message}`;
 
         const response = await aiService.chat(prompt, model, ASSISTANT_SYSTEM_PROMPT + instruccionIdioma(req.headers['x-lang']));
         res.json({ response });
@@ -322,5 +329,30 @@ export const exportAnswer = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error exporting assistant answer:', error);
         res.status(500).json({ error: 'No se pudo generar el documento.' });
+    }
+};
+
+// Lee los archivos que se adjuntan en el chat (PDF con texto o escaneado, Word, Excel, CSV, texto,
+// fotos) y devuelve su texto para enviarlo con la pregunta. Reunion del 27-oct: "el chat debe
+// tener un clip para adjuntar documentos".
+export const attachFiles = async (req: Request, res: Response) => {
+    const files = ((req as any).files as Express.Multer.File[]) || [];
+    try {
+        if (!files.length) return res.status(400).json({ error: 'No se recibió ningún archivo' });
+        const out = [];
+        for (const f of files.slice(0, 6)) {
+            const read = await readSheetText(f.path, f.originalname, { ocr: true });
+            out.push({
+                name: f.originalname,
+                ok: read.status === 'LEIDO',
+                text: read.status === 'LEIDO' ? read.text.slice(0, 12000) : '',
+                note: read.status === 'LEIDO' ? (read.reason || '') : (read.reason || 'No se pudo leer este archivo.'),
+                file: f.filename,
+            });
+        }
+        res.json({ attachments: out });
+    } catch (error) {
+        console.error('Error leyendo adjuntos del chat:', error);
+        res.status(500).json({ error: 'No se pudieron leer los archivos adjuntos' });
     }
 };

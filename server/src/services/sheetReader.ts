@@ -136,6 +136,26 @@ export function scoreChunk(chunk: string, fields: SheetField[]): number {
     return score;
 }
 
+// Un numero leido por la IA solo vale si aparece cerca del nombre del parametro en el propio texto.
+// 28-oct: la conductividad estaba en blanco en la planilla de Raul y la IA devolvio "20".
+// Los campos sin numero (descripciones) y los que no se pueden ubicar por su nombre se aceptan.
+export function valueIsNearLabel(text: string, field: SheetField, value: string): boolean {
+    if (!/\d/.test(value)) return true;
+    const label = field.label.includes('—') ? field.label.split('—').pop()! : field.label;
+    const keyword = fold(label).split(/[^a-z0-9]+/).filter(w => w.length >= 3)[0];
+    if (!keyword) return true;
+    const body = fold(text);
+    const nums = (value.match(/\d+(?:[.,]\d+)?/g) || []).map(n => n.replace('.', ','));
+    let from = body.indexOf(keyword);
+    if (from < 0) return true; // el nombre no aparece tal cual: no se puede comprobar
+    while (from >= 0) {
+        const window = body.slice(from, from + 220).replace(/\./g, ',');
+        if (nums.every(n => window.includes(n))) return true;
+        from = body.indexOf(keyword, from + keyword.length);
+    }
+    return false;
+}
+
 // Llena campos desde el texto de un documento con el modelo de texto (ya cargado en la GPU).
 // Un documento largo (la PDF de la OT 15030 trae 20 paginas: lista de chequeo, acta, plan,
 // planilla de campo, controles de calidad = 90 000 caracteres) se lee por tandas, las mas
@@ -160,7 +180,10 @@ export async function readFieldsFromText(text: string, fields: SheetField[]): Pr
             options: { num_ctx: 16384, temperature: 0, seed: 42 },
         }, { timeout: 300_000 });
         const found = cleanSheetValues(parseJsonObject(response.data?.response || ''), remaining);
-        for (const [k, v] of Object.entries(found)) if (!values[k]) values[k] = v;
+        for (const [k, v] of Object.entries(found)) {
+            const field = remaining.find(f => f.key === k)!;
+            if (!values[k] && valueIsNearLabel(chunk, field, v)) values[k] = v;
+        }
     }
     return values;
 }

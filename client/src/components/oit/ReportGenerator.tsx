@@ -90,6 +90,39 @@ export function ReportGenerator({
     const [isUploadingLab, setIsUploadingLab] = useState(false);
     const [isLabDragging, setIsLabDragging] = useState(false);
 
+    // Estado de laboratorio de ESTE servicio (archivos con su origen, cargue completo,
+    // parametros cotizados que no aparecen). Antes la lista empezaba vacia aunque el
+    // resultado ya hubiera llegado de Serambiente, y parecia que habia que cargarlo de nuevo.
+    interface LabSvc { key: string; name: string; state: string; complete: boolean; completedAt?: string; completedBy?: string; missing?: string[]; files: Array<{ file: string; origin: string }> }
+    const [labSvc, setLabSvc] = useState<LabSvc | null>(null);
+    const [isClosing, setIsClosing] = useState(false);
+    const refreshLabStatus = async () => {
+        try {
+            const { data } = await api.get(`/oits/${oitId}/lab-status`);
+            const list: LabSvc[] = data?.services || [];
+            const svc = list.find(x => x.key === serviceGroup) || (list.length === 1 && serviceGroup === 'General' ? list[0] : undefined);
+            setLabSvc(svc || null);
+            if (svc) setLabUrls(svc.files.map(f => f.file));
+        } catch { /* sin estado: la pantalla sigue con lo que tiene */ }
+    };
+    useEffect(() => { refreshLabStatus(); }, [oitId, serviceGroup]);
+
+    const toggleComplete = async (complete: boolean) => {
+        setIsClosing(true);
+        try {
+            const { data } = await api.post(`/oits/${oitId}/lab-complete`, { group: labSvc?.key || serviceGroup, complete });
+            await refreshLabStatus();
+            if (complete) {
+                if (data.missing?.length) notify.warning(`Cargue completo con ${data.missing.length} parámetro(s) cotizado(s) sin resultado: ${data.missing.slice(0, 4).join(', ')}`);
+                else notify.success('Cargue completo registrado. Todo lo cotizado aparece en los resultados.');
+            } else notify.success('Cargue completo retirado.');
+        } catch (error: any) {
+            notify.error(error?.response?.data?.error || 'No se pudo registrar el cargue completo');
+        } finally {
+            setIsClosing(false);
+        }
+    };
+
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
     const formatReportUrl = (url: string) => {
@@ -272,15 +305,15 @@ export function ReportGenerator({
     // --- Lab Results Handlers ---
     const handleLabDrop = (e: React.DragEvent) => {
         e.preventDefault(); e.stopPropagation(); setIsLabDragging(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file) handleLabUpload(file);
+        const dropped = Array.from(e.dataTransfer.files || []);
+        if (dropped.length) handleLabUpload(dropped);
     };
 
-    const handleLabUpload = async (file: File) => {
+    const handleLabUpload = async (files: File[]) => {
         setIsUploadingLab(true);
         try {
             const formData = new FormData();
-            formData.append('file', file);
+            files.forEach(f => formData.append('file', f));
             formData.append('group', serviceGroup); // New: pass group context
             const response = await api.post(`/oits/${oitId}/lab-results`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
@@ -300,7 +333,8 @@ export function ReportGenerator({
                 const groupAnalysis = (parsedAnalyses && typeof parsedAnalyses === 'object') ? parsedAnalyses[serviceGroup] : (serviceGroup === 'General' ? parsedAnalyses : null);
                 if (groupAnalysis) setLabAnalysis(groupAnalysis);
             }
-            notify.success(`Resultados para ${serviceGroup} cargados. Analizando...`);
+            notify.success(`${files.length} archivo(s) de ${serviceGroup} cargados. Analizando...`);
+            refreshLabStatus();
         } catch (error) {
             console.error('Error uploading lab results:', error);
             notify.error('Error al cargar resultados');
@@ -344,6 +378,7 @@ export function ReportGenerator({
             }
             setLabAnalysis(null); // Reset analysis since files changed
             notify.success('Archivo eliminado');
+            refreshLabStatus();
         } catch (error) {
             console.error('Error removing lab result:', error);
             notify.error('Error al eliminar archivo');
@@ -460,9 +495,10 @@ export function ReportGenerator({
         isDragging: boolean,
         setIsDragging: (v: boolean) => void,
         handleDrop: (e: React.DragEvent) => void,
-        handleUpload: (f: File) => void,
+        handleUpload: (f: File[]) => void,
         accept: string,
-        onRemove: (url: string) => void
+        onRemove: (url: string) => void,
+        originOf?: (url: string) => string | undefined
     ) => (
         <Card className={`border-slate-200 shadow-sm transition-all ${isDragging ? 'border-indigo-400 ring-2 ring-indigo-50' : 'hover:border-indigo-300'}`}>
             <CardHeader className="pb-3 border-b border-slate-50 bg-slate-50/50">
@@ -485,11 +521,12 @@ export function ReportGenerator({
                                 <div key={idx} className="group flex items-center gap-2 p-2 bg-slate-50 rounded-lg text-xs border border-slate-100 hover:bg-slate-100 transition-colors">
                                     <FileText className="h-3 w-3 text-slate-400" />
                                     <span className="truncate flex-1 text-slate-600">{cleanName}</span>
-                                    <CheckCircle2 className="h-3 w-3 text-emerald-500 group-hover:hidden" />
+                                    {originOf?.(url) === 'TERCERO' && <span className="text-[10px] rounded px-1 bg-purple-100 text-purple-700">Tercero</span>}
+                                    {originOf?.(url) === 'ALS' && <span className="text-[10px] rounded px-1 bg-slate-200 text-slate-600">ALS</span>}
                                     <button
                                         type="button"
                                         onClick={() => onRemove(url)}
-                                        className="hidden group-hover:flex h-4 w-4 rounded-full bg-red-100 hover:bg-red-200 items-center justify-center transition-colors"
+                                        className="flex h-5 w-5 rounded-full bg-red-100 hover:bg-red-200 items-center justify-center transition-colors"
                                         title={tr("Eliminar archivo")}
                                     >
                                         <X className="h-2.5 w-2.5 text-red-600" />
@@ -511,7 +548,8 @@ export function ReportGenerator({
                     <input
                         type="file"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
+                        multiple
+                        onChange={(e) => { const picked = Array.from(e.target.files || []); if (picked.length) handleUpload(picked); e.target.value = ''; }}
                         accept={accept}
                         disabled={isUploading}
                     />
@@ -524,7 +562,7 @@ export function ReportGenerator({
                     ) : (
                         <div className="flex flex-col items-center text-slate-400 group-hover:text-slate-600">
                             <Upload className="h-5 w-5 mb-1 opacity-50" />
-                            <p className="text-[10px] font-semibold">{tr("Agregar archivo")}</p>
+                            <p className="text-[10px] font-semibold">{tr("Agregar archivos")}</p>
                         </div>
                     )}
                 </div>
@@ -546,8 +584,8 @@ export function ReportGenerator({
                     isSheetDragging,
                     setIsSheetDragging,
                     handleSheetDrop,
-                    handleSheetUpload,
-                    ".pdf,.xlsx,.xls",
+                    async (picked) => { for (const f of picked) await handleSheetUpload(f); },
+                    ".pdf,.xlsx,.xls,.docx,.jpg,.jpeg,.png",
                     handleSheetRemove
                 )}
 
@@ -562,9 +600,35 @@ export function ReportGenerator({
                     setIsLabDragging,
                     handleLabDrop,
                     handleLabUpload,
-                    ".pdf,.xlsx,.csv",
-                    handleLabRemove
+                    ".pdf,.xlsx,.xls,.csv,.docx,.jpg,.jpeg,.png",
+                    handleLabRemove,
+                    (url) => labSvc?.files.find(f => f.file === url)?.origin
                 )}
+
+                {/* Cargue completo: laboratorio avisa que ya subio todos los resultados del servicio */}
+                <div className="md:col-span-2 rounded-xl border border-slate-200 bg-white p-4 space-y-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex-1 min-w-[220px]">
+                            <p className="text-sm font-semibold text-slate-800">{tr("Estado del laboratorio")}: {labSvc?.complete ? tr("cargue completo") : labUrls.length ? tr("resultados cargados, falta cerrar") : tr("sin resultados")}</p>
+                            <p className="text-xs text-slate-500">
+                                {labSvc?.complete
+                                    ? `${labSvc.completedBy || 'Laboratorio'} · ${labSvc.completedAt ? new Date(labSvc.completedAt).toLocaleString('es-CO', { timeZone: 'America/Bogota' }) : ''}`
+                                    : tr("Cuando estén todos los resultados (propios y de terceros), marca el cargue completo: el sistema compara contra lo cotizado.")}
+                            </p>
+                        </div>
+                        {labSvc?.complete
+                            ? <Button size="sm" variant="outline" onClick={() => toggleComplete(false)} disabled={isClosing}>{tr("Reabrir")}</Button>
+                            : <Button size="sm" onClick={() => toggleComplete(true)} disabled={isClosing || labUrls.length === 0} className="bg-emerald-600 hover:bg-emerald-700">
+                                {isClosing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}{tr("Cargue completo")}
+                            </Button>}
+                    </div>
+                    {!!labSvc?.missing?.length && (
+                        <div className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                            <p className="font-semibold">{tr("Cotizados sin aparecer en los resultados")} ({labSvc.missing.length}):</p>
+                            <p>{labSvc.missing.join(', ')}</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* 2. COMUNICADOS SECTION — Lab report documents (separate from final reports) */}

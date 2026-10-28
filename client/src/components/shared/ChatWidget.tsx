@@ -1,3 +1,4 @@
+import { ChatInputTools, AttachmentChips, useChatAttachments, readable } from '@/components/shared/ChatInputTools';
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +24,7 @@ export function ChatWidget() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const files = useChatAttachments();
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
     const params = useParams();
@@ -58,9 +60,11 @@ export function ChatWidget() {
     const sendMessage = async () => {
         if (!input.trim() || isLoading) return;
 
-        const userMessage: Message = { role: 'user', content: input };
+        const sent = readable(files.attachments);
+        const userMessage: Message = { role: 'user', content: sent.length ? `${input}\n\n📎 ${sent.map(a => a.name).join(', ')}` : input };
         setMessages((prev) => [...prev, userMessage]);
         setInput('');
+        files.clear();
         setIsLoading(true);
 
         try {
@@ -70,7 +74,7 @@ export function ChatWidget() {
                 oitId: isOitPage ? params.id : undefined,
             };
             const history = messages.filter(m => !m.isError).slice(-6).map(m => ({ role: m.role, content: m.content }));
-            const response = await api.post('/ai/chat', { message: input, pageContext, history }, { timeout: 200000 });
+            const response = await api.post('/ai/chat', { message: input, pageContext, history, attachments: sent }, { timeout: 200000 });
             const assistantMessage: Message = {
                 role: 'assistant',
                 content: response.data.response,
@@ -189,7 +193,9 @@ export function ChatWidget() {
                         </div>
 
                         {/* Input with Enhanced Styling */}
-                        <div className="flex gap-2 p-3 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                        <AttachmentChips items={files.attachments} onRemove={files.remove} />
+                        <div className="flex items-center gap-1 p-3 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                            <ChatInputTools onFiles={files.addFiles} onDictate={t => setInput(prev => (prev ? prev + ' ' : '') + t)} disabled={isLoading} reading={files.reading} />
                             <Input
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}

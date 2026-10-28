@@ -35,6 +35,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
     'SUPER_ADMIN': tr("Super Administrador"),
     'ADMIN': tr("Administrador"),
     'ENGINEER': tr("Ingeniero de Campo"),
+    'LAB': tr("Laboratorio"),
     'USER': tr("Usuario")
 };
 
@@ -42,6 +43,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
     'SUPER_ADMIN': "bg-purple-100 text-purple-800 border-purple-200",
     'ADMIN': "bg-blue-100 text-blue-800 border-blue-200",
     'ENGINEER': "bg-green-100 text-green-800 border-green-200",
+    'LAB': "bg-teal-100 text-teal-800 border-teal-200",
     'USER': "bg-gray-100 text-gray-800 border-gray-200"
 };
 

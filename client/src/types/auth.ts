@@ -1,4 +1,4 @@
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'ENGINEER' | 'USER';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'ENGINEER' | 'LAB' | 'USER';
 
 export interface User {
     id: string;
@@ -29,5 +29,7 @@ export const canAssignEngineers = (role: UserRole): boolean => ['SUPER_ADMIN', '
 // USER role is read-only: sees everything, cannot operate anything
 export const isReadOnly = (role: UserRole): boolean => role === 'USER';
 export const canOperate = (role: UserRole): boolean => ['SUPER_ADMIN', 'ADMIN', 'ENGINEER'].includes(role);
+// Laboratorio: carga y revisa resultados de todas las OIT sin estar asignado.
+export const canUseLab = (role: UserRole): boolean => ['SUPER_ADMIN', 'ADMIN', 'LAB'].includes(role);
 export const canGenerateFinalReport = (role: UserRole): boolean => ['SUPER_ADMIN', 'ADMIN'].includes(role);
 

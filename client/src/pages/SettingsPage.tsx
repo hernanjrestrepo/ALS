@@ -15,6 +15,7 @@ const ROLE_LABELS: Record<string, string> = {
     'SUPER_ADMIN': tr("Super Administrador"),
     'ADMIN': tr("Administrador"),
     'ENGINEER': tr("Ingeniero de Campo"),
+    'LAB': tr("Laboratorio"),
     'USER': tr("Usuario")
 };
 

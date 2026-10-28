@@ -1,3 +1,4 @@
+import { ChatInputTools, AttachmentChips, useChatAttachments, readable } from '@/components/shared/ChatInputTools';
 import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ export default function AIAssistantPage() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const files = useChatAttachments();
     const [context, setContext] = useState<SystemContext | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -69,14 +71,18 @@ export default function AIAssistantPage() {
             content: input,
             timestamp: new Date()
         };
+        const sent = readable(files.attachments);
+        if (sent.length) userMessage.content = `${input}\n\n📎 ${sent.map(a => a.name).join(', ')}`;
 
         setMessages(prev => [...prev, userMessage]);
         setInput('');
+        files.clear();
         setIsLoading(true);
 
         try {
             const response = await api.post('/ai/chat', {
                 message: input,
+                attachments: sent,
                 history: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
             });
 
@@ -244,7 +250,9 @@ export default function AIAssistantPage() {
 
                 {/* Input Area */}
                 <div className="border-t border-slate-200 p-4 bg-slate-50">
-                    <div className="flex items-center gap-3">
+                    <AttachmentChips items={files.attachments} onRemove={files.remove} />
+                    <div className="flex items-center gap-2">
+                        <ChatInputTools onFiles={files.addFiles} onDictate={t => setInput(prev => (prev ? prev + ' ' : '') + t)} disabled={isLoading} reading={files.reading} />
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}

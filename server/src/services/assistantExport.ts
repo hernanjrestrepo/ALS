@@ -125,7 +125,9 @@ export function parseBlocks(markdown: string): Block[] {
             i++;
             const chart = lang === 'chart' || lang === 'json' || lang === 'grafica' ? normalizeChart(body.join('\n')) : null;
             if (chart) blocks.push({ kind: 'chart', chart });
-            else if (lang !== 'chart' && body.join('').trim()) blocks.push({ kind: 'paragraph', text: body.join('\n') });
+            // Un bloque de codigo que no es una grafica (script, JSON suelto) NO va en el documento:
+            // el 27-oct el reporte traia "el codigo del diagrama de barras" y lo que hace el script.
+
             continue;
         }
 

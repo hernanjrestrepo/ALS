@@ -591,7 +591,7 @@ export default function OITDetailPage() {
                     </div>
                 )}
 
-                <Tabs defaultValue="info" className="w-full">
+                <Tabs defaultValue={new URLSearchParams(window.location.search).get('tab') || 'info'} className="w-full">
                     <div className="flex justify-center mb-8">
                         <TabsList className={`grid w-full ${isAdmin
                             ? 'max-w-3xl grid-cols-2 sm:grid-cols-5'
@@ -608,7 +608,7 @@ export default function OITDetailPage() {
                             <TabsTrigger value="sampling" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                 <Beaker className="mr-2 h-4 w-4" /> {tr("Muestreo")}
                             </TabsTrigger>
-                            {isAdmin && (
+                            {(isAdmin || user?.role === 'LAB') && (
                                 <TabsTrigger value="report" className="rounded-lg sm:rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all">
                                     <FileBarChart className="mr-2 h-4 w-4" /> {tr("Informe")}
                                 </TabsTrigger>

@@ -23,6 +23,7 @@ import {
     HelpCircle,
     HardHat,
     GraduationCap,
+    FlaskConical,
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -63,6 +64,7 @@ const getNavigationGroups = (userRole?: string) => {
         ] },
         { title: tr("Operación"), items: [
             { icon: FileText, label: tr('OITs'), href: '/oits' },
+            ...(userRole === 'LAB' || userRole === 'ADMIN' || userRole === 'SUPER_ADMIN' ? [{ icon: FlaskConical, label: tr("Laboratorio"), href: '/lab' }] : []),
             { icon: Calendar, label: tr("Calendario"), href: '/calendar' },
             { icon: Box, label: tr("Recursos"), href: '/resources' },
         ] },
