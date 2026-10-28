@@ -36,6 +36,7 @@ describe('seguimiento de laboratorio', () => {
     it('distingue resultados de ALS y de terceros por el encabezado', () => {
         expect(classifyLabText('ALS Life Sciences Colombia\nINFORME DE RESULTADOS')).toBe('ALS');
         expect(classifyLabText('SGS Colombia S.A.S.\nInforme de ensayo de laboratorio. Método SM 4500')).toBe('TERCERO');
+        expect(classifyLabText('RESULTADOS DE LABORATORIO Código: FO-PO-PSM-26-08 Versión: 03 Datos del Cliente Empresa: LIMA S.A.S.')).toBe('ALS');
         expect(classifyLabText('')).toBe('DESCONOCIDO');
     });
 

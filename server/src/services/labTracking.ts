@@ -19,7 +19,8 @@ export const needsLabResult = (serviceName: string): boolean => !!fold(serviceNa
 export function classifyLabText(text: string): LabOrigin {
     const head = String(text || '').slice(0, 3000);
     if (!head.trim()) return 'DESCONOCIDO';
-    if (/\bALS\b|ALS (Life Sciences|Environmental|Global|Colombia)|serambiente/i.test(head)) return 'ALS';
+    // Los formatos de ALS traen su codigo de calidad ("Codigo: FO-PO-PSM-26-08"), aunque no digan ALS.
+    if (/\bFO-(PO|IT)-PSM-\d|\bALS\b|ALS (Life Sciences|Environmental|Global|Colombia)|serambiente/i.test(head)) return 'ALS';
     if (/laboratorio|resultados? (de )?(an[aá]lisis|laboratorio)|informe de ensayo|m[eé]todo|ISO\/IEC 17025|ONAC|IDEAM/i.test(head)) return 'TERCERO';
     return 'DESCONOCIDO';
 }
