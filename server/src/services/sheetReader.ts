@@ -104,20 +104,62 @@ REGLAS:
 - Responde solo el JSON, sin texto adicional.
 
 TEXTO DE LA PLANILLA:
-${text.substring(0, 12000)}`;
+${text.substring(0, CHUNK_CHARS + 1000)}`;
+}
+
+const fold = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const CHUNK_CHARS = 9000;
+const MAX_CHUNKS = 6;
+
+// Parte el texto en tandas por lineas.
+export function splitIntoChunks(text: string, size = CHUNK_CHARS): string[] {
+    const chunks: string[] = [];
+    let cur = '';
+    for (const line of text.split('\n')) {
+        if (cur.length + line.length + 1 > size && cur) { chunks.push(cur); cur = ''; }
+        cur += line + '\n';
+    }
+    if (cur.trim()) chunks.push(cur);
+    return chunks;
+}
+
+// Cuantas veces aparecen en la tanda las palabras de los campos pedidos (pH, oxigeno,
+// temperatura...): se leen primero las tandas que hablan de lo que se busca.
+export function scoreChunk(chunk: string, fields: SheetField[]): number {
+    const body = fold(chunk);
+    const words = new Set(fields.flatMap(f => fold(`${f.label} ${f.hint || ''}`).split(/[^a-z0-9]+/).filter(w => w.length >= 2 && !['de', 'del', 'la', 'el', 'en', 'se', 'y', 'o', 'por', 'in'].includes(w))));
+    let score = 0;
+    for (const w of words) score += body.split(w).length - 1;
+    return score;
 }
 
 // Llena campos desde el texto de un documento con el modelo de texto (ya cargado en la GPU).
+// Un documento largo (la PDF de la OT 15030 trae 20 paginas: lista de chequeo, acta, plan,
+// planilla de campo, controles de calidad = 90 000 caracteres) se lee por tandas, las mas
+// relevantes primero. Antes solo se enviaban los primeros 12 000 caracteres (la lista de
+// chequeo) y no se leia ningun dato (28-oct: "no me esta reconociendo pH, temperatura ni oxigeno").
 export async function readFieldsFromText(text: string, fields: SheetField[]): Promise<Record<string, string>> {
-    const response = await axios.post(`${OLLAMA_URL}/api/generate`, {
-        model: TEXT_MODEL,
-        prompt: buildTextSheetPrompt(text, fields),
-        stream: false,
-        // Extraer datos no necesita razonar mucho: gpt-oss en nivel alto tardo 225 s en una cotizacion.
-        think: 'low',
-        options: { num_ctx: 16384, temperature: 0, seed: 42 },
-    }, { timeout: 300_000 });
-    return cleanSheetValues(parseJsonObject(response.data?.response || ''), fields);
+    const ranked = splitIntoChunks(text)
+        .map((chunk, i) => ({ chunk, i, score: scoreChunk(chunk, fields) }))
+        .filter(c => c.score > 0)
+        .sort((a, b) => b.score - a.score || a.i - b.i)
+        .slice(0, MAX_CHUNKS);
+    const values: Record<string, string> = {};
+    for (const { chunk } of ranked.length ? ranked : [{ chunk: text.substring(0, CHUNK_CHARS) }]) {
+        const remaining = fields.filter(f => !values[f.key]);
+        if (!remaining.length) break;
+        const response = await axios.post(`${OLLAMA_URL}/api/generate`, {
+            model: TEXT_MODEL,
+            prompt: buildTextSheetPrompt(chunk, remaining),
+            stream: false,
+            // Extraer datos no necesita razonar mucho: gpt-oss en nivel alto tardo 225 s en una cotizacion.
+            think: 'low',
+            options: { num_ctx: 16384, temperature: 0, seed: 42 },
+        }, { timeout: 300_000 });
+        const found = cleanSheetValues(parseJsonObject(response.data?.response || ''), remaining);
+        for (const [k, v] of Object.entries(found)) if (!values[k]) values[k] = v;
+    }
+    return values;
 }
 
 // Paginas de un PDF escaneado como imagenes PNG (poppler-utils: pdftoppm). Sin maxPages

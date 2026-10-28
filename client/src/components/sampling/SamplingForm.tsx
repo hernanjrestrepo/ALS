@@ -330,7 +330,13 @@ export function SamplingForm({ oit, service, schedule, steps, engineers, canEdit
     const responsable = draft.responsable?.value ?? plannedEngineers;
     const responsableChanged = !!draft.responsable && draft.responsable.value.trim() !== plannedEngineers.trim();
 
-    const sections = steps.filter(s => !headerKind(s.step));
+    // Pasos que no aplican al servicio: la plantilla de agua es de aguas subterraneas
+    // (tipo de captacion, nivel freatico / purga del pozo) y en un servicio de agua
+    // superficial pedia datos que no existen (OIT 15030, 28-oct). Se ocultan sin tocar la
+    // plantilla aprobada.
+    const isSurfaceWater = /superficial|rio|río|quebrada|embalse|laguna|cienaga|ciénaga/i.test(service.name) && !/subterr|pozo|aljibe|piez/i.test(service.name);
+    const notApplicable = (title: string) => isSurfaceWater && /tipo de captaci|nivel freatico|nivel freático|purga del pozo/i.test(title);
+    const sections = steps.filter(s => !headerKind(s.step) && !notApplicable(String(s.step?.title || '')));
     const subsByIndex = useMemo(() => Object.fromEntries(sections.map(s => [s.index, subFieldsFor(s.step)])) as Record<number, SubField[] | null>, [sections]);
     const openVisit = visits.length && !visits[visits.length - 1].departure ? visits[visits.length - 1] : null;
     const firstArrival = visits[0]?.arrival;
