@@ -52,11 +52,20 @@ export async function readSheetText(filePath: string, filename = path.basename(f
     }
 }
 
+function layoutPdfText(filePath: string): Promise<string> {
+    return new Promise(resolve => {
+        require('child_process').execFile('pdftotext', ['-layout', filePath, '-'], { timeout: 60_000, maxBuffer: 64 * 1024 * 1024 },
+            (err: Error | null, stdout: string) => resolve(err ? '' : String(stdout).replace(/[ \t]{3,}/g, '  ').replace(/\n{3,}/g, '\n\n')));
+    });
+}
+
 async function readSheetTextPlain(filePath: string, filename: string): Promise<SheetText> {
     const ext = path.extname(filename).toLowerCase();
     try {
         if (ext === '.pdf') {
-            const text = (await pdfService.extractText(filePath)) || '';
+            // pdftotext -layout conserva las columnas de las tablas ("7,11  7,12" = muestra y
+            // duplicado); pdf-parse las pega ("7,117,12"). Si no esta, se usa pdf-parse.
+            const text = (await layoutPdfText(filePath)) || (await pdfService.extractText(filePath)) || '';
             if (text.trim().length < MIN_PDF_TEXT) {
                 return { filename, status: 'ESCANEADO', text: '', reason: 'PDF sin texto (escaneado). Usar la lectura por foto para llenar los campos.' };
             }
