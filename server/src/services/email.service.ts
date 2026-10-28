@@ -96,3 +96,12 @@ export async function sendReportWithAttachments(
 
     await sesClient.send(command);
 }
+
+// Correo simple en HTML (resumenes y avisos internos).
+export async function sendSimpleEmail(to: string[], subject: string, html: string): Promise<void> {
+    await sesClient.send(new SendEmailCommand({
+        FromEmailAddress: SENDER,
+        Destination: { ToAddresses: to },
+        Content: { Simple: { Subject: { Data: subject }, Body: { Html: { Data: html } } } },
+    }));
+}

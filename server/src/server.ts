@@ -2,7 +2,7 @@ import app from './app';
 import { logError } from './utils/errors';
 import { startMailboxPolling } from './services/mailbox-poller.service';
 import { startAcademyScheduler } from './services/academyPropuestas';
-import { dailyLabDigest } from './controllers/lab.controller';
+import { dailyLabDigest, checkWebhookSilence } from './services/labFollowup';
 
 const PORT = Number(process.env.PORT) || 4000;
 
@@ -22,6 +22,7 @@ app.listen(PORT, '127.0.0.1', () => {
     startMailboxPolling();
     startAcademyScheduler();
     startLabDigest();
+    setInterval(() => { checkWebhookSilence().catch(e => logError('Vigilancia de Serambiente', e)); }, 15 * 60 * 1000);
 });
 
 // Resumen diario de pendientes de laboratorio: 7:00 a. m. hora de Colombia (UTC-5), dias habiles.

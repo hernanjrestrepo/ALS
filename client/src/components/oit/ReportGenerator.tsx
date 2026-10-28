@@ -20,6 +20,7 @@ interface ReportGeneratorProps {
     initialSheetUrl?: string | null;
     initialSheetAnalysis?: any;
     serviceGroup?: string; // New: optional service group name
+    onChanged?: () => void;
 }
 
 export function ReportGenerator({
@@ -28,7 +29,8 @@ export function ReportGenerator({
     initialLabAnalysis,
     initialSheetUrl,
     initialSheetAnalysis,
-    serviceGroup = 'General'
+    serviceGroup = 'General',
+    onChanged
 }: ReportGeneratorProps) {
     // General State
     const [isGenerating, setIsGenerating] = useState(false);
@@ -96,6 +98,8 @@ export function ReportGenerator({
     interface LabSvc { key: string; name: string; state: string; complete: boolean; completedAt?: string; completedBy?: string; missing?: string[]; files: Array<{ file: string; origin: string }> }
     const [labSvc, setLabSvc] = useState<LabSvc | null>(null);
     const [isClosing, setIsClosing] = useState(false);
+    const [lastWebhook, setLastWebhook] = useState<string | null>(null);
+    useEffect(() => { api.get('/lab/webhook-status').then(r => setLastWebhook(r.data?.lastReceivedAt || null)).catch(() => undefined); }, []);
     const refreshLabStatus = async () => {
         try {
             const { data } = await api.get(`/oits/${oitId}/lab-status`);
@@ -112,6 +116,7 @@ export function ReportGenerator({
         try {
             const { data } = await api.post(`/oits/${oitId}/lab-complete`, { group: labSvc?.key || serviceGroup, complete });
             await refreshLabStatus();
+            onChanged?.();
             if (complete) {
                 if (data.missing?.length) notify.warning(`Cargue completo con ${data.missing.length} parámetro(s) cotizado(s) sin resultado: ${data.missing.slice(0, 4).join(', ')}`);
                 else notify.success('Cargue completo registrado. Todo lo cotizado aparece en los resultados.');
@@ -622,6 +627,12 @@ export function ReportGenerator({
                                 {isClosing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}{tr("Cargue completo")}
                             </Button>}
                     </div>
+                    {labUrls.length === 0 && (
+                        <p className="text-xs text-sky-900 bg-sky-50 border border-sky-200 rounded-lg p-2">
+                            {tr("Todavía no llega el resultado de este servicio desde Serambiente. Llega solo cuando Serambiente lo envía; mientras tanto puedes cargarlo aquí (propio o de terceros).")}
+                            {lastWebhook ? ` ${tr("Último aviso recibido de Serambiente")}: ${new Date(lastWebhook).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}.` : ''}
+                        </p>
+                    )}
                     {!!labSvc?.missing?.length && (
                         <div className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2">
                             <p className="font-semibold">{tr("Cotizados sin aparecer en los resultados")} ({labSvc.missing.length}):</p>

@@ -38,7 +38,7 @@ import {
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { readSheet, sheetReaderStatus } from '../controllers/sheet.controller';
-import { labComplete, labStatusForOit } from '../controllers/lab.controller';
+import { labComplete, labStatusForOit, oitTraceability } from '../controllers/lab.controller';
 import { proposeAssignments } from '../controllers/planning.controller';
 import { authMiddleware, requireAdmin, requireOperational, requireEngineerAssignment, requireLabAccess } from '../middleware/auth.middleware';
 
@@ -49,6 +49,7 @@ router.get('/', authMiddleware, getAllOITs);
 // Antes de /:id para que no se tome como id de OIT
 router.get('/sheet-reader/status', authMiddleware, sheetReaderStatus);
 router.get('/:id/lab-status', authMiddleware, labStatusForOit);
+router.get('/:id/traceability', authMiddleware, oitTraceability);
 router.get('/:id', authMiddleware, getOITById);
 
 // Creating/editing/deleting an OIT is a planning decision: ADMIN+ only

@@ -8,11 +8,12 @@ import path from 'path';
 // import { marked } from 'marked';
 import axios from 'axios';
 import { errorMessage, logError, logWarning } from '../utils/errors';
-import { readIntegrationPayload, fromUrlAction } from '../utils/integrationPayload';
+import { readIntegrationPayload, fromUrlAction, webhookKeyOk } from '../utils/integrationPayload';
 import { getOrAssignConsecutive } from '../services/consecutive.service';
 import { linkOitFromText } from '../services/quotationLink';
 import { autoAssignTemplates } from '../services/templateAssignment';
 import { classifyLabText, LabOrigin } from '../services/labTracking';
+import { autoCloseLab, touchWebhook } from '../services/labFollowup';
 import { readSheetText, combineSheetTexts, SheetText } from '../services/sheetText';
 import { isSupervisor } from '../services/monitoringStaff';
 
@@ -409,6 +410,8 @@ export function serviceGroupName(aiDataRaw: string | null | undefined, group: st
 
 export const receiveLabResultsFromUrl = async (req: Request, res: Response) => {
     try {
+        if (!webhookKeyOk(req)) return res.status(401).json({ error: 'Clave de integración inválida' });
+        touchWebhook();
         const payload = readIntegrationPayload(req);
         const { OT, DOCUMENTO, SERVICIO } = payload;
         let group = String(payload.group || SERVICIO || 'General');
@@ -566,6 +569,7 @@ export async function processLabResultsAsync(oitId: string, filenames: string[],
         });
 
         console.log(`Lab analysis completed for OIT ${oitId}, Group: ${group}`);
+        await autoCloseLab(oitId);
 
         // Automatically generate final report if analysis was successful
         if (!analysis.includes('Error')) {
@@ -1146,6 +1150,8 @@ export const createOIT = async (req: Request, res: Response) => {
 // Create OIT from URL (Legacy JSON support)
 export const createOITFromUrl = async (req: Request, res: Response) => {
     try {
+        if (!webhookKeyOk(req)) return res.status(401).json({ error: 'Clave de integración inválida' });
+        touchWebhook();
         const payload = readIntegrationPayload(req);
         const { OT, DOCUMENTO } = payload;
 

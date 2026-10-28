@@ -66,6 +66,7 @@ model OIT {
   assignedEngineers     OITAssignment[]
   nonConformities       NonConformity[]
   signatures            Signature[]
+  labClarifications    LabClarification[]
 }
 
 // Firma en campo (punto 11 del blueprint): captura digital en pantalla o
@@ -400,4 +401,23 @@ model AcademyPropuesta {
   createdAt   DateTime  @default(now())
 
   @@index([modulo, estado])
+}
+
+// Solicitud de aclaracion al laboratorio por un parametro cotizado que no aparece en los
+// resultados (reunion del 27-oct): se abre sola y se sigue hasta que se responda.
+model LabClarification {
+  id         String    @id @default(uuid())
+  oitId      String
+  oit        OIT       @relation(fields: [oitId], references: [id], onDelete: Cascade)
+  service    String
+  parameter  String
+  question   String
+  status     String    @default("ABIERTA") // ABIERTA | RESUELTA
+  answer     String?
+  answeredBy String?
+  answeredAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([status])
+  @@index([oitId])
 }

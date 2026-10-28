@@ -41,6 +41,7 @@ import type { FeedbackCategory } from '@/components/feedback/FeedbackModal';
 
 import { QuotationLinker } from '@/components/oit/QuotationLinker';
 import { SamplingForm } from '@/components/sampling/SamplingForm';
+import { TraceabilityCard } from '@/components/oit/TraceabilityCard';
 import { scheduleDays, formatDays } from '@/lib/scheduleDays';
 import { getSuggestedDate, formatLocalDateLong, parseLocalDate, bogotaDateTimeToISO, toBogotaDateTimeInputs, formatBogotaDate, formatBogotaTime } from '@/lib/serviceDate';
 
@@ -2082,6 +2083,7 @@ export default function OITDetailPage() {
                                             try { return JSON.parse(oit.labResultsAnalysis); } catch { return oit.labResultsAnalysis; }
                                         })()}
                                         initialSheetUrl={oit.samplingSheetUrl}
+                                        onChanged={fetchOIT}
                                         initialSheetAnalysis={(() => {
                                             if (!oit.samplingSheetAnalysis) return null;
                                             if (typeof oit.samplingSheetAnalysis === 'object') return oit.samplingSheetAnalysis;
@@ -2090,6 +2092,8 @@ export default function OITDetailPage() {
                                     />
                                 </div>
                             )}
+
+                            <TraceabilityCard oitId={id!} />
 
                             {/* Planillas que la IA no pudo leer como texto: se avisa para que no se asuma que tiene sus datos */}
                             {(() => {

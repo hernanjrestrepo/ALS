@@ -1,11 +1,9 @@
 import { Request, Response } from 'express';
-import fs from 'fs';
-import path from 'path';
 import { PrismaClient } from '@prisma/client';
 import { createNotification } from './notification.controller';
-import { pdfService } from '../services/pdf.service';
 import { logError } from '../utils/errors';
-import { filesForService, missingParameters, parseGrouped, serviceStatuses, servicesOf, needsLabResult } from '../services/labTracking';
+import { quotedParameters, resultsText, openClarifications, traceabilityFor, lastWebhookTime } from '../services/labFollowup';
+import { missingParameters, parseGrouped, serviceStatuses } from '../services/labTracking';
 
 const prisma = new PrismaClient();
 
@@ -55,26 +53,6 @@ export const labStatusForOit = async (req: Request, res: Response) => {
     }
 };
 
-async function resultsText(files: string[]): Promise<string> {
-    let text = '';
-    for (const f of files) {
-        const p = path.join(__dirname, '../../', f);
-        if (!fs.existsSync(p)) continue;
-        try { text += '\n' + (f.endsWith('.pdf') ? await pdfService.extractText(p) : fs.readFileSync(p, 'utf-8')); } catch { /* archivo ilegible */ }
-    }
-    return text;
-}
-
-// Parametros cotizados para la OIT (cotizacion vinculada).
-async function quotedParameters(quotationId: string | null): Promise<string[]> {
-    if (!quotationId) return [];
-    const q = await prisma.quotation.findUnique({ where: { id: quotationId }, select: { complianceResult: true } });
-    try {
-        const checks: any[] = JSON.parse(q?.complianceResult || '{}')?.parameterChecks || [];
-        return checks.filter(c => c.quotedAs && !(c.problems || []).some((p: any) => p.type === 'FALTANTE')).map(c => String(c.quotedAs));
-    } catch { return []; }
-}
-
 // Laboratorio marca (o desmarca) "cargue completo" de un servicio. Al marcarlo se compara lo
 // cotizado contra lo recibido y se reportan las discrepancias (reunion del 27-oct).
 export const labComplete = async (req: Request, res: Response) => {
@@ -103,7 +81,10 @@ export const labComplete = async (req: Request, res: Response) => {
         const allDone = after.length > 0 && after.every(s => s.state === 'COMPLETO');
         await prisma.oIT.update({ where: { id }, data: { labComplete: JSON.stringify(completeMap), ...(allDone && oit.status !== 'COMPLETED' ? { status: 'COMPLETED' } : {}) } });
 
-        if (complete && missing.length) await notifyDiscrepancy(oit, group, missing);
+        if (complete && missing.length) {
+            await openClarifications(oit, group, missing);
+            await notifyDiscrepancy(oit, group, missing);
+        }
         res.json({ ok: true, complete: !!complete, missing, allServicesComplete: allDone });
     } catch (error) {
         logError(`Error marcando cargue completo de la OIT ${req.params.id}`, error);
@@ -117,20 +98,49 @@ async function notifyDiscrepancy(oit: { id: string; oitNumber: string }, group: 
     for (const r of recipients) await createNotification(r.id, `Discrepancia de laboratorio — OIT ${oit.oitNumber}`, message, 'WARNING', oit.id);
 }
 
-// Resumen diario para laboratorio: que esta abierto y que espera resultados.
-export async function dailyLabDigest() {
-    const since = new Date(Date.now() - 60 * 24 * 3600 * 1000);
-    const oits = await prisma.oIT.findMany({ where: { createdAt: { gte: since }, aiData: { not: null } }, select: LAB_SELECT, orderBy: { createdAt: 'desc' }, take: 300 });
-    const open = oits.map(o => ({ o, s: serviceStatuses(o) })).filter(r => r.s.length && r.s.some(x => x.state !== 'COMPLETO'));
-    const sin = open.filter(r => r.s.every(x => x.state === 'SIN_RESULTADOS'));
-    if (!open.length) return 0;
-    const lines = [
-        `${open.length} OIT abiertas en laboratorio; ${sin.length} sin ningún resultado.`,
-        ...open.slice(0, 6).map(({ o, s }) => `OIT ${o.oitNumber}: ${s.filter(x => x.state !== 'COMPLETO').map(x => `${x.name} (${x.state === 'SIN_RESULTADOS' ? 'sin resultados' : 'falta cargue completo'})`).join('; ')}`),
-    ];
-    const recipients = await prisma.user.findMany({ where: { role: { in: ['LAB', 'ADMIN', 'SUPER_ADMIN'] }, isActive: true }, select: { id: true } });
-    for (const r of recipients) await createNotification(r.id, 'Pendientes de laboratorio', lines.join('\n').slice(0, 900), 'INFO');
-    return recipients.length;
-}
 
-export { servicesOf, needsLabResult, filesForService };
+// ------------------------------------------------------------------ aclaraciones, trazabilidad y estado de la conexion
+export const listClarifications = async (req: Request, res: Response) => {
+    try {
+        const status = req.query.status === 'RESUELTA' ? 'RESUELTA' : 'ABIERTA';
+        const rows = await prisma.labClarification.findMany({
+            where: { status }, orderBy: { createdAt: status === 'ABIERTA' ? 'asc' : 'desc' }, take: 200,
+            include: { oit: { select: { id: true, oitNumber: true, clientName: true } } },
+        });
+        res.json(rows);
+    } catch (error) {
+        logError('Error listando aclaraciones de laboratorio', error);
+        res.status(500).json({ error: 'Error al cargar las aclaraciones' });
+    }
+};
+
+export const answerClarification = async (req: Request, res: Response) => {
+    try {
+        const answer = String(req.body?.answer || '').trim();
+        if (answer.length < 3) return res.status(400).json({ error: 'Escribe la respuesta' });
+        const user = (req as any).user;
+        const name = user?.userId ? (await prisma.user.findUnique({ where: { id: user.userId }, select: { name: true } }))?.name : undefined;
+        const updated = await prisma.labClarification.update({
+            where: { id: req.params.id },
+            data: { status: 'RESUELTA', answer: answer.slice(0, 1000), answeredBy: name || 'Laboratorio', answeredAt: new Date() },
+        });
+        res.json(updated);
+    } catch (error) {
+        logError('Error respondiendo la aclaración', error);
+        res.status(500).json({ error: 'No se pudo guardar la respuesta' });
+    }
+};
+
+export const oitTraceability = async (req: Request, res: Response) => {
+    try {
+        res.json({ events: await traceabilityFor(req.params.id) });
+    } catch (error) {
+        logError(`Error leyendo la trazabilidad de la OIT ${req.params.id}`, error);
+        res.status(500).json({ error: 'Error al leer la trazabilidad' });
+    }
+};
+
+// Cuando llego lo ultimo de Serambiente (la pantalla lo muestra si un servicio sigue sin resultados).
+export const webhookStatus = (_req: Request, res: Response) => {
+    res.json({ lastReceivedAt: lastWebhookTime().toISOString() });
+};

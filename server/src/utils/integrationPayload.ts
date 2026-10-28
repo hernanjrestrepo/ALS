@@ -68,3 +68,13 @@ export function readIntegrationPayload(req: Request): IntegrationPayload {
         keys: Object.keys(merged),
     };
 }
+
+// Clave compartida opcional para los webhooks de Serambiente. Mientras WEBHOOK_SHARED_SECRET no
+// este definida todo se acepta como siempre (Serambiente aun no la manda); al definirla, solo
+// entran llamadas con la clave en la cabecera x-webhook-key o en el campo "key".
+export function webhookKeyOk(req: Request): boolean {
+    const secret = (process.env.WEBHOOK_SHARED_SECRET || '').trim();
+    if (!secret) return true;
+    const given = String(req.headers['x-webhook-key'] || (req.query as any)?.key || (req.body && typeof req.body === 'object' ? (req.body as any).key : '') || '');
+    return given === secret;
+}

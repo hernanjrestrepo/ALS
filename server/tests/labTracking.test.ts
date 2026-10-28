@@ -46,3 +46,21 @@ describe('seguimiento de laboratorio', () => {
         expect(normalizeParameterName('AguasNitritos')).toBe('nitritos');
     });
 });
+
+import { webhookKeyOk } from '../src/utils/integrationPayload';
+
+describe('clave compartida de los webhooks', () => {
+    const req = (headers: any = {}, query: any = {}, body: any = {}) => ({ headers, query, body }) as any;
+    it('sin WEBHOOK_SHARED_SECRET todo se acepta (como hasta hoy)', () => {
+        delete process.env.WEBHOOK_SHARED_SECRET;
+        expect(webhookKeyOk(req())).toBe(true);
+    });
+    it('con la clave definida solo entra quien la manda', () => {
+        process.env.WEBHOOK_SHARED_SECRET = 'abc123';
+        expect(webhookKeyOk(req())).toBe(false);
+        expect(webhookKeyOk(req({ 'x-webhook-key': 'abc123' }))).toBe(true);
+        expect(webhookKeyOk(req({}, { key: 'abc123' }))).toBe(true);
+        expect(webhookKeyOk(req({}, {}, { key: 'otra' }))).toBe(false);
+        delete process.env.WEBHOOK_SHARED_SECRET;
+    });
+});
