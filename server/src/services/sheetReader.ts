@@ -100,8 +100,8 @@ ${list}
 REGLAS:
 - Usa exactamente las claves de la lista. Omite el campo si no aparece en el texto. NUNCA adivines ni inventes.
 - Copia el valor como está escrito (números con su separador decimal, sin agregar unidades que no estén).
-- Si un campo tiene varias lecturas, sepáralas con "; ".
-- Si la tabla tiene columnas MUESTRA y DUPLICADO, toma el valor de la columna MUESTRA (la primera).
+- Si un campo tiene lecturas de varios puntos de muestreo (punto 1, punto 2...), sepáralas con "; ".
+- La columna DUPLICADO no es otro punto: si hay columnas MUESTRA y DUPLICADO, toma solo el valor de MUESTRA (la primera) e ignora el duplicado.
 - Una MEDICIÓN es el valor que escribió la persona en campo. NO son mediciones los rangos de trabajo, los métodos de referencia (SM 4500H+ B), las unidades, los valores de verificación o calibración de equipos, ni las listas de chequeo.
 - Si la celda de un parámetro está vacía, omítelo.
 - Responde solo el JSON, sin texto adicional.
