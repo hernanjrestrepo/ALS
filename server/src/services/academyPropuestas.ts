@@ -17,6 +17,7 @@ import { MODULOS_ACADEMY, ModuloAcademy } from '../data/academy-catalogo';
 import { createNotification } from '../controllers/notification.controller';
 import { logError } from '../utils/errors';
 
+import { ollamaPost } from './gpuQueue';
 const prisma = new PrismaClient();
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const TEXT_MODEL = process.env.OLLAMA_MODEL || 'gpt-oss';
@@ -64,7 +65,7 @@ export function parseBorrador(text: string): Borrador | null {
 }
 
 export async function redactar(prompt: string): Promise<Borrador | null> {
-    const r = await axios.post(`${OLLAMA_URL}/api/generate`, {
+    const r = await ollamaPost(`${OLLAMA_URL}/api/generate`, {
         model: TEXT_MODEL, prompt, stream: false, think: 'low',
         // Mismo contexto que el resto de llamadas: si cambia, Ollama recarga el modelo (~77 s)
         // y la siguiente persona que use la IA espera esa recarga (29-oct).

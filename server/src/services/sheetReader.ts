@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+import { ollamaPost } from './gpuQueue';
 // Lectura de la planilla de campo por foto (Hernan, 2026-10-23: "un boton para tomar
 // una foto de planillas y cargar toda la data sin necesidad de estar diligenciando").
 // Corre en la GPU propia del servidor (Hernan: "estamos pagando una GPU"), con un modelo
@@ -52,7 +53,7 @@ export function parseJsonObject(text: string): unknown {
 export async function readFieldSheet(imagesBase64: string[], fields: SheetField[]): Promise<Record<string, string>> {
     const model = sheetReaderModel();
     if (!model) throw Object.assign(new Error('La lectura de planillas por foto no está activada.'), { status: 503 });
-    const response = await axios.post(`${OLLAMA_URL}/api/chat`, {
+    const response = await ollamaPost(`${OLLAMA_URL}/api/chat`, {
         model,
         stream: false,
         format: 'json',
@@ -65,9 +66,11 @@ export async function readFieldSheet(imagesBase64: string[], fields: SheetField[
 
 // Vuelve a cargar el modelo de texto (mismo contexto que el resto: 16384) sin esperar.
 function rewarmTextModel() {
-    axios.post(`${OLLAMA_URL}/api/generate`, {
+    // Baja prioridad: si hay otra tanda de fotos esperando, va primero (recargar el modelo de
+    // texto entre tandas costaba ~77 s cada vez).
+    ollamaPost(`${OLLAMA_URL}/api/generate`, {
         model: TEXT_MODEL, prompt: 'ok', stream: false, keep_alive: -1, options: { num_ctx: 16384, num_predict: 1 },
-    }, { timeout: 300_000 }).catch(err => console.warn('[Planilla] No se pudo recargar el modelo de texto:', err?.message));
+    }, { timeout: 300_000 }, 'baja').catch(err => console.warn('[Planilla] No se pudo recargar el modelo de texto:', err?.message));
 }
 
 // --- Transcripcion y lectura de cualquier archivo (Hernan, 23-oct: "debe poder leer todo
@@ -77,7 +80,7 @@ function rewarmTextModel() {
 export async function transcribeImages(imagesBase64: string[]): Promise<string> {
     const model = sheetReaderModel();
     if (!model) throw Object.assign(new Error('La lectura de planillas por foto no está activada.'), { status: 503 });
-    const response = await axios.post(`${OLLAMA_URL}/api/chat`, {
+    const response = await ollamaPost(`${OLLAMA_URL}/api/chat`, {
         model,
         stream: false,
         keep_alive: 0,
@@ -173,7 +176,7 @@ export async function readFieldsFromText(text: string, fields: SheetField[]): Pr
     for (const { chunk } of ranked.length ? ranked : [{ chunk: text.substring(0, CHUNK_CHARS) }]) {
         const remaining = fields.filter(f => !values[f.key]);
         if (!remaining.length) break;
-        const response = await axios.post(`${OLLAMA_URL}/api/generate`, {
+        const response = await ollamaPost(`${OLLAMA_URL}/api/generate`, {
             model: TEXT_MODEL,
             prompt: buildTextSheetPrompt(chunk, remaining),
             stream: false,

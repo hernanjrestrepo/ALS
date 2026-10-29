@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { errorMessage, logError, logWarning } from '../utils/errors';
 
+import { ollamaPost } from './gpuQueue';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'gpt-oss';
 
@@ -93,7 +94,7 @@ export class AIService {
             Resumen técnico (enfocado en servicios y ubicación):`;
 
             try {
-                const response = await axios.post(`${this.baseURL}/api/generate`, {
+                const response = await ollamaPost(`${this.baseURL}/api/generate`, {
                     model: this.defaultModel,
                     prompt,
                     stream: false,
@@ -146,7 +147,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
         const useModel = model || this.defaultModel;
         console.log(`[AI] Sending Chat Request. Model: ${useModel}`);
         try {
-            const response = await axios.post(`${this.baseURL}/api/generate`, {
+            const response = await ollamaPost(`${this.baseURL}/api/generate`, {
                 model: useModel,
                 system: system || 'Eres un asistente experto en ingeniería ambiental y normativa colombiana.',
                 prompt: message,
@@ -196,7 +197,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
 
             JSON:`;
 
-            const response = await axios.post(`${this.baseURL}/api/generate`, {
+            const response = await ollamaPost(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 prompt,
                 stream: false,
@@ -238,7 +239,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
             {"valid":true, "data":{"oitNumber":"", "description":"", "status":"PENDING"}}
             Texto: ${safeText}`;
 
-            const response = await axios.post(`${this.baseURL}/api/generate`, {
+            const response = await ollamaPost(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 prompt,
                 stream: false,
@@ -308,7 +309,7 @@ REGLAS ESTRICTAS E INQUEBRANTABLES:
 - Responde SOLO el objeto JSON con la clave "candidates", sin texto adicional antes o después.`;
 
         try {
-            const response = await axios.post(`${this.baseURL}/api/generate`, {
+            const response = await ollamaPost(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 system: 'Eres un asistente experto en preparar plantillas de documentos para automatizacion. Solo extraes texto que existe literalmente en el documento que se te da, nunca copias instrucciones ni ejemplos del prompt como si fueran datos reales.',
                 prompt,
@@ -405,7 +406,7 @@ REGLAS ESTRICTAS:
 - "resultados" debe incluir TODOS los parámetros medidos que encuentres en el documento, no solo algunos.
 - Responde SOLO el JSON, sin texto adicional antes o después.`;
 
-            const response = await axios.post(`${this.baseURL}/api/generate`, {
+            const response = await ollamaPost(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 prompt,
                 stream: false,
@@ -484,7 +485,7 @@ REGLAS ESTRICTAS:
 - Responde solo el resumen, sin texto adicional.`;
 
         try {
-            const response = await axios.post(`${this.baseURL}/api/generate`, {
+            const response = await ollamaPost(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 prompt,
                 stream: false,
@@ -534,7 +535,7 @@ REGLAS ESTRICTAS:
 - Responde SOLO el JSON.`;
 
         try {
-            const response = await axios.post(`${this.baseURL}/api/generate`, {
+            const response = await ollamaPost(`${this.baseURL}/api/generate`, {
                 model: this.defaultModel,
                 prompt,
                 stream: false,

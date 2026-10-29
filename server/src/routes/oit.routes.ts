@@ -38,6 +38,7 @@ import {
 } from '../controllers/oit.controller';
 import { upload } from '../config/multer';
 import { readSheet, sheetReaderStatus } from '../controllers/sheet.controller';
+import { prioridadAlta } from '../services/gpuQueue';
 import { labComplete, labStatusForOit, oitTraceability } from '../controllers/lab.controller';
 import { proposeAssignments } from '../controllers/planning.controller';
 import { authMiddleware, requireAdmin, requireOperational, requireEngineerAssignment, requireLabAccess } from '../middleware/auth.middleware';
@@ -90,7 +91,7 @@ router.put('/:id/service-dates', authMiddleware, requireAdmin, updateServiceDate
 // Sampling data endpoints: ADMIN+ always, ENGINEER only if assigned to this OIT, USER blocked
 router.post('/:id/sampling-data', authMiddleware, requireOperational, requireEngineerAssignment, saveSamplingData);
 // Lectura de la planilla de campo por foto (llena el formulario de muestreo)
-router.post('/:id/read-sheet', authMiddleware, requireOperational, requireEngineerAssignment, upload.array('images', 6), readSheet);
+router.post('/:id/read-sheet', authMiddleware, requireOperational, requireEngineerAssignment, upload.array('images', 6), prioridadAlta, readSheet);
 router.get('/:id/sampling-data', authMiddleware, getSamplingData);
 
 // Lab results and final report
@@ -103,7 +104,7 @@ router.delete('/:id/sampling-sheets', authMiddleware, requireOperational, requir
 router.post('/:id/generate-final-report', authMiddleware, requireAdmin, generateFinalReport);
 router.get('/:id/report-versions', authMiddleware, getReportVersions);
 router.post('/:id/report-versions/:versionId/activate', authMiddleware, requireAdmin, activateReportVersion);
-router.post('/:id/report-chat', authMiddleware, requireAdmin, reportChatPreview);
+router.post('/:id/report-chat', authMiddleware, requireAdmin, prioridadAlta, reportChatPreview);
 router.post('/:id/report-chat/approve', authMiddleware, requireAdmin, reportChatApprove);
 router.post('/:id/send-report', authMiddleware, requireAdmin, sendFinalReport);
 router.post('/:id/certificate', authMiddleware, requireOperational, requireEngineerAssignment, generateStageCertificate);
