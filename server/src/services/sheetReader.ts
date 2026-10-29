@@ -111,11 +111,10 @@ ${text.substring(0, CHUNK_CHARS + 1000)}`;
 }
 
 const fold = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-// Tandas grandes (~6.000 tokens, caben en el contexto de 16.384): una OT de 30.000 caracteres
-// pasa en 2 llamadas y no en 4 (el 29-oct un tecnico espero 31-105 s por lectura). La GPU
-// atiende una solicitud a la vez, asi que cada llamada de menos le ahorra la espera a todos.
-const CHUNK_CHARS = 22000;
-const MAX_CHUNKS = 3;
+// Tandas de 9.000 caracteres. Se probo 22.000 (2 llamadas en vez de 4, 23 s) el 29-oct con una OT
+// real y el modelo mezclo columnas (puso la temperatura como conductividad): no subir sin probar.
+const CHUNK_CHARS = 9000;
+const MAX_CHUNKS = 6;
 
 // Parte el texto en tandas por lineas.
 export function splitIntoChunks(text: string, size = CHUNK_CHARS): string[] {
