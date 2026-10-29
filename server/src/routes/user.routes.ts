@@ -10,7 +10,7 @@ import {
     updatePassword,
     changeMyPassword
 } from '../controllers/user.controller';
-import { authMiddleware, requireSuperAdmin, requireAdmin } from '../middleware/auth.middleware';
+import { authMiddleware, requireSuperAdmin, requireAdmin, requireOperational } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -24,8 +24,9 @@ router.get('/profile', getProfile);
 // Declarado antes de /:id/password para que "me" no sea capturado como :id.
 router.put('/me/password', changeMyPassword);
 
-// Get all engineers (for assignment dropdown) - requires ADMIN+
-router.get('/engineers', requireAdmin, getEngineers);
+// Personal de monitoreo para asignar y para el responsable del muestreo. Los tecnicos (ENGINEER)
+// tambien la necesitan en su formulario de campo (antes 403, 2026-10-29).
+router.get('/engineers', requireOperational, getEngineers);
 
 // Get all users - requires SUPER_ADMIN
 router.get('/', requireSuperAdmin, getAllUsers);
