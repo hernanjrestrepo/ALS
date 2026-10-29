@@ -525,7 +525,9 @@ export function ReportGenerator({
                             return (
                                 <div key={idx} className="group flex items-center gap-2 p-2 bg-slate-50 rounded-lg text-xs border border-slate-100 hover:bg-slate-100 transition-colors">
                                     <FileText className="h-3 w-3 text-slate-400" />
-                                    <span className="truncate flex-1 text-slate-600">{cleanName}</span>
+                                    {/* Abrir o descargar el archivo (Hernan, 2026-10-28: "no puedo ver el archivo de resultados") */}
+                                    <a href={formatReportUrl(url)} target="_blank" rel="noopener noreferrer" className="truncate flex-1 text-indigo-700 hover:underline" title={tr("Abrir archivo")}>{cleanName}</a>
+                                    <a href={formatReportUrl(url)} download className="text-slate-400 hover:text-slate-700" title={tr("Descargar")}><Download className="h-3.5 w-3.5" /></a>
                                     {originOf?.(url) === 'TERCERO' && <span className="text-[10px] rounded px-1 bg-purple-100 text-purple-700">Tercero</span>}
                                     {originOf?.(url) === 'ALS' && <span className="text-[10px] rounded px-1 bg-slate-200 text-slate-600">ALS</span>}
                                     <button

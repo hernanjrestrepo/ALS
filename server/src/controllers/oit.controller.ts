@@ -13,7 +13,10 @@ import { getOrAssignConsecutive } from '../services/consecutive.service';
 import { linkOitFromText } from '../services/quotationLink';
 import { autoAssignTemplates } from '../services/templateAssignment';
 import { classifyLabText, LabOrigin } from '../services/labTracking';
-import { autoCloseLab, touchWebhook } from '../services/labFollowup';
+import { autoCloseLab, touchWebhook, resultsText } from '../services/labFollowup';
+import { postProcessReportDocx } from '../services/reportPostProcess';
+import { buildReportContext, buildAiPrompt } from '../services/reportContext';
+import { filesForService, parseGrouped, servicesOf } from '../services/labTracking';
 import { readSheetText, combineSheetTexts, SheetText } from '../services/sheetText';
 import { isSupervisor } from '../services/monitoringStaff';
 
@@ -801,7 +804,7 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
                 // Ensure masterTemplate is valid before passing
                 const effectiveTemplate = masterTemplate || (templates.length > 0 ? templates[0] : null);
                 console.log(`[Report] Using template: ${effectiveTemplate?.name}, File: ${effectiveTemplate?.reportTemplateFile}`);
-                const { filename, isDocx, consecutive } = await generateDocumentFromMarkdown(oit, reportMarkdown, effectiveTemplate, groupLabAnalysisParsed);
+                const { filename, isDocx, consecutive } = await generateDocumentFromMarkdown(oit, reportMarkdown, effectiveTemplate, groupLabAnalysisParsed, { groupName: targetGroup || groupName });
 
                 groupResults.push({
                     name: `Informe ${groupName}`,
@@ -849,7 +852,7 @@ async function internalGenerateFinalReport(id: string, targetGroup?: string) {
 /**
  * Helper to generate document, returns filename and type
  */
-async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, template: any, parsedAIData: any = {}) {
+async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, template: any, parsedAIData: any = {}, extra: { groupName?: string } = {}) {
     const { pdfService } = require('../services/pdf.service');
     const { docxService } = require('../services/docx.service');
     const { TemplateDataMapper } = require('../config/templateDataMapper');
@@ -889,6 +892,29 @@ async function generateDocumentFromMarkdown(oit: any, reportMarkdown: string, te
             console.log(`[Report] Generated DOCX data with ${Object.keys(docxData).length} keys for template ${template.name}`);
 
             generatedFileBuffer = await docxService.generateDocument(template.reportTemplateFile, docxData);
+
+            // Acabado: sin resaltados ni instrucciones de la plantilla, tablas con los datos reales,
+            // analisis y conclusiones redactados con los resultados (reclamo del 28-oct, OIT 14985).
+            try {
+                const groupName = extra.groupName || template.oitType || template.name;
+                const svc = servicesOf(oit.aiData).find(x => x.name === groupName);
+                const grouped = parseGrouped<string[]>(oit.labResultsUrl);
+                const files = svc ? filesForService(grouped, svc, servicesOf(oit.aiData).length === 1) : (grouped[groupName] || []);
+                const labText = await resultsText(files);
+                let ctx = buildReportContext({ oit, serviceName: groupName, parsed: parsedAIData, labText, labFileName: files[0]?.split('/').pop() });
+                if (ctx.results.length) {
+                    try {
+                        const raw = await aiService.chat(buildAiPrompt(ctx), undefined, 'Responde solo JSON válido.', { think: 'low' } as any, 240000);
+                        const ai = JSON.parse((raw.match(/\{[\s\S]*\}/) || [raw])[0]);
+                        ctx = buildReportContext({ oit, serviceName: groupName, parsed: parsedAIData, labText, labFileName: files[0]?.split('/').pop(), ai });
+                    } catch (aiErr) {
+                        logWarning(`[Report] OIT ${oit.oitNumber}: la IA no redactó el análisis, se usa la redacción con los datos`, aiErr);
+                    }
+                }
+                generatedFileBuffer = postProcessReportDocx(generatedFileBuffer as Buffer, ctx);
+            } catch (ppErr) {
+                logError(`[Report] OIT ${oit.oitNumber}: no se pudo dar el acabado al informe, se entrega el documento de la plantilla`, ppErr);
+            }
             if (generatedFileBuffer) {
                 console.log(`[Report] Generated DOCX buffer size: ${generatedFileBuffer.length} bytes`);
             }
