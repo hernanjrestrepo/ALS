@@ -21,6 +21,7 @@ export interface ReportContext {
     sampleId?: string;
     reportNumber?: string;
     sampleDate?: string;
+    // "16 de octubre del año 2026" (las plantillas dicen "del año"); la fecha de hoy NO es la del muestreo.
     pointName?: string;
     coordinates?: string;
     contact?: { name?: string; phone?: string; email?: string; activity?: string };
@@ -315,6 +316,9 @@ const PLACEHOLDER_FIXES: Array<[RegExp, string | ((ctx: ReportContext) => string
 
 function fixPlaceholders(doc: any, ctx: ReportContext) {
     const m = matrixLabel(ctx.serviceName);
+    const dm = /^(\d{1,2}) de (\w+) de (\d{4})$/.exec(ctx.sampleDate || '');
+    const sampled = dm ? `${dm[1]} de ${dm[2]}` : '';
+    const sampledYear = dm ? dm[3] : '';
     for (const p of all(doc, 'w:p')) {
         let t = textOf(p);
         if (!t.trim()) continue;
@@ -322,10 +326,16 @@ function fixPlaceholders(doc: any, ctx: ReportContext) {
         for (const [re, to] of PLACEHOLDER_FIXES) next = next.replace(re, typeof to === 'function' ? to(ctx) : to);
         if (!m.groundwater) {
             next = next
+                .replace(/(aguas?)\s*\(\s*subterr[aá]neas?\s*\)/gi, (_x, a) => `${a} ${a === a.toUpperCase() ? m.word.toUpperCase() : m.word}`)
                 .replace(/aguas subterr[aá]neas/gi, 'aguas ' + m.word)
                 .replace(/agua subterr[aá]nea/gi, 'agua ' + m.word)
-                .replace(/\(\s*subterr[aá]nea\s*\)/gi, `(${m.word})`)
-                .replace(/\bsubterr[aá]nea\b/gi, m.word);
+                .replace(/\(\s*subterr[aá]nea\s*\)/gi, `(${m.word.replace(/^de /, '')})`)
+                .replace(/\bsubterr[aá]nea\b/gi, m.word.replace(/^de /, ''));
+        }
+        if (dm) {
+            next = next
+                .replace(/(realizada el d[ií]a )\d{1,2} de \w+( del a[ñn]o )\d{4}/gi, `$1${sampled}$2${sampledYear}`)
+                .replace(/(toma de muestras el d[ií]a )\d{1,2} de \w+( del )\d{4}/gi, `$1${sampled}$2${sampledYear}`);
         }
         next = next.replace(/\bX \(X\)/g, countWords(1)).replace(/ {2,}/g, ' ');
         if (next !== t) setParaText(p, next);
@@ -437,12 +447,28 @@ export function postProcessReportXml(xml: string, ctx: ReportContext): { xml: st
     return { xml: new XMLSerializer().serializeToString(doc), highlights };
 }
 
+// Encabezados: "(MATRIZ)" y el codigo "OT XXXX-X-A-XXXX-VXX" salian resaltados y sin datos.
+export function postProcessHeaderXml(xml: string, ctx: ReportContext): string {
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const m = matrixLabel(ctx.serviceName);
+    for (const p of all(doc, 'w:p')) {
+        const t = textOf(p);
+        let next = t.replace(/\(MATR[IÍ]Z\)/gi, m.title).replace(/OT\s*XXXX-X-A-XXXX-VXX/g, `OT ${ctx.oitNumber}`);
+        if (next !== t) setParaText(p, next);
+    }
+    stripHighlights(doc);
+    return new XMLSerializer().serializeToString(doc);
+}
+
 export function postProcessReportDocx(buffer: Buffer, ctx: ReportContext): Buffer {
     const zip = new PizZip(buffer);
     const file = zip.file('word/document.xml');
     if (!file) return buffer;
     const { xml } = postProcessReportXml(file.asText(), ctx);
     zip.file('word/document.xml', xml);
+    for (const name of Object.keys(zip.files)) {
+        if (/^word\/(header|footer)\d*\.xml$/.test(name)) zip.file(name, postProcessHeaderXml(zip.file(name)!.asText(), ctx));
+    }
     // Word recalcula la tabla de contenido y los indices al abrir el documento.
     const settings = zip.file('word/settings.xml');
     if (settings) {
