@@ -66,7 +66,9 @@ export function parseBorrador(text: string): Borrador | null {
 export async function redactar(prompt: string): Promise<Borrador | null> {
     const r = await axios.post(`${OLLAMA_URL}/api/generate`, {
         model: TEXT_MODEL, prompt, stream: false, think: 'low',
-        options: { num_ctx: 8192, temperature: 0.2, seed: 42 },
+        // Mismo contexto que el resto de llamadas: si cambia, Ollama recarga el modelo (~77 s)
+        // y la siguiente persona que use la IA espera esa recarga (29-oct).
+        options: { num_ctx: 16384, temperature: 0.2, seed: 42 },
     }, { timeout: 300_000 });
     return parseBorrador(r.data?.response || '');
 }
