@@ -71,9 +71,16 @@ export function pickByCompany(facts: LabFacts, quotations: QuotationLite[], excl
     const key = nameKey(facts.company);
     let candidates = quotations.filter(q => !excluded.has(q.id) && quotationClientKey(q) === key);
     if (!candidates.length) return { status: 'sin_candidata' };
-    if (candidates.length > 1 && facts.samples.length) {
-        const narrowed = candidates.filter(q => { const cov = quotationCoverage(q); return facts.samples.some(s => coversSample(cov, s)); });
-        if (narrowed.length) candidates = narrowed;
+    // La empresa sola no basta (30-oct: la OIT 14601 de COMPAS es de AGUA MARINA y se vinculo a la cotizacion
+    // SIACOT-20741, que cubre agua potable, superficial y biota). Si la cotizacion dice que matrices cubre
+    // (servicios elegidos o matrices leidas en el analisis), debe cubrir el tipo de muestra de la OIT. Si
+    // todavia no se sabe que cubre, se vincula por la empresa.
+    if (facts.samples.length) {
+        candidates = candidates.filter(q => {
+            const cov = quotationCoverage(q);
+            return !cov.replace(/[|\s]/g, '') || facts.samples.some(s => coversSample(cov, s));
+        });
+        if (!candidates.length) return { status: 'sin_candidata' };
     }
     if (candidates.length === 1) return { status: 'vinculada', quotationNumber: candidates[0].quotationNumber };
     return { status: 'ambigua', candidatas: candidates.map(q => q.quotationNumber) };

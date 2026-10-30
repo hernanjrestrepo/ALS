@@ -41,6 +41,17 @@ describe('vinculo automatico de OIT sin PDF', () => {
         expect(r).toEqual({ status: 'vinculada', quotationNumber: 'SIACOT-B' });
     });
 
+    it('una OIT de AGUA MARINA no se vincula a la cotizacion de COMPAS que cubre potable, superficial y biota (OIT 14601, 30-oct)', () => {
+        const compas = q('1', 'SIACOT-20741-09-2026', 'COMPAS S.A.', { complianceResult: JSON.stringify({ sampleMatrix: 'Agua Superficial, Caracterización de Agua Potable, Caracterización de Biota Continental' }) });
+        expect(pickByCompany({ company: 'COMPAS S.A.', samples: ['AGUA MARINA'] }, [compas]).status).toBe('sin_candidata');
+        expect(pickByCompany({ company: 'COMPAS S.A.', samples: ['AGUA POTABLE'] }, [compas]).status).toBe('vinculada');
+        expect(pickByCompany({ company: 'COMPAS S.A.', samples: ['AGUA SUPERFICIAL'] }, [compas]).status).toBe('vinculada');
+    });
+
+    it('si todavia no se sabe que cubre la cotizacion, se vincula por la empresa', () => {
+        expect(pickByCompany({ company: 'COMPAS S.A.', samples: ['AGUA MARINA'] }, [q('1', 'SIACOT-A', 'COMPAS S.A.')]).status).toBe('vinculada');
+    });
+
     it('si sigue habiendo mas de una, NO vincula (un vinculo equivocado es peor que ninguno)', () => {
         const r = pickByCompany(extractLabFacts(LAB), [q('1', 'SIACOT-A', 'COMPAS S.A.'), q('2', 'SIACOT-B', 'COMPAS S.A.')]);
         expect(r).toEqual({ status: 'ambigua', candidatas: ['SIACOT-A', 'SIACOT-B'] });
