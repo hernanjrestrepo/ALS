@@ -266,9 +266,9 @@ figcaption { font-size: 10px; color: #64748b; margin-top: 4px; font-style: itali
 .cover { display: flex; align-items: center; gap: 16px; } .cover img { width: 54px; height: 54px; flex-shrink: 0; }
 .foot { margin-top: 26px; padding-top: 8px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 9.5px; }
 </style></head><body>
-<div class="cover">${logo ? `<img src="${logo}" alt="ALS">` : ''}<div><div class="brand">ALS Xmart · Asistente IA</div><h1>${esc(title)}</h1><div class="meta">${esc(date)}${meta.author ? ' · Generado por ' + esc(meta.author) : ''}</div></div></div>
+<div class="cover">${logo ? `<img src="${logo}" alt="ALS">` : ''}<div><div class="brand">ALS Xmart · Martha, asistente IA</div><h1>${esc(title)}</h1><div class="meta">${esc(date)}${meta.author ? ' · Generado por ' + esc(meta.author) : ''}</div></div></div>
 ${body}
-<div class="foot">Documento generado automáticamente por el asistente de ALS Xmart a partir de los datos del sistema en la fecha indicada. Verifique la información antes de usarla en documentos oficiales.</div>
+<div class="foot">Documento generado automáticamente por Martha, la asistente de ALS Xmart a partir de los datos del sistema en la fecha indicada. Verifique la información antes de usarla en documentos oficiales.</div>
 </body></html>`;
 }
 
@@ -341,7 +341,7 @@ export async function toPptxBuffer(title: string, markdown: string, meta: { auth
         objects: [
             { rect: { x: 0, y: 0, w: 13.33, h: 0.9, fill: { color: BLUE } } },
             { rect: { x: 0, y: 7.2, w: 13.33, h: 0.3, fill: { color: 'F1F5F9' } } },
-            { text: { text: 'ALS Xmart · Asistente IA', options: { x: 0.4, y: 7.2, w: 6, h: 0.3, fontSize: 9, color: GREY, fontFace: 'Arial' } } },
+            { text: { text: 'ALS Xmart · Martha, asistente IA', options: { x: 0.4, y: 7.2, w: 6, h: 0.3, fontSize: 9, color: GREY, fontFace: 'Arial' } } },
             { text: { text: date, options: { x: 8.9, y: 7.2, w: 4, h: 0.3, fontSize: 9, color: GREY, align: 'right', fontFace: 'Arial' } } },
         ],
         slideNumber: { x: 12.6, y: 0.3, fontSize: 10, color: 'FFFFFF', fontFace: 'Arial' },
@@ -351,7 +351,7 @@ export async function toPptxBuffer(title: string, markdown: string, meta: { auth
     cover.background = { color: BLUE };
     const logo = logoDataUri();
     if (logo) cover.addImage({ data: logo.replace(/^data:/, ''), x: 0.7, y: 0.9, w: 1.1, h: 1.1 });
-    cover.addText('ALS XMART · ASISTENTE IA', { x: 0.7, y: 2.2, w: 12, h: 0.4, fontSize: 14, color: 'BFDBFE', charSpacing: 3, fontFace: 'Arial' });
+    cover.addText('ALS XMART · MARTHA, ASISTENTE IA', { x: 0.7, y: 2.2, w: 12, h: 0.4, fontSize: 14, color: 'BFDBFE', charSpacing: 3, fontFace: 'Arial' });
     cover.addText(title, { x: 0.7, y: 2.7, w: 12, h: 1.8, fontSize: 38, bold: true, color: 'FFFFFF', fontFace: 'Arial', valign: 'top', fit: 'shrink' });
     cover.addText(`${date}${meta.author ? ' · ' + meta.author : ''}`, { x: 0.7, y: 4.7, w: 12, h: 0.4, fontSize: 14, color: 'DBEAFE', fontFace: 'Arial' });
 

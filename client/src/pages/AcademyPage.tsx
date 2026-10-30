@@ -139,7 +139,7 @@ export default function AcademyPage() {
                     </section>
                 );
             })}
-            {data && !modulos.length && <p className="text-center text-sm text-slate-500 py-10">{tr("No hay módulos que coincidan con “")}{q}{tr("”. Prueba con otra palabra o pregúntale a Ana.")}</p>}
+            {data && !modulos.length && <p className="text-center text-sm text-slate-500 py-10">{tr("No hay módulos que coincidan con “")}{q}{tr("”. Prueba con otra palabra o pregúntale a Martha.")}</p>}
         </div>
     );
 }

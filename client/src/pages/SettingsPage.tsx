@@ -90,7 +90,7 @@ export default function SettingsPage() {
             <Card className="border-slate-200 shadow-sm bg-white">
                 <CardHeader>
                     <CardTitle>{tr("Idioma")}</CardTitle>
-                    <CardDescription>{tr("Idioma de la plataforma en este navegador. Ana también te responde en este idioma.")}</CardDescription>
+                    <CardDescription>{tr("Idioma de la plataforma en este navegador. Martha también te responde en este idioma.")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <LanguageSelector />

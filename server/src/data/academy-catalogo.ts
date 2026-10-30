@@ -64,7 +64,7 @@ export const MODULOS_ACADEMY: ModuloAcademy[] = [
         reglas: [
             'La IA propone, las personas aprueban: nada sale al cliente sin revisión.',
             'Cada persona ve el menú de su área; los administradores ven todo.',
-            'Si algo no está claro, pregúntale a Ana (el botón azul de chat, abajo a la derecha).',
+            'Si algo no está claro, pregúntale a Martha (el botón de chat con su foto, abajo a la derecha).',
         ],
         preguntas: [
             { pregunta: '¿Necesito instalar algo?', respuesta: 'No. Se abre en el navegador del computador o del celular en als.paradixe.xyz. En el celular puedes agregarla a la pantalla de inicio para usarla como aplicación.' },
@@ -83,8 +83,8 @@ export const MODULOS_ACADEMY: ModuloAcademy[] = [
         paraQue: 'Paradixe es una empresa colombiana que diseña software con inteligencia artificial para que los procesos de las empresas sean más rápidos y confiables. Construyó ALS Xmart junto con el equipo de ALS: cada mejora sale de las reuniones con ustedes, de las dudas frecuentes y de lo que se observa en el uso diario.',
         quienes: ['Todo el equipo de ALS'],
         pasos: [
-            { titulo: 'Cómo pedir un cambio', detalle: 'Cuéntaselo a Ana en el chat o a tu coordinador. Las solicitudes se recogen en las reuniones de seguimiento y se priorizan con ALS.' },
-            { titulo: 'Cómo reportar un error', detalle: 'Describe qué estabas haciendo, en qué OIT o cotización y, si puedes, toma un pantallazo. Ana también puede ayudarte a describirlo.' },
+            { titulo: 'Cómo pedir un cambio', detalle: 'Cuéntaselo a Martha en el chat o a tu coordinador. Las solicitudes se recogen en las reuniones de seguimiento y se priorizan con ALS.' },
+            { titulo: 'Cómo reportar un error', detalle: 'Describe qué estabas haciendo, en qué OIT o cotización y, si puedes, toma un pantallazo. Martha también puede ayudarte a describirlo.' },
         ],
         reglas: [
             'Los datos de ALS son de ALS: se usan solo para operar la plataforma.',
@@ -151,7 +151,7 @@ export const MODULOS_ACADEMY: ModuloAcademy[] = [
             'La IA no emite veredictos de cumplimiento que no estén en los datos.',
         ],
         preguntas: [
-            { pregunta: '¿Por qué mi cotización sigue "en análisis"?', respuesta: 'Los PDF largos pueden tardar varios minutos porque la IA revisa cada artículo de la norma. Si pasan más de 15 minutos, recarga la página; si sigue igual, avísale a Ana con el número de la cotización.' },
+            { pregunta: '¿Por qué mi cotización sigue "en análisis"?', respuesta: 'Los PDF largos pueden tardar varios minutos porque la IA revisa cada artículo de la norma. Si pasan más de 15 minutos, recarga la página; si sigue igual, avísale a Martha con el número de la cotización.' },
             { pregunta: '¿Qué significa un faltante "informativo"?', respuesta: 'Es una sugerencia: algo que la norma menciona pero que no necesariamente debía cotizarse. No baja la puntuación; queda para que el laboratorio decida.' },
         ],
         captura: 'cotizaciones.png',
@@ -396,7 +396,7 @@ export const MODULOS_ACADEMY: ModuloAcademy[] = [
         resumen: 'Indicadores de OIT, cotizaciones e informes generados.',
         paraQue: 'Ver cómo va la operación: cuántas OIT hay por estado, tendencias e informes recientes.',
         quienes: ['Dirección Técnica', 'Consultoría', 'Administradores'],
-        pasos: [{ titulo: 'Consultar', detalle: 'Abre Analítica y revisa las gráficas; para un análisis a la medida, pídeselo a Ana.' }],
+        pasos: [{ titulo: 'Consultar', detalle: 'Abre Analítica y revisa las gráficas; para un análisis a la medida, pídeselo a Martha.' }],
         reglas: [],
         preguntas: [],
         captura: 'analitica.png',
@@ -404,26 +404,26 @@ export const MODULOS_ACADEMY: ModuloAcademy[] = [
         palabras: ['analitica', 'indicador', 'estadistica', 'grafica', 'tendencia'],
     },
     {
-        key: 'ana',
+        key: 'martha',
         href: '/ai',
-        titulo: 'Ana, el asistente IA',
+        titulo: 'Martha, la asistente IA',
         grupo: 'Seguimiento',
         resumen: 'Pregúntale lo que sea del sistema; responde con tablas, gráficas y fotos, y entrega PDF, PowerPoint o Excel.',
-        paraQue: 'Ana conoce las OIT, cotizaciones, recursos, normas y este Academy. Responde en lenguaje natural, arma informes con gráficas, tablas y fotos del muestreo, y los entrega en PDF, PowerPoint o Excel con la marca de ALS. Responde en el idioma que elijas.',
+        paraQue: 'Martha conoce las OIT, cotizaciones, recursos, normas y este Academy. Responde en lenguaje natural, arma informes con gráficas, tablas y fotos del muestreo, y los entrega en PDF, PowerPoint o Excel con la marca de ALS. Responde en el idioma que elijas.',
         quienes: ['Todo el equipo de ALS'],
         pasos: [
-            { titulo: 'Abrir el chat', detalle: 'El botón azul de abajo a la derecha, en cualquier pantalla, o "Asistente IA" en el menú. Si estás en una OIT, Ana ya sabe cuál es.' },
+            { titulo: 'Abrir el chat', detalle: 'El botón con la foto de Martha, abajo a la derecha, en cualquier pantalla, o "Asistente IA" en el menú. Si estás en una OIT, Martha ya sabe cuál es.' },
             { titulo: 'Preguntar', detalle: 'Ej.: "¿Qué OIT están pendientes de programar?", "Hazme una gráfica de cotizaciones por estado", "Arma un informe de la OIT 15031 con las fotos".' },
             { titulo: 'Descargar', detalle: 'Debajo de cada respuesta están los botones PDF, PowerPoint y Excel.' },
         ],
         reglas: [
-            'Ana responde con los datos del sistema; si algo no está, lo dice.',
+            'Martha responde con los datos del sistema; si algo no está, lo dice.',
             'Verifica la información antes de usarla en documentos oficiales.',
         ],
         preguntas: [],
         captura: 'ana.png',
         fuentes: ['client/src/pages/AIAssistantPage.tsx', 'client/src/components/shared', 'server/src/services/assistantContext.ts', 'server/src/services/assistantExport.ts'],
-        palabras: ['ana', 'asistente', 'chat', 'pdf', 'powerpoint', 'excel', 'descargar'],
+        palabras: ['martha', 'ana', 'asistente', 'chat', 'pdf', 'powerpoint', 'excel', 'descargar'],
     },
     {
         key: 'notificaciones',
@@ -488,7 +488,7 @@ export const MODULOS_ACADEMY: ModuloAcademy[] = [
         paraQue: 'Cada persona ajusta sus datos, elige el idioma de la plataforma, cambia su contraseña y activa las notificaciones en el celular.',
         quienes: ['Todo el equipo de ALS'],
         pasos: [
-            { titulo: 'Cambiar el idioma', detalle: 'Configuración → Idioma, o el globo arriba a la derecha: español, inglés, portugués o francés. Ana también te responde en ese idioma.' },
+            { titulo: 'Cambiar el idioma', detalle: 'Configuración → Idioma, o el globo arriba a la derecha: español, inglés, portugués o francés. Martha también te responde en ese idioma.' },
             { titulo: 'Cambiar contraseña', detalle: 'Configuración → Cambiar contraseña: la actual y la nueva dos veces.' },
         ],
         reglas: [],

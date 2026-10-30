@@ -1,25 +1,625 @@
 {
-"_grupos":{"Fundamentos":"Fundamentos","Comercial":"Comercial","Operación":"Operação","Informes y calidad":"Relatórios e qualidade","Base técnica":"Base técnica","Seguimiento":"Acompanhamento","Administración":"Administração"},
-"als-xmart":{"t":"O que é o ALS Xmart?","r":"A plataforma da ALS que leva uma solicitação da cotação até o relatório assinado.","p":"O ALS Xmart reúne em um só lugar o que antes vivia em e-mails, planilhas e pastas: a cotação, a ordem de trabalho (OIT), a programação da equipe, a amostragem em campo, os resultados de laboratório e o relatório final. A inteligência artificial lê os documentos, verifica a conformidade com as normas, propõe a programação e redige rascunhos; as pessoas revisam e decidem.","q":["Toda a equipe da ALS"],"s":[["1. Cotação","O Comercial carrega a cotação (PDF). A IA a compara com a norma aplicável e marca o que falta ou sobra."],["2. OIT","Chega a ordem de trabalho (OIT). O PDF é carregado e a IA extrai o cliente, os serviços, o local e os recursos. Se tiver número SIACOT, vincula-se sozinha à sua cotação."],["3. Programação","A IA propõe data, hora e equipe livre para cada serviço e avisa se faltam equipamentos. Operações aceita ou ajusta."],["4. Amostragem","O técnico preenche o formulário no celular (funciona sem sinal), tira as 5 fotos obrigatórias e pode ler a planilha de campo com uma foto ou arquivo."],["5. Relatório","Os resultados do laboratório são carregados, a IA interpreta, o relatório é gerado com o modelo, assinado e enviado ao cliente."]],"g":["A IA propõe, as pessoas aprovam: nada chega ao cliente sem revisão.","Cada pessoa vê o menu da sua área; os administradores veem tudo.","Se algo não estiver claro, pergunte à Ana (o botão azul de chat, embaixo à direita)."],"f":[["Preciso instalar algo?","Não. Abre no navegador do computador ou do celular em als.paradixe.xyz. No celular você pode adicioná-lo à tela inicial para usar como aplicativo."],["O que faço se esqueci a senha?","Na tela de login use \"Esqueceu sua senha?\" e siga o link que chega ao seu e-mail."]]},
-"paradixe":{"t":"Quem é a Paradixe?","r":"A empresa de tecnologia que construiu o ALS Xmart e o melhora toda semana.","p":"A Paradixe é uma empresa colombiana que desenvolve software com inteligência artificial para que os processos das empresas sejam mais rápidos e confiáveis. Construiu o ALS Xmart junto com a equipe da ALS: cada melhoria vem das reuniões com vocês, das dúvidas frequentes e do que se observa no uso diário.","q":["Toda a equipe da ALS"],"s":[["Como pedir uma alteração","Conte à Ana no chat ou ao seu coordenador. As solicitações são reunidas nas reuniões de acompanhamento e priorizadas com a ALS."],["Como relatar um erro","Descreva o que você estava fazendo, em qual OIT ou cotação e, se puder, tire uma captura de tela. A Ana também pode ajudar a descrevê-lo."]],"g":["Os dados da ALS são da ALS: são usados apenas para operar a plataforma.","O Xmart Academy é atualizado quando o software muda; cada novidade é revisada antes de ser publicada."],"f":[]},
-"clientes":{"t":"Clientes","r":"O diretório de clientes com seu NIT e dados de contato.","p":"Ter cada cliente cadastrado uma única vez evita escrevê-lo de forma diferente em cada cotação ou OIT e permite buscar tudo o que foi feito para ele por nome ou NIT.","q":["Comercial","Administradores"],"s":[["Criar um cliente","Botão \"Novo Cliente\": nome, NIT e dados de contato. Salvar."],["Editar ou excluir","Use os ícones de lápis ou lixeira na linha do cliente."]],"g":["Escreva o NIT com o dígito verificador (ex. 900.123.456-7)."],"f":[]},
-"servicios":{"t":"Serviços","r":"O catálogo de serviços que a ALS presta (água, ar, solo, biota…).","p":"Os serviços são usados ao criar cotações e ajudam a IA a reconhecer o que está sendo solicitado em cada documento.","q":["Comercial","Administradores"],"s":[["Criar um serviço","Botão \"Novo Serviço\": nome (ex. Amostragem de água subterrânea) e categoria (Água, Ar, Solo, Biota…)."]],"g":["Use nomes claros e sem abreviações: assim a IA os reconhece nos documentos."],"f":[]},
-"cotizaciones":{"t":"Cotações","r":"Você carrega a cotação e a IA verifica, artigo por artigo, se cumpre a norma.","p":"Antes que uma cotação chegue ao cliente ou se torne uma OIT, a IA a compara com a norma aplicável: quais parâmetros cada artigo exige, quais estão cotados, quais faltam e quais sobram. Assim se evitam retrabalho e amostragens incompletas.","q":["Comercial","Direção Técnica","Consultoria"],"s":[["Carregar a cotação","Botão \"Nova Cotação\": escolha o cliente, opcionalmente o serviço, e envie o PDF (até 100 MB). O número provisório é substituído pelo número SIACOT do documento ao terminar a análise."],["Aguardar a análise","A IA leva alguns minutos. Você pode continuar trabalhando; recebe uma notificação ao terminar."],["Revisar o resultado","No detalhe você vê a pontuação, a conformidade por artigo da norma, os alertas e os itens faltantes. Os faltantes que podem ser completados aparecem com um campo para preenchê-los."],["Decidir cada achado","O laboratório registra sua decisão e um comentário em cada achado. O que é apenas informativo fica em um quadro resumo e não reduz a pontuação."],["Aprovar para OIT","Quando a cotação está correta, ela é marcada como aprovada. As OITs que trazem seu número SIACOT são vinculadas sozinhas."]],"g":["Se a IA não souber se dois nomes são o mesmo parâmetro (ex. \"Nitrogênio Kjeldahl\" e \"Nitrogênio total\"), ela cria uma consulta de parâmetros para o laboratório em vez de adivinhar.","Equivalências já confirmadas: coliformes termotolerantes = fecais; SAAM = surfactantes.","A IA não emite vereditos de conformidade que não estejam nos dados."],"f":[["Por que minha cotação continua \"em análise\"?","PDFs longos podem levar vários minutos porque a IA revisa cada artigo da norma. Se passarem mais de 15 minutos, recarregue a página; se continuar igual, avise a Ana com o número da cotação."],["O que significa um faltante \"informativo\"?","É uma sugestão: algo que a norma menciona mas que não necessariamente precisava ser cotado. Não reduz a pontuação; fica para o laboratório decidir."]]},
-"consultas-parametros":{"t":"Consultas de parâmetros","r":"As dúvidas de equivalência entre parâmetros que a IA faz ao laboratório.","p":"Quando a norma chama um parâmetro de forma diferente de como o laboratório o cota, a IA não adivinha: pergunta. Cada resposta ensina a plataforma e a próxima cotação não pergunta o mesmo.","q":["Laboratório (responde)","Administradores"],"s":[["Ver as pendentes","A aba \"Pendentes\" mostra o parâmetro da norma, como foi cotado e em qual cotação apareceu."],["Responder","Responda \"É o mesmo parâmetro?\" com Sim ou Não e, se quiser, uma nota (como o laboratório o chama, o método…)."]],"g":["Cada resposta é aplicada automaticamente às próximas cotações."],"f":[]},
-"listas-distribucion":{"t":"Listas de distribuição","r":"Grupos de e-mails que recebem relatórios e avisos.","p":"Em vez de escrever os mesmos e-mails toda vez, salva-se uma lista (ex. faturamento de um cliente) e ela é escolhida ao enviar.","q":["Comercial","Administradores"],"s":[["Criar uma lista","Botão \"Nova Lista\": nome e os e-mails dos destinatários."]],"g":["Revise os e-mails antes de salvar: os relatórios chegam a essa lista."],"f":[]},
-"oits":{"t":"OITs (ordens de trabalho)","r":"Você carrega a OIT e a IA extrai serviços, recursos e alertas; a partir daí ela é programada, amostrada e relatada.","p":"A OIT é o centro de todo o trabalho: cada uma tem abas para informações, agenda, amostragem, relatório e qualidade. Assim qualquer pessoa sabe em que pé está uma ordem sem perguntar.","q":["Operações","Laboratório","Direção Técnica","Comercial (consulta)"],"s":[["Criar a OIT","Botão \"Nova OIT\" e envie o PDF. A IA lê cliente, NIT, \"Relatório em nome de\", serviços, local e recursos. Se tiver o número SIACOT, fica vinculada à sua cotação."],["Revisar as informações","Em \"Info\" você vê o que a IA leu, os alertas e as informações faltantes. Se algo ficou errado, use \"Reiniciar Análise\"."],["Seguir as abas","Agenda → Amostragem → Relatório → Qualidade. Cada aba é explicada em seu próprio módulo do Academy."],["Buscar","Na lista você pode buscar por número, cliente, NIT ou cotação, e ordenar."]],"g":["Os técnicos veem apenas as OITs em que estão designados; chefes, coordenadores e planejadores veem todas.","O relatório sai em nome do que a OIT diz em \"Relatório em nome de\"; se estiver vazio, em nome do cliente."],"f":[["Não vejo uma OIT que me disseram que existe","Se você é técnico, só vê as OITs em que está designado. Peça ao seu coordenador que o designe na aba Agenda."]]},
-"agenda":{"t":"Agenda e designação de equipe","r":"A IA propõe data e equipe livre para cada serviço e marca em vermelho o que falta.","p":"Programar à mão obriga a verificar quem está livre e se há equipamentos. A proposta faz isso por você: designa a equipe de monitoramento com menos carga (chefes e coordenadores por último), verifica os equipamentos segundo a matriz do serviço e avisa com bandeiras vermelhas.","q":["Operações","Planejamento","Coordenadores"],"s":[["Abrir a aba Agenda","Na OIT, aba \"Agenda\". Você verá a \"Proposta de Programação IA\" com cada serviço."],["Aceitar a proposta","\"Aceitar Proposta\" designa a equipe livre, define a hora de início às 8:00 e mostra os alertas (por exemplo, um equipamento que falta)."],["Vários dias","Se o monitoramento durar vários dias, em \"Editar Programação\" adicione dias avulsos ou um intervalo (você pode pular sábados e domingos)."],["Ajustar à mão","\"Configurar manualmente\" permite alterar data, hora e equipe de cada serviço."]],"g":["Só aparece a equipe de monitoramento ativa (administrada em \"Equipe de monitoramento\").","Uma bandeira vermelha não bloqueia: é um aviso para resolver antes do dia da amostragem."],"f":[["Por que uma pessoa não aparece para designar?","Só aparece quem está na tabela de equipe de monitoramento e ativo. Um administrador pode adicioná-la em Administração → Equipe de monitoramento."]]},
-"muestreo":{"t":"Amostragem em campo","r":"O formulário do técnico no celular: chegada, dados, planilha, 5 fotos e envio.","p":"O técnico registra tudo no local, mesmo sem sinal: o formulário fica salvo no celular e é enviado sozinho ao recuperar a conexão. Ao terminar, a IA revisa o que foi registrado e avisa se algo não confere.","q":["Técnicos de monitoramento","Coordenadores"],"s":[["Escolher o serviço","Na OIT, aba \"Amostragem\", toque no serviço que você vai fazer."],["\"Cheguei ao local\"","Registra a hora e o local de chegada. Se o monitoramento durar vários dias, marque a cada dia."],["Ler a planilha","Em \"Ler a planilha de campo\" tire uma foto ou anexe a planilha (foto, PDF com qualquer número de páginas, Word ou Excel). Os campos se preenchem sozinhos (em azul) e o que não pôde ser lido aparece como dúvida e no chat. Você pode ver ou remover cada arquivo."],["Completar os dados","Revise o que foi lido e complete o que faltar. O tipo de captação é escolhido de uma lista e, se a OIT o indicar, já vem preenchido."],["5 fotos obrigatórias","Panorâmica do ponto, coleta da amostra, parâmetros in situ com o equipamento, preservação e amostras na caixa térmica. Sem estas fotos não é possível terminar."],["Terminar","Toque em \"Terminar\": a saída é registrada, as fotos são enviadas e o formulário é enviado. Se não houver sinal, fica salvo e é enviado depois."]],"g":["Os dados lidos da planilha são marcados em azul: revise-os sempre.","Se você alterar o responsável pela amostragem, escreva o motivo.","Não apague os dados do navegador do celular com uma amostragem não enviada."],"f":[["A planilha não foi lida por completo","Revise as dúvidas que aparecem abaixo: são os campos que não foram encontrados. Preencha-os à mão. Se a foto ficou borrada, tire-a de novo com boa luz e de frente."],["O que acontece se eu não tiver sinal?","Continue trabalhando: tudo fica salvo no celular. Ao terminar sem sinal, a amostragem é enviada sozinha quando a conexão voltar."]]},
-"calendario":{"t":"Calendário","r":"A agenda de amostragens por mês, semana ou dia.","p":"Veja num relance quais amostragens estão programadas e quem as faz. Os monitoramentos de vários dias aparecem em cada um de seus dias.","q":["Operações","Técnicos","Comercial (consulta)"],"s":[["Mudar a visualização","Use Mês, Semana, Dia ou Agenda, e as setas para navegar."],["Abrir uma amostragem","Toque em um evento para ir à sua OIT."],["Filtrar","Busque pelo número da OIT ou use os filtros Agendados / Em andamento."]],"g":[],"f":[]},
-"recursos":{"t":"Recursos e equipamentos","r":"O inventário de equipamentos, com seu status e vencimento de calibração.","p":"A programação verifica este inventário para avisar se faltam equipamentos; a IA também alerta sobre calibrações vencidas ou a vencer.","q":["Operações","Infraestrutura"],"s":[["Adicionar um recurso","Nome, tipo, quantidade e status (Disponível, Em uso ou Manutenção)."],["Manter o status em dia","Se um equipamento sai para calibração ou manutenção, altere seu status para que não seja proposto na agenda."]],"g":["Um equipamento com calibração vencida não deve ser usado em campo."],"f":[]},
-"informes":{"t":"Relatórios e comunicados técnicos","r":"Com os resultados do laboratório a IA interpreta e o relatório é gerado com o modelo.","p":"Na aba \"Relatório\" da OIT são enviadas as planilhas e os resultados de laboratório de cada serviço. A IA interpreta os resultados frente à norma e é gerado o relatório ou comunicado técnico pronto para revisar, assinar e enviar.","q":["Laboratório","Direção Técnica","Consultoria"],"s":[["Enviar resultados","Em \"Gestão de Relatórios por Serviço\", adicione o PDF de resultados de laboratório do serviço."],["Revisar a interpretação","A IA mostra resultados e achados. Revise antes de gerar."],["Gerar e corrigir","Gere o relatório com o modelo; você pode pedir correções em linguagem natural e ver o histórico de versões."],["Assinar e enviar","Registre as assinaturas (na tela ou com documento assinado) e envie aos destinatários ou a uma lista de distribuição."]],"g":["Se o PDF de resultados for muito longo, envie-o dividido por serviço.","Revise sempre o relatório antes de enviá-lo: a IA redige, a pessoa responde por ele."],"f":[["A análise de resultados ficou pela metade","Envie de novo o PDF de resultados do serviço na aba Relatório. Se for muito longo, divida-o por serviço."]]},
-"calidad":{"t":"Qualidade e não conformidades","r":"Registro e acompanhamento de achados até o encerramento, com constâncias por etapa.","p":"Quando algo não atende ao esperado, é registrado como não conformidade, com severidade e responsável, e acompanhado até ser encerrado com sua resolução.","q":["Sistema Integrado de Gestão","Direção Técnica","Coordenadores"],"s":[["Registrar","Na aba \"Qualidade\" da OIT, \"Registrar Não Conformidade\": descrição, severidade e quem a detectou."],["Encerrar","\"Encerrar Não Conformidade\" pede para descrever como foi resolvida."],["Constância","Gera um certificado PDF da etapa concluída quando necessário."]],"g":["Uma não conformidade não é encerrada sem descrever a resolução."],"f":[]},
-"plantillas":{"t":"Modelos de amostragem","r":"As etapas do formulário de campo para cada tipo de serviço.","p":"Cada modelo define o que é registrado em campo (dados, listas, fotos, documentos) e com qual modelo de relatório é gerado o documento final.","q":["Direção Técnica","Operações"],"s":[["Criar um modelo","Nome, tipo de OIT, descrição e as etapas do fluxo (cada etapa com seu tipo: texto, número, lista, foto, documento…)."],["Lixeira","Um modelo excluído pode ser recuperado durante 90 dias."]],"g":["As alterações em um modelo se aplicam às amostragens novas, não às já enviadas."],"f":[]},
-"normas":{"t":"Normas e regras","r":"As normas (resoluções, decretos) frente às quais a IA revisa cotações e relatórios.","p":"A IA só pode verificar a conformidade frente às normas que estiverem aqui, com seus critérios e o documento de referência.","q":["Direção Técnica","Consultoria","Sistema Integrado de Gestão"],"s":[["Adicionar uma norma","Título, tipo de documento, descrição ou critérios e, opcionalmente, o PDF de referência."]],"g":["Mantenha as normas vigentes: uma norma revogada leva a revisões equivocadas."],"f":[]},
-"analitica":{"t":"Análises","r":"Indicadores de OITs, cotações e relatórios gerados.","p":"Veja como vai a operação: quantas OITs há por status, tendências e relatórios recentes.","q":["Direção Técnica","Consultoria","Administradores"],"s":[["Consultar","Abra Análises e revise os gráficos; para uma análise sob medida, peça à Ana."]],"g":[],"f":[]},
-"ana":{"t":"Ana, a assistente de IA","r":"Pergunte qualquer coisa sobre o sistema; ela responde com tabelas, gráficos e fotos, e entrega PDF, PowerPoint ou Excel.","p":"A Ana conhece as OITs, cotações, recursos, normas e este Academy. Responde em linguagem natural, monta relatórios com gráficos, tabelas e fotos da amostragem, e os entrega em PDF, PowerPoint ou Excel com a marca da ALS. Responde no idioma que você escolher.","q":["Toda a equipe da ALS"],"s":[["Abrir o chat","O botão azul embaixo à direita, em qualquer tela, ou \"Assistente IA\" no menu. Se você estiver em uma OIT, a Ana já sabe qual é."],["Perguntar","Ex.: \"Quais OITs estão pendentes de programar?\", \"Faça um gráfico de cotações por status\", \"Monte um relatório da OIT 15031 com as fotos\"."],["Baixar","Abaixo de cada resposta estão os botões PDF, PowerPoint e Excel."]],"g":["A Ana responde com os dados do sistema; se algo não estiver lá, ela diz.","Verifique as informações antes de usá-las em documentos oficiais."],"f":[]},
-"notificaciones":{"t":"Notificações","r":"Avisos de análises concluídas, designações e tarefas pendentes, também no celular.","p":"Você fica sabendo quando uma análise termina, quando é designado para uma amostragem ou quando algo exige sua decisão, sem ficar verificando a plataforma.","q":["Toda a equipe da ALS"],"s":[["Ativar no celular","Em Configurações → Notificações, ative as notificações push e aceite a permissão do navegador."],["Marcar como lidas","Em Notificações você pode marcar todas como lidas ou excluir uma."]],"g":[],"f":[]},
-"personal-monitoreo":{"t":"Equipe de monitoramento","r":"A tabela da equipe que pode ser designada para amostragens.","p":"Só quem está nesta tabela, e ativo, aparece ao designar equipe e na proposta automática. Os cargos de chefe, coordenador, supervisor ou planejador veem todas as OITs e são designados por último.","q":["Operações (administradores)","Gerência"],"s":[["Adicionar","Nome, cargo e e-mail. O e-mail deve ser o mesmo da conta no ALS Xmart."],["Desativar","Se alguém sai de férias ou se desliga, desative-o em vez de excluí-lo."]],"g":["O e-mail une a pessoa à sua conta: se não coincidir, ela não poderá ver suas OITs."],"f":[]},
-"usuarios":{"t":"Usuários e perfis","r":"Contas, funções e o menu que cada área vê.","p":"As contas são criadas com sua função. Cada área (Comercial, Operações, Laboratório…) vê no menu apenas o que usa; os administradores veem tudo.","q":["Super administrador"],"s":[["Criar um usuário","Nome, e-mail, função e senha temporária; no primeiro acesso pede-se que a altere."],["Alterar função ou senha","Na linha do usuário."]],"g":["Nunca compartilhe senhas por chat: cada pessoa altera a sua ao entrar."],"f":[]},
-"configuracion":{"t":"Configurações","r":"Seu perfil, idioma, senha e notificações.","p":"Cada pessoa ajusta seus dados, escolhe o idioma da plataforma, altera sua senha e ativa as notificações no celular.","q":["Toda a equipe da ALS"],"s":[["Mudar o idioma","Configurações → Idioma, ou o globo no canto superior direito: espanhol, inglês, português ou francês. A Ana também responde nesse idioma."],["Alterar senha","Configurações → Alterar senha: a atual e a nova duas vezes."]],"g":[],"f":[]}
+"_grupos": {
+"Fundamentos": "Fundamentos",
+"Comercial": "Comercial",
+"Operación": "Operação",
+"Informes y calidad": "Relatórios e qualidade",
+"Base técnica": "Base técnica",
+"Seguimiento": "Acompanhamento",
+"Administración": "Administração"
+},
+"als-xmart": {
+"t": "O que é o ALS Xmart?",
+"r": "A plataforma da ALS que leva uma solicitação da cotação até o relatório assinado.",
+"p": "O ALS Xmart reúne em um só lugar o que antes vivia em e-mails, planilhas e pastas: a cotação, a ordem de trabalho (OIT), a programação da equipe, a amostragem em campo, os resultados de laboratório e o relatório final. A inteligência artificial lê os documentos, verifica a conformidade com as normas, propõe a programação e redige rascunhos; as pessoas revisam e decidem.",
+"q": [
+"Toda a equipe da ALS"
+],
+"s": [
+[
+"1. Cotação",
+"O Comercial carrega a cotação (PDF). A IA a compara com a norma aplicável e marca o que falta ou sobra."
+],
+[
+"2. OIT",
+"Chega a ordem de trabalho (OIT). O PDF é carregado e a IA extrai o cliente, os serviços, o local e os recursos. Se tiver número SIACOT, vincula-se sozinha à sua cotação."
+],
+[
+"3. Programação",
+"A IA propõe data, hora e equipe livre para cada serviço e avisa se faltam equipamentos. Operações aceita ou ajusta."
+],
+[
+"4. Amostragem",
+"O técnico preenche o formulário no celular (funciona sem sinal), tira as 5 fotos obrigatórias e pode ler a planilha de campo com uma foto ou arquivo."
+],
+[
+"5. Relatório",
+"Os resultados do laboratório são carregados, a IA interpreta, o relatório é gerado com o modelo, assinado e enviado ao cliente."
+]
+],
+"g": [
+"A IA propõe, as pessoas aprovam: nada chega ao cliente sem revisão.",
+"Cada pessoa vê o menu da sua área; os administradores veem tudo.",
+"Se algo não estiver claro, pergunte à Martha (o botão azul de chat, embaixo à direita)."
+],
+"f": [
+[
+"Preciso instalar algo?",
+"Não. Abre no navegador do computador ou do celular em als.paradixe.xyz. No celular você pode adicioná-lo à tela inicial para usar como aplicativo."
+],
+[
+"O que faço se esqueci a senha?",
+"Na tela de login use \"Esqueceu sua senha?\" e siga o link que chega ao seu e-mail."
+]
+]
+},
+"paradixe": {
+"t": "Quem é a Paradixe?",
+"r": "A empresa de tecnologia que construiu o ALS Xmart e o melhora toda semana.",
+"p": "A Paradixe é uma empresa colombiana que desenvolve software com inteligência artificial para que os processos das empresas sejam mais rápidos e confiáveis. Construiu o ALS Xmart junto com a equipe da ALS: cada melhoria vem das reuniões com vocês, das dúvidas frequentes e do que se observa no uso diário.",
+"q": [
+"Toda a equipe da ALS"
+],
+"s": [
+[
+"Como pedir uma alteração",
+"Conte à Martha no chat ou ao seu coordenador. As solicitações são reunidas nas reuniões de acompanhamento e priorizadas com a ALS."
+],
+[
+"Como relatar um erro",
+"Descreva o que você estava fazendo, em qual OIT ou cotação e, se puder, tire uma captura de tela. A Martha também pode ajudar a descrevê-lo."
+]
+],
+"g": [
+"Os dados da ALS são da ALS: são usados apenas para operar a plataforma.",
+"O Xmart Academy é atualizado quando o software muda; cada novidade é revisada antes de ser publicada."
+],
+"f": []
+},
+"clientes": {
+"t": "Clientes",
+"r": "O diretório de clientes com seu NIT e dados de contato.",
+"p": "Ter cada cliente cadastrado uma única vez evita escrevê-lo de forma diferente em cada cotação ou OIT e permite buscar tudo o que foi feito para ele por nome ou NIT.",
+"q": [
+"Comercial",
+"Administradores"
+],
+"s": [
+[
+"Criar um cliente",
+"Botão \"Novo Cliente\": nome, NIT e dados de contato. Salvar."
+],
+[
+"Editar ou excluir",
+"Use os ícones de lápis ou lixeira na linha do cliente."
+]
+],
+"g": [
+"Escreva o NIT com o dígito verificador (ex. 900.123.456-7)."
+],
+"f": []
+},
+"servicios": {
+"t": "Serviços",
+"r": "O catálogo de serviços que a ALS presta (água, ar, solo, biota…).",
+"p": "Os serviços são usados ao criar cotações e ajudam a IA a reconhecer o que está sendo solicitado em cada documento.",
+"q": [
+"Comercial",
+"Administradores"
+],
+"s": [
+[
+"Criar um serviço",
+"Botão \"Novo Serviço\": nome (ex. Amostragem de água subterrânea) e categoria (Água, Ar, Solo, Biota…)."
+]
+],
+"g": [
+"Use nomes claros e sem abreviações: assim a IA os reconhece nos documentos."
+],
+"f": []
+},
+"cotizaciones": {
+"t": "Cotações",
+"r": "Você carrega a cotação e a IA verifica, artigo por artigo, se cumpre a norma.",
+"p": "Antes que uma cotação chegue ao cliente ou se torne uma OIT, a IA a compara com a norma aplicável: quais parâmetros cada artigo exige, quais estão cotados, quais faltam e quais sobram. Assim se evitam retrabalho e amostragens incompletas.",
+"q": [
+"Comercial",
+"Direção Técnica",
+"Consultoria"
+],
+"s": [
+[
+"Carregar a cotação",
+"Botão \"Nova Cotação\": escolha o cliente, opcionalmente o serviço, e envie o PDF (até 100 MB). O número provisório é substituído pelo número SIACOT do documento ao terminar a análise."
+],
+[
+"Aguardar a análise",
+"A IA leva alguns minutos. Você pode continuar trabalhando; recebe uma notificação ao terminar."
+],
+[
+"Revisar o resultado",
+"No detalhe você vê a pontuação, a conformidade por artigo da norma, os alertas e os itens faltantes. Os faltantes que podem ser completados aparecem com um campo para preenchê-los."
+],
+[
+"Decidir cada achado",
+"O laboratório registra sua decisão e um comentário em cada achado. O que é apenas informativo fica em um quadro resumo e não reduz a pontuação."
+],
+[
+"Aprovar para OIT",
+"Quando a cotação está correta, ela é marcada como aprovada. As OITs que trazem seu número SIACOT são vinculadas sozinhas."
+]
+],
+"g": [
+"Se a IA não souber se dois nomes são o mesmo parâmetro (ex. \"Nitrogênio Kjeldahl\" e \"Nitrogênio total\"), ela cria uma consulta de parâmetros para o laboratório em vez de adivinhar.",
+"Equivalências já confirmadas: coliformes termotolerantes = fecais; SAAM = surfactantes.",
+"A IA não emite vereditos de conformidade que não estejam nos dados."
+],
+"f": [
+[
+"Por que minha cotação continua \"em análise\"?",
+"PDFs longos podem levar vários minutos porque a IA revisa cada artigo da norma. Se passarem mais de 15 minutos, recarregue a página; se continuar igual, avise a Martha com o número da cotação."
+],
+[
+"O que significa um faltante \"informativo\"?",
+"É uma sugestão: algo que a norma menciona mas que não necessariamente precisava ser cotado. Não reduz a pontuação; fica para o laboratório decidir."
+]
+]
+},
+"consultas-parametros": {
+"t": "Consultas de parâmetros",
+"r": "As dúvidas de equivalência entre parâmetros que a IA faz ao laboratório.",
+"p": "Quando a norma chama um parâmetro de forma diferente de como o laboratório o cota, a IA não adivinha: pergunta. Cada resposta ensina a plataforma e a próxima cotação não pergunta o mesmo.",
+"q": [
+"Laboratório (responde)",
+"Administradores"
+],
+"s": [
+[
+"Ver as pendentes",
+"A aba \"Pendentes\" mostra o parâmetro da norma, como foi cotado e em qual cotação apareceu."
+],
+[
+"Responder",
+"Responda \"É o mesmo parâmetro?\" com Sim ou Não e, se quiser, uma nota (como o laboratório o chama, o método…)."
+]
+],
+"g": [
+"Cada resposta é aplicada automaticamente às próximas cotações."
+],
+"f": []
+},
+"listas-distribucion": {
+"t": "Listas de distribuição",
+"r": "Grupos de e-mails que recebem relatórios e avisos.",
+"p": "Em vez de escrever os mesmos e-mails toda vez, salva-se uma lista (ex. faturamento de um cliente) e ela é escolhida ao enviar.",
+"q": [
+"Comercial",
+"Administradores"
+],
+"s": [
+[
+"Criar uma lista",
+"Botão \"Nova Lista\": nome e os e-mails dos destinatários."
+]
+],
+"g": [
+"Revise os e-mails antes de salvar: os relatórios chegam a essa lista."
+],
+"f": []
+},
+"oits": {
+"t": "OITs (ordens de trabalho)",
+"r": "Você carrega a OIT e a IA extrai serviços, recursos e alertas; a partir daí ela é programada, amostrada e relatada.",
+"p": "A OIT é o centro de todo o trabalho: cada uma tem abas para informações, agenda, amostragem, relatório e qualidade. Assim qualquer pessoa sabe em que pé está uma ordem sem perguntar.",
+"q": [
+"Operações",
+"Laboratório",
+"Direção Técnica",
+"Comercial (consulta)"
+],
+"s": [
+[
+"Criar a OIT",
+"Botão \"Nova OIT\" e envie o PDF. A IA lê cliente, NIT, \"Relatório em nome de\", serviços, local e recursos. Se tiver o número SIACOT, fica vinculada à sua cotação."
+],
+[
+"Revisar as informações",
+"Em \"Info\" você vê o que a IA leu, os alertas e as informações faltantes. Se algo ficou errado, use \"Reiniciar Análise\"."
+],
+[
+"Seguir as abas",
+"Agenda → Amostragem → Relatório → Qualidade. Cada aba é explicada em seu próprio módulo do Academy."
+],
+[
+"Buscar",
+"Na lista você pode buscar por número, cliente, NIT ou cotação, e ordenar."
+]
+],
+"g": [
+"Os técnicos veem apenas as OITs em que estão designados; chefes, coordenadores e planejadores veem todas.",
+"O relatório sai em nome do que a OIT diz em \"Relatório em nome de\"; se estiver vazio, em nome do cliente."
+],
+"f": [
+[
+"Não vejo uma OIT que me disseram que existe",
+"Se você é técnico, só vê as OITs em que está designado. Peça ao seu coordenador que o designe na aba Agenda."
+]
+]
+},
+"agenda": {
+"t": "Agenda e designação de equipe",
+"r": "A IA propõe data e equipe livre para cada serviço e marca em vermelho o que falta.",
+"p": "Programar à mão obriga a verificar quem está livre e se há equipamentos. A proposta faz isso por você: designa a equipe de monitoramento com menos carga (chefes e coordenadores por último), verifica os equipamentos segundo a matriz do serviço e avisa com bandeiras vermelhas.",
+"q": [
+"Operações",
+"Planejamento",
+"Coordenadores"
+],
+"s": [
+[
+"Abrir a aba Agenda",
+"Na OIT, aba \"Agenda\". Você verá a \"Proposta de Programação IA\" com cada serviço."
+],
+[
+"Aceitar a proposta",
+"\"Aceitar Proposta\" designa a equipe livre, define a hora de início às 8:00 e mostra os alertas (por exemplo, um equipamento que falta)."
+],
+[
+"Vários dias",
+"Se o monitoramento durar vários dias, em \"Editar Programação\" adicione dias avulsos ou um intervalo (você pode pular sábados e domingos)."
+],
+[
+"Ajustar à mão",
+"\"Configurar manualmente\" permite alterar data, hora e equipe de cada serviço."
+]
+],
+"g": [
+"Só aparece a equipe de monitoramento ativa (administrada em \"Equipe de monitoramento\").",
+"Uma bandeira vermelha não bloqueia: é um aviso para resolver antes do dia da amostragem."
+],
+"f": [
+[
+"Por que uma pessoa não aparece para designar?",
+"Só aparece quem está na tabela de equipe de monitoramento e ativo. Um administrador pode adicioná-la em Administração → Equipe de monitoramento."
+]
+]
+},
+"muestreo": {
+"t": "Amostragem em campo",
+"r": "O formulário do técnico no celular: chegada, dados, planilha, 5 fotos e envio.",
+"p": "O técnico registra tudo no local, mesmo sem sinal: o formulário fica salvo no celular e é enviado sozinho ao recuperar a conexão. Ao terminar, a IA revisa o que foi registrado e avisa se algo não confere.",
+"q": [
+"Técnicos de monitoramento",
+"Coordenadores"
+],
+"s": [
+[
+"Escolher o serviço",
+"Na OIT, aba \"Amostragem\", toque no serviço que você vai fazer."
+],
+[
+"\"Cheguei ao local\"",
+"Registra a hora e o local de chegada. Se o monitoramento durar vários dias, marque a cada dia."
+],
+[
+"Ler a planilha",
+"Em \"Ler a planilha de campo\" tire uma foto ou anexe a planilha (foto, PDF com qualquer número de páginas, Word ou Excel). Os campos se preenchem sozinhos (em azul) e o que não pôde ser lido aparece como dúvida e no chat. Você pode ver ou remover cada arquivo."
+],
+[
+"Completar os dados",
+"Revise o que foi lido e complete o que faltar. O tipo de captação é escolhido de uma lista e, se a OIT o indicar, já vem preenchido."
+],
+[
+"5 fotos obrigatórias",
+"Panorâmica do ponto, coleta da amostra, parâmetros in situ com o equipamento, preservação e amostras na caixa térmica. Sem estas fotos não é possível terminar."
+],
+[
+"Terminar",
+"Toque em \"Terminar\": a saída é registrada, as fotos são enviadas e o formulário é enviado. Se não houver sinal, fica salvo e é enviado depois."
+]
+],
+"g": [
+"Os dados lidos da planilha são marcados em azul: revise-os sempre.",
+"Se você alterar o responsável pela amostragem, escreva o motivo.",
+"Não apague os dados do navegador do celular com uma amostragem não enviada."
+],
+"f": [
+[
+"A planilha não foi lida por completo",
+"Revise as dúvidas que aparecem abaixo: são os campos que não foram encontrados. Preencha-os à mão. Se a foto ficou borrada, tire-a de novo com boa luz e de frente."
+],
+[
+"O que acontece se eu não tiver sinal?",
+"Continue trabalhando: tudo fica salvo no celular. Ao terminar sem sinal, a amostragem é enviada sozinha quando a conexão voltar."
+]
+]
+},
+"calendario": {
+"t": "Calendário",
+"r": "A agenda de amostragens por mês, semana ou dia.",
+"p": "Veja num relance quais amostragens estão programadas e quem as faz. Os monitoramentos de vários dias aparecem em cada um de seus dias.",
+"q": [
+"Operações",
+"Técnicos",
+"Comercial (consulta)"
+],
+"s": [
+[
+"Mudar a visualização",
+"Use Mês, Semana, Dia ou Agenda, e as setas para navegar."
+],
+[
+"Abrir uma amostragem",
+"Toque em um evento para ir à sua OIT."
+],
+[
+"Filtrar",
+"Busque pelo número da OIT ou use os filtros Agendados / Em andamento."
+]
+],
+"g": [],
+"f": []
+},
+"recursos": {
+"t": "Recursos e equipamentos",
+"r": "O inventário de equipamentos, com seu status e vencimento de calibração.",
+"p": "A programação verifica este inventário para avisar se faltam equipamentos; a IA também alerta sobre calibrações vencidas ou a vencer.",
+"q": [
+"Operações",
+"Infraestrutura"
+],
+"s": [
+[
+"Adicionar um recurso",
+"Nome, tipo, quantidade e status (Disponível, Em uso ou Manutenção)."
+],
+[
+"Manter o status em dia",
+"Se um equipamento sai para calibração ou manutenção, altere seu status para que não seja proposto na agenda."
+]
+],
+"g": [
+"Um equipamento com calibração vencida não deve ser usado em campo."
+],
+"f": []
+},
+"informes": {
+"t": "Relatórios e comunicados técnicos",
+"r": "Com os resultados do laboratório a IA interpreta e o relatório é gerado com o modelo.",
+"p": "Na aba \"Relatório\" da OIT são enviadas as planilhas e os resultados de laboratório de cada serviço. A IA interpreta os resultados frente à norma e é gerado o relatório ou comunicado técnico pronto para revisar, assinar e enviar.",
+"q": [
+"Laboratório",
+"Direção Técnica",
+"Consultoria"
+],
+"s": [
+[
+"Enviar resultados",
+"Em \"Gestão de Relatórios por Serviço\", adicione o PDF de resultados de laboratório do serviço."
+],
+[
+"Revisar a interpretação",
+"A IA mostra resultados e achados. Revise antes de gerar."
+],
+[
+"Gerar e corrigir",
+"Gere o relatório com o modelo; você pode pedir correções em linguagem natural e ver o histórico de versões."
+],
+[
+"Assinar e enviar",
+"Registre as assinaturas (na tela ou com documento assinado) e envie aos destinatários ou a uma lista de distribuição."
+]
+],
+"g": [
+"Se o PDF de resultados for muito longo, envie-o dividido por serviço.",
+"Revise sempre o relatório antes de enviá-lo: a IA redige, a pessoa responde por ele."
+],
+"f": [
+[
+"A análise de resultados ficou pela metade",
+"Envie de novo o PDF de resultados do serviço na aba Relatório. Se for muito longo, divida-o por serviço."
+]
+]
+},
+"calidad": {
+"t": "Qualidade e não conformidades",
+"r": "Registro e acompanhamento de achados até o encerramento, com constâncias por etapa.",
+"p": "Quando algo não atende ao esperado, é registrado como não conformidade, com severidade e responsável, e acompanhado até ser encerrado com sua resolução.",
+"q": [
+"Sistema Integrado de Gestão",
+"Direção Técnica",
+"Coordenadores"
+],
+"s": [
+[
+"Registrar",
+"Na aba \"Qualidade\" da OIT, \"Registrar Não Conformidade\": descrição, severidade e quem a detectou."
+],
+[
+"Encerrar",
+"\"Encerrar Não Conformidade\" pede para descrever como foi resolvida."
+],
+[
+"Constância",
+"Gera um certificado PDF da etapa concluída quando necessário."
+]
+],
+"g": [
+"Uma não conformidade não é encerrada sem descrever a resolução."
+],
+"f": []
+},
+"plantillas": {
+"t": "Modelos de amostragem",
+"r": "As etapas do formulário de campo para cada tipo de serviço.",
+"p": "Cada modelo define o que é registrado em campo (dados, listas, fotos, documentos) e com qual modelo de relatório é gerado o documento final.",
+"q": [
+"Direção Técnica",
+"Operações"
+],
+"s": [
+[
+"Criar um modelo",
+"Nome, tipo de OIT, descrição e as etapas do fluxo (cada etapa com seu tipo: texto, número, lista, foto, documento…)."
+],
+[
+"Lixeira",
+"Um modelo excluído pode ser recuperado durante 90 dias."
+]
+],
+"g": [
+"As alterações em um modelo se aplicam às amostragens novas, não às já enviadas."
+],
+"f": []
+},
+"normas": {
+"t": "Normas e regras",
+"r": "As normas (resoluções, decretos) frente às quais a IA revisa cotações e relatórios.",
+"p": "A IA só pode verificar a conformidade frente às normas que estiverem aqui, com seus critérios e o documento de referência.",
+"q": [
+"Direção Técnica",
+"Consultoria",
+"Sistema Integrado de Gestão"
+],
+"s": [
+[
+"Adicionar uma norma",
+"Título, tipo de documento, descrição ou critérios e, opcionalmente, o PDF de referência."
+]
+],
+"g": [
+"Mantenha as normas vigentes: uma norma revogada leva a revisões equivocadas."
+],
+"f": []
+},
+"analitica": {
+"t": "Análises",
+"r": "Indicadores de OITs, cotações e relatórios gerados.",
+"p": "Veja como vai a operação: quantas OITs há por status, tendências e relatórios recentes.",
+"q": [
+"Direção Técnica",
+"Consultoria",
+"Administradores"
+],
+"s": [
+[
+"Consultar",
+"Abra Análises e revise os gráficos; para uma análise sob medida, peça à Martha."
+]
+],
+"g": [],
+"f": []
+},
+"notificaciones": {
+"t": "Notificações",
+"r": "Avisos de análises concluídas, designações e tarefas pendentes, também no celular.",
+"p": "Você fica sabendo quando uma análise termina, quando é designado para uma amostragem ou quando algo exige sua decisão, sem ficar verificando a plataforma.",
+"q": [
+"Toda a equipe da ALS"
+],
+"s": [
+[
+"Ativar no celular",
+"Em Configurações → Notificações, ative as notificações push e aceite a permissão do navegador."
+],
+[
+"Marcar como lidas",
+"Em Notificações você pode marcar todas como lidas ou excluir uma."
+]
+],
+"g": [],
+"f": []
+},
+"personal-monitoreo": {
+"t": "Equipe de monitoramento",
+"r": "A tabela da equipe que pode ser designada para amostragens.",
+"p": "Só quem está nesta tabela, e ativo, aparece ao designar equipe e na proposta automática. Os cargos de chefe, coordenador, supervisor ou planejador veem todas as OITs e são designados por último.",
+"q": [
+"Operações (administradores)",
+"Gerência"
+],
+"s": [
+[
+"Adicionar",
+"Nome, cargo e e-mail. O e-mail deve ser o mesmo da conta no ALS Xmart."
+],
+[
+"Desativar",
+"Se alguém sai de férias ou se desliga, desative-o em vez de excluí-lo."
+]
+],
+"g": [
+"O e-mail une a pessoa à sua conta: se não coincidir, ela não poderá ver suas OITs."
+],
+"f": []
+},
+"usuarios": {
+"t": "Usuários e perfis",
+"r": "Contas, funções e o menu que cada área vê.",
+"p": "As contas são criadas com sua função. Cada área (Comercial, Operações, Laboratório…) vê no menu apenas o que usa; os administradores veem tudo.",
+"q": [
+"Super administrador"
+],
+"s": [
+[
+"Criar um usuário",
+"Nome, e-mail, função e senha temporária; no primeiro acesso pede-se que a altere."
+],
+[
+"Alterar função ou senha",
+"Na linha do usuário."
+]
+],
+"g": [
+"Nunca compartilhe senhas por chat: cada pessoa altera a sua ao entrar."
+],
+"f": []
+},
+"configuracion": {
+"t": "Configurações",
+"r": "Seu perfil, idioma, senha e notificações.",
+"p": "Cada pessoa ajusta seus dados, escolhe o idioma da plataforma, altera sua senha e ativa as notificações no celular.",
+"q": [
+"Toda a equipe da ALS"
+],
+"s": [
+[
+"Mudar o idioma",
+"Configurações → Idioma, ou o globo no canto superior direito: espanhol, inglês, português ou francês. A Martha também responde nesse idioma."
+],
+[
+"Alterar senha",
+"Configurações → Alterar senha: a atual e a nova duas vezes."
+]
+],
+"g": [],
+"f": []
+},
+"martha": {
+"t": "Martha, a assistente de IA",
+"r": "Pergunte qualquer coisa sobre o sistema; ela responde com tabelas, gráficos e fotos, e entrega PDF, PowerPoint ou Excel.",
+"p": "A Martha conhece as OITs, cotações, recursos, normas e este Academy. Responde em linguagem natural, monta relatórios com gráficos, tabelas e fotos da amostragem, e os entrega em PDF, PowerPoint ou Excel com a marca da ALS. Responde no idioma que você escolher.",
+"q": [
+"Toda a equipe da ALS"
+],
+"s": [
+[
+"Abrir o chat",
+"O botão azul embaixo à direita, em qualquer tela, ou \"Assistente IA\" no menu. Se você estiver em uma OIT, a Martha já sabe qual é."
+],
+[
+"Perguntar",
+"Ex.: \"Quais OITs estão pendentes de programar?\", \"Faça um gráfico de cotações por status\", \"Monte um relatório da OIT 15031 com as fotos\"."
+],
+[
+"Baixar",
+"Abaixo de cada resposta estão os botões PDF, PowerPoint e Excel."
+]
+],
+"g": [
+"A Martha responde com os dados do sistema; se algo não estiver lá, ela diz.",
+"Verifique as informações antes de usá-las em documentos oficiais."
+],
+"f": []
+}
 }

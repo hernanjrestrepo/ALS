@@ -4,7 +4,8 @@ import { useLocation, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, X, Send, Bot, User, Sparkles } from 'lucide-react';
+import { X, Send, Bot, User } from 'lucide-react';
+import { MarthaAvatar } from './MarthaAvatar';
 import api from '@/lib/api';
 import { AssistantMessage } from './AssistantMessage';
 
@@ -107,7 +108,7 @@ export function ChatWidget() {
                     onClick={() => setIsOpen(true)}
                     className="fixed bottom-6 right-6 h-16 w-16 rounded-full bg-[#004CAB] text-white shadow-2xl hover:shadow-blue-300 hover:scale-110 hover:bg-[#003b85] transition-all flex items-center justify-center z-50 group"
                 >
-                    <MessageCircle className="h-7 w-7 group-hover:scale-110 transition-transform" />
+                    <MarthaAvatar size={60} className="border-2 border-white group-hover:scale-105 transition-transform" />
                     <div className="absolute -top-1 -right-1 h-4 w-4 bg-emerald-500 rounded-full animate-pulse" />
                 </button>
             )}
@@ -117,13 +118,11 @@ export function ChatWidget() {
                 <Card className="fixed bottom-6 right-6 w-[420px] h-[600px] shadow-2xl z-50 flex flex-col border-slate-200 overflow-hidden bg-white/95 backdrop-blur-xl">
                     <CardHeader className="flex flex-row items-center justify-between pb-4 bg-[#004CAB] text-white border-b-0">
                         <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                <Sparkles className="h-5 w-5" />
-                            </div>
+                            <MarthaAvatar size={40} className="border-2 border-white/70" />
                             <div>
-                                <CardTitle className="text-lg font-semibold">{tr("Asistente ALS")}</CardTitle>
+                                <CardTitle className="text-lg font-semibold">Martha</CardTitle>
                                 <p className="text-xs text-blue-100">
-                                    {location.pathname.startsWith('/oits/') && params.id ? tr("Viendo esta OIT") : tr("Asistente Virtual ALS")}
+                                    {location.pathname.startsWith('/oits/') && params.id ? tr("Viendo esta OIT") : tr("Asistente IA de ALS")}
                                 </p>
                             </div>
                         </div>
@@ -141,10 +140,8 @@ export function ChatWidget() {
                         <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2 custom-scrollbar">
                             {messages.length === 0 && (
                                 <div className="text-center text-slate-500 mt-16">
-                                    <div className="h-20 w-20 rounded-full bg-gradient-to-br from-[#E6EEF8] to-[#E6EEF8] flex items-center justify-center mx-auto mb-4">
-                                        <Bot className="h-10 w-10 text-[#004CAB]" />
-                                    </div>
-                                    <p className="text-sm font-medium text-slate-700">{tr("¡Hola! Soy tu asistente IA")}</p>
+                                    <MarthaAvatar size={88} className="mx-auto mb-4 shadow-md" />
+                                    <p className="text-sm font-medium text-slate-700">{tr("¡Hola! Soy Martha, tu asistente de ALS")}</p>
                                     <p className="text-xs text-slate-500 mt-1">{tr("Pregúntame sobre OITs o recursos")}</p>
                                 </div>
                             )}
@@ -154,9 +151,7 @@ export function ChatWidget() {
                                     className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}
                                 >
                                     {msg.role === 'assistant' && (
-                                        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#E6EEF8] to-[#E6EEF8] flex items-center justify-center flex-shrink-0 shadow-sm">
-                                            <Bot className="h-5 w-5 text-[#004CAB]" />
-                                        </div>
+                                        <MarthaAvatar size={36} className="shadow-sm" />
                                     )}
                                     <div
                                         className={`${msg.role === 'user' ? 'max-w-[75%]' : 'max-w-[88%] min-w-0'} rounded-2xl px-4 py-3 text-sm shadow-sm ${msg.role === 'user'

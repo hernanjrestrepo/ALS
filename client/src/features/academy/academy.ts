@@ -31,7 +31,7 @@ export const ICONOS: Record<string, LucideIcon> = {
     'als-xmart': Sparkles, paradixe: Compass, clientes: Building2, servicios: Beaker, cotizaciones: Receipt,
     'consultas-parametros': HelpCircle, 'listas-distribucion': Mail, oits: FileText, agenda: CalendarClock,
     muestreo: ClipboardCheck, calendario: Calendar, recursos: Box, informes: FileBarChart, calidad: ShieldCheck,
-    plantillas: Workflow, normas: Scale, analitica: BarChart3, ana: Bot, notificaciones: Bell,
+    plantillas: Workflow, normas: Scale, analitica: BarChart3, martha: Bot, notificaciones: Bell,
     'personal-monitoreo': HardHat, usuarios: Users, configuracion: Settings,
 };
 

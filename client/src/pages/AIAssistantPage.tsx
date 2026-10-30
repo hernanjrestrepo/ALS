@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Send, Loader2, Bot, User, Sparkles, Database, FileText, Beaker, AlertTriangle } from 'lucide-react';
+import { Send, Loader2, User, Database, FileText, Beaker, AlertTriangle } from 'lucide-react';
+import { MarthaAvatar } from '@/components/shared/MarthaAvatar';
 import api from '@/lib/api';
 import { AssistantMessage } from '@/components/shared/AssistantMessage';
 
@@ -122,11 +123,9 @@ export default function AIAssistantPage() {
             {/* Compact Header */}
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                        <Bot className="h-4 w-4 text-white" />
-                    </div>
+                    <MarthaAvatar size={36} />
                     <div>
-                        <h1 className="text-lg font-bold text-slate-900">{tr("Asistente IA")}</h1>
+                        <h1 className="text-lg font-bold text-slate-900">Martha <span className="text-sm font-normal text-slate-500">· {tr("Asistente IA")}</span></h1>
                     </div>
                 </div>
 
@@ -161,10 +160,8 @@ export default function AIAssistantPage() {
                 <CardContent className="flex-1 overflow-y-auto p-3 space-y-3">
                     {messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center">
-                            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
-                                <Sparkles className="h-8 w-8 text-indigo-600" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-slate-900 mb-2">{tr("¡Hola! Soy tu asistente IA")}</h3>
+                            <MarthaAvatar size={112} className="mb-4 shadow-lg" />
+                            <h3 className="text-lg font-semibold text-slate-900 mb-2">{tr("¡Hola! Soy Martha, tu asistente de ALS")}</h3>
                             <p className="text-sm text-slate-500 max-w-md mb-6">
                                 {tr("Tengo acceso completo a la información del sistema. Puedo ayudarte con:")}
                             </p>
@@ -207,9 +204,7 @@ export default function AIAssistantPage() {
                                     className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     {message.role === 'assistant' && (
-                                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                                            <Bot className="h-4 w-4 text-white" />
-                                        </div>
+                                        <MarthaAvatar size={32} />
                                     )}
                                     <div
                                         className={`${message.role === 'user' ? 'max-w-[70%]' : 'max-w-[85%] min-w-0'} rounded-2xl px-4 py-3 ${message.role === 'user'
@@ -232,9 +227,7 @@ export default function AIAssistantPage() {
                             ))}
                             {isLoading && (
                                 <div className="flex gap-3">
-                                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                                        <Bot className="h-4 w-4 text-white" />
-                                    </div>
+                                    <MarthaAvatar size={32} />
                                     <div className="bg-slate-100 rounded-2xl px-4 py-3">
                                         <div className="flex items-center gap-2">
                                             <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />

@@ -1,25 +1,625 @@
 {
-"_grupos":{"Fundamentos":"Fundamentals","Comercial":"Sales","Operación":"Operations","Informes y calidad":"Reports and quality","Base técnica":"Technical base","Seguimiento":"Follow-up","Administración":"Administration"},
-"als-xmart":{"t":"What is ALS Xmart?","r":"The ALS platform that takes a request from the quotation to the signed report.","p":"ALS Xmart brings together in one place what used to live in emails, spreadsheets and folders: the quotation, the work order (OIT), staff scheduling, field sampling, laboratory results and the final report. Artificial intelligence reads the documents, checks compliance with the standards, proposes the schedule and drafts documents; people review and decide.","q":["The whole ALS team"],"s":[["1. Quotation","Sales uploads the quotation (PDF). The AI compares it with the applicable standard and flags what is missing or extra."],["2. OIT","The work order (OIT) arrives. The PDF is uploaded and the AI extracts the client, services, location and resources. If it has a SIACOT number, it links to its quotation automatically."],["3. Scheduling","The AI proposes date, time and available staff for each service and warns if equipment is missing. Operations accepts or adjusts."],["4. Sampling","The technician fills in the form on the phone (works without signal), takes the 5 mandatory photos and can read the field sheet from a photo or file."],["5. Report","The laboratory results are uploaded, the AI interprets them, the report is generated with the template, signed and sent to the client."]],"g":["The AI proposes, people approve: nothing reaches the client without review.","Each person sees the menu for their area; administrators see everything.","If something is unclear, ask Ana (the blue chat button, bottom right)."],"f":[["Do I need to install anything?","No. It opens in the computer or phone browser at als.paradixe.xyz. On the phone you can add it to the home screen to use it like an app."],["What do I do if I forgot my password?","On the sign-in screen use \"Forgot your password?\" and follow the link sent to your email."]]},
-"paradixe":{"t":"Who is Paradixe?","r":"The technology company that built ALS Xmart and improves it every week.","p":"Paradixe is a Colombian company that designs software with artificial intelligence so that companies' processes are faster and more reliable. It built ALS Xmart together with the ALS team: every improvement comes from meetings with you, from frequent questions and from what is observed in daily use.","q":["The whole ALS team"],"s":[["How to request a change","Tell Ana in the chat or your coordinator. Requests are gathered in follow-up meetings and prioritized with ALS."],["How to report an error","Describe what you were doing, in which OIT or quotation and, if you can, take a screenshot. Ana can also help you describe it."]],"g":["ALS data belongs to ALS: it is used only to operate the platform.","Xmart Academy is updated when the software changes; each update is reviewed before it is published."],"f":[]},
-"clientes":{"t":"Clients","r":"The client directory with their tax ID and contact details.","p":"Having each client registered only once avoids writing it differently in each quotation or OIT, and lets you search everything done for them by name or tax ID.","q":["Sales","Administrators"],"s":[["Create a client","\"New Client\" button: name, tax ID and contact details. Save."],["Edit or delete","Use the pencil or trash icons in the client's row."]],"g":["Write the tax ID (NIT) with its check digit (e.g. 900.123.456-7)."],"f":[]},
-"servicios":{"t":"Services","r":"The catalog of services ALS provides (water, air, soil, biota…).","p":"Services are used when creating quotations and help the AI recognize what is being requested in each document.","q":["Sales","Administrators"],"s":[["Create a service","\"New Service\" button: name (e.g. Groundwater sampling) and category (Water, Air, Soil, Biota…)."]],"g":["Use clear names without abbreviations: that way the AI recognizes them in documents."],"f":[]},
-"cotizaciones":{"t":"Quotations","r":"You upload the quotation and the AI checks, article by article, whether it complies with the standard.","p":"Before a quotation reaches the client or becomes an OIT, the AI compares it with the applicable standard: which parameters each article requires, which are quoted, which are missing and which are extra. This avoids rework and incomplete samplings.","q":["Sales","Technical Management","Consulting"],"s":[["Upload the quotation","\"New Quotation\" button: choose the client, optionally the service, and upload the PDF (up to 100 MB). The provisional number is replaced by the document's SIACOT number when the analysis finishes."],["Wait for the analysis","The AI takes a few minutes. You can keep working; you get a notification when it finishes."],["Review the result","In the detail you see the score, compliance per article of the standard, alerts and missing items. Missing items that can be completed appear with a field to fill them in."],["Decide each finding","The laboratory records its decision and a comment on each finding. What is only informational stays in a summary table and does not lower the score."],["Approve for OIT","When the quotation is right, it is marked as approved. OITs that carry its SIACOT number link automatically."]],"g":["If the AI does not know whether two names are the same parameter (e.g. \"Kjeldahl nitrogen\" and \"Total nitrogen\"), it creates a parameter query for the laboratory instead of guessing.","Equivalences already confirmed: thermotolerant coliforms = fecal; MBAS = surfactants.","The AI does not issue compliance verdicts that are not in the data."],"f":[["Why is my quotation still \"analyzing\"?","Long PDFs can take several minutes because the AI reviews each article of the standard. If more than 15 minutes pass, reload the page; if it stays the same, tell Ana the quotation number."],["What does an \"informational\" missing item mean?","It is a suggestion: something the standard mentions but that did not necessarily have to be quoted. It does not lower the score; it is left for the laboratory to decide."]]},
-"consultas-parametros":{"t":"Parameter queries","r":"The parameter equivalence questions the AI asks the laboratory.","p":"When the standard names a parameter differently from how the laboratory quotes it, the AI does not guess: it asks. Each answer teaches the platform, and the next quotation does not ask the same thing again.","q":["Laboratory (answers)","Administrators"],"s":[["See the pending ones","The \"Pending\" tab shows the standard's parameter, how it was quoted and in which quotation it appeared."],["Answer","Answer \"Is it the same parameter?\" with Yes or No and, if you want, a note (how the laboratory names it, the method…)."]],"g":["Each answer is applied to the following quotations automatically."],"f":[]},
-"listas-distribucion":{"t":"Distribution lists","r":"Email groups that receive reports and notices.","p":"Instead of typing the same emails every time, a list is saved (e.g. a client's billing) and chosen when sending.","q":["Sales","Administrators"],"s":[["Create a list","\"New List\" button: name and the recipients' emails."]],"g":["Check the emails before saving: reports go to that list."],"f":[]},
-"oits":{"t":"OITs (work orders)","r":"You upload the OIT and the AI extracts services, resources and alerts; from there it is scheduled, sampled and reported.","p":"The OIT is the center of all the work: each one has tabs for information, schedule, sampling, report and quality. That way anyone knows where an order stands without asking.","q":["Operations","Laboratory","Technical Management","Sales (view only)"],"s":[["Create the OIT","\"New OIT\" button and upload the PDF. The AI reads client, tax ID, \"Report addressed to\", services, location and resources. If it has the SIACOT number, it is linked to its quotation."],["Review the information","In \"Info\" you see what the AI read, the alerts and missing information. If something is wrong, use \"Restart Analysis\"."],["Follow the tabs","Schedule → Sampling → Report → Quality. Each tab is explained in its own Academy module."],["Search","In the list you can search by number, client, tax ID or quotation, and sort."]],"g":["Technicians see only the OITs they are assigned to; heads, coordinators and planners see all of them.","The report is addressed to whatever the OIT says in \"Report addressed to\"; if empty, to the client."],"f":[["I can't see an OIT I was told exists","If you are a technician, you only see the OITs you are assigned to. Ask your coordinator to assign you in the Schedule tab."]]},
-"agenda":{"t":"Scheduling and staff assignment","r":"The AI proposes a date and available staff for each service and flags in red what is missing.","p":"Scheduling by hand means checking who is free and whether there is equipment. The proposal does it for you: it assigns the monitoring staff with the least workload (heads and coordinators last), checks equipment against the service matrix and warns with red flags.","q":["Operations","Planning","Coordinators"],"s":[["Open the Schedule tab","In the OIT, \"Schedule\" tab. You will see the \"AI Scheduling Proposal\" with each service."],["Accept the proposal","\"Accept Proposal\" assigns the available staff, sets the start time to 8:00 and shows the alerts (for example, missing equipment)."],["Several days","If the monitoring lasts several days, in \"Edit Schedule\" add individual days or a range (you can skip Saturdays and Sundays)."],["Adjust by hand","\"Set up manually\" lets you change the date, time and staff of each service."]],"g":["Only active monitoring staff appear (managed in \"Monitoring staff\").","A red flag does not block: it is a warning to resolve before the sampling day."],"f":[["Why doesn't a person appear to be assigned?","Only people in the monitoring staff table who are active appear. An administrator can add them in Administration → Monitoring staff."]]},
-"muestreo":{"t":"Field sampling","r":"The technician's form on the phone: arrival, data, field sheet, 5 photos and submission.","p":"The technician records everything on site, even without signal: the form is saved on the phone and sent automatically when the connection returns. When finished, the AI reviews what was recorded and warns if something does not add up.","q":["Monitoring technicians","Coordinators"],"s":[["Choose the service","In the OIT, \"Sampling\" tab, tap the service you are going to do."],["\"I arrived on site\"","Records the arrival time and location. If the monitoring lasts several days, tap it each day."],["Read the field sheet","In \"Read the field sheet\" take a photo or attach the sheet (photo, PDF of any number of pages, Word or Excel). The fields fill in by themselves (in blue) and what could not be read appears as a question and in the chat. You can view or remove each file."],["Complete the data","Check what was read and fill in what is missing. The capture type is chosen from a list and, if the OIT says it, it comes already filled in."],["5 mandatory photos","Overview of the point, sample collection, on-site parameters with the equipment, preservation and samples in the cooler. You cannot finish without these photos."],["Finish","Tap \"Finish\": departure is recorded, photos are uploaded and it is sent. If there is no signal, it is saved and sent later."]],"g":["Data read from the field sheet is marked in blue: always check it.","If you change the person in charge of the sampling, write the reason.","Do not clear the phone browser's data with an unsent sampling."],"f":[["The field sheet was not read completely","Check the questions that appear below: they are the fields that were not found. Fill them in by hand. If the photo was blurry, take it again in good light and straight on."],["What happens if I have no signal?","Keep working: everything is saved on the phone. If you finish without signal, the sampling is sent by itself when the connection returns."]]},
-"calendario":{"t":"Calendar","r":"The sampling schedule by month, week or day.","p":"See at a glance which samplings are scheduled and who does them. Multi-day monitoring appears on each of its days.","q":["Operations","Technicians","Sales (view only)"],"s":[["Change the view","Use Month, Week, Day or Agenda, and the arrows to move."],["Open a sampling","Tap an event to go to its OIT."],["Filter","Search by OIT number or use the Scheduled / In progress filters."]],"g":[],"f":[]},
-"recursos":{"t":"Resources and equipment","r":"The equipment inventory, with its status and calibration expiry.","p":"Scheduling checks this inventory to warn if equipment is missing; the AI also flags expired or soon-to-expire calibrations.","q":["Operations","Infrastructure"],"s":[["Add a resource","Name, type, quantity and status (Available, In use or Maintenance)."],["Keep the status up to date","If equipment goes out for calibration or maintenance, change its status so it is not proposed in the schedule."]],"g":["Equipment with expired calibration must not be used in the field."],"f":[]},
-"informes":{"t":"Reports and technical communications","r":"With the laboratory results the AI interprets and the report is generated with the template.","p":"In the OIT's \"Report\" tab, the field sheets and laboratory results of each service are uploaded. The AI interprets the results against the standard and the report or technical communication is generated, ready to review, sign and send.","q":["Laboratory","Technical Management","Consulting"],"s":[["Upload results","In \"Report Management by Service\", add the service's laboratory results PDF."],["Review the interpretation","The AI shows results and findings. Review before generating."],["Generate and correct","Generate the report with the template; you can ask for corrections in plain language and see the version history."],["Sign and send","Record the signatures (on screen or with a signed document) and send to the recipients or to a distribution list."]],"g":["If the results PDF is very long, upload it split by service.","Always review the report before sending it: the AI drafts, the person is accountable for it."],"f":[["The results analysis stopped halfway","Upload the service's results PDF again in the Report tab. If it is very long, split it by service."]]},
-"calidad":{"t":"Quality and nonconformities","r":"Recording and follow-up of findings until closure, with certificates per stage.","p":"When something does not meet expectations it is recorded as a nonconformity, with severity and person in charge, and followed up until it is closed with its resolution.","q":["Integrated Management System","Technical Management","Coordinators"],"s":[["Record","In the OIT's \"Quality\" tab, \"Record Nonconformity\": description, severity and who detected it."],["Close","\"Close Nonconformity\" asks you to describe how it was resolved."],["Certificate","Generates a PDF certificate of the completed stage when required."]],"g":["A nonconformity is not closed without describing the resolution."],"f":[]},
-"plantillas":{"t":"Sampling templates","r":"The field form steps for each type of service.","p":"Each template defines what is recorded in the field (data, lists, photos, documents) and which report template generates the final document.","q":["Technical Management","Operations"],"s":[["Create a template","Name, OIT type, description and the workflow steps (each step with its type: text, number, list, photo, document…)."],["Recycle bin","A deleted template can be recovered for 90 days."]],"g":["Changes to a template apply to new samplings, not to those already sent."],"f":[]},
-"normas":{"t":"Standards and rules","r":"The standards (resolutions, decrees) against which the AI reviews quotations and reports.","p":"The AI can only check compliance against the standards listed here, with their criteria and reference document.","q":["Technical Management","Consulting","Integrated Management System"],"s":[["Add a standard","Title, document type, description or criteria and, optionally, the reference PDF."]],"g":["Keep standards current: a repealed standard leads to wrong reviews."],"f":[]},
-"analitica":{"t":"Analytics","r":"Indicators for OITs, quotations and generated reports.","p":"See how operations are going: how many OITs there are by status, trends and recent reports.","q":["Technical Management","Consulting","Administrators"],"s":[["Check","Open Analytics and review the charts; for a custom analysis, ask Ana."]],"g":[],"f":[]},
-"ana":{"t":"Ana, the AI assistant","r":"Ask her anything about the system; she answers with tables, charts and photos, and delivers PDF, PowerPoint or Excel.","p":"Ana knows the OITs, quotations, resources, standards and this Academy. She answers in plain language, builds reports with charts, tables and sampling photos, and delivers them as PDF, PowerPoint or Excel with the ALS brand. She answers in the language you chose.","q":["The whole ALS team"],"s":[["Open the chat","The blue button at the bottom right, on any screen, or \"AI Assistant\" in the menu. If you are in an OIT, Ana already knows which one."],["Ask","E.g.: \"Which OITs are pending scheduling?\", \"Make me a chart of quotations by status\", \"Build a report for OIT 15031 with the photos\"."],["Download","Below each answer are the PDF, PowerPoint and Excel buttons."]],"g":["Ana answers with the system's data; if something is not there, she says so.","Verify the information before using it in official documents."],"f":[]},
-"notificaciones":{"t":"Notifications","r":"Notices of finished analyses, assignments and pending tasks, also on the phone.","p":"You find out when an analysis finishes, you are assigned a sampling or something needs your decision, without checking the platform.","q":["The whole ALS team"],"s":[["Turn on on the phone","In Settings → Notifications, turn on push notifications and accept the browser permission."],["Mark as read","In Notifications you can mark all as read or delete one."]],"g":[],"f":[]},
-"personal-monitoreo":{"t":"Monitoring staff","r":"The table of staff who can be assigned to samplings.","p":"Only people in this table, and active, appear when assigning staff and in the automatic proposal. Heads, coordinators, supervisors and planners see all OITs and are assigned last.","q":["Operations (administrators)","Management"],"s":[["Add","Name, position and email. The email must be the same as their ALS Xmart account."],["Deactivate","If someone goes on vacation or leaves, deactivate them instead of deleting them."]],"g":["The email links the person to their account: if it does not match, they will not be able to see their OITs."],"f":[]},
-"usuarios":{"t":"Users and profiles","r":"Accounts, roles and the menu each area sees.","p":"Accounts are created with their role. Each area (Sales, Operations, Laboratory…) sees in the menu only what it uses; administrators see everything.","q":["Super administrator"],"s":[["Create a user","Name, email, role and temporary password; on first sign-in they are asked to change it."],["Change role or password","From the user's row."]],"g":["Never share passwords by chat: each person changes theirs when signing in."],"f":[]},
-"configuracion":{"t":"Settings","r":"Your profile, language, password and notifications.","p":"Each person adjusts their details, chooses the platform language, changes their password and turns on notifications on the phone.","q":["The whole ALS team"],"s":[["Change the language","Settings → Language, or the globe at the top right: Spanish, English, Portuguese or French. Ana also answers you in that language."],["Change password","Settings → Change password: the current one and the new one twice."]],"g":[],"f":[]}
+"_grupos": {
+"Fundamentos": "Fundamentals",
+"Comercial": "Sales",
+"Operación": "Operations",
+"Informes y calidad": "Reports and quality",
+"Base técnica": "Technical base",
+"Seguimiento": "Follow-up",
+"Administración": "Administration"
+},
+"als-xmart": {
+"t": "What is ALS Xmart?",
+"r": "The ALS platform that takes a request from the quotation to the signed report.",
+"p": "ALS Xmart brings together in one place what used to live in emails, spreadsheets and folders: the quotation, the work order (OIT), staff scheduling, field sampling, laboratory results and the final report. Artificial intelligence reads the documents, checks compliance with the standards, proposes the schedule and drafts documents; people review and decide.",
+"q": [
+"The whole ALS team"
+],
+"s": [
+[
+"1. Quotation",
+"Sales uploads the quotation (PDF). The AI compares it with the applicable standard and flags what is missing or extra."
+],
+[
+"2. OIT",
+"The work order (OIT) arrives. The PDF is uploaded and the AI extracts the client, services, location and resources. If it has a SIACOT number, it links to its quotation automatically."
+],
+[
+"3. Scheduling",
+"The AI proposes date, time and available staff for each service and warns if equipment is missing. Operations accepts or adjusts."
+],
+[
+"4. Sampling",
+"The technician fills in the form on the phone (works without signal), takes the 5 mandatory photos and can read the field sheet from a photo or file."
+],
+[
+"5. Report",
+"The laboratory results are uploaded, the AI interprets them, the report is generated with the template, signed and sent to the client."
+]
+],
+"g": [
+"The AI proposes, people approve: nothing reaches the client without review.",
+"Each person sees the menu for their area; administrators see everything.",
+"If something is unclear, ask Martha (the blue chat button, bottom right)."
+],
+"f": [
+[
+"Do I need to install anything?",
+"No. It opens in the computer or phone browser at als.paradixe.xyz. On the phone you can add it to the home screen to use it like an app."
+],
+[
+"What do I do if I forgot my password?",
+"On the sign-in screen use \"Forgot your password?\" and follow the link sent to your email."
+]
+]
+},
+"paradixe": {
+"t": "Who is Paradixe?",
+"r": "The technology company that built ALS Xmart and improves it every week.",
+"p": "Paradixe is a Colombian company that designs software with artificial intelligence so that companies' processes are faster and more reliable. It built ALS Xmart together with the ALS team: every improvement comes from meetings with you, from frequent questions and from what is observed in daily use.",
+"q": [
+"The whole ALS team"
+],
+"s": [
+[
+"How to request a change",
+"Tell Martha in the chat or your coordinator. Requests are gathered in follow-up meetings and prioritized with ALS."
+],
+[
+"How to report an error",
+"Describe what you were doing, in which OIT or quotation and, if you can, take a screenshot. Martha can also help you describe it."
+]
+],
+"g": [
+"ALS data belongs to ALS: it is used only to operate the platform.",
+"Xmart Academy is updated when the software changes; each update is reviewed before it is published."
+],
+"f": []
+},
+"clientes": {
+"t": "Clients",
+"r": "The client directory with their tax ID and contact details.",
+"p": "Having each client registered only once avoids writing it differently in each quotation or OIT, and lets you search everything done for them by name or tax ID.",
+"q": [
+"Sales",
+"Administrators"
+],
+"s": [
+[
+"Create a client",
+"\"New Client\" button: name, tax ID and contact details. Save."
+],
+[
+"Edit or delete",
+"Use the pencil or trash icons in the client's row."
+]
+],
+"g": [
+"Write the tax ID (NIT) with its check digit (e.g. 900.123.456-7)."
+],
+"f": []
+},
+"servicios": {
+"t": "Services",
+"r": "The catalog of services ALS provides (water, air, soil, biota…).",
+"p": "Services are used when creating quotations and help the AI recognize what is being requested in each document.",
+"q": [
+"Sales",
+"Administrators"
+],
+"s": [
+[
+"Create a service",
+"\"New Service\" button: name (e.g. Groundwater sampling) and category (Water, Air, Soil, Biota…)."
+]
+],
+"g": [
+"Use clear names without abbreviations: that way the AI recognizes them in documents."
+],
+"f": []
+},
+"cotizaciones": {
+"t": "Quotations",
+"r": "You upload the quotation and the AI checks, article by article, whether it complies with the standard.",
+"p": "Before a quotation reaches the client or becomes an OIT, the AI compares it with the applicable standard: which parameters each article requires, which are quoted, which are missing and which are extra. This avoids rework and incomplete samplings.",
+"q": [
+"Sales",
+"Technical Management",
+"Consulting"
+],
+"s": [
+[
+"Upload the quotation",
+"\"New Quotation\" button: choose the client, optionally the service, and upload the PDF (up to 100 MB). The provisional number is replaced by the document's SIACOT number when the analysis finishes."
+],
+[
+"Wait for the analysis",
+"The AI takes a few minutes. You can keep working; you get a notification when it finishes."
+],
+[
+"Review the result",
+"In the detail you see the score, compliance per article of the standard, alerts and missing items. Missing items that can be completed appear with a field to fill them in."
+],
+[
+"Decide each finding",
+"The laboratory records its decision and a comment on each finding. What is only informational stays in a summary table and does not lower the score."
+],
+[
+"Approve for OIT",
+"When the quotation is right, it is marked as approved. OITs that carry its SIACOT number link automatically."
+]
+],
+"g": [
+"If the AI does not know whether two names are the same parameter (e.g. \"Kjeldahl nitrogen\" and \"Total nitrogen\"), it creates a parameter query for the laboratory instead of guessing.",
+"Equivalences already confirmed: thermotolerant coliforms = fecal; MBAS = surfactants.",
+"The AI does not issue compliance verdicts that are not in the data."
+],
+"f": [
+[
+"Why is my quotation still \"analyzing\"?",
+"Long PDFs can take several minutes because the AI reviews each article of the standard. If more than 15 minutes pass, reload the page; if it stays the same, tell Martha the quotation number."
+],
+[
+"What does an \"informational\" missing item mean?",
+"It is a suggestion: something the standard mentions but that did not necessarily have to be quoted. It does not lower the score; it is left for the laboratory to decide."
+]
+]
+},
+"consultas-parametros": {
+"t": "Parameter queries",
+"r": "The parameter equivalence questions the AI asks the laboratory.",
+"p": "When the standard names a parameter differently from how the laboratory quotes it, the AI does not guess: it asks. Each answer teaches the platform, and the next quotation does not ask the same thing again.",
+"q": [
+"Laboratory (answers)",
+"Administrators"
+],
+"s": [
+[
+"See the pending ones",
+"The \"Pending\" tab shows the standard's parameter, how it was quoted and in which quotation it appeared."
+],
+[
+"Answer",
+"Answer \"Is it the same parameter?\" with Yes or No and, if you want, a note (how the laboratory names it, the method…)."
+]
+],
+"g": [
+"Each answer is applied to the following quotations automatically."
+],
+"f": []
+},
+"listas-distribucion": {
+"t": "Distribution lists",
+"r": "Email groups that receive reports and notices.",
+"p": "Instead of typing the same emails every time, a list is saved (e.g. a client's billing) and chosen when sending.",
+"q": [
+"Sales",
+"Administrators"
+],
+"s": [
+[
+"Create a list",
+"\"New List\" button: name and the recipients' emails."
+]
+],
+"g": [
+"Check the emails before saving: reports go to that list."
+],
+"f": []
+},
+"oits": {
+"t": "OITs (work orders)",
+"r": "You upload the OIT and the AI extracts services, resources and alerts; from there it is scheduled, sampled and reported.",
+"p": "The OIT is the center of all the work: each one has tabs for information, schedule, sampling, report and quality. That way anyone knows where an order stands without asking.",
+"q": [
+"Operations",
+"Laboratory",
+"Technical Management",
+"Sales (view only)"
+],
+"s": [
+[
+"Create the OIT",
+"\"New OIT\" button and upload the PDF. The AI reads client, tax ID, \"Report addressed to\", services, location and resources. If it has the SIACOT number, it is linked to its quotation."
+],
+[
+"Review the information",
+"In \"Info\" you see what the AI read, the alerts and missing information. If something is wrong, use \"Restart Marthalysis\"."
+],
+[
+"Follow the tabs",
+"Schedule → Sampling → Report → Quality. Each tab is explained in its own Academy module."
+],
+[
+"Search",
+"In the list you can search by number, client, tax ID or quotation, and sort."
+]
+],
+"g": [
+"Technicians see only the OITs they are assigned to; heads, coordinators and planners see all of them.",
+"The report is addressed to whatever the OIT says in \"Report addressed to\"; if empty, to the client."
+],
+"f": [
+[
+"I can't see an OIT I was told exists",
+"If you are a technician, you only see the OITs you are assigned to. Ask your coordinator to assign you in the Schedule tab."
+]
+]
+},
+"agenda": {
+"t": "Scheduling and staff assignment",
+"r": "The AI proposes a date and available staff for each service and flags in red what is missing.",
+"p": "Scheduling by hand means checking who is free and whether there is equipment. The proposal does it for you: it assigns the monitoring staff with the least workload (heads and coordinators last), checks equipment against the service matrix and warns with red flags.",
+"q": [
+"Operations",
+"Planning",
+"Coordinators"
+],
+"s": [
+[
+"Open the Schedule tab",
+"In the OIT, \"Schedule\" tab. You will see the \"AI Scheduling Proposal\" with each service."
+],
+[
+"Accept the proposal",
+"\"Accept Proposal\" assigns the available staff, sets the start time to 8:00 and shows the alerts (for example, missing equipment)."
+],
+[
+"Several days",
+"If the monitoring lasts several days, in \"Edit Schedule\" add individual days or a range (you can skip Saturdays and Sundays)."
+],
+[
+"Adjust by hand",
+"\"Set up manually\" lets you change the date, time and staff of each service."
+]
+],
+"g": [
+"Only active monitoring staff appear (managed in \"Monitoring staff\").",
+"A red flag does not block: it is a warning to resolve before the sampling day."
+],
+"f": [
+[
+"Why doesn't a person appear to be assigned?",
+"Only people in the monitoring staff table who are active appear. An administrator can add them in Administration → Monitoring staff."
+]
+]
+},
+"muestreo": {
+"t": "Field sampling",
+"r": "The technician's form on the phone: arrival, data, field sheet, 5 photos and submission.",
+"p": "The technician records everything on site, even without signal: the form is saved on the phone and sent automatically when the connection returns. When finished, the AI reviews what was recorded and warns if something does not add up.",
+"q": [
+"Monitoring technicians",
+"Coordinators"
+],
+"s": [
+[
+"Choose the service",
+"In the OIT, \"Sampling\" tab, tap the service you are going to do."
+],
+[
+"\"I arrived on site\"",
+"Records the arrival time and location. If the monitoring lasts several days, tap it each day."
+],
+[
+"Read the field sheet",
+"In \"Read the field sheet\" take a photo or attach the sheet (photo, PDF of any number of pages, Word or Excel). The fields fill in by themselves (in blue) and what could not be read appears as a question and in the chat. You can view or remove each file."
+],
+[
+"Complete the data",
+"Check what was read and fill in what is missing. The capture type is chosen from a list and, if the OIT says it, it comes already filled in."
+],
+[
+"5 mandatory photos",
+"Overview of the point, sample collection, on-site parameters with the equipment, preservation and samples in the cooler. You cannot finish without these photos."
+],
+[
+"Finish",
+"Tap \"Finish\": departure is recorded, photos are uploaded and it is sent. If there is no signal, it is saved and sent later."
+]
+],
+"g": [
+"Data read from the field sheet is marked in blue: always check it.",
+"If you change the person in charge of the sampling, write the reason.",
+"Do not clear the phone browser's data with an unsent sampling."
+],
+"f": [
+[
+"The field sheet was not read completely",
+"Check the questions that appear below: they are the fields that were not found. Fill them in by hand. If the photo was blurry, take it again in good light and straight on."
+],
+[
+"What happens if I have no signal?",
+"Keep working: everything is saved on the phone. If you finish without signal, the sampling is sent by itself when the connection returns."
+]
+]
+},
+"calendario": {
+"t": "Calendar",
+"r": "The sampling schedule by month, week or day.",
+"p": "See at a glance which samplings are scheduled and who does them. Multi-day monitoring appears on each of its days.",
+"q": [
+"Operations",
+"Technicians",
+"Sales (view only)"
+],
+"s": [
+[
+"Change the view",
+"Use Month, Week, Day or Agenda, and the arrows to move."
+],
+[
+"Open a sampling",
+"Tap an event to go to its OIT."
+],
+[
+"Filter",
+"Search by OIT number or use the Scheduled / In progress filters."
+]
+],
+"g": [],
+"f": []
+},
+"recursos": {
+"t": "Resources and equipment",
+"r": "The equipment inventory, with its status and calibration expiry.",
+"p": "Scheduling checks this inventory to warn if equipment is missing; the AI also flags expired or soon-to-expire calibrations.",
+"q": [
+"Operations",
+"Infrastructure"
+],
+"s": [
+[
+"Add a resource",
+"Name, type, quantity and status (Available, In use or Maintenance)."
+],
+[
+"Keep the status up to date",
+"If equipment goes out for calibration or maintenance, change its status so it is not proposed in the schedule."
+]
+],
+"g": [
+"Equipment with expired calibration must not be used in the field."
+],
+"f": []
+},
+"informes": {
+"t": "Reports and technical communications",
+"r": "With the laboratory results the AI interprets and the report is generated with the template.",
+"p": "In the OIT's \"Report\" tab, the field sheets and laboratory results of each service are uploaded. The AI interprets the results against the standard and the report or technical communication is generated, ready to review, sign and send.",
+"q": [
+"Laboratory",
+"Technical Management",
+"Consulting"
+],
+"s": [
+[
+"Upload results",
+"In \"Report Management by Service\", add the service's laboratory results PDF."
+],
+[
+"Review the interpretation",
+"The AI shows results and findings. Review before generating."
+],
+[
+"Generate and correct",
+"Generate the report with the template; you can ask for corrections in plain language and see the version history."
+],
+[
+"Sign and send",
+"Record the signatures (on screen or with a signed document) and send to the recipients or to a distribution list."
+]
+],
+"g": [
+"If the results PDF is very long, upload it split by service.",
+"Always review the report before sending it: the AI drafts, the person is accountable for it."
+],
+"f": [
+[
+"The results analysis stopped halfway",
+"Upload the service's results PDF again in the Report tab. If it is very long, split it by service."
+]
+]
+},
+"calidad": {
+"t": "Quality and nonconformities",
+"r": "Recording and follow-up of findings until closure, with certificates per stage.",
+"p": "When something does not meet expectations it is recorded as a nonconformity, with severity and person in charge, and followed up until it is closed with its resolution.",
+"q": [
+"Integrated Management System",
+"Technical Management",
+"Coordinators"
+],
+"s": [
+[
+"Record",
+"In the OIT's \"Quality\" tab, \"Record Nonconformity\": description, severity and who detected it."
+],
+[
+"Close",
+"\"Close Nonconformity\" asks you to describe how it was resolved."
+],
+[
+"Certificate",
+"Generates a PDF certificate of the completed stage when required."
+]
+],
+"g": [
+"A nonconformity is not closed without describing the resolution."
+],
+"f": []
+},
+"plantillas": {
+"t": "Sampling templates",
+"r": "The field form steps for each type of service.",
+"p": "Each template defines what is recorded in the field (data, lists, photos, documents) and which report template generates the final document.",
+"q": [
+"Technical Management",
+"Operations"
+],
+"s": [
+[
+"Create a template",
+"Name, OIT type, description and the workflow steps (each step with its type: text, number, list, photo, document…)."
+],
+[
+"Recycle bin",
+"A deleted template can be recovered for 90 days."
+]
+],
+"g": [
+"Changes to a template apply to new samplings, not to those already sent."
+],
+"f": []
+},
+"normas": {
+"t": "Standards and rules",
+"r": "The standards (resolutions, decrees) against which the AI reviews quotations and reports.",
+"p": "The AI can only check compliance against the standards listed here, with their criteria and reference document.",
+"q": [
+"Technical Management",
+"Consulting",
+"Integrated Management System"
+],
+"s": [
+[
+"Add a standard",
+"Title, document type, description or criteria and, optionally, the reference PDF."
+]
+],
+"g": [
+"Keep standards current: a repealed standard leads to wrong reviews."
+],
+"f": []
+},
+"analitica": {
+"t": "Marthalytics",
+"r": "Indicators for OITs, quotations and generated reports.",
+"p": "See how operations are going: how many OITs there are by status, trends and recent reports.",
+"q": [
+"Technical Management",
+"Consulting",
+"Administrators"
+],
+"s": [
+[
+"Check",
+"Open Marthalytics and review the charts; for a custom analysis, ask Martha."
+]
+],
+"g": [],
+"f": []
+},
+"notificaciones": {
+"t": "Notifications",
+"r": "Notices of finished analyses, assignments and pending tasks, also on the phone.",
+"p": "You find out when an analysis finishes, you are assigned a sampling or something needs your decision, without checking the platform.",
+"q": [
+"The whole ALS team"
+],
+"s": [
+[
+"Turn on on the phone",
+"In Settings → Notifications, turn on push notifications and accept the browser permission."
+],
+[
+"Mark as read",
+"In Notifications you can mark all as read or delete one."
+]
+],
+"g": [],
+"f": []
+},
+"personal-monitoreo": {
+"t": "Monitoring staff",
+"r": "The table of staff who can be assigned to samplings.",
+"p": "Only people in this table, and active, appear when assigning staff and in the automatic proposal. Heads, coordinators, supervisors and planners see all OITs and are assigned last.",
+"q": [
+"Operations (administrators)",
+"Management"
+],
+"s": [
+[
+"Add",
+"Name, position and email. The email must be the same as their ALS Xmart account."
+],
+[
+"Deactivate",
+"If someone goes on vacation or leaves, deactivate them instead of deleting them."
+]
+],
+"g": [
+"The email links the person to their account: if it does not match, they will not be able to see their OITs."
+],
+"f": []
+},
+"usuarios": {
+"t": "Users and profiles",
+"r": "Accounts, roles and the menu each area sees.",
+"p": "Accounts are created with their role. Each area (Sales, Operations, Laboratory…) sees in the menu only what it uses; administrators see everything.",
+"q": [
+"Super administrator"
+],
+"s": [
+[
+"Create a user",
+"Name, email, role and temporary password; on first sign-in they are asked to change it."
+],
+[
+"Change role or password",
+"From the user's row."
+]
+],
+"g": [
+"Never share passwords by chat: each person changes theirs when signing in."
+],
+"f": []
+},
+"configuracion": {
+"t": "Settings",
+"r": "Your profile, language, password and notifications.",
+"p": "Each person adjusts their details, chooses the platform language, changes their password and turns on notifications on the phone.",
+"q": [
+"The whole ALS team"
+],
+"s": [
+[
+"Change the language",
+"Settings → Language, or the globe at the top right: Spanish, English, Portuguese or French. Martha also answers you in that language."
+],
+[
+"Change password",
+"Settings → Change password: the current one and the new one twice."
+]
+],
+"g": [],
+"f": []
+},
+"martha": {
+"t": "Martha, the AI assistant",
+"r": "Ask her anything about the system; she answers with tables, charts and photos, and delivers PDF, PowerPoint or Excel.",
+"p": "Martha knows the OITs, quotations, resources, standards and this Academy. She answers in plain language, builds reports with charts, tables and sampling photos, and delivers them as PDF, PowerPoint or Excel with the ALS brand. She answers in the language you chose.",
+"q": [
+"The whole ALS team"
+],
+"s": [
+[
+"Open the chat",
+"The blue button at the bottom right, on any screen, or \"AI Assistant\" in the menu. If you are in an OIT, Martha already knows which one."
+],
+[
+"Ask",
+"E.g.: \"Which OITs are pending scheduling?\", \"Make me a chart of quotations by status\", \"Build a report for OIT 15031 with the photos\"."
+],
+[
+"Download",
+"Below each answer are the PDF, PowerPoint and Excel buttons."
+]
+],
+"g": [
+"Martha answers with the system's data; if something is not there, she says so.",
+"Verify the information before using it in official documents."
+],
+"f": []
+}
 }

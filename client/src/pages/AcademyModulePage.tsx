@@ -59,7 +59,7 @@ export default function AcademyModulePage() {
                         </Link>
                     )}
                     <button onClick={preguntarAna} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
-                        <MessageCircle className="h-4 w-4" /> {tr("Pregúntale a Ana")}
+                        <MessageCircle className="h-4 w-4" /> {tr("Pregúntale a Martha")}
                     </button>
                 </div>
             </header>
