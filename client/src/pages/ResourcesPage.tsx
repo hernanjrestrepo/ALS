@@ -33,6 +33,7 @@ import {
 import api from '@/lib/api';
 
 import { tr } from '@/i18n';
+import { InputWithTools } from '@/components/ui/input-tools';
 export default function ResourcesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const { resources, isLoading, error } = useResources(searchQuery);
@@ -147,7 +148,7 @@ export default function ResourcesPage() {
                             <div className="grid gap-4 py-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="name">{tr("Nombre")}</Label>
-                                    <Input
+                                    <InputWithTools
                                         id="name"
                                         placeholder={tr("Ej: Casco de Seguridad")}
                                         value={formData.name}
@@ -156,7 +157,7 @@ export default function ResourcesPage() {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="type">{tr("Tipo")}</Label>
-                                    <Input
+                                    <InputWithTools
                                         id="type"
                                         placeholder={tr("Ej: Equipo de Protección")}
                                         value={formData.type}
@@ -355,7 +356,7 @@ export default function ResourcesPage() {
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="edit-name">{tr("Nombre")}</Label>
-                                <Input
+                                <InputWithTools
                                     id="edit-name"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -363,7 +364,7 @@ export default function ResourcesPage() {
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="edit-type">{tr("Tipo")}</Label>
-                                <Input
+                                <InputWithTools
                                     id="edit-type"
                                     value={formData.type}
                                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}

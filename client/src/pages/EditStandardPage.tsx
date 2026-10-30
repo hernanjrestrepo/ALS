@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { tr } from '@/i18n';
+import { InputWithTools } from '@/components/ui/input-tools';
 export default function EditStandardPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -111,7 +112,7 @@ export default function EditStandardPage() {
                             <div className="grid gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="title">{tr("Título *")}</Label>
-                                    <Input
+                                    <InputWithTools
                                         id="title"
                                         placeholder={tr("Ej: Verificación de Muestras de Agua")}
                                         value={formData.title}

@@ -1330,5 +1330,17 @@
  "Servicios (opcional)": "Services (optional)",
  "seleccionado(s)": "selected",
  "Elige uno, varios o todos": "Choose one, several or all",
- "Seleccionar todos": "Select all"
+ "Seleccionar todos": "Select all",
+ "Fecha de inicio": "Start date",
+ "Fecha de fin": "End date",
+ "La fecha de fin no puede ser anterior a la de inicio": "The end date cannot be earlier than the start date",
+ "al": "to",
+ "Adjunto": "Attachment",
+ "No se pudo leer": "Could not read",
+ "No se pudo leer el archivo. Intenta de nuevo.": "The file could not be read. Try again.",
+ "Adjuntar archivos (PDF, Word, Excel, fotos...)": "Attach files (PDF, Word, Excel, photos...)",
+ "Dictar con el micrófono": "Dictate with the microphone",
+ "Detener dictado": "Stop dictation",
+ "Este navegador no permite dictar. Usa Chrome o Edge.": "This browser does not support dictation. Use Chrome or Edge.",
+ "Permite el micrófono en el navegador para dictar.": "Allow the microphone in the browser to dictate."
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +12,7 @@ import type { TemplateStep } from '@/types/sampling';
 import { StepTypeBuilder } from '@/components/sampling/StepTypeBuilder';
 
 import { tr } from '@/i18n';
+import { InputWithTools } from '@/components/ui/input-tools';
 interface FormData {
     name: string;
     description: string;
@@ -108,7 +108,7 @@ export default function CreateTemplatePage() {
                             <div className="grid gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="name">{tr("Nombre de la Plantilla *")}</Label>
-                                    <Input
+                                    <InputWithTools
                                         id="name"
                                         placeholder={tr("Ej: Muestreo de Agua Potable")}
                                         value={formData.name}
@@ -119,7 +119,7 @@ export default function CreateTemplatePage() {
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="oitType">{tr("Tipo de OIT *")}</Label>
-                                    <Input
+                                    <InputWithTools
                                         id="oitType"
                                         placeholder={tr("Ej: AGUA, SUELO, AIRE")}
                                         value={formData.oitType}

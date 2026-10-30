@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, Check, X, UserCheck, UserX } from 'lucide-react';
 
 import { tr } from '@/i18n';
+import { InputWithTools } from '@/components/ui/input-tools';
 // Personal de monitoreo (reunion del 2026-10-23): Operaciones controla quien aparece al
 // asignar ingenieros. El cargo define quien supervisa (jefe, coordinador, supervisor o
 // planeador ven todas las OIT).
@@ -101,8 +102,8 @@ export default function MonitoringStaffPage() {
                     <CardDescription>{tr("Para que pueda ser asignada también necesita una cuenta en ALS con ese mismo correo.")}</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-2 sm:grid-cols-4">
-                    <Input placeholder={tr("Nombre")} value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
-                    <Input placeholder={tr("Cargo (ej. Ingeniero De Campo)")} value={form.cargo} onChange={e => setForm({ ...form, cargo: e.target.value })} />
+                    <InputWithTools placeholder={tr("Nombre")} value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
+                    <InputWithTools placeholder={tr("Cargo (ej. Ingeniero De Campo)")} value={form.cargo} onChange={e => setForm({ ...form, cargo: e.target.value })} />
                     <Input placeholder={tr("Correo")} type="email" value={form.correo} onChange={e => setForm({ ...form, correo: e.target.value })} />
                     <Button onClick={add} disabled={saving || !form.nombre || !form.cargo || !form.correo} className="bg-[#004CAB] hover:bg-[#003b85]">
                         <Plus className="h-4 w-4 mr-1" /> {tr("Agregar")}
@@ -136,8 +137,8 @@ export default function MonitoringStaffPage() {
                                     <tr key={s.id} className={`border-b last:border-0 ${s.activo ? '' : 'opacity-50'}`}>
                                         {editing === s.id ? (
                                             <>
-                                                <td className="py-2 pr-3"><Input value={editForm.nombre} onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} className="h-8" /></td>
-                                                <td className="py-2 pr-3"><Input value={editForm.cargo} onChange={e => setEditForm({ ...editForm, cargo: e.target.value })} className="h-8" /></td>
+                                                <td className="py-2 pr-3"><InputWithTools value={editForm.nombre} onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} className="h-8" /></td>
+                                                <td className="py-2 pr-3"><InputWithTools value={editForm.cargo} onChange={e => setEditForm({ ...editForm, cargo: e.target.value })} className="h-8" /></td>
                                                 <td className="py-2 pr-3"><Input value={editForm.correo} onChange={e => setEditForm({ ...editForm, correo: e.target.value })} className="h-8" /></td>
                                             </>
                                         ) : (

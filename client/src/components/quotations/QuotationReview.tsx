@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { InputWithTools } from '@/components/ui/input-tools';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { CheckCircle2, Loader2, Info, Pencil } from 'lucide-react';
@@ -57,7 +58,16 @@ function errorText(error: any, fallback: string) {
 // ---------------------------------------------------------------- Faltantes
 
 // Un faltante que es una fecha se llena con calendario (Hernan, 2026-10-23).
-const isDateItem = (item: string) => /\b(fecha|date)\b/i.test(item);
+// "Fechas de inicio y fin de los servicios" son DOS valores: dos cuadros con calendario (2026-10-30).
+export const isRangeItem = (item: string) => /\bfechas?\b.*\b(inicio|desde)\b.*\b(fin|final|hasta)\b|\b(start)\b.*\b(end)\b.*\bdates?\b|\bdates?\b.*\bstart\b.*\bend\b/i.test(item);
+// "Fechas ..." al comienzo es fecha; "...para las fechas propuestas" (una confirmacion) no.
+export const isDateItem = (item: string) => isRangeItem(item) || /\b(fecha|date)\b/i.test(item) || /^\s*(fechas|dates)\b/i.test(item);
+const RANGE_SEP = ' / ';
+export const joinRange = (a: string, b: string) => (a && b ? `${a}${RANGE_SEP}${b}` : '');
+export const splitRange = (v: string): [string, string] => {
+    const m = /^(\d{4}-\d{2}-\d{2})\s*\/\s*(\d{4}-\d{2}-\d{2})$/.exec(String(v || '').trim());
+    return m ? [m[1], m[2]] : ['', ''];
+};
 
 // La IA a veces deja el faltante en ingles ("proposed execution date"); se muestra en
 // espanol. La clave guardada sigue siendo el texto original.
@@ -68,9 +78,12 @@ const ITEM_ES: Array<[RegExp, string]> = [
     [/delivery date/i, 'Fecha de entrega'],
 ];
 const itemLabel = (item: string) => ITEM_ES.find(([re]) => re.test(item))?.[1] || item;
-const dateLabel = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v)
-    ? new Date(`${v}T12:00:00`).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })
-    : v;
+const oneDate = (v: string) => new Date(`${v}T12:00:00`).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' });
+const dateLabel = (v: string) => {
+    const [a, b] = splitRange(v);
+    if (a && b) return `${oneDate(a)} ${tr("al")} ${oneDate(b)}`;
+    return /^\d{4}-\d{2}-\d{2}$/.test(v) ? oneDate(v) : v;
+};
 
 function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
     quotationId: string; item: string; resolution?: MissingResolution; canEdit: boolean; onSaved: (q: any) => void;
@@ -78,7 +91,19 @@ function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
     const [value, setValue] = useState(resolution?.value || '');
     const [editing, setEditing] = useState(!resolution);
     const [saving, setSaving] = useState(false);
+    const isRange = isRangeItem(item);
     const isDate = isDateItem(item);
+    const [start0, end0] = splitRange(resolution?.value || '');
+    const [from, setFrom] = useState(start0);
+    const [to, setTo] = useState(end0);
+
+    // Inicio y fin son dos cuadros; se guarda cuando estan los dos (y el fin no es anterior al inicio).
+    const changeRange = (nextFrom: string, nextTo: string) => {
+        setFrom(nextFrom); setTo(nextTo);
+        if (!nextFrom || !nextTo) return;
+        if (nextTo < nextFrom) { toast.error(tr("La fecha de fin no puede ser anterior a la de inicio")); return; }
+        void save(joinRange(nextFrom, nextTo));
+    };
 
     const save = async (raw = value) => {
         if (!raw.trim()) return;
@@ -117,8 +142,25 @@ function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
         <li className="text-sm p-2 rounded-lg border border-red-200 bg-white space-y-1.5">
             <p className="text-red-800 flex items-start gap-2"><span className="text-red-500 mt-0.5">•</span>{itemLabel(item)}</p>
             {canEdit && (
-                <div className="flex gap-2">
-                    {isDate ? (
+                <div className="flex gap-2 flex-wrap">
+                    {isRange ? (
+                        <>
+                            <label className="flex flex-col gap-1 text-xs text-slate-600">
+                                {tr("Fecha de inicio")}
+                                <Input type="date" value={from} max={to || undefined} disabled={saving}
+                                    onChange={e => changeRange(e.target.value, to)}
+                                    onClick={e => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                                    className="h-8 text-sm w-44 cursor-pointer" />
+                            </label>
+                            <label className="flex flex-col gap-1 text-xs text-slate-600">
+                                {tr("Fecha de fin")}
+                                <Input type="date" value={to} min={from || undefined} disabled={saving}
+                                    onChange={e => changeRange(from, e.target.value)}
+                                    onClick={e => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                                    className="h-8 text-sm w-44 cursor-pointer" />
+                            </label>
+                        </>
+                    ) : isDate ? (
                         <Input
                             type="date"
                             value={value}
@@ -129,7 +171,7 @@ function MissingRow({ quotationId, item, resolution, canEdit, onSaved }: {
                             disabled={saving}
                         />
                     ) : (
-                        <Input
+                        <InputWithTools
                             value={value}
                             onChange={e => setValue(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}

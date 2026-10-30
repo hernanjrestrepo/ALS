@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Paperclip, Mic, Square, Loader2, X, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { locale } from '@/i18n';
 
 // Clip y microfono del chat (reunion del 27-oct: "no veo en el cuadro de dialogo el clip
 // para colocar attachments y un microfono para que la persona no tenga que digitar").
@@ -53,7 +54,7 @@ export function ChatInputTools({ onFiles, onDictate, disabled, reading }: {
         if (!Speech) { toast.error('Este navegador no permite dictar. Usa Chrome o Edge.'); return; }
         if (listening) { recRef.current?.stop(); return; }
         const rec = new Speech();
-        rec.lang = 'es-CO';
+        rec.lang = locale();
         rec.interimResults = false;
         rec.continuous = true;
         rec.onresult = (e: any) => {

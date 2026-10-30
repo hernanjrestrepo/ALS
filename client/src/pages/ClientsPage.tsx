@@ -13,6 +13,7 @@ import { Building2, Loader2, Plus, Pencil, Trash2, FileText, CheckCircle2 } from
 import api from '@/lib/api';
 
 import { tr } from '@/i18n';
+import { InputWithTools } from '@/components/ui/input-tools';
 interface ClientData {
     id: string;
     name: string;
@@ -157,7 +158,7 @@ export default function ClientsPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2 col-span-2">
                                         <Label>{tr("Nombre *")}</Label>
-                                        <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder={tr("Ecopetrol S.A.")} />
+                                        <InputWithTools value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder={tr("Ecopetrol S.A.")} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>{tr("NIT")}</Label>
@@ -169,7 +170,7 @@ export default function ClientsPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>{tr("Contacto")}</Label>
-                                        <Input value={form.contactName} onChange={e => setForm({ ...form, contactName: e.target.value })} />
+                                        <InputWithTools value={form.contactName} onChange={e => setForm({ ...form, contactName: e.target.value })} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>{tr("Correo de contacto")}</Label>
@@ -177,7 +178,7 @@ export default function ClientsPage() {
                                     </div>
                                     <div className="space-y-2 col-span-2">
                                         <Label>{tr("Dirección")}</Label>
-                                        <Input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
+                                        <InputWithTools value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
                                     </div>
                                     <div className="space-y-2 col-span-2">
                                         <Label>{tr("Notas")}</Label>

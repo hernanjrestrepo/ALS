@@ -14,6 +14,7 @@ import { Mail, Loader2, Plus, Pencil, Trash2, X, Users } from 'lucide-react';
 import api from '@/lib/api';
 
 import { tr } from '@/i18n';
+import { InputWithTools } from '@/components/ui/input-tools';
 interface Recipient {
     name: string;
     email: string;
@@ -159,11 +160,11 @@ export default function DistributionListsPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2 col-span-2">
                                         <Label>{tr("Nombre *")}</Label>
-                                        <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder={tr("Facturación - Cliente")} />
+                                        <InputWithTools value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder={tr("Facturación - Cliente")} />
                                     </div>
                                     <div className="space-y-2 col-span-2">
                                         <Label>{tr("Propósito *")}</Label>
-                                        <Input value={form.purpose} onChange={e => setForm({ ...form, purpose: e.target.value })} placeholder={tr("Factura")} />
+                                        <InputWithTools value={form.purpose} onChange={e => setForm({ ...form, purpose: e.target.value })} placeholder={tr("Factura")} />
                                     </div>
                                     <div className="space-y-2 col-span-2">
                                         <Label>{tr("Notas")}</Label>
@@ -181,7 +182,7 @@ export default function DistributionListsPage() {
                                     <div className="space-y-2">
                                         {recipients.map((r, idx) => (
                                             <div key={idx} className="flex items-center gap-2">
-                                                <Input
+                                                <InputWithTools
                                                     className="flex-1"
                                                     placeholder={tr("Nombre")}
                                                     value={r.name}

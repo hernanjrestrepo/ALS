@@ -1330,5 +1330,17 @@
  "Servicios (opcional)": "Serviços (opcional)",
  "seleccionado(s)": "selecionado(s)",
  "Elige uno, varios o todos": "Escolha um, vários ou todos",
- "Seleccionar todos": "Selecionar todos"
+ "Seleccionar todos": "Selecionar todos",
+ "Fecha de inicio": "Data de início",
+ "Fecha de fin": "Data de término",
+ "La fecha de fin no puede ser anterior a la de inicio": "A data de término não pode ser anterior à data de início",
+ "al": "a",
+ "Adjunto": "Anexo",
+ "No se pudo leer": "Não foi possível ler",
+ "No se pudo leer el archivo. Intenta de nuevo.": "Não foi possível ler o arquivo. Tente novamente.",
+ "Adjuntar archivos (PDF, Word, Excel, fotos...)": "Anexar arquivos (PDF, Word, Excel, fotos...)",
+ "Dictar con el micrófono": "Ditar com o microfone",
+ "Detener dictado": "Parar ditado",
+ "Este navegador no permite dictar. Usa Chrome o Edge.": "Este navegador não permite ditar. Use Chrome ou Edge.",
+ "Permite el micrófono en el navegador para dictar.": "Permita o microfone no navegador para ditar."
 }

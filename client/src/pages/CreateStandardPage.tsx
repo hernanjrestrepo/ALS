@@ -11,6 +11,7 @@ import api from '@/lib/api';
 import { toast } from 'sonner';
 
 import { tr } from '@/i18n';
+import { InputWithTools } from '@/components/ui/input-tools';
 export default function CreateStandardPage() {
     const navigate = useNavigate();
     const [isCreating, setIsCreating] = useState(false);
@@ -75,7 +76,7 @@ export default function CreateStandardPage() {
                             <div className="grid gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="title">{tr("Título *")}</Label>
-                                    <Input
+                                    <InputWithTools
                                         id="title"
                                         placeholder={tr("Ej: Verificación de Muestras de Agua")}
                                         value={formData.title}

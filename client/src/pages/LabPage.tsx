@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { tr } from '@/i18n';
 
+import { InputWithTools } from '@/components/ui/input-tools';
 // Panel de laboratorio (reunion del 27-oct con Sirys y Juan): por OIT, que servicios ya
 // tienen resultados, de quien son (ALS o tercero) y cuales faltan por cargar o por marcar
 // como "cargue completo". Al tocar una OIT se abre su pestana Informe.
@@ -70,7 +71,7 @@ function Clarifications() {
                         </div>
                         <p className="text-sm text-slate-800">{c.question}</p>
                         <div className="flex gap-2">
-                            <Input value={answers[c.id] || ''} onChange={e => setAnswers(a => ({ ...a, [c.id]: e.target.value }))} placeholder={tr('Respuesta (ej.: se entrega aparte el 30/10, o no aplica)')} className="bg-white" />
+                            <InputWithTools value={answers[c.id] || ''} onChange={e => setAnswers(a => ({ ...a, [c.id]: e.target.value }))} placeholder={tr('Respuesta (ej.: se entrega aparte el 30/10, o no aplica)')} className="bg-white" />
                             <Button size="sm" onClick={() => send(c.id)} disabled={busy === c.id || (answers[c.id] || '').trim().length < 3}>
                                 {busy === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : tr('Resolver')}
                             </Button>

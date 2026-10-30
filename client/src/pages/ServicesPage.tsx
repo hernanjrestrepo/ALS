@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -13,6 +12,7 @@ import { Beaker, Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 
 import { tr } from '@/i18n';
+import { InputWithTools } from '@/components/ui/input-tools';
 interface ServiceData {
     id: string;
     name: string;
@@ -132,11 +132,11 @@ export default function ServicesPage() {
                             <div className="space-y-4 py-4">
                                 <div className="space-y-2">
                                     <Label>{tr("Nombre *")}</Label>
-                                    <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder={tr("Muestreo de agua subterránea")} />
+                                    <InputWithTools value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder={tr("Muestreo de agua subterránea")} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>{tr("Matriz ambiental")}</Label>
-                                    <Input value={form.oitType} onChange={e => setForm({ ...form, oitType: e.target.value })} placeholder={tr("Agua, Aire, Suelo, Biota...")} />
+                                    <InputWithTools value={form.oitType} onChange={e => setForm({ ...form, oitType: e.target.value })} placeholder={tr("Agua, Aire, Suelo, Biota...")} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>{tr("Descripción")}</Label>
