@@ -535,7 +535,7 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
             let timedOut = false;
             for (let attempt = 1; attempt <= 2 && aiResponse === null; attempt++) {
                 try {
-                    aiResponse = await aiService.chat(prompt, undefined, COMPLIANCE_SYSTEM_PROMPT, AIService.DETERMINISTIC, 600_000);
+                    aiResponse = await aiService.chat(prompt, undefined, COMPLIANCE_SYSTEM_PROMPT, { ...AIService.DETERMINISTIC, think: 'low' }, 600_000); // 30-oct: con razonamiento por defecto una cotizacion con 2 decretos (SIACOT-20741) paso de 10 min y expiro
                 } catch (error) {
                     timedOut = isAITimeout(error);
                     console.error(`[Quotation] Intento ${attempt} de la IA fallido${timedOut ? ' (timeout)' : ''}:`, (error as Error)?.message);

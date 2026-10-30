@@ -147,12 +147,15 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
         const useModel = model || this.defaultModel;
         console.log(`[AI] Sending Chat Request. Model: ${useModel}`);
         try {
+            // "think" (nivel de razonamiento) va en la raiz de la peticion, no en options.
+            const { think, ...options } = (extraOptions || {}) as Record<string, unknown>;
             const response = await ollamaPost(`${this.baseURL}/api/generate`, {
                 model: useModel,
                 system: system || 'Eres un asistente experto en ingeniería ambiental y normativa colombiana.',
                 prompt: message,
                 stream: false,
-                options: { num_ctx: 16384, ...extraOptions },
+                ...(think ? { think } : {}),
+                options: { num_ctx: 16384, ...options },
             }, { timeout: timeoutMs });
             return response.data.response || '';
         } catch (error: any) {
