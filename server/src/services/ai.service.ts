@@ -175,8 +175,28 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
         }
     }
 
+    // Respuesta JSON del modelo: por OpenRouter si esta activo (segundos y sin ocupar la GPU; el 30-oct la
+    // "informacion extraida" de una cotizacion quedaba vacia o tardaba minutos en la GPU local), y si falla,
+    // por el modelo local.
+    private async generateJson(prompt: string, timeoutMs = 300_000): Promise<string> {
+        if (openrouterEnabled()) {
+            try {
+                return await openrouterChat('Responde únicamente con un JSON válido, sin texto adicional.', prompt, { temperature: 0, seed: 42, timeoutMs: Math.min(timeoutMs, 240_000) });
+            } catch (error: any) {
+                console.warn(`[AI] OpenRouter fallo en la extraccion (${error?.response?.status || ''} ${error?.message}); se usa el modelo local.`);
+            }
+        }
+        const response = await ollamaPost(`${this.baseURL}/api/generate`, {
+            model: this.defaultModel,
+            prompt,
+            stream: false,
+            ...jsonFormat(this.defaultModel),
+        }, { timeout: timeoutMs });
+        return response.data.response || '';
+    }
+
     public async analyzeDocument(documentText: string): Promise<AIAnalysisResult> {
-        const available = await this.isAvailable();
+        const available = openrouterEnabled() || await this.isAvailable();
         if (!available) return this.heuristicAnalysis(documentText);
 
         try {
@@ -211,14 +231,9 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
 
             JSON:`;
 
-            const response = await ollamaPost(`${this.baseURL}/api/generate`, {
-                model: this.defaultModel,
-                prompt,
-                stream: false,
-                ...jsonFormat(this.defaultModel),
-            });
+            const rawText = await this.generateJson(prompt);
 
-            let responseText = (response.data.response || '').trim();
+            let responseText = rawText.trim();
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const jsonStart = responseText.indexOf('{');
             const jsonEnd = responseText.lastIndexOf('}');
@@ -238,7 +253,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
                 location: parsed.location || null,
                 description: typeof parsed.description === 'string' && parsed.description.trim() ? parsed.description.trim() : null,
                 generalProposedDate: parsed.generalProposedDate || null,
-                rawResponse: response.data.response
+                rawResponse: rawText
             };
         } catch (error: any) {
             logError('AI Analysis error, se usa analisis heuristico', error);
@@ -253,13 +268,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
             {"valid":true, "data":{"oitNumber":"", "description":"", "status":"PENDING"}}
             Texto: ${safeText}`;
 
-            const response = await ollamaPost(`${this.baseURL}/api/generate`, {
-                model: this.defaultModel,
-                prompt,
-                stream: false,
-                ...jsonFormat(this.defaultModel),
-            });
-            const text = response.data.response.replace(/```json/g, '').replace(/```/g, '').trim();
+            const text = (await this.generateJson(prompt)).replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(text);
         } catch (error) {
             logError('Extraccion de datos de OIT por IA fallida', error);

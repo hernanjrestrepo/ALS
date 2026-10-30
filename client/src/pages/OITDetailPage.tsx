@@ -895,7 +895,9 @@ export default function OITDetailPage() {
                                                 </div>
                                             )}
                                         </div>
-                                    ) : (oit.status === 'PENDING' || oit.status === 'UPLOADING') ? (
+                                    // Una OIT sin documento (nacio de un resultado de laboratorio) nunca va a tener analisis de planificacion:
+                                    // no se muestra "Esperando analisis..." para siempre (30-oct, OIT 14833).
+                                    ) : ((oit.status === 'PENDING' && oit.oitFileUrl) || oit.status === 'UPLOADING') ? (
                                         <div className="text-center py-8 text-slate-400">
                                             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
                                             <p className="text-sm">{tr("Esperando análisis...")}</p>
@@ -911,7 +913,7 @@ export default function OITDetailPage() {
                     </TabsContent>
 
                     <TabsContent value="scheduling" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {(oit.status === 'ANALYZING' || (oit.status === 'PENDING' && !aiData?.data)) ? (
+                        {(oit.status === 'ANALYZING' || (oit.status === 'PENDING' && oit.oitFileUrl && !aiData?.data)) ? (
                             <div className="flex flex-col items-center justify-center py-24 text-slate-400 animate-in fade-in duration-700">
                                 <div className="relative mb-6">
                                     <div className="absolute inset-0 bg-indigo-100 rounded-full animate-ping opacity-75 duration-1000"></div>
