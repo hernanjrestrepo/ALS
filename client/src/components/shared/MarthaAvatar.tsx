@@ -4,7 +4,8 @@ export const MARTHA = 'Martha';
 
 export function MarthaAvatar({ size = 36, className = '' }: { size?: number; className?: string }) {
     return (
-        <img src="/martha-avatar.jpg" alt={MARTHA} width={size} height={size}
+        // Desde 120 px se usa la foto completa (se ve la polo con el logo de ALS).
+        <img src={size >= 120 ? '/martha.jpg' : '/martha-avatar.jpg'} alt={MARTHA} width={size} height={size}
             className={`rounded-full object-cover shrink-0 ${className}`} style={{ width: size, height: size }} />
     );
 }
