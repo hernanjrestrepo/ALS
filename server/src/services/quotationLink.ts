@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { extractQuotationNumber } from './quotationCompliance';
+import { syncClientFromOitText } from './clientSync';
 
 // Vinculo automatico OIT <-> cotizacion (Hernan, 2026-10-19): la OIT se crea en el
 // Sistema Serambiente con el numero de la cotizacion, y ese numero viene impreso en el
@@ -46,6 +47,8 @@ export async function saveOitClientFromText(oitId: string, text: string) {
     const { name, nit, reportTo } = extractOitClient(text);
     if (!name && !nit && !reportTo) return;
     await prisma.oIT.update({ where: { id: oitId }, data: { clientName: name || undefined, clientNit: nit || undefined, reportTo: reportTo || undefined } });
+    // El cliente queda tambien en el modulo Clientes (crea o completa, sin pisar lo escrito a mano).
+    await syncClientFromOitText(text);
 }
 
 // Lee el SIACOT del texto de la OIT, lo guarda y vincula si la cotizacion ya esta en
