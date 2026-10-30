@@ -41,6 +41,7 @@ import { readSheet, sheetReaderStatus } from '../controllers/sheet.controller';
 import { prioridadAlta } from '../services/gpuQueue';
 import { labComplete, labStatusForOit, oitTraceability } from '../controllers/lab.controller';
 import { proposeAssignments } from '../controllers/planning.controller';
+import { requireQuotationApproved } from '../middleware/quotationApproved';
 import { authMiddleware, requireAdmin, requireOperational, requireEngineerAssignment, requireLabAccess } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -83,10 +84,10 @@ router.post('/:id/compliance', authMiddleware, checkCompliance);
 router.post('/:id/reanalyze', authMiddleware, requireAdmin, reanalyzeOIT);
 
 // Planning endpoints (ADMIN+ only)
-router.post('/:id/accept-planning', authMiddleware, requireAdmin, acceptPlanning);
-router.post('/:id/propose-assignments', authMiddleware, requireAdmin, proposeAssignments);
+router.post('/:id/accept-planning', authMiddleware, requireAdmin, requireQuotationApproved, acceptPlanning);
+router.post('/:id/propose-assignments', authMiddleware, requireAdmin, requireQuotationApproved, proposeAssignments);
 router.post('/:id/reject-planning', authMiddleware, requireAdmin, rejectPlanning);
-router.put('/:id/service-dates', authMiddleware, requireAdmin, updateServiceDates);
+router.put('/:id/service-dates', authMiddleware, requireAdmin, requireQuotationApproved, updateServiceDates);
 
 // Sampling data endpoints: ADMIN+ always, ENGINEER only if assigned to this OIT, USER blocked
 router.post('/:id/sampling-data', authMiddleware, requireOperational, requireEngineerAssignment, saveSamplingData);
@@ -122,11 +123,11 @@ router.post('/:id/request-redo', authMiddleware, requireAdmin, requestRedoSteps)
 router.delete('/:id', authMiddleware, requireAdmin, deleteOIT);
 
 // Engineer assignment endpoints
-router.post('/:id/assign-engineers', authMiddleware, requireAdmin, assignEngineers);
+router.post('/:id/assign-engineers', authMiddleware, requireAdmin, requireQuotationApproved, assignEngineers);
 router.get('/:id/engineers', authMiddleware, getAssignedEngineers);
 
 // Update resources explicitly (planning-level, ADMIN+)
-router.put('/:id/resources', authMiddleware, requireAdmin, updatePlanningResources);
+router.put('/:id/resources', authMiddleware, requireAdmin, requireQuotationApproved, updatePlanningResources);
 
 export default router;
 

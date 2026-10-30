@@ -1,0 +1,685 @@
+
+
+Barranquilla, Septiembre 15 de 2026
+-
+Señores:
+COMPAS S.A.
+Atención: Danny Bayuelo
+Correo: dina.munoz@sgs.com
+Teléfono: 3322020 / 3116561357
+Ciudad: Bogotá, Colombia
+-
+Asunto: Caracterización de Agua Superficial, Caracterización de Agua Potable, Caracterización de Biota Continental.
+-
+Apreciado(a):
+-
+De acuerdo con su solicitud de cotización, ALS ENVIRONMENTAL S.A.S. presenta la propuesta técnico económica
+para la ejecución de:
+-
+ 
+. Caracterización de Agua Superficial
+-
+Alcance:
+-
+1. Caracterización de Agua Superficial
+-
+Caracterización de Agua Superficial en 2 punto(s), en Vía 40 # 85 -1560 Barrio las Flores (frente antigua Planta
+Argos), Barranquilla, Atlántico, la toma de muestra será simple, por un periodo de 1 día(s).
+MatrizAnálisisMétodo
+Límite de
+cuantificación
+UnidadesAcreditadoPuntos
+Días de
+Monitoreo
+Cantidad
+AguasCobre
+SM 3030K - EPA
+200.8
+0.003mg/LSI212
+AguasColiformes Termotolerantes
+EPA 40 CFR Part
+136.3
+NMP/100mL1SI212
+AguasColiformes TotalesSM 9223 BNMP/100mL1SI212
+Aguas
+Color Verdadero (Color a
+longitud de onda simple)
+SM 2120 C5,0UPCSI212
+Aguas
+Demanda Bioquímica de
+Oxígeno (DBO5)
+SM 5210 B, SM
+4500-O H
+2mg/LSI212
+Aguas
+Demanda Química de
+Oxígeno (DQO)
+SM 5220 C20mg/LSI212
+Aguas
+Fósforo Reactivo Total (Leído
+como Ortofosfato)
+SM 4500-P E0,150mg/LSI212
+AguasGrasas y aceites
+SM 5520 C-Partición
+Infrarrojo
+1,40mg/LSI212
+AguasHidrocarburos Totales
+SM 5520 C, F-
+Partición - Infrarrojo
+1,40mg/LSI212
+AguasHierro
+SM 3030K - EPA
+200.8
+0.09mg/LSI212
+AguasMercurio
+SM 3030 K, EPA
+200.8
+0,0003mg/LSI212
+Aguas
+Muestreo Integrado en
+Cuerpo Lótico -
+Determinación In Situ-
+Conductividad
+SM 2510 BNo reporta
+uS/cm a
+25°C
+SI212
+Aguas
+Muestreo Integrado en
+Cuerpo Lótico -
+Determinación In Situ -
+Oxígeno Disuelto
+SM 4500-O GNo reportamg/LSI212
+OFERTA TÉCNICO-ECONÓMICA
+SIACOT-20741-09-2026
+FO-PR-GCO-01-11
+Versión: 19
+Fecha: 2026-06-10
+Página: 1 de 9
+
+-
+Rio Magdalena aguas arriba. 
+ 
+Rio Magdalena aguas abajo. 
+ 
+Se deben hacer cálculos de Índice de Contaminación por Materia Orgánica (ICOMO), Índice de Contaminación por
+Sólidos Suspendidos (ICOSUS).
+-
+ 
+Aguas
+Muestreo Integrado en
+Cuerpo Lótico -
+Determinación In Situ - Ph
+SM 4500-H+ BNo reportaUnidadesSI212
+Aguas
+Muestreo Integrado en
+Cuerpo Lótico -
+Determinación In Situ -
+Sólidos Sedimentables
+SM 2540 F0.1mL/LSI212
+Aguas
+Muestreo Integrado en
+Cuerpo Lótico -
+Determinación In Situ -
+Temperatura
+SM 2550 BNo reporta°CSI212
+Aguas
+Muestreo Puntual -
+Determinación In Situ -
+Muestreo
+NTC ISO 5667-10No reportaNo reportaSI212
+AguasNitrato
+ISO 7890-3
+Modificado
+0,1mg/LSI212
+AguasNitratos- CI
+EPA 300.0 -
+Cromatografia Ionica
+0,05mg/LSI212
+AguasPlomo
+SM 3030K - EPA
+200.8 - ICP/MS
+0.003mg/LSI212
+AguasSólidos Suspendidos Totales
+Secado a 103°C -
+105°C-SM 2540 D
+10mg/LSI212
+AguasSólidos Totales
+Gravimétrico secado
+a 103°C - 105°C-SM
+2540 B
+30mg/LSI212
+AguasSulfuroSM 4500-S2- C, F1,00mg/LSI212
+Aguas
+Surfactantes aniónicos como
+SAAM
+SM 5540 C0,200mg/LSI212
+AguasTurbidezSM 2130 B2,00NTUSI212
+AguasZinc
+SM 3030K - EPA
+200.8 - ICP/MS
+0.09mg/LSI212
+. Caracterización de Biota Acuática Continental
+-
+Alcance:
+-
+2. Caracterización de Aguas Superficial
+-
+Caracterización de Aguas Superficial en 2 punto(s), en Vía 40 # 85 -1560 Barrio las Flores (frente antigua Planta
+Argos), Barranquilla, Atlántico, la toma de muestra será simple, por un periodo de 1 día(s).
+MatrizAnálisisMétodo
+Límite de
+cuantificación
+UnidadesAcreditadoPuntos
+Días de
+Monitoreo
+Cantidad
+Biota Acuatica
+Continental
+FitoplanctonSM 10200 FNo reportaNo reportaSi212
+Biota Acuatica
+Continental
+MacrófitasSM 10400 B,C,DNo reportaNo reportaSi212
+Biota Acuatica
+Continental
+Macroinvertebrados
+Bentónicos
+SM 10500 C - EPA
+841-B-99-002
+No reportaNo reportaSi212
+OFERTA TÉCNICO-ECONÓMICA
+SIACOT-20741-09-2026
+FO-PR-GCO-01-11
+Versión: 19
+Fecha: 2026-06-10
+Página: 2 de 9
+
+-
+Rio Magdalena aguas arriba. 
+ 
+Rio Magdalena aguas abajo. 
+ 
+Cálculo de índices ecológicos
+-
+ 
+Biota Acuatica
+Continental
+Muestreo en Cuerpo Lótico -
+Fitoplancton
+SM 10200 BNo reportaNo reportaSi212
+Biota Acuatica
+Continental
+Muestreo en Cuerpo Lótico -
+Macrófitas
+SM 10400 B,C,DNo reportaNo reportaSi212
+Biota Acuatica
+Continental
+Muestreo en Cuerpo Lótico -
+Macroinvertebrados
+Bentónicos
+SM 10500 B - EPA
+841-B-99-002
+No reportaNo reportaSi212
+Biota Acuatica
+Continental
+Muestreo en Cuerpo Lótico -
+Peces
+SM 10600 B, C -
+EPA 841-B-99-002
+No reportaNo reportaSi212
+Biota Acuatica
+Continental
+Muestreo en Cuerpo Lótico -
+Perifiton
+SM 10300 B, EPA
+841-B-99-002
+No reportaNo reportaSi212
+Biota Acuatica
+Continental
+Muestreo en Cuerpo Lótico -
+Zooplancton
+SM 10200 BNo reportaNo reportaSi212
+Biota Acuatica
+Continental
+Peces
+SM 10600 D - EPA
+841-B-99-002
+No reportaNo reportaSi212
+Biota Acuatica
+Continental
+Perifiton
+SM 10300 C, EPA
+841-B-99-002
+No reportaNo reportaSi212
+Biota Acuatica
+Continental
+ZooplanctonSM 10200 GNo reportaNo reportaSi212
+. Caracterización de Agua Potable
+-
+Alcance:
+-
+3. Caracterización de Agua Potable
+-
+Caracterización de Agua Potable en 3 punto(s), en Vía 40 # 85 -1560 Barrio las Flores (frente antigua Planta Argos),
+Barranquilla, Atlántico, la toma de muestra será simple, por un periodo de 1 día(s).
+MatrizAnálisisMétodo
+Límite de
+cuantificación
+UnidadesCertificadoPuntos
+Días de
+Monitoreo
+Cantidad
+Agua PotableAlcalinidad
+SM 2320 B - 24th Ed
+2023
+10
+mg
+CaCO3/L
+No313
+Agua PotableAluminio Total
+SM 3030 K 24th Ed
+2023; EPA 200.7
+Rev. 4 1994
+Modificado
+0,05mg/L AlNo313
+Agua PotableCalcio Total
+SM 3030 K 24th Ed
+2023; EPA 200.7
+Rev. 4 1994
+Modificado
+1mg/L CaNo313
+Agua Potable
+CARBONO ORGANICO
+TOTAL (COT)
+SM 5310B - 24th Ed
+2023
+0,5mg/LNo313
+Agua PotableCloro libre medido en campo
+Kit Hanna
+Instruments 701;
+Rango 0.00 a 2.5
+ppm)
+No aplicappmNo313
+Agua PotableCloruros
+SM 4500-Cl B - 24th
+Ed 2023
+5mg Cl ̄/LNo313
+Agua PotableColiformes Termotolerantes
+SM 9221 F.2 - 24th
+Ed 2023
+0
+UFC/100
+mL
+No313
+OFERTA TÉCNICO-ECONÓMICA
+SIACOT-20741-09-2026
+FO-PR-GCO-01-11
+Versión: 19
+Fecha: 2026-06-10
+Página: 3 de 9
+
+-
+Baños. 
+ 
+Cocina. 
+Agua PotableColiformes Totales
+Método de filtración
+de membrana para
+aguas con bajo
+contenido de
+microbiota (ISO
+9308-1:2014/A1
+2017)
+0
+UFC/100
+mL
+No313
+Agua PotableColor Aparente
+SM 2120 C - 24th Ed
+2023
+5UPCNo313
+Agua Potable
+Conductividad medido en
+campo
+SM 2510 B - 24th Ed
+2023
+84μS/cmNo313
+Agua PotableDureza Total
+SM 2340 C - 24th Ed
+2023
+2
+mg
+CaCO3/L
+No313
+Agua PotableE. Coli
+Método de filtración
+de membrana para
+aguas con bajo
+contenido de
+microbiota (ISO
+9308-1:2014/A1
+2017)
+0
+UFC/100
+mL
+No313
+Agua PotableFLUORUROS
+SM 4500-F- C - SM
+24th ed 2023
+0.1mg F/LNo313
+Agua PotableFosfatos
+SM 4500 P E - 24th
+Ed 2023
+0.15mg PO4/LNo313
+Agua PotableHierro Total
+SM 3030 K 24th Ed
+2023; EPA 200.7
+Rev. 4 1994
+Modificado
+0.01mg/L FeNo313
+Agua PotableMagnesio Total
+SM 3030 K 24th Ed
+2023; EPA 200.7
+Rev. 4 1994
+Modificado
+0.25mg/L MgNo313
+Agua PotableManganeso Total
+SM 3030 K 24th Ed
+2023; EPA 200.7
+Rev. 4 1994
+Modificado
+0.001mg/L MnNo313
+Agua PotableMolibdeno Total
+SM 3030 K 24th Ed
+2023; EPA 200.7
+Rev. 4 1994
+Modificado
+0.0075mg/L MoNo313
+Agua PotableNITRATOS
+SM 4500 NO3 B -
+SM 24th ed 2023
+0.5mg NO3/LNo313
+Agua PotableNitritos
+SM 4500-NO2 B -
+24th Ed 2023
+0.005
+mg N-
+NO2-/L
+No313
+Agua PotablePh
+SM 4500 H+ B - SM
+24th ed 2023
+2UpHNo313
+Agua PotableSulfatos
+SM 4500-SO4-2 E -
+24th Ed 2023
+10mg SO4/LNo313
+Agua Potable
+Temperatura medido en
+campo
+SM 2550 B - SM
+24th ed 2023
+-5°CNo313
+Agua PotableTurbiedad
+SM 2130 B - 24th Ed
+2023
+1NTUNo313
+Agua PotableZinc Total
+SM 3030 K 24th Ed
+2023; EPA 200.7
+Rev. 4 1994
+Modificado
+0.01mg/L ZnNo313
+OFERTA TÉCNICO-ECONÓMICA
+SIACOT-20741-09-2026
+FO-PR-GCO-01-11
+Versión: 19
+Fecha: 2026-06-10
+Página: 4 de 9
+
+ 
+Baños Contratistas. 
+ 
+Para el informe de agua potable, comparar con la resolución 2115 del 2007 sobre agua para consumo humano. 
+ 
+Cálculo de IRCA
+-
+. Subcontratación
+-
+Aguas:
+-
+Se subcontratará el análisis de los siguientes parámetros con un laboratorio acreditado ante el IDEAM: Cobre,
+Coliformes termotolerantes, Coliformes totales, Color real (color a longitud de onda simple), Conductividad en
+cuerpo lótico, Demanda bioquímica de oxígeno (DBO5), Demanda química de oxígeno (DQO), Fósforo reactivo
+total (leído como ortofosfato), Grasas y aceites, Hidrocarburos, Hierro, Mercurio, Muestreo, Nitrato, Nitratos,
+Oxigeno disuelto en cuerpo lótico, Ph en cuerpo lótico, Plomo, Sólidos sedimentables en cuerpo lótico, Sólidos
+suspendidos totales, Sólidos totales, Sulfuro, Surfactantes aniónicos como saam, Temperatura en cuerpo lótico,
+Turbidez, Zinc.
+-
+Biota Acuática Continental:
+-
+Se subcontratará el análisis de los siguientes parámetros con un laboratorio acreditado ante el IDEAM:
+Macroinvertebrados bentónicos, Muestreo en cuerpo lótico - macroinvertebrados bentónicos, Muestreo en cuerpo
+lótico - macrófitas, Peces, Perifiton, Fitoplancton, Muestreo en cuerpo lótico - peces, Macrófitas, Muestreo en
+cuerpo lótico - zooplancton, Muestreo en cuerpo lótico - perifiton, Zooplancton, Muestreo en cuerpo lótico -
+fitoplancton.
+-
+. Documentos de referencia
+-
+1. Aguas:
+-
+Decreto 1076 de 2015 del ministerio de ambiente y desarrollo sostenible
+-
+Artículo de la norma a comparar:
+2.2.3.3.9.10 y 2.2.3.3.9.13
+-
+2. Biota Acuatica Continental:
+-
+No aplica
+-
+Artículo de la norma a comparar:
+No Aplica
+-
+3. Agua Potable:
+-
+Resolucion 2115 de 2007
+-
+Artículo de la norma a comparar:
+13
+-
+. Precio del Estudio
+-
+$ 5.427.708 + IVA.
+-
+. Forma de pago
+OFERTA TÉCNICO-ECONÓMICA
+SIACOT-20741-09-2026
+FO-PR-GCO-01-11
+Versión: 19
+Fecha: 2026-06-10
+Página: 5 de 9
+
+-
+30 días
+-
+. Fecha de entrega de los diferentes entregables
+-
+-
+. Entregables
+-
+1 Informe en medio digital vía mail y 1 copia(s) del Informe en medio magnético (en caso de ser requerida).
+-
+Nota: Somos una empresa comprometida con la conservación del medio ambiente y líderes en el fomento de
+iniciativas que promuevan una mejor responsabilidad ambiental, por este motivo, las copias impresas adicionales
+del informe y/o estudio, solicitadas por el cliente, tendrá un costo adicional de $500 por hoja.
+-
+. Vigencia de la Oferta
+-
+30 días.
+-
+. Reserva de las muestras
+-
+ALS ENVIRONMENTAL S.A.S establece un periodo de 20 días calendario desde la llegada de las muestras al
+laboratorio para las matrices aguas, sedimento y lodos, y un periodo de 25 días calendario desde la llegada de la
+última muestra al laboratorio para la matriz aire como lapso determinado para almacenar la muestras en nuestro
+laboratorio. Después de este periodo, se dará disposición final a las muestras.
+. Actividades que no incluye esta oferta y deben ser suministradas por el cliente
+-
+Mediciones diferentes a las establecidas en el alcance.
+-
+. Términos y condiciones
+-
+1) La programación de la ejecución de este proyecto se realizará una vez se reciba la siguiente documentación:
+-
+- Orden de servicio, pedido o compra, Contrato, o Correo electrónico.
+- Copia del volante de consignación del anticipo solicitado, cuando aplique.
+- Formato de inscripción de Clientes.
+-
+2) Si por algún motivo el cliente requiere programación del servicio previamente a la entrega de los documentos
+enumerados en la Nota 1, ALS ENVIRONMENTAL S.A.S respetara esta programación hasta 5 días antes de las
+fechas programadas para el servicio, de ese tiempo en adelante ALS ENVIRONMENTAL S.A.S podrá reprogramar
+los servicios a una nueva fecha dependiendo su disponibilidad.
+-
+3) La ejecución de este proyecto está sujeta a la disponibilidad de recursos de personal y de equipos de ALS
+Aguas
+-
+25 días hábiles después de ejecutada la fase de campo.
+Agua Potable
+-
+25 días hábiles después de ejecutada la fase de campo.
+Biota Acuática Continental
+-
+25 días hábiles después de ejecutada la fase de campo.
+OFERTA TÉCNICO-ECONÓMICA
+SIACOT-20741-09-2026
+FO-PR-GCO-01-11
+Versión: 19
+Fecha: 2026-06-10
+Página: 6 de 9
+
+ENVIRONMENTAL S.A.S.
+-
+4) Para el caso de servicios de medición en fuentes fijas, se programa el servicio teniendo en cuenta los tiempos
+de anticipación que el cliente tiene para radicar informe previo (30 días calendario).
+-
+5) En caso de materializarse durante la prestación del servicio cualquier desviación respecto a las condiciones
+metodológicas establecidas en los métodos, protocolos o normas aplicables, ALS ENVIRONMENTAL S.A.S.
+comunicará oportunamente dicha situación al cliente. De acuerdo con el tipo de desviación identificada y la
+evaluación técnica realizada por el laboratorio respecto a su impacto sobre la calidad y confiabilidad de los
+resultados, ALS ENVIRONMENTAL S.A.S determinará la factibilidad técnica de emitir los resultados bajo alcance
+acreditado IDEAM o reportarlos como NO acreditados.
+-
+6) Tener en cuenta que, al ejecutar monitoreos de calidad de aire con equipos manuales, se debe considerar lo
+estipulado en los ítems 6.10.2.2, 6.10.2.3., 6.10.2.4 y 6.10.2.5 del Protocolo de Diseño para el Monitoreo y
+seguimiento de la Calidad del Aire del Ministerio de Ambiente, Vivienda y Desarrollo Territorial, ahora MADS,
+donde se indican que las mediciones deben realizarse de medianoche a medianoche. En el caso de emisión de
+ruido tener en cuenta si las condiciones operativas del lugar en donde serán desarrolladas las mediciones no es
+posible apagar la(s) fuente(s) que serán objeto de medición se Autoriza a ALS ENVIRONMENTAL S.A.S. a
+reportar el resultado del nivel percentil L90, para determinar la emisión de la fuente apagada.
+-
+7)  Cuando  por  condiciones  operativas,  logísticas,  de  seguridad,  orden  público,  restricciones  de  acceso  o
+disposiciones  de  autoridades  competentes  no  sea  posible  ejecutar  los  monitoreos  bajo  las  condiciones
+metodológicas establecidas y el cliente solicite la ejecución del servicio bajo condiciones diferentes a las definidas
+en la metodología de referencia, este deberá contar previamente con autorización oficial emitida por la Autoridad
+Ambiental competente y remitirla al laboratorio antes de la ejecución del servicio.
+-
+8) Apreciado cliente recuerde que cualquier tipo de observación y corrección requerida del informe, solo será
+aceptada  dentro  de  los  cuatro  (4)  días  hábiles  siguientes  al  envío  del  mismo,  a  través  del  correo
+Servicio.Cliente@alsglobal.com, con copia al correo del analista técnico que envió el informe; si no se recibe
+observación en el tiempo establecido, se dará por aceptado el informe.
+-
+9) En caso de que el personal de ALS ENVIRONMENTAL S.A.S se traslade al sitio del servicio, y no pueda realizar
+las labores contratadas, por causas que dependan única y exclusivamente del cliente y totalmente ajenas a ALS
+ENVIRONMENTAL S.A.S , el cliente deberá cancelar los gastos generados en dichos traslados, los cuales serán
+acordados entre las partes y serán incluidos en la factura final.
+-
+10)  En  caso  de  que  el  cliente  sea  el  responsable  de  la  toma  de  las  muestras  y  no  el  personal  de  ALS
+ENVIRONMENTAL  S.A.S.,  el  cliente  deberá  garantizar  que  las  muestras  sean  tomadas,  preservadas  y
+transportadas bajo las condiciones técnicas y normativas requeridas para su análisis. Si al momento de la
+recepción se evidencia que las muestras no cumplen con las condiciones de muestreo y preservación adecuadas,
+el cliente deberá autorizar por escrito, de manera previa al análisis, que las muestras sean procesadas bajo las
+condiciones en las que fueron tomadas y enviadas.
+-
+11)  ALS  ENVIRONMENTAL  S.A.S.  manifiesta  su  responsabilidad  en  la  subcontratación  de  análisis  con
+laboratorios competentes y del trabajo realizado por cada uno de estos a excepción que el cliente o una autoridad
+reglamentaria especifique el subcontratista a utilizar, esto en cumplimientos de la norma ISO/IEC 17025:2017.
+-
+12) Con el fin de evitar riesgos tributarios para nuestra Compañía, se hace necesario que en la Orden de
+Compra/Orden de Servicio o en el documento que haga sus veces, se indique el/los municipios(s) exacto(s) donde
+ALS ENVIRONMENTAL S.A.S ejecutará el/los servicio(s). Adicionalmente, se solicita que las retenciones por ICA
+a las que haya lugar se practiquen en dicho municipio, en donde ALS ENVIRONMENTAL S.A.S declarará los
+ingresos correspondientes a las actividades ejecutadas y autorizadas por su compañía.
+-
+OFERTA TÉCNICO-ECONÓMICA
+SIACOT-20741-09-2026
+FO-PR-GCO-01-11
+Versión: 19
+Fecha: 2026-06-10
+Página: 7 de 9
+
+13) La Regla de decisión corresponde a la pauta que describe como se tiene en cuenta la incertidumbre de
+medición cuando se declara la conformidad con un requisito especificado. ALS ENVIRONMENTAL S.A.S. cuenta
+con reglas de decisión documentadas en el marco de la norma NTC ISO/IEC 17025:2017 bajo el procedimiento
+interno  PO-PSM-84  DECLARACIÓN  DE  CONFORMIDAD  las  cuales,  se  aplican  para  la  evaluación  de  la
+conformidad  del  resultado  de  un  parámetro  junto  con  su  incertidumbre  expandida  respecto  a  un  referente
+normativo (Ej. Límite máximo permisible) en informes técnicos. Es responsabilidad del cliente informar si requiere
+comparación normativa con la legislación ambiental que corresponda. Si la respuesta es sí, debe indicar la regla de
+decisión; en caso de que no tenga, el cliente manifiesta que está de acuerdo con que nuestro laboratorio aplique la
+regla de decisión de aceptación simple, para poder dar cumplimiento con el requisito.
+-
+14) Cuando la especificación o criterio de aceptación no pueda ser aplicado por razones técnicas (p. ej., método no
+acreditado para el parámetro o matriz, muestra insuficiente, contaminación), ALS ENVIRONMENTAL S.A.S. no
+emitirá declaración de conformidad y lo dejará constar en el informe con la justificación técnica correspondiente.
+-
+15) El servicio a ejecutar dependerá de la disponibilidad de los equipos en el momento de su ejecución. En caso de
+ser necesario, ALS ENVIRONMENTAL S.A.S subcontratará el servicio con proveedores que cumplan con los más
+altos estándares de calidad y lo estipulado en la NTC ISO/IEC 17025:2017. Al aprobar la cotización, el cliente
+autoriza expresamente a ALS ENVIRONMENTAL S.A.S a proceder de esta manera para garantizar la correcta
+ejecución del servicio.
+-
+16) ALS ENVIRONMENTAL S.A.S se hace responsable de toda la información suministrada por el cliente y/o de
+terceros, la cuál es totalmente confidencial y sólo podrá revelarse con solicitud expresa del cliente o por cualquier
+tipo de requerimiento legal por persona natural, jurídica o entidad gubernamental con previa notificación al cliente.
+Los siguientes son los escenarios en los cuales ALS ENVIRONMENTAL S.A.S. podría suministrar información de
+los clientes: si es requerido por ley, si se necesita resolver una queja interpuesta por un tercero, y durante el
+desarrollo de auditorías ante entes acreditadores.
+-
+17) Toda queja o reclamo relacionado con los servicios prestados por ALS ENVIRONMENTAL S.A.S deberá ser
+remitido exclusivamente a través del correo electrónico Servicio.Cliente@alsglobal.com, con copia al ejecutivo
+comercial; al recibirla registraremos la solicitud en la matriz de solicitudes del cliente (FO-PR-SMS-06-02) para
+evaluar si expresa insatisfacción o cuestiona la validez de un resultado; si procede se abrirá el registro de quejas
+(FO-PR-SMS-06-01),  acusaremos  recibo  y  le  informaremos  del  seguimiento;  la  queja  será  evaluada  para
+determinar  si  se  trata  como  Acción  Correctiva  (SAC)  cuando  exista  una  causa  raíz  sistémica  o  riesgo  de
+recurrencia, o como Trabajo No Conforme (TNC) si es un hecho puntual, y se implementarán y documentarán las
+acciones correspondientes; el Coordinador de Sistemas de Gestión supervisará el tratamiento y, en caso de
+involucramiento propio, se activará un comité interdisciplinario para garantizar imparcialidad, manteniéndole
+informado del progreso y de las acciones tomadas.
+-
+ 
+OFERTA TÉCNICO-ECONÓMICA
+SIACOT-20741-09-2026
+FO-PR-GCO-01-11
+Versión: 19
+Fecha: 2026-06-10
+Página: 8 de 9
+
+Esperamos que esta propuesta sea de su interés, cualquier inquietud con gusto será atendida.
+
+Cordialmente.
+-
+Angel Barrera
+Gerente
+
+
+Para cualquier inquietud favor comunicarse con los siguientes contactos:
+-
+Hector BarreraHéctor Barrera
+Ejecutivo ComercialGerente Comercial
+32052153913205215391
+hector.barrera@alsglobal.comHector.Barrera@ALSGlobal.com
+OFERTA TÉCNICO-ECONÓMICA
+SIACOT-20741-09-2026
+FO-PR-GCO-01-11
+Versión: 19
+Fecha: 2026-06-10
+Página: 9 de 9

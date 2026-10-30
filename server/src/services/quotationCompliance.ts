@@ -306,6 +306,8 @@ Si el artículo tiene varias tablas o categorías y la cotización dice cuál, u
 export type ProblemType = 'FALTANTE' | 'PARAMETRO_INCORRECTO' | 'NOMBRE_DISTINTO' | 'MATRIZ' | 'LIMITE_CUANTIFICACION' | 'OTRO';
 
 export interface ParameterCheck {
+    /** Servicio/matriz de la cotizacion al que pertenece esta revision (cotizaciones con varias matrices). */
+    matrix?: string;
     normParameter: string;
     normLimit?: string;
     quotedAs?: string;
@@ -314,6 +316,8 @@ export interface ParameterCheck {
 }
 
 export interface QuotationIssue {
+    /** Servicio/matriz de la cotizacion al que pertenece el hallazgo. */
+    matrix?: string;
     severity: 'CRITICAL' | 'WARNING' | 'INFO';
     category: string;
     parameter?: string;
@@ -579,6 +583,43 @@ export function buildVerdict(input: VerdictInput): Verdict {
     return { status, compliant, score, summary, issues };
 }
 
+export interface GroupVerdictInput extends VerdictInput {
+    /** Nombre del servicio/matriz ("Agua Superficial"); vacio cuando la cotizacion no se separa. */
+    label?: string;
+    /** La cotizacion dice "No aplica" para este servicio: no se compara y no genera hallazgos. */
+    noAplica?: boolean;
+}
+
+// Veredicto de una cotizacion con varias matrices: cada una se revisa con su propio articulo y aqui se juntan.
+// Con un solo grupo sin nombre es igual a buildVerdict (cotizaciones de una sola matriz).
+export function buildGroupedVerdict(inputs: GroupVerdictInput[]): Verdict {
+    if (inputs.length === 1 && !inputs[0].label && !inputs[0].noAplica) return buildVerdict(inputs[0]);
+    const issues: QuotationIssue[] = [];
+    const allChecks: ParameterCheck[] = [];
+    const lines: string[] = [];
+    let compared = 0;
+    for (const input of inputs) {
+        const label = input.label || '';
+        if (input.noAplica) {
+            lines.push(`${label}: la cotización indica que no aplica comparación con una norma.`);
+            continue;
+        }
+        const v = buildVerdict(input);
+        for (const c of input.checks) { if (label) c.matrix = label; allChecks.push(c); }
+        for (const i of v.issues) issues.push(label ? { ...i, matrix: label } : i);
+        if (input.checks.length) compared++;
+        lines.push(label ? `${label}: ${v.summary}` : v.summary);
+    }
+    const order = { CRITICAL: 0, WARNING: 1, INFO: 2 };
+    issues.sort((a, b) => order[a.severity] - order[b.severity]);
+    let status: Verdict['status'];
+    let compliant: boolean | undefined;
+    if (issues.some(i => i.severity === 'CRITICAL')) { status = 'NON_COMPLIANT'; compliant = false; }
+    else if (issues.some(i => i.severity === 'WARNING') || !compared) status = 'REVIEW_REQUIRED';
+    else { status = 'COMPLIANT'; compliant = true; }
+    return { status, compliant, score: complianceScore(allChecks), summary: lines.join(' '), issues };
+}
+
 // Puntuacion = de lo COTIZADO, que porcentaje esta sin observaciones. Antes solo
 // restaban los incumplimientos graves y SIACOT-20857 mostraba 100 con 2 nombres por
 // confirmar (Hernan, 2026-10-19). Lo sugerido por la norma no cotizado no entra: no
@@ -586,7 +627,7 @@ export function buildVerdict(input: VerdictInput): Verdict {
 export function complianceScore(checks: ParameterCheck[], acceptedParameters: Set<string> = new Set()): number {
     const quoted = checks.filter(c => !c.problems.length || c.problems.some(p => p.type !== 'FALTANTE'));
     if (!quoted.length) return 0;
-    const ok = quoted.filter(c => acceptedParameters.has(c.normParameter) || !c.problems.some(p => p.type !== 'FALTANTE'));
+    const ok = quoted.filter(c => acceptedParameters.has(c.matrix ? `${c.matrix}|${c.normParameter}` : c.normParameter) || !c.problems.some(p => p.type !== 'FALTANTE'));
     return Math.round((100 * ok.length) / quoted.length);
 }
 
@@ -611,9 +652,10 @@ export type FindingReviews = Record<string, FindingReview>;
 
 // Clave estable de un hallazgo: sobrevive a volver a analizar (la descripcion de la
 // IA puede cambiar de palabras; categoria + parametro no).
-export function issueKey(issue: Pick<QuotationIssue, 'category' | 'parameter' | 'description'>): string {
+export function issueKey(issue: Pick<QuotationIssue, 'category' | 'parameter' | 'description'> & { matrix?: string }): string {
     const norm = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
-    return `${norm(issue.category)}|${issue.parameter ? norm(issue.parameter) : norm(issue.description).slice(0, 120)}`;
+    // El mismo parametro en dos matrices (Zinc en agua superficial y en agua potable) son dos hallazgos distintos.
+    return `${norm(issue.category)}|${issue.parameter ? norm(issue.parameter) : norm(issue.description).slice(0, 120)}${issue.matrix ? `|${norm(issue.matrix)}` : ''}`;
 }
 
 export interface EffectiveCompliance {
@@ -632,9 +674,10 @@ export function applyFindingReviews(result: any, reviews: FindingReviews = {}): 
     const checks: ParameterCheck[] = Array.isArray(result?.parameterChecks) ? result.parameterChecks : [];
     const actionable = issues.filter(i => i.severity !== 'INFO');
     const decisionOf = (i: QuotationIssue) => reviews[issueKey(i)]?.decision;
-    const accepted = new Set(actionable.filter(i => i.parameter && decisionOf(i) === 'ACEPTADO').map(i => i.parameter as string));
+    const paramKey = (i: QuotationIssue) => (i.matrix ? `${i.matrix}|${i.parameter}` : (i.parameter as string));
+    const accepted = new Set(actionable.filter(i => i.parameter && decisionOf(i) === 'ACEPTADO').map(paramKey));
     // Un parametro con varios hallazgos solo cuenta como bien si se aceptaron todos.
-    for (const i of actionable) if (i.parameter && decisionOf(i) !== 'ACEPTADO') accepted.delete(i.parameter);
+    for (const i of actionable) if (i.parameter && decisionOf(i) !== 'ACEPTADO') accepted.delete(paramKey(i));
     const score = result?.error ? 0 : complianceScore(checks, accepted);
     const pendingDecisions = actionable.filter(i => decisionOf(i) !== 'ACEPTADO' && decisionOf(i) !== 'RECHAZADO').length;
 

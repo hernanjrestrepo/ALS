@@ -181,20 +181,21 @@ export function quotationDetail(q: any): string {
     const checks: any[] = Array.isArray(result.parameterChecks) ? result.parameterChecks : [];
     const oitsLinked = (q.linkedOITs || []).map((o: any) => `#${o.oitNumber} (${statusLabel(o.status)})`).join(', ');
     const issueLine = (i: any, n: number) => {
-        const key = `${keyPart(i.category)}|${i.parameter ? keyPart(i.parameter) : keyPart(i.description).slice(0, 120)}`;
+        const key = `${keyPart(i.category)}|${i.parameter ? keyPart(i.parameter) : keyPart(i.description).slice(0, 120)}${i.matrix ? `|${keyPart(i.matrix)}` : ''}`;
         const rv = reviews[key];
-        return `${n + 1}. [${i.severity}] ${i.category}${i.parameter ? ` — ${i.parameter}` : ''}: ${clip(i.description, 320)}${i.normReference ? ` | Norma: ${clip(i.normReference, 200)}` : ''}${i.recommendation ? ` | Acción: ${clip(i.recommendation, 160)}` : ''}${rv ? ` | DECISIÓN de ${rv.userName || 'laboratorio'} (${rv.decision}): ${clip(rv.comment, 300)}` : ''}`;
+        return `${n + 1}. [${i.severity}]${i.matrix ? ` (servicio: ${i.matrix})` : ''} ${i.category}${i.parameter ? ` — ${i.parameter}` : ''}: ${clip(i.description, 320)}${i.normReference ? ` | Norma: ${clip(i.normReference, 200)}` : ''}${i.recommendation ? ` | Acción: ${clip(i.recommendation, 160)}` : ''}${rv ? ` | DECISIÓN de ${rv.userName || 'laboratorio'} (${rv.decision}): ${clip(rv.comment, 300)}` : ''}`;
     };
     const lines = [
         `COTIZACIÓN ${q.quotationNumber} — cliente: ${q.client?.name || q.clientName || 'N/A'}${q.client?.nit ? ` (NIT ${q.client.nit})` : ''} — estado ${q.status}${q.approvedForOit ? ' — APROBADA para OIT' : ''}`,
         `Servicios: ${(q.services || []).map((s: any) => s.name).join(', ') || 'no seleccionados (ver las matrices de la cotización más abajo)'}`,
         `OIT vinculadas: ${oitsLinked || 'ninguna'}`,
         result.summary ? `Resultado del análisis de cumplimiento: ${result.status || ''}, puntaje ${result.score ?? '?'}/100. ${clip(result.summary, 600)}` : 'La cotización todavía no tiene análisis de cumplimiento.',
-        result.comparedAgainst?.length ? `Comparada contra: ${result.comparedAgainst.join(' | ')}` : '',
+        result.comparedAgainst?.length ? `Comparada contra (cada servicio con su propia norma y artículo): ${result.comparedAgainst.join(' | ')}` : '',
+        Array.isArray(result.groups) && result.groups.some((g: any) => g.noAplica) ? `Servicios que la cotización marca "No aplica" (sin comparación normativa): ${result.groups.filter((g: any) => g.noAplica).map((g: any) => g.matrix).join(', ')}` : '',
         result.sampleMatrix ? `Matrices de la muestra: ${result.sampleMatrix}` : '',
         issues.length ? `HALLAZGOS (${issues.length}):\n${issues.map(issueLine).join('\n')}` : '',
-        checks.length ? `REVISIÓN PARÁMETRO POR PARÁMETRO (${checks.length}):\n${checks.map(c => `- ${c.normParameter} | límite norma: ${c.normLimit || '—'} | cotizado como: ${c.quotedAs || 'NO COTIZADO'} | LC cotizado: ${c.quotedLoq || '—'}${c.problems?.length ? ` | problemas: ${c.problems.map((p: any) => p.type).join(', ')}` : ''}`).join('\n')}` : '',
-        q.extractedText ? `TEXTO DE LA COTIZACIÓN (documento original):\n${clip(q.extractedText, 9000)}` : '',
+        checks.length ? `REVISIÓN PARÁMETRO POR PARÁMETRO (${checks.length}):\n${checks.map(c => `- ${c.matrix ? `[${c.matrix}] ` : ''}${c.normParameter} | límite norma: ${c.normLimit || '—'} | cotizado como: ${c.quotedAs || 'NO COTIZADO'} | LC cotizado: ${c.quotedLoq || '—'}${c.problems?.length ? ` | problemas: ${c.problems.map((p: any) => p.type).join(', ')}` : ''}`).join('\n')}` : '',
+        q.extractedText ? `TEXTO DE LA COTIZACIÓN (documento original):\n${clip(q.extractedText, 20000)}` : '',
     ];
     return lines.filter(Boolean).join('\n');
 }

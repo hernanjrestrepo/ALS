@@ -211,8 +211,8 @@ export function MissingElementsCard({ quotationId, missing, resolutions, canEdit
 
 // ---------------------------------------------------------------- Decision por hallazgo
 
-export function FindingDecisionPanel({ quotationId, issueKey, review, canEdit, onSaved }: {
-    quotationId: string; issueKey: string; review?: FindingReview; canEdit: boolean; onSaved: (q: any) => void;
+export function FindingDecisionPanel({ quotationId, issueKey, review, prior, canEdit, onSaved }: {
+    quotationId: string; issueKey: string; review?: FindingReview; prior?: { comment: string; userName?: string; at: string; quotationNumber: string }; canEdit: boolean; onSaved: (q: any) => void;
 }) {
     const [editing, setEditing] = useState(false);
     const [decision, setDecision] = useState<FindingDecision | null>(review?.decision || null);
@@ -220,7 +220,7 @@ export function FindingDecisionPanel({ quotationId, issueKey, review, canEdit, o
     const [saving, setSaving] = useState(false);
 
     const save = async () => {
-        if (!decision || comment.trim().length < 3) return;
+        if (!decision || (decision !== 'EN_REVISION' && comment.trim().length < 3)) return;
         setSaving(true);
         try {
             const { data } = await api.put(`/quotations/${quotationId}/findings`, { key: issueKey, decision, comment: comment.trim() });
@@ -281,15 +281,24 @@ export function FindingDecisionPanel({ quotationId, issueKey, review, canEdit, o
                         ))}
                     </div>
                     {decision && <p className="text-xs text-slate-500">{DECISION_INFO[decision].hint}</p>}
+                    {prior && !review && (
+                        <div className="text-xs bg-white/70 border border-slate-200 rounded p-2">
+                            <p className="text-slate-500">{tr("Este hallazgo ya se justificó en la cotización")} {prior.quotationNumber} ({prior.userName || tr("Usuario")}, {when(prior.at)}):</p>
+                            <p className="text-slate-800 whitespace-pre-wrap">{prior.comment}</p>
+                            <Button type="button" variant="ghost" size="sm" className="mt-1 h-7 px-2 text-xs" onClick={() => { setDecision('ACEPTADO'); setComment(prior.comment); }}>
+                                {tr("Usar esta justificación")}
+                            </Button>
+                        </div>
+                    )}
                     <Textarea
                         value={comment}
                         onChange={e => setComment(e.target.value)}
-                        placeholder={tr("Comentario (obligatorio)")}
+                        placeholder={decision === 'EN_REVISION' ? tr("Comentario (opcional)") : tr("Comentario (obligatorio)")}
                         className="text-sm min-h-[60px] bg-white"
                         disabled={saving}
                     />
                     <div className="flex gap-2">
-                        <Button size="sm" onClick={save} disabled={saving || !decision || comment.trim().length < 3}>
+                        <Button size="sm" onClick={save} disabled={saving || !decision || (decision !== 'EN_REVISION' && comment.trim().length < 3)}>
                             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {tr("Guardar decisión")}
                         </Button>
@@ -308,7 +317,7 @@ export function FindingDecisionPanel({ quotationId, issueKey, review, canEdit, o
 // ---------------------------------------------------------------- Informativos
 
 export function InformativeFindingsTable({ issues, parameterChecks }: { issues: any[]; parameterChecks: any[] }) {
-    const limitOf = (parameter?: string) => parameterChecks.find(c => c.normParameter === parameter)?.normLimit;
+    const limitOf = (issue: any) => parameterChecks.find(c => c.normParameter === issue.parameter && (c.matrix || '') === (issue.matrix || ''))?.normLimit;
     return (
         <Card className="border-blue-200 shadow-sm">
             <CardHeader className="bg-blue-50">
@@ -334,8 +343,11 @@ export function InformativeFindingsTable({ issues, parameterChecks }: { issues: 
                         {issues.map((issue, idx) => (
                             <tr key={issue.key || idx} className="border-b last:border-0 align-top">
                                 <td className="py-1.5 pr-3 text-slate-400">{idx + 1}</td>
-                                <td className="py-1.5 pr-3 font-medium text-slate-900">{issue.parameter || '—'}</td>
-                                <td className="py-1.5 pr-3 text-slate-600">{limitOf(issue.parameter) || '-'}</td>
+                                <td className="py-1.5 pr-3 font-medium text-slate-900">
+                                    {issue.parameter || '—'}
+                                    {issue.matrix && <span className="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-slate-100 text-slate-600 font-normal">{issue.matrix}</span>}
+                                </td>
+                                <td className="py-1.5 pr-3 text-slate-600">{limitOf(issue) || '-'}</td>
                                 <td className="py-1.5 text-slate-600">{issue.parameter ? issue.category : issue.description}</td>
                             </tr>
                         ))}

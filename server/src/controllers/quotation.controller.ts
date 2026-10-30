@@ -7,13 +7,15 @@ import { pdfService } from '../services/pdf.service';
 import { aiService, AIService } from '../services/ai.service';
 import {
     extractQuotationNumber, parseComparisonTargets, buildArticleBlocks, describeTarget,
-    detectMatrixMismatches, normalizeParameterChecks, applySystemChecks, buildVerdict, isAITimeout,
+    detectMatrixMismatches, normalizeParameterChecks, applySystemChecks, buildGroupedVerdict, mentionedInQuotation, isAITimeout,
+    MatrixMismatch,
     buildCompliancePrompt, COMPLIANCE_SYSTEM_PROMPT, BUILTIN_RULES, ParameterRules,
     pendingNameQuestions, consultationKey,
     ParameterCheck, applyFindingReviews, normCoverage, issueKey, normalizeIssues,
     FINDING_DECISIONS, FindingDecision, FindingReviews,
 } from '../services/quotationCompliance';
 import { linkOitsToQuotation } from '../services/quotationLink';
+import { parseServiceGroups, ServiceGroup } from '../services/quotationGroups';
 
 const prisma = new PrismaClient();
 
@@ -167,7 +169,8 @@ export const reviewFinding = async (req: Request, res: Response) => {
         const { key, decision, comment } = req.body || {};
         if (!key || typeof key !== 'string') return res.status(400).json({ error: 'Falta el hallazgo' });
         if (!FINDING_DECISIONS.includes(decision)) return res.status(400).json({ error: 'Decisión no válida' });
-        const text = String(comment || '').trim();
+        // Dejar algo "en revisión" no necesita justificación (30-oct: obligarlo hizo que escribieran un punto).
+        const text = String(comment || '').trim() || (decision === 'EN_REVISION' ? 'En revisión' : '');
         if (text.length < 3) return res.status(400).json({ error: 'Escribe el comentario de la decisión' });
 
         const quotation = await prisma.quotation.findUnique({ where: { id } });
@@ -275,7 +278,25 @@ export const getQuotation = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Cotización no encontrada' });
         }
 
-        res.json({ ...quotation, complianceResult: withEffectiveCompliance(quotation.complianceResult, quotation.findingReviews) });
+        // Justificaciones que el laboratorio ya dio al mismo hallazgo en otras cotizaciones del cliente: el
+        // hallazgo sigue apareciendo, pero con la explicacion anterior a la vista (reunion del 30-oct).
+        const priorDecisions: Record<string, { decision: string; comment: string; userName?: string; at: string; quotationNumber: string }> = {};
+        if (quotation.clientId) {
+            const others = await prisma.quotation.findMany({
+                where: { clientId: quotation.clientId, id: { not: id }, findingReviews: { not: null } },
+                select: { quotationNumber: true, findingReviews: true },
+            });
+            for (const o of others) {
+                const rv = parseJson<FindingReviews>(o.findingReviews) || {};
+                for (const [key, r] of Object.entries(rv)) {
+                    if (r.decision !== 'ACEPTADO') continue;
+                    const prev = priorDecisions[key];
+                    if (!prev || r.at > prev.at) priorDecisions[key] = { decision: r.decision, comment: r.comment, userName: r.userName, at: r.at, quotationNumber: o.quotationNumber };
+                }
+            }
+        }
+
+        res.json({ ...quotation, priorDecisions, complianceResult: withEffectiveCompliance(quotation.complianceResult, quotation.findingReviews) });
     } catch (error) {
         console.error('Error fetching quotation:', error);
         res.status(500).json({ error: 'Error al obtener cotización' });
@@ -468,6 +489,101 @@ export const analyzeQuotation = async (req: Request, res: Response) => {
 const AUTO_GENERATED_NUMBER = /^COT-\d+$/;
 
 // Background analysis function
+// Revision de UN servicio (matriz) de la cotizacion contra SU norma y articulo (30-oct, SIACOT-20741).
+interface GroupAnalysis {
+    label: string;
+    noAplica: boolean;
+    checks: ParameterCheck[];
+    blocks: Array<{ standardTitle: string }>;
+    comparedAgainst: string[];
+    warnings: Array<{ category: string; description: string; recommendation?: string }>;
+    unmatchedMatrix: MatrixMismatch[];
+    aiNumber: string;
+}
+
+async function analyzeGroup(group: ServiceGroup, standards: Awaited<ReturnType<typeof prisma.standard.findMany>>, mismatches: MatrixMismatch[], rules: ParameterRules): Promise<GroupAnalysis> {
+    const label = group.title ? group.matrix : '';
+    const where = label ? ` del servicio «${label}»` : '';
+    const warnings: GroupAnalysis['warnings'] = [];
+    if (group.noAplica) {
+        return { label, noAplica: true, checks: [], blocks: [], comparedAgainst: [], warnings, unmatchedMatrix: [], aiNumber: '' };
+    }
+    const { blocks, notFound } = buildArticleBlocks(standards as any, group.targets);
+    if (!group.targets.length) {
+        warnings.push(label
+            ? {
+                category: 'Sin norma de referencia',
+                description: `La cotización no indica con qué norma y artículo comparar el servicio «${label}», así que no se comparó.`,
+                recommendation: 'Indicar en "Documentos de referencia" la norma y el artículo a comparar de este servicio, y volver a analizar.',
+            }
+            : {
+                category: 'Sin artículo a comparar',
+                description: 'La cotización no indica el "Artículo de la norma a comparar", así que no se comparó contra ninguna norma.',
+                recommendation: 'Indicar en la cotización la norma y el artículo a comparar, y volver a analizar.',
+            });
+    }
+    if (group.note) warnings.push({ category: 'Norma sin servicio', description: group.note });
+    for (const t of notFound) {
+        warnings.push({
+            category: 'Artículo no encontrado',
+            description: `La cotización pide comparar${where} con el ${describeTarget(t)} de la norma ${t.normNumber || '(sin número)'}, pero ese artículo no está en las normas cargadas en Xmart.`,
+            recommendation: 'Revisar manualmente, o cargar en Normas la versión que trae ese artículo.',
+        });
+    }
+    const comparedAgainst = blocks.map(b => `${b.standardTitle} — ${describeTarget(b.target)}`);
+
+    let checks: ParameterCheck[] = [];
+    let aiNumber = '';
+    if (blocks.length) {
+        const prompt = buildCompliancePrompt(
+            group.text,
+            blocks.map(b => ({ label: `${b.standardTitle} — ${describeTarget(b.target)}`, text: b.text })),
+        );
+        console.log(`[Quotation] Revisando${where || ' la cotización'} contra ${comparedAgainst.join('; ')}...`);
+        // Un timeout se reintenta una vez y, si vuelve a fallar, se dice con claridad.
+        let aiResponse: string | null = null;
+        let timedOut = false;
+        for (let attempt = 1; attempt <= 2 && aiResponse === null; attempt++) {
+            try {
+                aiResponse = await aiService.chat(prompt, undefined, COMPLIANCE_SYSTEM_PROMPT, AIService.DETERMINISTIC, 1_500_000);
+            } catch (error) {
+                timedOut = isAITimeout(error);
+                console.error(`[Quotation] Intento ${attempt} de la IA fallido${where}${timedOut ? ' (timeout)' : ''}:`, (error as Error)?.message);
+                if (!timedOut) break;
+                if (attempt === 1) await new Promise(resolve => setTimeout(resolve, 90_000));
+            }
+        }
+        if (aiResponse !== null) {
+            try {
+                const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+                const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
+                checks = normalizeParameterChecks(parsed.parameters);
+                aiNumber = String(parsed.quotationNumberFound || '').trim();
+            } catch (parseError) {
+                console.error(`[Quotation] Error parsing AI compliance response${where}:`, parseError);
+            }
+        }
+        if (!checks.length) {
+            warnings.push(timedOut && aiResponse === null
+                ? {
+                    category: 'IA ocupada',
+                    description: `La IA tardó más de lo esperado en revisar la cotización${where}. No se revisó parámetro por parámetro.`,
+                    recommendation: 'Volver a analizar en unos minutos.',
+                }
+                : {
+                    category: 'Sistema',
+                    description: `La IA respondió, pero no se pudo leer la revisión por parámetro del artículo${where}.`,
+                    recommendation: 'Volver a analizar, o revisar manualmente.',
+                });
+        }
+    }
+
+    // Los cambios de matriz solo cuentan para el servicio donde aparece el parametro.
+    const own = label ? mismatches.filter(m => mentionedInQuotation(group.text, m.parameter)) : mismatches;
+    const unmatchedMatrix = applySystemChecks(checks, own, group.text, rules);
+    return { label, noAplica: false, checks, blocks, comparedAgainst, warnings, unmatchedMatrix, aiNumber };
+}
+
 export async function runQuotationAnalysis(quotationId: string, fileUrl: string) {
     try {
         console.log(`[Quotation] Starting compliance analysis for ${quotationId}`);
@@ -516,90 +632,39 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
         // art. 2.2.3.3.9.3 cuando la cotizacion pedia el 2.2.3.3.9.7.
         const current = await prisma.quotation.findUnique({
             where: { id: quotationId },
-            select: { quotationNumber: true, findingReviews: true },
+            select: { quotationNumber: true, findingReviews: true, missingResolutions: true },
         });
-                const allStandards = await prisma.standard.findMany({ orderBy: { createdAt: 'desc' } });
-        const targets = parseComparisonTargets(extractedText);
-        const { blocks, notFound } = buildArticleBlocks(allStandards, targets);
-        const warnings: Array<{ category: string; description: string; recommendation?: string }> = [];
-
-        if (!targets.length) {
-            warnings.push({
-                category: 'Sin artículo a comparar',
-                description: 'La cotización no indica el "Artículo de la norma a comparar", así que no se comparó contra ninguna norma.',
-                recommendation: 'Indicar en la cotización la norma y el artículo a comparar, y volver a analizar.',
-            });
-        }
-        for (const t of notFound) {
-            warnings.push({
-                category: 'Artículo no encontrado',
-                description: `La cotización pide comparar con el ${describeTarget(t)} de la norma ${t.normNumber || '(sin número)'}, pero ese artículo no está en las normas cargadas en Xmart.`,
-                recommendation: 'Revisar manualmente, o cargar en Normas la versión que trae ese artículo.',
-            });
-        }
-
-        const comparedAgainst = blocks.map(b => `${b.standardTitle} — ${describeTarget(b.target)}`);
-        const matrix = detectMatrixMismatches(extractedText);
-        console.log(`[Quotation] Artículos a comparar: ${targets.map(t => `${t.normNumber}/${describeTarget(t)}`).join('; ') || 'ninguno'}. Encontrados: ${comparedAgainst.join('; ') || 'ninguno'}. Muestra: ${matrix.sampleMatrix || '?'}, matriz distinta: ${matrix.mismatches.map(m => m.parameter).join(', ') || 'ninguna'}`);
-
-        let checks: ParameterCheck[] = [];
-        let aiNumber = '';
-        if (blocks.length) {
-            const prompt = buildCompliancePrompt(
-                extractedText,
-                blocks.map(b => ({ label: `${b.standardTitle} — ${describeTarget(b.target)}`, text: b.text })),
-            );
-            console.log(`[Quotation] Running AI compliance check...`);
-            // La IA local atiende una peticion a la vez: si hay analisis de laboratorio
-            // en curso, esta espera detras de ellos. Un timeout se reintenta una vez y,
-            // si vuelve a fallar, se dice con claridad (no como "la IA no respondio").
-            let aiResponse: string | null = null;
-            let timedOut = false;
-            for (let attempt = 1; attempt <= 2 && aiResponse === null; attempt++) {
-                try {
-                    aiResponse = await aiService.chat(prompt, undefined, COMPLIANCE_SYSTEM_PROMPT, AIService.DETERMINISTIC, 1_500_000); // 30-oct: con razonamiento bajo la IA devolvio 0 parametros revisados (invalido); se necesita el razonamiento por defecto, y una cotizacion con 2 decretos (SIACOT-20741) paso de 10 min
-                } catch (error) {
-                    timedOut = isAITimeout(error);
-                    console.error(`[Quotation] Intento ${attempt} de la IA fallido${timedOut ? ' (timeout)' : ''}:`, (error as Error)?.message);
-                    if (!timedOut) break;
-                    // Espera antes de reintentar: si el analisis de laboratorio sigue en curso, el reintento inmediato vuelve a expirar.
-                    if (attempt === 1) await new Promise(resolve => setTimeout(resolve, 90_000));
-                }
-            }
-            if (aiResponse !== null) {
-                try {
-                    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-                    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : aiResponse);
-                    checks = normalizeParameterChecks(parsed.parameters);
-                    aiNumber = String(parsed.quotationNumberFound || '').trim();
-                } catch (parseError) {
-                    console.error('[Quotation] Error parsing AI compliance response:', parseError);
-                }
-            }
-            if (!checks.length) {
-                warnings.push(timedOut && aiResponse === null
-                    ? {
-                        category: 'IA ocupada',
-                        description: 'La IA tardó más de lo esperado en revisar la cotización (suele pasar cuando hay análisis de laboratorio en curso). No se revisó parámetro por parámetro.',
-                        recommendation: 'Volver a analizar en unos minutos.',
-                    }
-                    : {
-                        category: 'Sistema',
-                        description: 'La IA respondió, pero no se pudo leer la revisión por parámetro del artículo.',
-                        recommendation: 'Volver a analizar, o revisar manualmente.',
-                    });
-            }
-        }
-
+        const allStandards = await prisma.standard.findMany({ orderBy: { createdAt: 'desc' } });
         const rules = await loadParameterRules();
-        const unmatchedMatrix = applySystemChecks(checks, matrix.mismatches, extractedText, rules);
+        const matrix = detectMatrixMismatches(extractedText);
+
+        // Una cotizacion con varias matrices (agua superficial, biota, agua potable...) se compara por servicio:
+        // cada uno con SU norma y SU articulo (30-oct, SIACOT-20741 de COMPAS). Si no se puede separar, se
+        // compara todo junto como antes.
+        const serviceGroups = parseServiceGroups(extractedText);
+        const groupsToCheck: ServiceGroup[] = serviceGroups.length
+            ? serviceGroups
+            : [{ index: 1, title: '', matrix: '', text: extractedText, targets: parseComparisonTargets(extractedText), noAplica: false }];
+        console.log(`[Quotation] Servicios a comparar: ${serviceGroups.length ? serviceGroups.map(g => `${g.matrix} -> ${g.noAplica ? 'no aplica' : g.targets.map(t => `${t.normNumber}/${describeTarget(t)}`).join('; ') || 'sin norma'}`).join(' | ') : 'uno solo (la cotizacion no se separa)'}. Muestra: ${matrix.sampleMatrix || 'no indicada'}`);
+
+        const analyses = await Promise.all(groupsToCheck.map(g => analyzeGroup(g, allStandards, matrix.mismatches, rules)));
+        const checks = analyses.flatMap(a => a.checks);
+        const aiNumber = analyses.map(a => a.aiNumber).find(Boolean) || '';
+        const blocks = analyses.flatMap(a => a.blocks);
+        const warnings = analyses.flatMap(a => a.warnings);
+        const unmatchedMatrix = analyses.flatMap(a => a.unmatchedMatrix);
+        const comparedAgainst = analyses.flatMap(a => a.comparedAgainst.map(c => (a.label ? `${a.label}: ${c}` : c)));
+
         // La consulta al laboratorio es secundaria: si falla, no debe tumbar el veredicto.
         try {
             await registerParameterConsultations(pendingNameQuestions(checks), extractQuotationNumber(extractedText) || aiNumber || current?.quotationNumber || quotationId);
         } catch (error) {
             console.error('[Consulta] No se pudo registrar la consulta de parámetros:', error);
         }
-        const verdict = buildVerdict({ checks, unmatchedMatrix, comparedAgainst, warnings });
+        const verdict = buildGroupedVerdict(analyses.map(a => ({
+            label: a.label, noAplica: a.noAplica, checks: a.checks, unmatchedMatrix: a.unmatchedMatrix,
+            comparedAgainst: a.comparedAgainst, warnings: a.warnings,
+        })));
         const finalStatus = verdict.status;
         const complianceResult = {
             ...verdict,
@@ -609,6 +674,8 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
             parameterChecks: checks,
             unmatchedMatrix,
             warnings,
+            // Por servicio: con que norma/articulo se comparo y cuantos parametros se revisaron.
+            groups: serviceGroups.length ? analyses.map(a => ({ matrix: a.label, noAplica: a.noAplica, comparedAgainst: a.comparedAgainst, parametersChecked: a.checks.length })) : undefined,
             analyzedAt: new Date().toISOString(),
             standardsCount: blocks.length,
         };
@@ -618,7 +685,7 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
 
         const updateData: any = {
             status: finalStatus,
-            extractedText: extractedText.substring(0, 10000),
+            extractedText: extractedText.substring(0, 60000),
             aiData: JSON.stringify({
                 ...generalAnalysis,
                 rawResponse: generalAnalysis.rawResponse
@@ -647,7 +714,16 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
         // crear una OIT (createOITAsync lo verifica) - antes esto era solo informativo.
         // Las decisiones de Ana sobre los hallazgos sobreviven a volver a analizar
         // (misma clave = mismo hallazgo); si ya los habia decidido todos, sigue aprobada.
-        const reviews = parseJson<FindingReviews>(current?.findingReviews) || {};
+        // Despues de volver a analizar solo queda lo que sigue siendo discrepancia (Hernan, 2026-10-30): las
+        // decisiones de hallazgos que ya no existen y los datos subsanados que ya no faltan desaparecen.
+        const oldReviews = parseJson<FindingReviews>(current?.findingReviews) || {};
+        const issueKeys = new Set(verdict.issues.map(i => issueKey(i)));
+        const reviews = Object.fromEntries(Object.entries(oldReviews).filter(([k]) => issueKeys.has(k))) as FindingReviews;
+        if (Object.keys(reviews).length !== Object.keys(oldReviews).length) updateData.findingReviews = JSON.stringify(reviews);
+        const oldResolutions = parseJson<Record<string, unknown>>(current?.missingResolutions) || {};
+        const missingNow = new Set(((generalAnalysis as any).missing || []).map((m: unknown) => String(m).trim()));
+        const resolutions = Object.fromEntries(Object.entries(oldResolutions).filter(([k]) => missingNow.has(k.trim())));
+        if (Object.keys(resolutions).length !== Object.keys(oldResolutions).length) updateData.missingResolutions = JSON.stringify(resolutions);
         if (Object.keys(reviews).length) {
             const effective = applyFindingReviews(complianceResult, reviews);
             updateData.status = effective.status;

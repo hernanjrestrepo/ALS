@@ -1342,5 +1342,8 @@
  "Dictar con el micrófono": "Dictate with the microphone",
  "Detener dictado": "Stop dictation",
  "Este navegador no permite dictar. Usa Chrome o Edge.": "This browser does not support dictation. Use Chrome or Edge.",
- "Permite el micrófono en el navegador para dictar.": "Allow the microphone in the browser to dictate."
+ "Permite el micrófono en el navegador para dictar.": "Allow the microphone in the browser to dictate.",
+ "Comentario (opcional)": "Comment (optional)",
+ "Este hallazgo ya se justificó en la cotización": "This finding was already justified in quotation",
+ "Usar esta justificación": "Use this justification"
 }

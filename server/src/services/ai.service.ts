@@ -39,6 +39,15 @@ export interface AIAnalysisResult {
     rawResponse?: string;
 }
 
+// La fecha de ejecucion y la disponibilidad de personal las define operaciones al programar: no son
+// faltantes de la cotizacion (reunion del 30-oct).
+export function dropOperationsMissing(missing: unknown): string[] {
+    if (!Array.isArray(missing)) return [];
+    return missing
+        .map(m => String(m))
+        .filter(m => !/(fecha.*(ejecuci|espec[ií]fica|program|inicio|servicio)|disponibilidad.*(personal|equipo|recurso))/i.test(m));
+}
+
 export class AIService {
     private baseURL: string;
     private defaultModel: string;
@@ -213,7 +222,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
               "status": "check",
               "description": "Resumen breve y claro (1-2 frases) del trabajo solicitado: cliente, tipo de servicio y objetivo - NUNCA copies texto literal del documento",
               "alerts": ["alertas si existen"],
-              "missing": ["datos faltantes"],
+              "missing": ["datos faltantes (NO incluyas la fecha de ejecución ni la disponibilidad de personal o equipos: los define operaciones)"],
               "evidence": ["evidencias"],
               "services": [
                 {
@@ -247,7 +256,7 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
             return {
                 status: parsed.status || 'alerta',
                 alerts: parsed.alerts || [],
-                missing: parsed.missing || [],
+                missing: dropOperationsMissing(parsed.missing),
                 evidence: parsed.evidence || [],
                 services: parsed.services || [],
                 location: parsed.location || null,

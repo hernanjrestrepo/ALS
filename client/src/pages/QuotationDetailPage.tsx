@@ -38,6 +38,7 @@ interface Quotation {
     approvedForOit?: boolean;
     findingReviews?: string;
     missingResolutions?: string;
+    priorDecisions?: Record<string, { decision: string; comment: string; userName?: string; at: string; quotationNumber: string }>;
 }
 
 const parseJsonField = <T,>(raw?: string): T | null => {
@@ -465,9 +466,9 @@ export default function QuotationDetailPage() {
 
                                 <div className="grid md:grid-cols-2 gap-6">
                                     {/* Extracted Info */}
-                                    {aiData.rawResponse && (() => {
+                                    {(aiData.rawResponse || aiData.description) && (() => {
                                         try {
-                                            const rawData = JSON.parse(aiData.rawResponse);
+                                            const rawData = aiData.rawResponse ? JSON.parse(aiData.rawResponse) : {};
                                             return (
                                                 <Card className="border-slate-200 shadow-sm">
                                                     <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
@@ -477,6 +478,12 @@ export default function QuotationDetailPage() {
                                                         </CardTitle>
                                                     </CardHeader>
                                                     <CardContent className="pt-4 space-y-3">
+                                                        {(aiData.description || aiData.location) && (
+                                                            <div className="py-2 border-b border-slate-100 text-sm text-slate-700 space-y-1">
+                                                                {aiData.description && <p>{aiData.description}</p>}
+                                                                {aiData.location && <p className="text-slate-500">{tr("Ubicación")}: {aiData.location}</p>}
+                                                            </div>
+                                                        )}
                                                         {rawData.offer_id && (
                                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
                                                                 <span className="text-sm text-slate-500">{tr("ID Oferta")}</span>
@@ -805,6 +812,9 @@ export default function QuotationDetailPage() {
                                                             }`}>
                                                             {SEVERITY_LABEL[issue.severity] || tr("INFO")}
                                                         </span>
+                                                        {issue.matrix && (
+                                                            <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded">{tr("Servicio")}: {issue.matrix}</span>
+                                                        )}
                                                         {issue.category && (
                                                             <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{issue.category}</span>
                                                         )}
@@ -836,6 +846,7 @@ export default function QuotationDetailPage() {
                                                             quotationId={quotation.id}
                                                             issueKey={issue.key}
                                                             review={findingReviews[issue.key]}
+                                                            prior={quotation.priorDecisions?.[issue.key]}
                                                             canEdit={canReview && quotation.status !== 'ANALYZING'}
                                                             onSaved={onSaved}
                                                         />
