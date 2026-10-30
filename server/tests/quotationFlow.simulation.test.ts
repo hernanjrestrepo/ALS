@@ -153,7 +153,7 @@ describe('simulacion: cotizacion de Ana de principio a fin', () => {
         const prompt: string = chatSpy.mock.calls[0][0];
         expect(prompt).toContain('2.2.3.3.9.7');
         expect(prompt).not.toContain('Arsénico');
-        expect(chatSpy.mock.calls[0][4]).toBe(600_000); // limite medido: ~225 s en produccion
+        expect(chatSpy.mock.calls[0][4]).toBe(1_500_000); // respaldo local: una cotizacion con 2 decretos paso de 10 min el 30-oct (con OpenRouter tarda segundos)
         const q = store.quotations.get('q-ana');
         expect(q.quotationNumber).toBe('SIACOT-20938-10-2026'); // numero real del PDF
         expect(q.status).toBe('NON_COMPLIANT');                  // matriz + fenoles

@@ -4,6 +4,7 @@ import path from 'path';
 import { errorMessage, logError, logWarning } from '../utils/errors';
 
 import { ollamaPost } from './gpuQueue';
+import { openrouterEnabled, openrouterChat } from './openrouter';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'gpt-oss';
 
@@ -145,13 +146,23 @@ Responde ÚNICAMENTE con el informe completo revisado en Markdown, sin texto adi
         // timeoutMs: el analisis de cumplimiento de una cotizacion medido en produccion tarda ~225 s (2026-10-15).
         public async chat(message: string, model?: string, system?: string, extraOptions?: Record<string, unknown>, timeoutMs = 180000): Promise<string> {
         const useModel = model || this.defaultModel;
+        const systemPrompt = system || 'Eres un asistente experto en ingeniería ambiental y normativa colombiana.';
+        // OpenRouter primero (segundos, sin ocupar la GPU); si falla, el modelo local como respaldo.
+        if (openrouterEnabled()) {
+            try {
+                const { temperature, seed } = (extraOptions || {}) as { temperature?: number; seed?: number };
+                return await openrouterChat(systemPrompt, message, { temperature, seed, timeoutMs: Math.min(timeoutMs, 300_000) });
+            } catch (error: any) {
+                console.warn(`[AI] OpenRouter fallo (${error?.response?.status || ''} ${error?.message}); se usa el modelo local.`);
+            }
+        }
         console.log(`[AI] Sending Chat Request. Model: ${useModel}`);
         try {
             // "think" (nivel de razonamiento) va en la raiz de la peticion, no en options.
             const { think, ...options } = (extraOptions || {}) as Record<string, unknown>;
             const response = await ollamaPost(`${this.baseURL}/api/generate`, {
                 model: useModel,
-                system: system || 'Eres un asistente experto en ingeniería ambiental y normativa colombiana.',
+                system: systemPrompt,
                 prompt: message,
                 stream: false,
                 ...(think ? { think } : {}),
