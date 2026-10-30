@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { aiService } from '../services/ai.service';
-import { buildAssistantContext, ASSISTANT_SYSTEM_PROMPT, statusLabel } from '../services/assistantContext';
+import { buildAssistantContext, ASSISTANT_SYSTEM_PROMPT, statusLabel, oitsMentioned, quotationsMentioned } from '../services/assistantContext';
 import { moduloDePregunta } from '../data/academy-catalogo';
 import { toPdfBuffer, toPptxBuffer, toXlsxBuffer, inferTitle, EXPORT_FORMATS, ExportFormat } from '../services/assistantExport';
 import fs from 'fs';
@@ -85,7 +85,7 @@ export const chat = async (req: Request, res: Response) => {
                 take: 200,
                 include: { assignedEngineers: { include: { user: { select: { name: true, email: true } } } }, quotation: true }
             }),
-            prisma.quotation.findMany({ orderBy: { createdAt: 'desc' }, take: 100, select: { quotationNumber: true, clientName: true, status: true, approvedForOit: true, createdAt: true, description: true } }),
+            prisma.quotation.findMany({ orderBy: { createdAt: 'desc' }, take: 100, select: { id: true, quotationNumber: true, clientName: true, status: true, approvedForOit: true, createdAt: true, description: true } }),
             prisma.samplingTemplate.findMany({ where: { deletedAt: null } }),
             prisma.standard.findMany({ select: { title: true, type: true, description: true } }),
             prisma.resource.findMany(),
@@ -96,6 +96,15 @@ export const chat = async (req: Request, res: Response) => {
 
         const currentOit: any = pageContext?.oitId ? oits.find((o: any) => o.id === pageContext.oitId) || null : null;
 
+        // Martha tiene acceso a TODO el detalle de las cotizaciones que importan para la pregunta (30-oct: no supo explicar
+        // por que habia diferencias entre la cotizacion y el analisis): la abierta en pantalla, las que nombra la pregunta
+        // y las vinculadas a las OIT que se mencionan.
+        const oitsInPlay = [currentOit, ...oitsMentioned(message, oits, currentOit?.id)].filter(Boolean);
+        const quotationIds = quotationsMentioned(message, quotations, pageContext?.quotationId, oitsInPlay.map((o: any) => o.quotationId).filter(Boolean)).map((q: any) => q.id);
+        const quotationDetails = quotationIds.length
+            ? await prisma.quotation.findMany({ where: { id: { in: quotationIds } }, include: { client: true, services: { select: { name: true } }, linkedOITs: { select: { oitNumber: true, status: true } } } })
+            : [];
+
         // Preguntas de hecho concreto se responden directo desde la base de datos,
         // sin arriesgar que el modelo invente algo - ver tryDeterministicAnswer arriba.
         const deterministicAnswer = tryDeterministicAnswer(message, currentOit, oits, standards);
@@ -104,7 +113,7 @@ export const chat = async (req: Request, res: Response) => {
         }
 
         const context = buildAssistantContext(
-            { oits, quotations, templates, standards, resources, users, nonConformities, unreadNotifications },
+            { oits, quotations, templates, standards, resources, users, nonConformities, unreadNotifications, quotationDetails },
             message,
             { currentOitId: currentOit?.id }
         );

@@ -1326,5 +1326,9 @@
  "Todas": "All",
  "Todavía no llega el resultado de este servicio desde Serambiente. Llega solo cuando Serambiente lo envía; mientras tanto puedes cargarlo aquí (propio o de terceros).": "The result for this service has not arrived from Serambiente yet. It arrives only when Serambiente sends it; meanwhile you can upload it here (own or third-party).",
  "Trazabilidad": "Traceability",
- "Último aviso recibido de Serambiente": "Last notice received from Serambiente"
+ "Último aviso recibido de Serambiente": "Last notice received from Serambiente",
+ "Servicios (opcional)": "Services (optional)",
+ "seleccionado(s)": "selected",
+ "Elige uno, varios o todos": "Choose one, several or all",
+ "Seleccionar todos": "Select all"
 }

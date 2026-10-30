@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { extractQuotationNumber } from './quotationCompliance';
 import { syncClientFromOitText } from './clientSync';
+import { autoLinkOitsForQuotation } from './oitAutoLink';
 
 // Vinculo automatico OIT <-> cotizacion (Hernan, 2026-10-19): la OIT se crea en el
 // Sistema Serambiente con el numero de la cotizacion, y ese numero viene impreso en el
@@ -91,5 +92,7 @@ export async function linkOitsToQuotation(quotation: { id: string; quotationNumb
         linked++;
     }
     if (linked) console.log(`[Vinculo] ${linked} OIT vinculada(s) a la cotizacion ${quotation.quotationNumber}`);
+    // Las OIT que nacieron de un resultado de laboratorio no traen numero de cotizacion: se buscan por empresa.
+    try { linked += await autoLinkOitsForQuotation(quotation.id); } catch (e) { console.warn('[Vinculo] No se pudo vincular por empresa:', (e as Error).message); }
     return linked;
 }

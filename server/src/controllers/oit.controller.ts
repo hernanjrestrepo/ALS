@@ -11,6 +11,7 @@ import { errorMessage, logError, logWarning } from '../utils/errors';
 import { readIntegrationPayload, fromUrlAction, webhookKeyOk } from '../utils/integrationPayload';
 import { getOrAssignConsecutive } from '../services/consecutive.service';
 import { linkOitFromText } from '../services/quotationLink';
+import { autoLinkOit, extractLabFacts } from '../services/oitAutoLink';
 import { autoAssignTemplates } from '../services/templateAssignment';
 import { classifyLabText, LabOrigin } from '../services/labTracking';
 import { autoCloseLab, touchWebhook, resultsText } from '../services/labFollowup';
@@ -559,6 +560,9 @@ export async function processLabResultsAsync(oitId: string, filenames: string[],
             }
             fullCombinedText += `\n\n=== ARCHIVO: ${filename} ===\n${extractedText}`;
             fileOrigins[`uploads/${filename}`] = classifyLabText(extractedText);
+            // La OIT que nace de un resultado de laboratorio no trae numero de cotizacion: se vincula por la
+            // empresa y el tipo de muestra que imprime el resultado (SIACOT-20741 no se vinculo sola, 30-oct).
+            await autoLinkOit(oitId, extractLabFacts(extractedText)).catch(err => logWarning(`OIT ${oitId}: no se pudo vincular sola a su cotizacion`, err));
         }
 
         // Get OIT Context for better analysis

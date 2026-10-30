@@ -73,6 +73,7 @@ export function ChatWidget() {
             const pageContext = {
                 path: location.pathname,
                 oitId: isOitPage ? params.id : undefined,
+                quotationId: location.pathname.startsWith('/quotations/') ? params.id : undefined,
             };
             const history = messages.filter(m => !m.isError).slice(-6).map(m => ({ role: m.role, content: m.content }));
             const response = await api.post('/ai/chat', { message: input, pageContext, history, attachments: sent }, { timeout: 200000 });

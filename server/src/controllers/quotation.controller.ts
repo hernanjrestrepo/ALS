@@ -244,7 +244,8 @@ export const getQuotations = async (req: Request, res: Response) => {
                     select: { id: true, oitNumber: true, status: true }
                 },
                 client: { select: { id: true, name: true } },
-                service: { select: { id: true, name: true } }
+                service: { select: { id: true, name: true } },
+                services: { select: { id: true, name: true } }
             }
         });
         res.json(quotations);
@@ -265,7 +266,8 @@ export const getQuotation = async (req: Request, res: Response) => {
                     select: { id: true, oitNumber: true, status: true, description: true }
                 },
                 client: true,
-                service: true
+                service: true,
+                services: { select: { id: true, name: true } }
             }
         });
 
@@ -281,9 +283,24 @@ export const getQuotation = async (req: Request, res: Response) => {
 };
 
 // Create new quotation
+// Servicios de la cotizacion: llegan como varios campos "serviceIds" (formulario), una lista JSON, un
+// texto separado por comas o el "serviceId" de siempre. Sin repetidos ni vacios.
+export function parseServiceIds(body: any): string[] {
+    const raw = body?.serviceIds ?? body?.serviceId;
+    let list: unknown[] = [];
+    if (Array.isArray(raw)) list = raw;
+    else if (typeof raw === 'string') {
+        const s = raw.trim();
+        if (s.startsWith('[')) { try { list = JSON.parse(s); } catch { list = []; } }
+        else list = s.split(',');
+    }
+    return [...new Set(list.map(v => String(v ?? '').trim()).filter(Boolean))];
+}
+
 export const createQuotation = async (req: Request, res: Response) => {
     try {
-        const { quotationNumber, description, clientName, clientId, serviceId } = req.body;
+        const { quotationNumber, description, clientName, clientId } = req.body;
+        const serviceIds = parseServiceIds(req.body);
         const file = req.file;
 
         const pdfNumber = !quotationNumber && file && /\.pdf$/i.test(file.originalname)
@@ -300,7 +317,8 @@ export const createQuotation = async (req: Request, res: Response) => {
                 description,
                 clientName,
                 clientId: clientId || undefined,
-                serviceId: serviceId || undefined,
+                serviceId: serviceIds[0] || undefined,
+                ...(serviceIds.length ? { services: { connect: serviceIds.map(id => ({ id })) } } : {}),
                 fileUrl,
                 status: file ? 'ANALYZING' : 'PENDING'
             }
@@ -326,7 +344,7 @@ export const createQuotation = async (req: Request, res: Response) => {
 export const updateQuotation = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { quotationNumber, description, clientName, clientId, serviceId, status } = req.body;
+        const { quotationNumber, description, clientName, clientId, status } = req.body;
         const file = req.file;
 
         const data: any = {};
@@ -334,7 +352,11 @@ export const updateQuotation = async (req: Request, res: Response) => {
         if (description !== undefined) data.description = description;
         if (clientName !== undefined) data.clientName = clientName;
         if (clientId !== undefined) data.clientId = clientId || null;
-        if (serviceId !== undefined) data.serviceId = serviceId || null;
+        if (req.body.serviceIds !== undefined || req.body.serviceId !== undefined) {
+            const serviceIds = parseServiceIds(req.body);
+            data.serviceId = serviceIds[0] || null;
+            data.services = { set: serviceIds.map(id => ({ id })) };
+        }
         if (status) data.status = status;
 
         let shouldReanalyze = false;

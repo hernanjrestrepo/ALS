@@ -1326,5 +1326,9 @@
  "Todas": "Toutes",
  "Todavía no llega el resultado de este servicio desde Serambiente. Llega solo cuando Serambiente lo envía; mientras tanto puedes cargarlo aquí (propio o de terceros).": "Le résultat de ce service n'est pas encore arrivé de Serambiente. Il arrive seulement quand Serambiente l'envoie ; en attendant, vous pouvez le charger ici (interne ou sous-traité).",
  "Trazabilidad": "Traçabilité",
- "Último aviso recibido de Serambiente": "Dernier avis reçu de Serambiente"
+ "Último aviso recibido de Serambiente": "Dernier avis reçu de Serambiente",
+ "Servicios (opcional)": "Services (facultatif)",
+ "seleccionado(s)": "sélectionné(s)",
+ "Elige uno, varios o todos": "Choisissez un, plusieurs ou tous",
+ "Seleccionar todos": "Tout sélectionner"
 }

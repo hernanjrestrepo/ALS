@@ -26,6 +26,7 @@ interface Quotation {
     quotationNumber: string;
     description?: string;
     clientName?: string;
+    services?: { id: string; name: string }[];
     fileUrl?: string;
     extractedText?: string;
     status: string;
@@ -323,6 +324,16 @@ export default function QuotationDetailPage() {
                                                 {quotation.clientName || '-'}
                                             </p>
                                         </div>
+                                        {!!quotation.services?.length && (
+                                            <div className="space-y-1">
+                                                <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tr("Servicios")}</strong>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {quotation.services.map(s => (
+                                                        <span key={s.id} className="rounded-full bg-slate-100 px-2.5 py-1 text-sm text-slate-700">{s.name}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="space-y-1">
                                             <strong className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tr("Fecha de Creación")}</strong>
                                             <p className="text-lg font-medium text-slate-900 flex items-center gap-2">

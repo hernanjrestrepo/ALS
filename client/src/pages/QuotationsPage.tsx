@@ -16,6 +16,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import api from '@/lib/api';
 import { toast } from 'sonner';
@@ -30,6 +31,7 @@ interface Quotation {
     clientName?: string;
     client?: { id: string; name: string };
     service?: { id: string; name: string };
+    services?: Array<{ id: string; name: string }>;
     fileUrl?: string;
     status: string;
     approvedForOit: boolean;
@@ -51,7 +53,8 @@ export default function QuotationsPage() {
 
     // Create form state
     const [clientId, setClientId] = useState('');
-    const [serviceId, setServiceId] = useState('');
+    // Una cotizacion puede traer varios servicios (agua potable, residual, subterranea...).
+    const [serviceIds, setServiceIds] = useState<string[]>([]);
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
@@ -134,7 +137,7 @@ export default function QuotationsPage() {
             formData.append('clientId', clientId);
             const selectedClient = clientOptions.find(c => c.id === clientId);
             if (selectedClient) formData.append('clientName', selectedClient.name);
-            if (serviceId) formData.append('serviceId', serviceId);
+            serviceIds.forEach(id => formData.append('serviceIds', id));
             if (description) formData.append('description', description);
 
             await api.post('/quotations', formData, {
@@ -156,7 +159,7 @@ export default function QuotationsPage() {
 
     const resetForm = () => {
         setClientId('');
-        setServiceId('');
+        setServiceIds([]);
         setDescription('');
         setFile(null);
     };
@@ -255,17 +258,33 @@ export default function QuotationsPage() {
 
                             {/* Service Select */}
                             <div className="grid gap-2">
-                                <Label htmlFor="serviceId">{tr("Servicio (opcional)")}</Label>
-                                <Select value={serviceId} onValueChange={setServiceId}>
-                                    <SelectTrigger id="serviceId">
-                                        <SelectValue placeholder={tr("Selecciona un servicio")} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {serviceOptions.map(s => (
-                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="flex items-center justify-between">
+                                    <Label>{tr("Servicios (opcional)")}</Label>
+                                    <span className="text-xs text-slate-500">
+                                        {serviceIds.length ? `${serviceIds.length} ${tr("seleccionado(s)")}` : tr("Elige uno, varios o todos")}
+                                    </span>
+                                </div>
+                                <div className="rounded-md border border-slate-200 divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                                    {serviceOptions.length > 1 && (
+                                        <label className="flex items-center gap-3 px-3 py-2 cursor-pointer bg-slate-50 hover:bg-slate-100">
+                                            <Checkbox
+                                                checked={serviceIds.length === serviceOptions.length ? true : serviceIds.length ? 'indeterminate' : false}
+                                                onCheckedChange={v => setServiceIds(v === true ? serviceOptions.map(s => s.id) : [])}
+                                            />
+                                            <span className="text-sm font-medium text-slate-800">{tr("Seleccionar todos")}</span>
+                                        </label>
+                                    )}
+                                    {serviceOptions.map(s => (
+                                        <label key={s.id} className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-50">
+                                            <Checkbox
+                                                checked={serviceIds.includes(s.id)}
+                                                onCheckedChange={v => setServiceIds(prev => v === true ? [...prev, s.id] : prev.filter(x => x !== s.id))}
+                                            />
+                                            <span className="text-sm text-slate-700">{s.name}</span>
+                                        </label>
+                                    ))}
+                                    {!serviceOptions.length && <p className="px-3 py-2 text-sm text-slate-500">{tr("No hay servicios registrados todavía.")}</p>}
+                                </div>
                             </div>
 
                             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">

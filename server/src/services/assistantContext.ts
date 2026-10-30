@@ -25,6 +25,7 @@ export interface AssistantData {
     users: any[];           // solo id, name, email, role, active
     nonConformities: any[];
     unreadNotifications: number;
+    quotationDetails?: any[]; // cotizaciones con analisis, hallazgos, decisiones, texto, servicios y OIT vinculadas
 }
 
 const clip = (v: unknown, n: number) => {
@@ -160,6 +161,44 @@ function oitDetail(oit: any): string {
     return lines.filter(Boolean).join('\n');
 }
 
+/** Cotizaciones que la pregunta nombra por su numero SIACOT (con o sin version), la que el usuario tiene abierta
+ *  y las vinculadas a las OIT que se mencionan. */
+export function quotationsMentioned(message: string, quotations: any[], currentQuotationId?: string, extraIds: string[] = []): any[] {
+    const msg = norm(message);
+    const nums = [...msg.matchAll(/siacot[-\s]*(\d{3,6})/g)].map(m => m[1]);
+    const hit = quotations.filter(q => nums.some(n => norm(String(q.quotationNumber)).includes(`siacot-${n}`)));
+    const ids = [currentQuotationId, ...hit.map(q => q.id), ...extraIds].filter(Boolean) as string[];
+    return [...new Set(ids)].map(id => quotations.find(q => q.id === id)).filter(Boolean).slice(0, 3);
+}
+
+const keyPart = (s?: string) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+/** Todo lo que se sabe de una cotizacion: para explicar diferencias entre lo cotizado y la norma. */
+export function quotationDetail(q: any): string {
+    const result = parse(q.complianceResult) || {};
+    const reviews = parse(q.findingReviews) || {};
+    const issues: any[] = Array.isArray(result.issues) ? result.issues : [];
+    const checks: any[] = Array.isArray(result.parameterChecks) ? result.parameterChecks : [];
+    const oitsLinked = (q.linkedOITs || []).map((o: any) => `#${o.oitNumber} (${statusLabel(o.status)})`).join(', ');
+    const issueLine = (i: any, n: number) => {
+        const key = `${keyPart(i.category)}|${i.parameter ? keyPart(i.parameter) : keyPart(i.description).slice(0, 120)}`;
+        const rv = reviews[key];
+        return `${n + 1}. [${i.severity}] ${i.category}${i.parameter ? ` — ${i.parameter}` : ''}: ${clip(i.description, 320)}${i.normReference ? ` | Norma: ${clip(i.normReference, 200)}` : ''}${i.recommendation ? ` | Acción: ${clip(i.recommendation, 160)}` : ''}${rv ? ` | DECISIÓN de ${rv.userName || 'laboratorio'} (${rv.decision}): ${clip(rv.comment, 300)}` : ''}`;
+    };
+    const lines = [
+        `COTIZACIÓN ${q.quotationNumber} — cliente: ${q.client?.name || q.clientName || 'N/A'}${q.client?.nit ? ` (NIT ${q.client.nit})` : ''} — estado ${q.status}${q.approvedForOit ? ' — APROBADA para OIT' : ''}`,
+        `Servicios: ${(q.services || []).map((s: any) => s.name).join(', ') || 'no seleccionados (ver las matrices de la cotización más abajo)'}`,
+        `OIT vinculadas: ${oitsLinked || 'ninguna'}`,
+        result.summary ? `Resultado del análisis de cumplimiento: ${result.status || ''}, puntaje ${result.score ?? '?'}/100. ${clip(result.summary, 600)}` : 'La cotización todavía no tiene análisis de cumplimiento.',
+        result.comparedAgainst?.length ? `Comparada contra: ${result.comparedAgainst.join(' | ')}` : '',
+        result.sampleMatrix ? `Matrices de la muestra: ${result.sampleMatrix}` : '',
+        issues.length ? `HALLAZGOS (${issues.length}):\n${issues.map(issueLine).join('\n')}` : '',
+        checks.length ? `REVISIÓN PARÁMETRO POR PARÁMETRO (${checks.length}):\n${checks.map(c => `- ${c.normParameter} | límite norma: ${c.normLimit || '—'} | cotizado como: ${c.quotedAs || 'NO COTIZADO'} | LC cotizado: ${c.quotedLoq || '—'}${c.problems?.length ? ` | problemas: ${c.problems.map((p: any) => p.type).join(', ')}` : ''}`).join('\n')}` : '',
+        q.extractedText ? `TEXTO DE LA COTIZACIÓN (documento original):\n${clip(q.extractedText, 9000)}` : '',
+    ];
+    return lines.filter(Boolean).join('\n');
+}
+
 /** OITs que la pregunta nombra por numero (o la que el usuario tiene abierta). */
 export function oitsMentioned(message: string, oits: any[], currentOitId?: string): any[] {
     const msg = norm(message);
@@ -236,6 +275,8 @@ export function buildAssistantContext(data: AssistantData, message: string, opts
 
         mentioned.length ? `=== DETALLE DE LAS OIT QUE MENCIONA LA PREGUNTA${opts.currentOitId ? ' (la primera es la que el usuario tiene abierta en pantalla)' : ''} ===\n${mentioned.map(oitDetail).join('\n\n')}` : '',
 
+        (data.quotationDetails || []).length ? `=== DETALLE COMPLETO DE LAS COTIZACIONES QUE MENCIONA LA PREGUNTA (o la que el usuario tiene abierta, o la vinculada a la OIT) ===\n${(data.quotationDetails || []).map(quotationDetail).join('\n\n')}` : '',
+
         `=== RESUMEN ===\nOITs: ${oits.length} (${Object.entries(byStatus).map(([k, v]) => `${k}: ${v} = ${pct(v, oits.length)}`).join(', ')})\nCotizaciones: ${quotations.length} | Plantillas de muestreo: ${templates.length} | Normas: ${standards.length} | Recursos/equipos: ${resources.length} | Usuarios: ${users.length} (${Object.entries(usersByRole).map(([k, v]) => `${k}: ${v}`).join(', ')}) | No conformidades: ${nonConformities.length} | Notificaciones sin leer del usuario: ${data.unreadNotifications}`,
 
         attention.length ? `=== OIT QUE REQUIEREN ATENCIÓN (${attention.length}): CAUSA Y QUÉ HACER ===\n${attentionGroups.map((g, i) => `${attentionGroups.length > 1 ? `Grupo ${i + 1}: ` : ''}${g.items.length === 1 ? '1 OIT' : `${g.items.length} OIT con LA MISMA causa y la misma solución`}\n  OIT: ${g.items.map(a => `#${a.oit.oitNumber} (${statusLabel(a.oit.status)}${oitExtract(a.oit).location ? `, ${clip(oitExtract(a.oit).location, 35)}` : ''})`).join('; ')}\n  Causa: ${g.cause}\n  Qué hacer: ${g.solution}`).join('\n')}` : '',
@@ -291,5 +332,7 @@ GRÁFICAS: cuando el usuario pida una gráfica, o cuando comparar cantidades se 
 INFORMES Y PRESENTACIONES: el usuario puede descargar tu respuesta como PDF, PowerPoint o Excel con los botones que aparecen debajo. Si te pide un informe, una presentación o un reporte, escríbelo completo y bien estructurado: un título con "# ", secciones con "## ", viñetas cortas, tablas y gráficas. Cada sección "## " se convierte en una diapositiva. No digas que no puedes generar archivos: el PDF y el PowerPoint salen con la marca de ALS, gráficas, tablas e imágenes.
 
 XMART ACADEMY: es el entrenamiento de la plataforma (menú "Xmart Academy"). Cuando te pregunten cómo se hace algo, responde y al final agrega el enlace al módulo, así: [Ver en Xmart Academy](/academy/clave). Módulos (clave: tema): ${ACADEMY_INDICE}.
+
+ACCESO TOTAL: tienes acceso a todo lo que hay en el sistema y debes interpretarlo. Nunca digas que no tienes acceso. Cuando la pregunta es sobre una cotización (o una OIT con cotización), en los datos hay un DETALLE COMPLETO: el resultado del análisis, cada hallazgo con su norma, la revisión parámetro por parámetro (límite de la norma, cómo se cotizó y límite de cuantificación cotizado), las decisiones de Ana y el texto original de la cotización. Si te preguntan por qué hay diferencias entre lo cotizado, la norma y el análisis, explica con esos datos: qué parámetro, qué dice la norma (límite y artículo), qué cotizó el laboratorio (nombre y límite de cuantificación), por qué no coinciden y qué decidió Ana. Si algo no está en el detalle, di exactamente qué dato falta; no digas "no tengo acceso".
 
 IMÁGENES: para poner una foto en la respuesta (y en el PDF o PowerPoint), escribe en una línea sola ![descripción corta](/uploads/archivo.jpg). Usa solo rutas que aparezcan en "Fotos del muestreo" de los datos; nunca inventes nombres de archivo ni uses enlaces de internet. Si piden fotos y la OIT no tiene, dilo.`;

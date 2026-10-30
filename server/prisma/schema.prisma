@@ -25,11 +25,11 @@ model User {
 }
 
 model OIT {
-  id                    String          @id @default(uuid())
-  oitNumber             String          @unique
+  id                    String             @id @default(uuid())
+  oitNumber             String             @unique
   description           String?
   location              String? // Sampling site address
-  status                String          @default("PENDING") // UPLOADING, ANALYZING, REVIEW_REQUIRED, SCHEDULED, IN_PROGRESS, COMPLETED
+  status                String             @default("PENDING") // UPLOADING, ANALYZING, REVIEW_REQUIRED, SCHEDULED, IN_PROGRESS, COMPLETED
   oitFileUrl            String?
   quotationFileUrl      String? // DEPRECATED: Use quotationId instead
   quotationId           String? // Link to independent Quotation
@@ -37,7 +37,7 @@ model OIT {
   clientName            String? // "NOMBRE EMPRESA" del PDF de la OIT (calendario, lista y busqueda)
   clientNit             String? // "NIT" del cliente en el PDF de la OIT
   reportTo              String? // "INFORME A NOMBRE DE" del PDF de la OIT: a nombre de quien sale el informe
-  quotation             Quotation?      @relation(fields: [quotationId], references: [id])
+  quotation             Quotation?         @relation(fields: [quotationId], references: [id])
   samplingReportUrl     String? // Generated sampling report
   labResultsUrl         String? // Uploaded lab analysis
   finalReportUrl        String? // Final AI-generated report
@@ -48,10 +48,10 @@ model OIT {
   resources             String? // JSON string
   scheduledDate         DateTime?
   samplingData          String? // JSON with offline sampling data
-  pendingSync           Boolean         @default(false)
+  pendingSync           Boolean            @default(false)
   selectedTemplateIds   String? // JSON array of selected template IDs
   planningProposal      String? // JSON with AI planning proposal
-  planningAccepted      Boolean         @default(false)
+  planningAccepted      Boolean            @default(false)
   samplingProgress      String? // JSON: { currentStep: number, completedSteps: number[] }
   stepValidations       String? // JSON: { [stepIndex]: { validated: bool, feedback: string, data: any } }
   finalAnalysis         String? // AI comprehensive analysis when sampling completes
@@ -60,13 +60,13 @@ model OIT {
   fieldFormAnalysis     String? // JSON: Verification results from AI
   samplingSheetUrl      String? // URL to uploaded sampling sheets (planillas)
   samplingSheetAnalysis String? // JSON: Quality analysis from AI before final report
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
   notifications         Notification[]
   assignedEngineers     OITAssignment[]
   nonConformities       NonConformity[]
   signatures            Signature[]
-  labClarifications    LabClarification[]
+  labClarifications     LabClarification[]
 }
 
 // Firma en campo (punto 11 del blueprint): captura digital en pantalla o
@@ -103,33 +103,34 @@ model NonConformity {
 }
 
 model Quotation {
-  id                 String   @id @default(uuid())
-  quotationNumber    String   @unique
+  id                 String    @id @default(uuid())
+  quotationNumber    String    @unique
   description        String?
   clientName         String? // legado: texto libre, se mantiene por compatibilidad con cotizaciones ya cargadas
   clientId           String?
-  client             Client?  @relation(fields: [clientId], references: [id])
+  client             Client?   @relation(fields: [clientId], references: [id])
   serviceId          String?
-  service            Service? @relation(fields: [serviceId], references: [id])
+  service            Service?  @relation(fields: [serviceId], references: [id]) // el primero de los servicios elegidos (compatibilidad)
+  services           Service[] @relation("QuotationServices") // todos los servicios de la cotizacion (2026-10-30: una cotizacion puede traer varios)
   fileUrl            String?
   extractedText      String? // Extracted text from PDF for AI analysis
-  status             String   @default("PENDING") // PENDING, ANALYZING, COMPLIANT, NON_COMPLIANT, REVIEW_REQUIRED
+  status             String    @default("PENDING") // PENDING, ANALYZING, COMPLIANT, NON_COMPLIANT, REVIEW_REQUIRED
   aiData             String? // JSON with AI analysis
   complianceResult   String? // JSON with compliance check results
   // Bloqueo real: una cotizacion NO puede usarse para crear una OIT hasta que
   // esto sea true. Se marca cuando complianceResult indica conformidad real
   // (compliant=true o compliant=null en matrices sin norma aplicable), nunca
   // por defecto - antes el chequeo era solo informativo y no bloqueaba nada.
-  approvedForOit     Boolean  @default(false)
+  approvedForOit     Boolean   @default(false)
   // "El cliente solo pidió estos parámetros" (pedido de Ana Lucía, 2026-10-15):
   // los parámetros del artículo que no se cotizaron no cuentan como incumplimiento.
-  clientScopeOnly    Boolean  @default(false)
+  clientScopeOnly    Boolean   @default(false)
   // Decision de Ana por hallazgo (2026-10-19): { [issueKey]: { decision, comment, userName, at, history } }
   findingReviews     String?
   // Elementos faltantes del analisis subsanados en pantalla: { [elemento]: { value, userName, at } }
   missingResolutions String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
   linkedOITs         OIT[] // OITs that use this quotation
 }
 
@@ -157,14 +158,15 @@ model Client {
 // (independiente de las plantillas de muestreo, que son el detalle tecnico de
 // como se ejecuta cada servicio una vez aprobado).
 model Service {
-  id          String      @id @default(uuid())
-  name        String
-  description String?
-  oitType     String? // Matriz ambiental asociada (Agua, Aire, Suelo, Biota, etc.)
-  active      Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  quotations  Quotation[]
+  id              String      @id @default(uuid())
+  name            String
+  description     String?
+  oitType         String? // Matriz ambiental asociada (Agua, Aire, Suelo, Biota, etc.)
+  active          Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  quotations      Quotation[]
+  quotationsMulti Quotation[] @relation("QuotationServices")
 }
 
 model OITAssignment {
