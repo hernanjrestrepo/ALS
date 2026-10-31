@@ -1,3 +1,4 @@
+import { hasPlannedServices, planFromQuotation } from '../services/oitPlanFromQuotation';
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AIService } from '../services/ai.service';
@@ -1172,6 +1173,20 @@ export const getOITById = async (req: Request, res: Response) => {
             const isAssigned = oit.assignedEngineers.some((a: any) => a.userId === user.userId);
             if (!isAssigned) {
                 return res.status(403).json({ message: 'No tienes acceso a esta OIT' });
+            }
+        }
+
+        // OIT sin documento propio (creada por el resultado de laboratorio) pero con cotizacion: sus servicios
+        // a programar son los de la cotizacion.
+        if (!oit.oitFileUrl && oit.quotationId && !hasPlannedServices(oit.aiData)) {
+            const q = await prisma.quotation.findUnique({
+                where: { id: oit.quotationId },
+                select: { quotationNumber: true, aiData: true, services: { select: { name: true } } }
+            });
+            const seeded = q ? planFromQuotation(q) : null;
+            if (seeded) {
+                await prisma.oIT.update({ where: { id }, data: { aiData: seeded } });
+                (oit as any).aiData = seeded;
             }
         }
 

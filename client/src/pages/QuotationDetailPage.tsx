@@ -466,7 +466,7 @@ export default function QuotationDetailPage() {
 
                                 <div className="grid md:grid-cols-2 gap-6">
                                     {/* Extracted Info */}
-                                    {(aiData.rawResponse || aiData.description) && (() => {
+                                    {(aiData.rawResponse || aiData.description || aiData.evidence?.length) && (() => {
                                         try {
                                             const rawData = aiData.rawResponse ? JSON.parse(aiData.rawResponse) : {};
                                             return (
@@ -483,6 +483,11 @@ export default function QuotationDetailPage() {
                                                                 {aiData.description && <p>{aiData.description}</p>}
                                                                 {aiData.location && <p className="text-slate-500">{tr("Ubicación")}: {aiData.location}</p>}
                                                             </div>
+                                                        )}
+                                                        {Array.isArray(aiData.evidence) && aiData.evidence.length > 0 && (
+                                                            <ul className="py-2 border-b border-slate-100 text-sm text-slate-700 space-y-1 list-disc pl-5">
+                                                                {aiData.evidence.map((e: string, i: number) => <li key={i}>{e}</li>)}
+                                                            </ul>
                                                         )}
                                                         {rawData.offer_id && (
                                                             <div className="flex justify-between items-center py-2 border-b border-slate-100">
