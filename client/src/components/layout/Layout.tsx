@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { ParadixeFooter } from '@/components/brand/ParadixeFooter';
+import { ParadixeBadge } from '@/components/brand/ParadixeBadge';
 import { ChatWidget } from '@/components/shared/ChatWidget';
 
 
@@ -26,9 +26,9 @@ export function Layout() {
                     <div className="flex-1">
                         <Outlet />
                     </div>
-                    <ParadixeFooter />
                 </main>
             </div>
+            <ParadixeBadge besideChat={showChatWidget} />
             {showChatWidget && <ChatWidget />}
         </div>
 
