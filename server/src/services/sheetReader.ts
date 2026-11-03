@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { ollamaPost } from './gpuQueue';
+import { bedrockEnabled, bedrockModelId } from './bedrock';
 // Lectura de la planilla de campo por foto (Hernan, 2026-10-23: "un boton para tomar
 // una foto de planillas y cargar toda la data sin necesidad de estar diligenciando").
 // Corre en la GPU propia del servidor (Hernan: "estamos pagando una GPU"), con un modelo
@@ -14,8 +15,9 @@ const TEXT_MODEL = process.env.OLLAMA_MODEL || 'gpt-oss';
 
 export interface SheetField { key: string; label: string; unit?: string; hint?: string }
 
-export const sheetReaderModel = () => (process.env.SHEET_VISION_MODEL || '').trim();
-export const sheetReaderEnabled = () => !!sheetReaderModel();
+export const sheetReaderModel = () => bedrockEnabled() ? bedrockModelId() : (process.env.SHEET_VISION_MODEL || '').trim();
+// Con Bedrock el mismo modelo lee fotos y texto: no hace falta SHEET_VISION_MODEL.
+export const sheetReaderEnabled = () => bedrockEnabled() || !!sheetReaderModel();
 
 export function buildSheetPrompt(fields: SheetField[]): string {
     const list = fields.map(f => `- "${f.key}": ${f.label}${f.unit ? ` (${f.unit})` : ''}${f.hint ? ` — ${f.hint}` : ''}`).join('\n');
@@ -25,7 +27,7 @@ ${list}
 
 REGLAS:
 - Usa exactamente las claves de la lista. Omite el campo si no aparece o no se lee con claridad. NUNCA adivines ni inventes.
-- Copia el valor como está escrito (números con su separador decimal, sin agregar unidades que no estén).
+- Copia el valor como está escrito (números con su separador decimal, sin agregar unidades que no estén). Todos los valores van entre comillas, como texto ("12,45", no 12.45).
 - Si un campo tiene varias lecturas, sepáralas con "; ".
 - Responde solo el JSON, sin texto adicional.`;
 }
@@ -102,7 +104,7 @@ ${list}
 
 REGLAS:
 - Usa exactamente las claves de la lista. Omite el campo si no aparece en el texto. NUNCA adivines ni inventes.
-- Copia el valor como está escrito (números con su separador decimal, sin agregar unidades que no estén).
+- Copia el valor como está escrito (números con su separador decimal, sin agregar unidades que no estén). Todos los valores van entre comillas, como texto.
 - Si un campo tiene lecturas de varios puntos de muestreo (punto 1, punto 2...), sepáralas con "; ".
 - La columna DUPLICADO no es otro punto: si hay columnas MUESTRA y DUPLICADO, toma solo el valor de MUESTRA (la primera) e ignora el duplicado.
 - Una MEDICIÓN es el valor que escribió la persona en campo. NO son mediciones los rangos de trabajo, los métodos de referencia (SM 4500H+ B), las unidades, los valores de verificación o calibración de equipos, ni las listas de chequeo.

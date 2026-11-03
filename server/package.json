@@ -11,6 +11,7 @@
         "test:coverage": "vitest run --coverage"
     },
     "dependencies": {
+        "@aws-sdk/client-bedrock-runtime": "^3.1161.0",
         "@aws-sdk/client-sesv2": "^3.967.0",
         "@prisma/client": "^5.7.0",
         "@types/nodemailer": "^8.0.1",

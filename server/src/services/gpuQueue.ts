@@ -10,6 +10,7 @@
  */
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { AsyncLocalStorage } from 'async_hooks';
+import { bedrockEnabled, bedrockPost } from './bedrock';
 
 export type Prioridad = 'alta' | 'baja';
 
@@ -50,6 +51,8 @@ export function enFila<T>(fn: () => Promise<T>, prioridad: Prioridad = prioridad
 
 /** axios.post a Ollama, por la fila. El timeout cuenta desde que le toca, no desde que espera. */
 export function ollamaPost<T = any>(url: string, body: unknown, config?: AxiosRequestConfig, prioridad?: Prioridad): Promise<AxiosResponse<T>> {
+    // Con LLM_BACKEND=bedrock no hay GPU ni fila: Bedrock atiende varias solicitudes a la vez.
+    if (bedrockEnabled()) return bedrockPost(url, body, config) as unknown as Promise<AxiosResponse<T>>;
     return enFila(() => axios.post<T>(url, body, config), prioridad);
 }
 

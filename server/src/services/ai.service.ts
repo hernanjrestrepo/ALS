@@ -4,6 +4,7 @@ import path from 'path';
 import { errorMessage, logError, logWarning } from '../utils/errors';
 
 import { ollamaPost } from './gpuQueue';
+import { bedrockEnabled, bedrockModelId } from './bedrock';
 import { openrouterEnabled, openrouterChat } from './openrouter';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'gpt-oss';
@@ -58,6 +59,7 @@ export class AIService {
     }
 
     async isAvailable(): Promise<boolean> {
+        if (bedrockEnabled()) return true; // servicio gestionado: sin servidor local que revisar
         try {
             await axios.get(`${this.baseURL}/api/tags`, { timeout: 2000 });
             return true;
@@ -68,6 +70,7 @@ export class AIService {
     }
 
     async getModels(): Promise<string[]> {
+        if (bedrockEnabled()) return [bedrockModelId()];
         try {
             const response = await axios.get(`${this.baseURL}/api/tags`);
             return response.data.models.map((m: any) => m.name);
