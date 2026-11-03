@@ -41,4 +41,11 @@ describe('Bedrock: traduccion de las peticiones estilo Ollama', () => {
         expect(bedrockEnabled()).toBe(true);
         delete process.env.LLM_BACKEND;
     });
+
+    it('las fotos van al modelo de vision y el texto al de texto', () => {
+        const withImg = toConverse('http://x/api/chat', { messages: [{ role: 'user', content: 'lee', images: [png] }] });
+        const text = toConverse('http://x/api/generate', { prompt: 'hola' });
+        expect(withImg.hasImages).toBe(true);
+        expect(text.hasImages).toBe(false);
+    });
 });

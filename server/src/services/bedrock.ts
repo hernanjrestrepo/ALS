@@ -11,6 +11,12 @@ import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-r
 
 export const bedrockEnabled = (): boolean => (process.env.LLM_BACKEND || '').trim().toLowerCase() === 'bedrock';
 export const bedrockModelId = (): string => (process.env.BEDROCK_MODEL_ID || 'mistral.mistral-large-3-675b-instruct').trim();
+// Fotos y planillas escaneadas: Claude Sonnet 5.5 leyo 8 de 8 valores de una planilla densa (FO-PO-PSM-45-01);
+// Mistral Large 3 acerto 3 de 8, Pixtral 1, Nova Pro 4 y Qwen3-VL 7 (puso la temperatura en la conductividad
+// en blanco). Se prueba el 3-nov-2026 con la planilla real de la OT 15030.
+export const bedrockVisionModelId = (): string => (process.env.BEDROCK_VISION_MODEL_ID || 'us.anthropic.claude-sonnet-5-5').trim();
+// Los modelos Claude 5 rechazan "temperature".
+const acceptsTemperature = (modelId: string) => !/anthropic/i.test(modelId);
 
 let client: BedrockRuntimeClient | null = null;
 const getClient = () => (client ||= new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1', maxAttempts: 4 }));
@@ -21,6 +27,7 @@ export interface ConversePlan {
     inferenceConfig: { maxTokens: number; temperature: number };
     wantsJson: boolean;
     kind: 'generate' | 'chat';
+    hasImages: boolean;
 }
 
 const JSON_NOTE = 'Responde únicamente con JSON válido, sin texto adicional ni bloques de código.';
@@ -50,9 +57,9 @@ export function toConverse(url: string, body: any): ConversePlan {
             role: m.role === 'assistant' ? 'assistant' : 'user',
             content: [...(Array.isArray(m.images) ? m.images.map(imageBlock) : []), { text: String(m.content ?? '') || ' ' }],
         }));
-        return { system, messages, inferenceConfig, wantsJson, kind: 'chat' };
+        return { system, messages, inferenceConfig, wantsJson, kind: 'chat', hasImages: (body.messages || []).some((m: any) => Array.isArray(m.images) && m.images.length > 0) };
     }
-    return { system, messages: [{ role: 'user', content: [{ text: String(body?.prompt ?? '') || ' ' }] }], inferenceConfig, wantsJson, kind: 'generate' };
+    return { system, messages: [{ role: 'user', content: [{ text: String(body?.prompt ?? '') || ' ' }] }], inferenceConfig, wantsJson, kind: 'generate', hasImages: false };
 }
 
 // Respuesta del modelo -> forma de Ollama. Con format:'json' se quitan las vallas ```json.
@@ -73,8 +80,10 @@ export async function bedrockPost(url: string, body: any, config?: { timeout?: n
     const ctl = new AbortController();
     const timer = config?.timeout ? setTimeout(() => ctl.abort(), config.timeout) : null;
     try {
+        const modelId = plan.hasImages ? bedrockVisionModelId() : bedrockModelId();
+        const inferenceConfig: any = acceptsTemperature(modelId) ? plan.inferenceConfig : { maxTokens: plan.inferenceConfig.maxTokens };
         const res = await getClient().send(new ConverseCommand({
-            modelId: bedrockModelId(), system: plan.system, messages: plan.messages, inferenceConfig: plan.inferenceConfig,
+            modelId, system: plan.system, messages: plan.messages, inferenceConfig,
         }), { abortSignal: ctl.signal });
         const text = (res.output?.message?.content || []).map((c: any) => c.text || '').join('');
         return { data: fromConverse(plan, text) };

@@ -28,6 +28,8 @@ ${list}
 REGLAS:
 - Usa exactamente las claves de la lista. Omite el campo si no aparece o no se lee con claridad. NUNCA adivines ni inventes.
 - Copia el valor como está escrito (números con su separador decimal, sin agregar unidades que no estén). Todos los valores van entre comillas, como texto ("12,45", no 12.45).
+- El valor de cada parámetro está en la MISMA FILA que su nombre. Si la celda de esa fila está vacía, omite el campo; no tomes el valor de otra fila.
+- Si la tabla tiene columnas MUESTRA y DUPLICADO, toma solo la columna MUESTRA (la primera).
 - Si un campo tiene varias lecturas, sepáralas con "; ".
 - Responde solo el JSON, sin texto adicional.`;
 }
