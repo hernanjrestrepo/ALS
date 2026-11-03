@@ -19,6 +19,12 @@ process.on('uncaughtException', (error) => {
 
 app.listen(PORT, '127.0.0.1', () => {
     console.log(`Server running on port ${PORT}`);
+    // Una copia de prueba (p. ej. el servidor nuevo antes del cambio) arranca con
+    // DISABLE_BACKGROUND_JOBS=1 para no leer el buzon ni mandar resumenes por duplicado.
+    if (process.env.DISABLE_BACKGROUND_JOBS === '1') {
+        console.log('[Servidor] Tareas de fondo desactivadas (DISABLE_BACKGROUND_JOBS=1)');
+        return;
+    }
     startMailboxPolling();
     startAcademyScheduler();
     startLabDigest();
