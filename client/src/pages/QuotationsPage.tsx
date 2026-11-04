@@ -39,6 +39,7 @@ interface Quotation {
     linkedOITs?: { id: string; oitNumber: string; status: string }[];
 }
 
+const NEW_CLIENT = '__new__';
 interface ClientOption { id: string; name: string; }
 interface ServiceOption { id: string; name: string; }
 
@@ -53,6 +54,7 @@ export default function QuotationsPage() {
 
     // Create form state
     const [clientId, setClientId] = useState('');
+    const [newClientName, setNewClientName] = useState('');
     // Una cotizacion puede traer varios servicios (agua potable, residual, subterranea...).
     const [serviceIds, setServiceIds] = useState<string[]>([]);
     const [description, setDescription] = useState('');
@@ -125,8 +127,9 @@ export default function QuotationsPage() {
             toast.error(tr("Debes seleccionar un archivo PDF"));
             return;
         }
-        if (!clientId) {
-            toast.error(tr("Debes seleccionar el cliente - según el flujo, el cliente debe existir antes de la cotización"));
+        const isNewClient = clientId === NEW_CLIENT;
+        if (!clientId || (isNewClient && newClientName.trim().length < 2)) {
+            toast.error(isNewClient ? tr("Escribe el nombre del cliente nuevo") : tr("Selecciona el cliente o crea uno nuevo"));
             return;
         }
 
@@ -134,9 +137,14 @@ export default function QuotationsPage() {
         try {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('clientId', clientId);
-            const selectedClient = clientOptions.find(c => c.id === clientId);
-            if (selectedClient) formData.append('clientName', selectedClient.name);
+            if (isNewClient) {
+                // El cliente se crea solo al guardar la cotización.
+                formData.append('clientName', newClientName.trim());
+            } else {
+                formData.append('clientId', clientId);
+                const selectedClient = clientOptions.find(c => c.id === clientId);
+                if (selectedClient) formData.append('clientName', selectedClient.name);
+            }
             serviceIds.forEach(id => formData.append('serviceIds', id));
             if (description) formData.append('description', description);
 
@@ -148,6 +156,7 @@ export default function QuotationsPage() {
             setIsCreateOpen(false);
             resetForm();
             fetchQuotations();
+            if (isNewClient) api.get('/clients').then(r => setClientOptions(r.data)).catch(() => {});
         } catch (error: any) {
             console.error('Error creating quotation:', error);
             toast.error(error.response?.data?.error || tr("Error al crear cotización"));
@@ -159,6 +168,7 @@ export default function QuotationsPage() {
 
     const resetForm = () => {
         setClientId('');
+        setNewClientName('');
         setServiceIds([]);
         setDescription('');
         setFile(null);
@@ -246,20 +256,29 @@ export default function QuotationsPage() {
                                 <Label htmlFor="clientId">{tr("Cliente *")}</Label>
                                 <Select value={clientId} onValueChange={setClientId}>
                                     <SelectTrigger id="clientId">
-                                        <SelectValue placeholder={clientOptions.length === 0 ? 'No hay clientes registrados - créalo primero en Clientes' : 'Selecciona un cliente'} />
+                                        <SelectValue placeholder={tr("Selecciona un cliente")} />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value={NEW_CLIENT}>{tr("+ Cliente nuevo (se crea al guardar)")}</SelectItem>
                                         {clientOptions.map(c => (
                                             <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                {clientId === NEW_CLIENT && (
+                                    <Input
+                                        autoFocus
+                                        placeholder={tr("Nombre del cliente nuevo")}
+                                        value={newClientName}
+                                        onChange={e => setNewClientName(e.target.value)}
+                                    />
+                                )}
                             </div>
 
                             {/* Service Select */}
                             <div className="grid gap-2">
                                 <div className="flex items-center justify-between">
-                                    <Label>{tr("Servicios (opcional)")}</Label>
+                                    <Label>{tr("Servicios (opcional; los que traiga la cotización y no existan se crean solos)")}</Label>
                                     <span className="text-xs text-slate-500">
                                         {serviceIds.length ? `${serviceIds.length} ${tr("seleccionado(s)")}` : tr("Elige uno, varios o todos")}
                                     </span>

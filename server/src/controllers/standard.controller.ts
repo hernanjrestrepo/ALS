@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import { pdfService } from '../services/pdf.service';
 import { logError } from '../utils/errors';
+import { ocrAvailable, ocrScannedPdf } from '../services/scannedPdfOcr';
 
 const prisma = new PrismaClient();
 
@@ -20,6 +21,20 @@ async function extractStandardContent(filename: string): Promise<string | undefi
         logError(`No se pudo extraer contenido del PDF de norma (${filename})`, error);
         return undefined;
     }
+}
+
+// PDF escaneado (sin texto): se lee con vision en segundo plano y el texto queda en la norma al terminar.
+function ocrStandardInBackground(standardId: string, filename: string) {
+    if (!ocrAvailable()) return;
+    const filePath = path.join(__dirname, '../../uploads', filename);
+    console.log(`[Normas] ${filename} no trae texto: se lee con vision en segundo plano`);
+    ocrScannedPdf(filePath)
+        .then(async text => {
+            if (text.trim().length < 200) return;
+            await prisma.standard.update({ where: { id: standardId }, data: { content: text } });
+            console.log(`[Normas] Norma ${standardId}: ${text.length} caracteres leidos del escaneo`);
+        })
+        .catch(error => logError(`No se pudo leer con vision la norma escaneada (${filename})`, error));
 }
 
 export const getStandards = async (req: Request, res: Response) => {
@@ -71,6 +86,7 @@ export const createStandard = async (req: Request, res: Response) => {
         }
 
         const standard = await prisma.standard.create({ data });
+        if (file && !data.content && /\.pdf$/i.test(file.filename)) ocrStandardInBackground(standard.id, file.filename);
         res.status(201).json(standard);
     } catch (error) {
         console.error('Error creating standard:', error);
@@ -99,6 +115,7 @@ export const updateStandard = async (req: Request, res: Response) => {
             where: { id },
             data
         });
+        if (file && !data.content && /\.pdf$/i.test(file.filename)) ocrStandardInBackground(standard.id, file.filename);
         res.json(standard);
     } catch (error) {
         console.error('Error updating standard:', error);

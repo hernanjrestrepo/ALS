@@ -149,7 +149,50 @@ function sliceText(content: string, target: ComparisonTarget): string | null {
     const next = /\n\s*ART[ÍI]CULO\s+\d/gi;
     next.lastIndex = start + heading[0].length;
     const end = next.exec(content)?.index ?? start + 8000;
+    // Articulos con una columna por actividad (Res. 631, art. 13: ~28.000 caracteres): se deja solo la columna
+    // de la actividad que pide la cotizacion en lugar de cortar el articulo a la mitad.
+    const narrowed = narrowToActivity(content.slice(start, Math.min(end, start + 80000)), target);
+    if (narrowed) return narrowed;
     return content.slice(start, Math.min(end, start + 8000)).trim();
+}
+
+const activityWords = (target: ComparisonTarget): string[] => {
+    const title = target.raw.replace(/\d+(?:\.\d+)*/g, ' ').split(/tabla|cuadro|categor[ií]a/i)[0];
+    return [...new Set(norm(title).split(/[^a-z0-9]+/).filter(w => w.length > 3).map(w => w.replace(/(es|s)$/, '')))];
+};
+
+export const ACTIVITY_MARKER = '[Columna de la actividad:';
+
+// Texto del articulo tipo "PARAMETRO<tab>UNIDADES<tab>ACTIVIDAD 1<tab>ACTIVIDAD 2...": para cada encabezado se busca la
+// columna cuyo nombre coincide con el titulo que escribio la cotizacion y se conservan parametro, unidad y esa columna.
+export function narrowToActivity(article: string, target: ComparisonTarget): string | null {
+    const wanted = activityWords(target);
+    if (wanted.length < 2) return null;
+    const lines = article.split('\n');
+    const out: string[] = [];
+    let col = -1;
+    let found = '';
+    for (const line of lines) {
+        const cols = line.split('\t');
+        if (cols.length >= 3 && /^par[aá]metros?$/i.test(cols[0].trim())) {
+            col = -1;
+            let bestScore = 0;
+            cols.forEach((c, i) => {
+                if (i < 2) return;
+                const have = new Set(norm(c).split(/[^a-z0-9]+/).filter(w => w.length > 3).map(w => w.replace(/(es|s)$/, '')));
+                const score = wanted.filter(w => have.has(w)).length / wanted.length;
+                if (score >= 0.8 && score > bestScore) { bestScore = score; col = i; found = c.trim(); }
+            });
+            if (col >= 0) out.push(`${cols[0]}\t${cols[1]}\t${cols[col]}`);
+            continue;
+        }
+        if (col >= 0) {
+            if (cols.length > col) out.push(`${cols[0]}\t${cols[1]}\t${cols[col]}`);
+            else if (cols.length <= 2 && line.trim()) out.push(line.trim()); // renglon de seccion (Generales, Iones...)
+        }
+    }
+    if (!found) return null;
+    return `${ACTIVITY_MARKER} ${found}]\nParámetro | Unidad | Límite\n${out.map(l => l.split('\t').join(' | ')).join('\n')}`;
 }
 
 export interface StandardLike {
@@ -171,19 +214,36 @@ export function describeTarget(t: ComparisonTarget): string {
     return parts.join(', ');
 }
 
+// Cuando la cotizacion no cita la norma, solo sirve el articulo cuyo titulo coincide con el que ella escribio
+// ("Fabricación de Artículos de Hormigón, Cemento y Yeso"). Sin titulo se acepta unicamente si hay un solo candidato.
+export function pickByArticleTitle<T extends { text: string | null }>(slices: T[], target: ComparisonTarget): T[] {
+    const words = (s: string) => [...new Set(norm(s).split(/[^a-z0-9]+/).filter(w => w.length > 3).map(w => w.replace(/(es|s)$/, '')))];
+    const titleWords = words(target.raw.replace(/\d+(?:\.\d+)*/g, ' ').split(/tabla|cuadro|categor[ií]a/i)[0]);
+    if (!titleWords.length) return slices.length === 1 ? slices : [];
+    return slices.filter(x => {
+        if (String(x.text).startsWith(ACTIVITY_MARKER)) return true; // ya se encontro la columna de esa actividad
+        const head = words(String(x.text).slice(0, 500));
+        return titleWords.filter(w => head.includes(w)).length / titleWords.length >= 0.6;
+    });
+}
+
 // Para cada articulo pedido, el texto de ese articulo en las normas cargadas.
 // Si la misma norma esta cargada como Excel y como PDF, se usa la tabla del Excel.
 export function buildArticleBlocks(standards: StandardLike[], targets: ComparisonTarget[]) {
     const blocks: ArticleBlock[] = [];
     const notFound: ComparisonTarget[] = [];
     for (const target of targets) {
-        const candidates = standards.filter(s => target.normNumber && extractCitedStandardNumbers(s.title).has(target.normNumber));
-        const slices = candidates.map(s => {
+        // Sin numero de norma ("Artículo de la norma a comparar: 13 Fabricación de Artículos de Hormigón...",
+        // SIACOT-19469, 4-nov) se busca ese articulo en todas las normas y se queda el que lleva el mismo titulo.
+        const noNorm = !target.normNumber;
+        const candidates = noNorm ? standards : standards.filter(s => extractCitedStandardNumbers(s.title).has(target.normNumber));
+        let slices = candidates.map(s => {
             const content = s.content || '';
             const tabular = isTabularStandard(content);
             const text = tabular ? sliceTabular(content, target) : sliceText(content, target);
             return { s, tabular, text };
         }).filter(x => x.text);
+        if (noNorm) slices = pickByArticleTitle(slices, target);
         const chosen = slices.some(x => x.tabular) ? slices.filter(x => x.tabular) : slices;
         if (!chosen.length) {
             notFound.push(target);

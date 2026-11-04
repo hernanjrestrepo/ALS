@@ -16,6 +16,7 @@ import {
 } from '../services/quotationCompliance';
 import { linkOitsToQuotation } from '../services/quotationLink';
 import { parseServiceGroups, ServiceGroup } from '../services/quotationGroups';
+import { ensureServicesForQuotation, findOrCreateClientByName, remapResolutions } from '../services/quotationAutofill';
 
 const prisma = new PrismaClient();
 
@@ -332,12 +333,20 @@ export const createQuotation = async (req: Request, res: Response) => {
         // Store file URL with /uploads/ prefix for consistency
         const fileUrl = file ? `/uploads/${file.filename}` : undefined;
 
+        // Cliente escrito en el formulario que aun no existe: se crea (Ana, 2026-11-04: "ULTRACEM no se encontraba creado").
+        let finalClientId: string | undefined = clientId || undefined;
+        let finalClientName: string | undefined = clientName;
+        if (!finalClientId && clientName) {
+            const client = await findOrCreateClientByName(clientName);
+            if (client) { finalClientId = client.id; finalClientName = client.name; }
+        }
+
         const quotation = await prisma.quotation.create({
             data: {
                 quotationNumber: finalQuotationNumber,
                 description,
-                clientName,
-                clientId: clientId || undefined,
+                clientName: finalClientName,
+                clientId: finalClientId,
                 serviceId: serviceIds[0] || undefined,
                 ...(serviceIds.length ? { services: { connect: serviceIds.map(id => ({ id })) } } : {}),
                 fileUrl,
@@ -721,9 +730,11 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
         const reviews = Object.fromEntries(Object.entries(oldReviews).filter(([k]) => issueKeys.has(k))) as FindingReviews;
         if (Object.keys(reviews).length !== Object.keys(oldReviews).length) updateData.findingReviews = JSON.stringify(reviews);
         const oldResolutions = parseJson<Record<string, unknown>>(current?.missingResolutions) || {};
-        const missingNow = new Set(((generalAnalysis as any).missing || []).map((m: unknown) => String(m).trim()));
-        const resolutions = Object.fromEntries(Object.entries(oldResolutions).filter(([k]) => missingNow.has(k.trim())));
-        if (Object.keys(resolutions).length !== Object.keys(oldResolutions).length) updateData.missingResolutions = JSON.stringify(resolutions);
+        // La IA redacta el mismo faltante distinto en cada analisis: el dato que Ana ya escribio se pasa al
+        // faltante vigente que se le parece (4-nov: "al volver a lanzar el analisis se borro lo que ya habia puesto").
+        const missingNow: string[] = ((generalAnalysis as any).missing || []).map((m: unknown) => String(m).trim());
+        const resolutions = remapResolutions(oldResolutions, missingNow);
+        if (JSON.stringify(resolutions) !== JSON.stringify(oldResolutions)) updateData.missingResolutions = JSON.stringify(resolutions);
         if (Object.keys(reviews).length) {
             const effective = applyFindingReviews(complianceResult, reviews);
             updateData.status = effective.status;
@@ -734,6 +745,8 @@ export async function runQuotationAnalysis(quotationId: string, fileUrl: string)
             where: { id: quotationId },
             data: updateData
         });
+        // Los servicios que trae la cotizacion y aun no existen en Xmart se crean y se enlazan solos.
+        await ensureServicesForQuotation(quotationId, serviceGroups.map(g => g.matrix || g.title)).catch(err => console.error('[Cotizacion] No se pudieron crear los servicios:', err));
         await linkOitsToQuotation(saved).catch(err => console.error('[Vinculo] Error vinculando OIT a la cotizacion:', err));
 
         console.log(`[Quotation] Compliance check complete for ${quotationId}.Status: ${finalStatus}, Score: ${complianceResult.score}/100, hallazgos: ${verdict.issues.length}`);
