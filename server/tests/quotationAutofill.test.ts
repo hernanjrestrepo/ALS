@@ -19,14 +19,16 @@ describe('remapResolutions: los datos subsanados sobreviven a un nuevo analisis'
         expect(Object.keys(out)).toHaveLength(1);
     });
 
-    it('un faltante distinto no recibe el dato', () => {
+    it('un dato que ya nadie pide se conserva (no se borra lo que escribio una persona)', () => {
         const out = remapResolutions({ 'Orden de servicio o contrato del cliente': value }, ['Autorización de la autoridad ambiental']);
-        expect(out).toEqual({});
+        expect(out).toEqual({ 'Orden de servicio o contrato del cliente': value });
     });
 
     it('no usa el mismo faltante dos veces', () => {
         const out = remapResolutions({ 'Volante de consignación del anticipo': value, 'Volante consignación anticipo copia': { value: 'x' } }, ['Volante de consignación del anticipo']);
-        expect(Object.keys(out)).toHaveLength(1);
+        // el faltante vigente recibe un solo dato; el otro se conserva con su propia clave
+        expect(out['Volante de consignación del anticipo']).toBe(value);
+        expect(out['Volante consignación anticipo copia']).toEqual({ value: 'x' });
     });
 
     it('similarity', () => {
@@ -87,5 +89,13 @@ describe('articulo con una columna por actividad (Res. 631, art. 13)', () => {
         expect(t).toContain('Cinc (Zn) | mg/L | 3,00');
         expect(t).not.toContain('130,00');
         expect(t).not.toContain('8,88');
+    });
+});
+
+describe('ensureServicesForQuotation: doméstica y no doméstica son servicios distintos', () => {
+    it('la clave conserva el "no"', async () => {
+        const mod: any = await import('../src/services/quotationAutofill');
+        expect(mod.serviceKey('Agua residual no doméstica')).not.toBe(mod.serviceKey('Agua Residual Doméstica'));
+        expect(mod.serviceKey('AGUA RESIDUAL DOMÉSTICA')).toBe(mod.serviceKey('Agua residual doméstica'));
     });
 });

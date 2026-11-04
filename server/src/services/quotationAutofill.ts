@@ -34,18 +34,18 @@ function serviceDisplayName(label: string): string {
 }
 
 const STOP = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'y', 'caracterizacion', 'monitoreo', 'muestreo']);
-const keyOf = (s: string) => fold(s).split(/[^a-z0-9]+/).filter(w => w.length > 2 && !STOP.has(w)).map(w => w.replace(/(es|s)$/, '')).sort().join(' ');
+export const serviceKey = (s: string) => fold(s).split(/[^a-z0-9]+/).filter(w => (w.length > 2 || w === 'no') && !STOP.has(w)).map(w => w.replace(/(es|s)$/, '')).sort().join(' ');
 
 // Crea los servicios de la cotizacion que aun no existen y los enlaza. Devuelve los nombres creados.
 export async function ensureServicesForQuotation(quotationId: string, labels: string[]): Promise<string[]> {
-    const wanted = [...new Map(labels.map(l => [keyOf(l), l.trim()] as const).filter(([k, l]) => k && l.length >= 4 && l.length <= 80)).entries()];
+    const wanted = [...new Map(labels.map(l => [serviceKey(l), l.trim()] as const).filter(([k, l]) => k && l.length >= 4 && l.length <= 80)).entries()];
     if (!wanted.length) return [];
     const services = await prisma.service.findMany({ select: { id: true, name: true } });
     const quotation = await prisma.quotation.findUnique({ where: { id: quotationId }, select: { services: { select: { id: true } } } });
     const linked = new Set((quotation?.services || []).map(s => s.id));
     const created: string[] = [];
     for (const [key, label] of wanted) {
-        let service = services.find(s => keyOf(s.name) === key);
+        let service = services.find(s => serviceKey(s.name) === key);
         if (!service) {
             const name = serviceDisplayName(label);
             const oitType = /agua/i.test(label) ? 'Agua' : /aire|emisi/i.test(label) ? 'Aire' : /suelo/i.test(label) ? 'Suelo' : /biota/i.test(label) ? 'Biota' : undefined;
@@ -75,13 +75,15 @@ export function similarity(a: string, b: string): number {
 
 /**
  * Al analizar de nuevo, la IA puede redactar distinto el mismo faltante. Cada dato subsanado se vuelve a
- * poner en el faltante vigente que mas se le parece (>= 0.6). Lo que ya no se parece a ninguno se
- * descarta solo si el faltante ya no existe; un dato escrito por una persona nunca se borra por cambio
- * de redaccion.
+ * poner en el faltante vigente que mas se le parece (>= 0.6). Un dato que ninguno de los faltantes de ahora
+ * menciona se conserva con su clave anterior: la pantalla solo muestra los faltantes vigentes (30-oct), pero
+ * lo que una persona escribio nunca se borra (Ana, 4-nov: "se borro lo que ya habia puesto"); si la IA
+ * vuelve a pedir ese dato en otro analisis, reaparece ya contestado.
  */
 export function remapResolutions<T>(old: Record<string, T>, missingNow: string[]): Record<string, T> {
     const out: Record<string, T> = {};
     const used = new Set<string>();
+    const orphans: Array<[string, T]> = [];
     for (const [key, value] of Object.entries(old)) {
         const exact = missingNow.find(m => m.trim() === key.trim());
         if (exact) { out[exact.trim()] = value; used.add(exact); continue; }
@@ -91,7 +93,8 @@ export function remapResolutions<T>(old: Record<string, T>, missingNow: string[]
             const s = similarity(key, m);
             if (s >= 0.6 && (!best || s > best.s)) best = { m, s };
         }
-        if (best) { out[best.m.trim()] = value; used.add(best.m); }
+        if (best) { out[best.m.trim()] = value; used.add(best.m); } else orphans.push([key, value]);
     }
+    for (const [key, value] of orphans) if (!(key in out)) out[key] = value;
     return out;
 }
